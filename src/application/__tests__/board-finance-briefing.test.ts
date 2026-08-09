@@ -51,9 +51,7 @@ describe('the board finance briefing', () => {
       );
     });
 
-    it('counts the grace weeks left before the board steps in', () => {
-      // Cozy allows four negative weeks before the rescue fires, and the count
-      // has already reached one, so three more are left.
+    it('says the board will act next week once the first warning appears', () => {
       const briefing = boardFinanceBriefing(
         career(20260902, -2540, {
           consecutiveNegativeWeeks: 1,
@@ -62,8 +60,9 @@ describe('the board finance briefing', () => {
         'financial-warning',
       );
 
-      expect(briefing?.body[1]).toContain('3 more weeks in the red');
-      expect(briefing?.body[1]).toContain('emergency loan');
+      expect(briefing?.body[1]).toBe(
+        'Nothing can be bought while the balance is negative. No signings, no new building. The board will provide its emergency loan next week.',
+      );
     });
 
     /** A club that has spent its one rescue is warned about the real next step. */
@@ -94,7 +93,7 @@ describe('the board finance briefing', () => {
       expect(briefing?.body[1]).toContain('run out of patience');
     });
 
-    it('explains the action available when the manager can still afford it', () => {
+    it('tells the manager to wait while the board meets', () => {
       const briefing = boardFinanceBriefing(
         career(20260905, -2540, {
           consecutiveNegativeWeeks: 1,
@@ -104,12 +103,11 @@ describe('the board finance briefing', () => {
       );
 
       expect(briefing?.body[2]).toBe(
-        'If you have the funds to do so, create a facility to help earn more income.' +
-          ' If not, the board is having an emergency meeting right now.',
+        "Just sit tight, the board is discussing. There's not much you can do right now.",
       );
     });
 
-    it('reassures a broke manager that waiting for the board is the right move', () => {
+    it('ends after the new wait message', () => {
       const briefing = boardFinanceBriefing(
         career(20260916, -2540, {
           consecutiveNegativeWeeks: 1,
@@ -118,11 +116,7 @@ describe('the board finance briefing', () => {
         'financial-warning',
       );
 
-      expect(briefing?.body[3]).toBe(
-        "If you don't have enough to build anything, hold tight." +
-          " There's nothing else you need to do until the board decides what happens next." +
-          " You'll hear from them soon.",
-      );
+      expect(briefing?.body).toHaveLength(3);
     });
 
     it('quotes the same week count as the desk row it came from', () => {
@@ -332,7 +326,7 @@ describe('the board finance briefing', () => {
       'financial-warning',
     );
 
-    expect(warning?.body).toHaveLength(4);
+    expect(warning?.body).toHaveLength(3);
     expect(warning?.body.every((line) => line.trim().length > 0)).toBe(true);
   });
 });

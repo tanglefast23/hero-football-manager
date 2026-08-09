@@ -56,6 +56,8 @@ export interface BertBriefingWalkOnProps {
     readonly body: string | readonly string[];
   };
   moneyAnchor?: TutorialAnchorLayout | null;
+  /** The Board Loan card, left lit while Bert explains the one rescue. */
+  loanAnchor?: TutorialAnchorLayout | null;
   navigationAnchor?: TutorialAnchorLayout | null;
   /** The League sub-tab the beat is about, so the scrim lifts off it. */
   subTabAnchor?: TutorialAnchorLayout | null;
@@ -86,6 +88,7 @@ export function BertBriefingWalkOn({
   sequenceId,
   customMessage,
   moneyAnchor,
+  loanAnchor,
   navigationAnchor,
   subTabAnchor,
   reduceMotion = false,
@@ -137,14 +140,16 @@ export function BertBriefingWalkOn({
   const spotlightAnchor =
     focus === 'money'
       ? moneyAnchor
-      : focus === 'navigation'
-        ? navigationAnchor
-        : // The board beats point at a sub-tab rather than a chip or the rail, and
-          // a tab talked about under the scrim reads as one he is not talking
-          // about.
-          focus === 'division-leaders' || focus === 'national-cup'
-          ? subTabAnchor
-          : null;
+      : focus === 'emergency-loan'
+        ? loanAnchor
+        : focus === 'navigation'
+          ? navigationAnchor
+          : // The board beats point at a sub-tab rather than a chip or the rail, and
+            // a tab talked about under the scrim reads as one he is not talking
+            // about.
+            focus === 'division-leaders' || focus === 'national-cup'
+            ? subTabAnchor
+            : null;
   const moneyCuePosition =
     focus === 'money' && moneyAnchor
       ? tutorialCuePosition(moneyAnchor, viewportWidth)

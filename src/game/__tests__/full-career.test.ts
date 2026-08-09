@@ -214,6 +214,30 @@ describe('full M2 career clock', () => {
     expect(relegated.m2?.highestDivisionReached).toBe(4);
   });
 
+  test('adds the first-reach division fan step to the supporters already earned', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(78_011) });
+    const supportersBeforePromotion = 637;
+    const withEarnedSupporters = {
+      ...initial,
+      clubs: initial.clubs.map((club) =>
+        club.id === initial.userClubId
+          ? { ...club, fans: supportersBeforePromotion }
+          : club,
+      ),
+    };
+
+    const promoted = startNextSeason(
+      completeSeasonForUser(withEarnedSupporters, 'win'),
+    );
+    const promotedClub = promoted.clubs.find(
+      (club) => club.id === promoted.userClubId,
+    )!;
+
+    expect(currentUserDivision(promoted.m2!)).toBe(4);
+    expect(promotedClub.fans).toBe(supportersBeforePromotion + 500);
+    expect(promotedClub.fans).not.toBe(1_000);
+  });
+
   test('promotion exposes a deterministically stronger pool of player ceilings', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(78_002) });
     const promoted = startNextSeason(completeSeasonForUser(initial, 'win'));

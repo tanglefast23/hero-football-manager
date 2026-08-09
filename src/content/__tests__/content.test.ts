@@ -750,7 +750,7 @@ describe('validated M1 launch content', () => {
         {
           focus: 'emergency-loan',
           body: [
-            "This is the club's only automatic emergency loan. Repayments begin next season. Fan Shops and Stadium Stands make money, and you can build up to three of each. Every other facility is limited to one.",
+            "This is the club's only automatic emergency loan. Repayments begin next season.",
           ],
         },
       ],

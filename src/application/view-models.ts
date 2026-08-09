@@ -2857,15 +2857,16 @@ export function boardFinanceBriefing(
           count: weeks,
           amount: formatMoneyForCopy(t, cash),
         }),
-        graceWeeks > 0
-          ? t('clubHome.briefingLockedWithGrace', {
-              n: graceWeeks,
-              count: graceWeeks,
-              consequence,
-            })
-          : t('clubHome.briefingLockedOutOfPatience'),
+        safety?.emergencyLoanUsed !== true
+          ? t('clubHome.briefingLoanNextWeek')
+          : graceWeeks > 0
+            ? t('clubHome.briefingLockedWithGrace', {
+                n: graceWeeks,
+                count: graceWeeks,
+                consequence,
+              })
+            : t('clubHome.briefingLockedOutOfPatience'),
         t('clubHome.briefingBuildAdvice'),
-        t('clubHome.briefingHoldTight'),
       ],
     };
   }
@@ -3034,7 +3035,9 @@ export function settleWeeklyTip(state: GameState): GameState {
   };
   const unseen = unseenDeskTipIds(
     state,
-    LAUNCH_CONTENT.tips.tips.map((tip) => tip.id),
+    LAUNCH_CONTENT.tips.tips
+      .filter((tip) => isDeskTipEligible(state, tip.id))
+      .map((tip) => tip.id),
   );
   if (unseen.length === 0) return blank;
   if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT)
@@ -3072,6 +3075,9 @@ function deskTipNote(
 ): ManagerNoteViewModel | undefined {
   const tipId = currentDeskTipId(state);
   if (tipId === undefined) return undefined;
+  // Old saves can already hold a tip selected before eligibility was added.
+  // Do not keep presenting advice for a shop the club cannot use yet.
+  if (!isDeskTipEligible(state, tipId)) return undefined;
   const tip = LAUNCH_CONTENT.tips.tips.find(
     (candidate) => candidate.id === tipId,
   );
@@ -3085,6 +3091,14 @@ function deskTipNote(
     detail: copyOrEnglish(t, `tip.${tip.id}.body`, tip.body),
     ...(tip.destination === undefined ? {} : { destination: tip.destination }),
   };
+}
+
+/** A rule should enter the random tip pool only when it can help right now. */
+function isDeskTipEligible(state: GameState, tipId: string): boolean {
+  if (tipId === 'drill-tiers-are-permanent') {
+    return highestDivisionReached(state) <= 4;
+  }
+  return true;
 }
 
 function homeAssistantInboxPlan(state: GameState) {

@@ -429,6 +429,9 @@ function GameApp() {
   const [openedBoardFinanceAlertId, setOpenedBoardFinanceAlertId] = useState<
     string | null
   >(null);
+  /** The first loan lesson already says the debt and repayment facts. */
+  const [boardFinanceMessageStartIndex, setBoardFinanceMessageStartIndex] =
+    useState(0);
   /**
    * Whether the season review has scrolled far enough to show the renewal queue.
    *
@@ -502,6 +505,8 @@ function GameApp() {
     null,
   );
   const [moneyGuideAnchor, setMoneyGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
+  const [loanGuideAnchor, setLoanGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
@@ -1536,6 +1541,7 @@ function GameApp() {
         setDismissedAssistantObjectiveKey(null);
         setMarketSectionRequest(null);
         setOpenedBoardFinanceAlertId(null);
+        setBoardFinanceMessageStartIndex(0);
       }
       store.setAssistantMode(assistantMode);
     },
@@ -1853,6 +1859,13 @@ function GameApp() {
     store.career === null
       ? undefined
       : boardFinanceBriefing(store.career, openedBoardFinanceAlertId, t);
+  const displayedBoardFinanceMessage =
+    boardFinanceMessage === undefined
+      ? undefined
+      : {
+          ...boardFinanceMessage,
+          body: boardFinanceMessage.body.slice(boardFinanceMessageStartIndex),
+        };
   const bertNotice =
     store.notice?.speaker === 'bert' ? store.notice : undefined;
   /**
@@ -2119,6 +2132,16 @@ function GameApp() {
     if (assistantSequenceId === null || assistantSequence === undefined) return;
     store.completeAssistantGuide(assistantSequenceId);
     if (assistantSequenceId === requestedAssistantSequenceId) {
+      if (assistantSequenceId === 'first-emergency-loan') {
+        // Continue the same conversation at the only new loan beat. The first
+        // lesson has already covered the rescue and repayment schedule.
+        setActiveGuideFocus(undefined);
+        setConciergeFocus('emergency-loan');
+        setRequestedAssistantSequenceId(null);
+        setBoardFinanceMessageStartIndex(2);
+        setOpenedBoardFinanceAlertId('emergency-loan');
+        return;
+      }
       setConciergeFocus(assistantSequence.pages.at(-1)?.focus ?? null);
       setRequestedAssistantSequenceId(null);
     }
@@ -2891,7 +2914,8 @@ function GameApp() {
             guideTrainingGround={
               visibleAssistantObjectiveTarget === 'training-ground-facility'
             }
-            guideFocus={visibleConciergeFocus ?? undefined}
+            guideFocus={activeGuideFocus ?? visibleConciergeFocus ?? undefined}
+            onLoanGuideAnchorChange={setLoanGuideAnchor}
             reduceMotion={reduceMotion}
             focusSponsorSummaryToken={sponsorSummaryFocusToken}
           />
@@ -3131,6 +3155,7 @@ function GameApp() {
                 // the whole warning here, one bubble per tap, because the desk
                 // clips it at two lines and nothing else in the game finishes
                 // the sentence.
+                setBoardFinanceMessageStartIndex(0);
                 setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);
               } else if (alertId === 'board-ultimatum') {
                 store.notify(
@@ -3445,6 +3470,7 @@ function GameApp() {
                 content={content.assistantGuide}
                 sequenceId={assistantSequenceId}
                 moneyAnchor={moneyGuideAnchor}
+                loanAnchor={loanGuideAnchor}
                 navigationAnchor={navigationGuideAnchor}
                 subTabAnchor={leagueSubTabGuideAnchor}
                 reduceMotion={reduceMotion}
@@ -3539,7 +3565,7 @@ function GameApp() {
                 }
               />
             ) : null}
-            {boardFinanceMessage !== undefined &&
+            {displayedBoardFinanceMessage !== undefined &&
             openedBoardFinanceAlertId !== null ? (
               <BertBriefingWalkOn
                 key={`board-finance-${openedBoardFinanceAlertId}`}
@@ -3553,13 +3579,14 @@ function GameApp() {
                     ? 'board-emergency-loan'
                     : 'board-financial-warning'
                 }
-                customMessage={boardFinanceMessage}
+                customMessage={displayedBoardFinanceMessage}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
                 onDone={() => {
                   const completedAlertId = openedBoardFinanceAlertId;
                   const wasLoan = completedAlertId === 'emergency-loan';
                   setOpenedBoardFinanceAlertId(null);
+                  setBoardFinanceMessageStartIndex(0);
                   store.dismissInboxProduct(
                     completedAlertId,
                     wasLoan ? 'permanent' : 'current-week',
