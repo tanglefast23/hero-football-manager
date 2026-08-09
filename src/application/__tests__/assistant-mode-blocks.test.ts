@@ -59,6 +59,9 @@ describe('changing Bert mid-career', () => {
 
   it('clears a live duty refusal immediately when Teacher becomes Advisor', () => {
     start('teacher');
+    const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
+    useM1Store.getState().hireCoach(coachId, 'HEAD');
+    useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
     useM1Store.getState().advanceCareer();
     useM1Store.getState().continueWeekReview();
     useM1Store.getState().advanceCareer();

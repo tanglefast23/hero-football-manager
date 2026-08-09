@@ -1,57 +1,176 @@
-import { useM1Store } from '../store';
 import { DEFAULT_CREATION_RATINGS } from '../../game';
-import { outstandingInboxDuties } from '../assistant-guide';
+import {
+  dueAssistantInboxGuideSequences,
+  outstandingInboxDuties,
+} from '../assistant-guide';
+import { useM1Store } from '../store';
 
-/**
- * The desk gate, from the button's side.
- *
- * `assistant-guide.test.ts` covers which duties qualify; this covers what a
- * manager actually experiences when they press Advance Week with one still
- * open — the week stays put and Bert is the one who says why, rather than the
- * button quietly doing nothing.
- */
-describe('the opening weeks hold Advance Week for an unfinished desk', () => {
-  beforeEach(() => {
-    useM1Store.setState(useM1Store.getInitialState(), true);
-    useM1Store.getState().startNewCareer(123);
-    useM1Store.getState().completePlayerCreation({
-      name: 'Jo Rook',
-      ratings: DEFAULT_CREATION_RATINGS,
-    });
+function startTeacherCareer(): void {
+  useM1Store.setState(useM1Store.getInitialState(), true);
+  useM1Store.getState().startNewCareer(123, 'teacher');
+  useM1Store.getState().completePlayerCreation({
+    name: 'Jo Rook',
+    ratings: DEFAULT_CREATION_RATINGS,
   });
+}
 
-  it('lets the opening week go, then refuses the one carrying a duty', () => {
-    // Week 1 is never walled: the training pitch is due from the first morning
-    // and is deliberately not a blocking duty.
+function hireOpeningHeadCoach(): void {
+  const coachId = useM1Store.getState().career?.market?.coachCandidates[0]?.id;
+  if (coachId === undefined) throw new Error('opening coach is missing');
+  useM1Store.getState().hireCoach(coachId, 'HEAD');
+}
+
+function buildOpeningPitch(): void {
+  useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
+}
+
+function finishOpeningWeekJobs(): void {
+  hireOpeningHeadCoach();
+  buildOpeningPitch();
+}
+
+function userClubCash(): number {
+  const career = useM1Store.getState().career!;
+  return career.clubs.find((club) => club.id === career.userClubId)!.cash;
+}
+
+describe('opening blue inbox jobs', () => {
+  beforeEach(startTeacherCareer);
+
+  it('holds each week until the real action completes', () => {
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([
+      'facility-placement',
+      'head-coach-market',
+    ]);
+
+    useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(1);
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'facility-placement',
+      'head-coach-market',
+    ]);
+
+    // Reading both briefings does not perform either job.
+    useM1Store.getState().completeAssistantGuide('facility-placement');
+    useM1Store.getState().completeAssistantGuide('head-coach-market');
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([
+      'facility-placement',
+      'head-coach-market',
+    ]);
+
+    finishOpeningWeekJobs();
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([]);
+    useM1Store.getState().dismissInboxDutyReminder();
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(2);
-    expect(useM1Store.getState().inboxDutyReminder).toBeNull();
 
-    // The new week opens on its review; Advance Week is only reachable once
-    // that has been read.
     useM1Store.getState().continueWeekReview();
-    expect(useM1Store.getState().screen).toBe('management');
-
     const weekTwo = useM1Store.getState().career!;
-    expect(outstandingInboxDuties(weekTwo)).toContain('youth-intake');
+    expect(dueAssistantInboxGuideSequences(weekTwo)).toContain('youth-intake');
+    expect(outstandingInboxDuties(weekTwo)).toEqual(['youth-intake']);
 
+    // The briefing and the decline route both leave the signing job open.
+    useM1Store.getState().completeAssistantGuide('youth-intake');
+    useM1Store.getState().declineYouth();
+    expect(useM1Store.getState().career?.youthIntake?.status).toBe('OPEN');
+    expect(useM1Store.getState().inboxDutyReminder).toEqual(['youth-intake']);
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([
+      'youth-intake',
+    ]);
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(2);
-    expect(useM1Store.getState().inboxDutyReminder).toContain('youth-intake');
-    // A refusal is not an error: nothing has gone wrong, the manager is simply
-    // being told the desk is not finished.
-    expect(useM1Store.getState().error).toBeNull();
-  });
-
-  it('sends Bert away without moving the week', () => {
-    useM1Store.getState().advanceCareer();
-    useM1Store.getState().continueWeekReview();
-    useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().inboxDutyReminder).not.toBeNull();
+    expect(useM1Store.getState().inboxDutyReminder).toEqual(['youth-intake']);
 
     useM1Store.getState().dismissInboxDutyReminder();
+    const youthId =
+      useM1Store.getState().career?.youthIntake?.offers[0]?.player.id;
+    if (youthId === undefined)
+      throw new Error('opening youth offer is missing');
+    useM1Store.getState().focusInboxDuty('youth-intake');
+    useM1Store.getState().signYouth(youthId);
+    expect(
+      useM1Store.getState().career?.youthIntake?.signedPlayerIds,
+    ).toContain(youthId);
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([]);
+
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(3);
+    useM1Store.getState().continueWeekReview();
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([
+      'coaching-office',
+    ]);
+
+    useM1Store.getState().focusInboxDuty('coaching-office');
+    useM1Store.getState().buildClubFacility('coaching-office', { x: 2, y: 0 });
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([]);
+    useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().inboxDutyReminder).toBeNull();
-    expect(useM1Store.getState().career?.week).toBe(2);
+  });
+
+  it('blocks normal navigation but offers a deliberate Back to Inbox escape', () => {
+    buildOpeningPitch();
+    useM1Store.getState().focusInboxDuty('head-coach-market');
+    useM1Store.getState().setActiveTab('market');
+
+    useM1Store.getState().setActiveTab('home');
+    expect(useM1Store.getState()).toMatchObject({
+      activeTab: 'market',
+      inboxDutyFocus: {
+        mode: 'focused',
+        dutyId: 'head-coach-market',
+      },
+      inboxDutyReminder: ['head-coach-market'],
+    });
+
+    useM1Store.getState().backToInboxDuties();
+    expect(useM1Store.getState()).toMatchObject({
+      activeTab: 'home',
+      inboxDutyFocus: { mode: 'choosing' },
+      inboxDutyReminder: null,
+    });
+
+    useM1Store.getState().setActiveTab('squad');
+    expect(useM1Store.getState().activeTab).toBe('home');
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'head-coach-market',
+    ]);
+  });
+
+  it('rejects the wrong transaction and releases focus after completion', () => {
+    useM1Store.getState().focusInboxDuty('facility-placement');
+    useM1Store.getState().setActiveTab('club');
+    const cashBeforeWrongBuild = userClubCash();
+    useM1Store.getState().buildClubFacility('gym', { x: 0, y: 0 });
+    expect(useM1Store.getState().career?.facilities.grid?.buildings).toEqual(
+      [],
+    );
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'facility-placement',
+    ]);
+    expect(userClubCash()).toBe(cashBeforeWrongBuild);
+
+    useM1Store.getState().dismissInboxDutyReminder();
+    buildOpeningPitch();
+    expect(useM1Store.getState()).toMatchObject({
+      activeTab: 'home',
+      inboxDutyFocus: { mode: 'choosing' },
+    });
+
+    useM1Store.getState().focusInboxDuty('head-coach-market');
+    const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
+    const cashBeforeWrongHire = userClubCash();
+    useM1Store.getState().hireCoach(coachId, 'ASSISTANT');
+    expect(
+      useM1Store.getState().career?.market?.assistantCoach,
+    ).toBeUndefined();
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'head-coach-market',
+    ]);
+    expect(userClubCash()).toBe(cashBeforeWrongHire);
+
+    useM1Store.getState().dismissInboxDutyReminder();
+    useM1Store.getState().hireCoach(coachId, 'HEAD');
+    expect(useM1Store.getState().career?.market?.headCoach?.id).toBe(coachId);
+    expect(useM1Store.getState().inboxDutyFocus).toBeNull();
   });
 });

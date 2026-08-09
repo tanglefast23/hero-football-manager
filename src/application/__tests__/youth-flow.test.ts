@@ -45,7 +45,7 @@ describe('M2 youth intake store flow', () => {
     expect(useM1Store.getState().error).toBeNull();
   });
 
-  test('declines every remaining offer and keeps the decision in career state', () => {
+  test('keeps the Week 2 intake open when the manager tries to decline it', () => {
     useM1Store.getState().startNewCareer(91_002);
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
@@ -56,14 +56,17 @@ describe('M2 youth intake store flow', () => {
       career: reconcileStoryYouthIntake({ ...beforeReveal, week: 2 }),
     });
     expect(useM1Store.getState().career?.youthIntake?.status).toBe('OPEN');
+    const beforeDecline = useM1Store.getState().career;
 
     useM1Store.getState().declineYouth();
 
+    expect(useM1Store.getState().career).toBe(beforeDecline);
     expect(useM1Store.getState().career?.youthIntake).toMatchObject({
-      status: 'CLOSED',
-      declined: true,
-      offers: [],
+      status: 'OPEN',
+      declined: false,
     });
+    expect(useM1Store.getState().career?.youthIntake?.offers).toHaveLength(2);
+    expect(useM1Store.getState().inboxDutyReminder).toEqual(['youth-intake']);
     expect(useM1Store.getState().error).toBeNull();
   });
 });

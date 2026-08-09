@@ -87,7 +87,6 @@ import {
   type InstantDrillResolution,
   type CareerLegendLegacyChoice,
   type AssistantGuideSequenceId,
-  type AssistantInboxGuideSequenceId,
   type AssistantMode,
   type GameState,
   type FacilityPosition,
@@ -136,6 +135,7 @@ import {
 } from './view-models';
 import {
   OPENING_TRAINING_PITCH_REMINDER_KEY,
+  type OpeningInboxDutyId,
   openingTrainingPitchRequired,
   outstandingInboxDuties,
 } from './assistant-guide';
@@ -433,7 +433,12 @@ interface M1Store {
    * App state rather than career state: it is a reaction to a press, not a fact
    * about the club, and it must not survive a reload.
    */
-  inboxDutyReminder: readonly AssistantInboxGuideSequenceId[] | null;
+  inboxDutyReminder: readonly OpeningInboxDutyId[] | null;
+  /** The opening job Bert is keeping in scope. Never persisted. */
+  inboxDutyFocus:
+    | null
+    | { readonly mode: 'choosing' }
+    | { readonly mode: 'focused'; readonly dutyId: OpeningInboxDutyId };
   /**
    * The match-week announcement waiting to land on the desk, or null.
    *
@@ -474,6 +479,9 @@ interface M1Store {
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
   continueAfterAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
+  focusInboxDuty: (dutyId: OpeningInboxDutyId) => void;
+  backToInboxDuties: () => void;
+  notifyInboxDutyBlocked: (dutyId?: OpeningInboxDutyId) => void;
   reconcileAssistantInbox: () => void;
   /** Opens the story sitting on this week's desk. */
   openDeskStory: () => void;
@@ -565,6 +573,48 @@ interface M1Store {
   clearNotice: () => void;
 }
 
+function inboxDutyTargetTab(dutyId: OpeningInboxDutyId): ManagementTab {
+  return dutyId === 'facility-placement' || dutyId === 'coaching-office'
+    ? 'club'
+    : 'market';
+}
+
+function blockedInboxDutyForAction(
+  state: M1Store,
+  allowed: boolean,
+): OpeningInboxDutyId | undefined {
+  if (state.inboxDutyFocus?.mode === 'focused') {
+    return allowed ? undefined : state.inboxDutyFocus.dutyId;
+  }
+  if (state.inboxDutyFocus?.mode === 'choosing') {
+    return state.career === null
+      ? undefined
+      : outstandingInboxDuties(state.career)[0];
+  }
+  return undefined;
+}
+
+function inboxDutyProgressPatch(
+  state: M1Store,
+  nextCareer: GameState,
+): Partial<M1Store> {
+  const focus = state.inboxDutyFocus;
+  if (focus === null) return { inboxDutyReminder: null };
+  const remaining = outstandingInboxDuties(nextCareer);
+  if (focus.mode === 'focused' && remaining.includes(focus.dutyId)) {
+    return { inboxDutyReminder: null };
+  }
+  if (remaining.length === 0) {
+    return { inboxDutyFocus: null, inboxDutyReminder: null };
+  }
+  return {
+    inboxDutyFocus: { mode: 'choosing' },
+    inboxDutyReminder: null,
+    activeTab: 'home',
+    screen: 'management',
+  };
+}
+
 export const useM1Store = create<M1Store>((set, get) => ({
   career: null,
   repository: null,
@@ -588,6 +638,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   postMatchOverlay: null,
   weekReview: null,
   inboxDutyReminder: null,
+  inboxDutyFocus: null,
   matchDayBanner: null,
   faceOff: null,
   pendingPostFaceOffScreen: null,
@@ -613,6 +664,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
+        inboxDutyReminder: null,
+        inboxDutyFocus: null,
         matchDayBanner: null,
         faceOff: null,
         pendingPostFaceOffScreen: null,
@@ -715,6 +768,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      inboxDutyReminder: null,
+      inboxDutyFocus: null,
       matchDayBanner: null,
       faceOff: null,
       pendingPostFaceOffScreen: null,
@@ -789,6 +844,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         inboxDutyReminder: null,
+        inboxDutyFocus: null,
         matchDayBanner: null,
         faceOff: null,
         pendingPostFaceOffScreen: null,
@@ -844,6 +900,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         inboxDutyReminder: null,
+        inboxDutyFocus: null,
         matchDayBanner: null,
         faceOff: null,
         pendingPostFaceOffScreen: null,
@@ -866,6 +923,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      inboxDutyReminder: null,
+      inboxDutyFocus: null,
       matchDayBanner: null,
       faceOff: null,
       pendingPostFaceOffScreen: null,
@@ -883,7 +942,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
         assistantMode === 'teacher'
           ? clearAdvisorAssistantInboxSuppressions(changed)
           : changed;
-      set({ career: next, inboxDutyReminder: null, error: null });
+      set({
+        career: next,
+        inboxDutyReminder: null,
+        inboxDutyFocus: null,
+        error: null,
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -939,6 +1003,26 @@ export const useM1Store = create<M1Store>((set, get) => ({
       pendingRivalHeroIntro(current.career) !== undefined
     )
       return;
+    if (current.inboxDutyFocus?.mode === 'choosing' && activeTab !== 'home') {
+      const dutyId =
+        current.career === null
+          ? undefined
+          : outstandingInboxDuties(current.career)[0];
+      if (dutyId !== undefined) {
+        set({ inboxDutyReminder: [dutyId], error: null });
+        return;
+      }
+    }
+    if (
+      current.inboxDutyFocus?.mode === 'focused' &&
+      activeTab !== inboxDutyTargetTab(current.inboxDutyFocus.dutyId)
+    ) {
+      set({
+        inboxDutyReminder: [current.inboxDutyFocus.dutyId],
+        error: null,
+      });
+      return;
+    }
     if (activeTab === 'market') {
       const career = get().career;
       if (career?.market === undefined) {
@@ -947,6 +1031,44 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
     }
     set({ activeTab, screen: 'management', error: null });
+  },
+
+  focusInboxDuty(dutyId) {
+    const career = get().career;
+    if (career === null || !outstandingInboxDuties(career).includes(dutyId)) {
+      return;
+    }
+    set({
+      inboxDutyFocus: { mode: 'focused', dutyId },
+      inboxDutyReminder: null,
+      error: null,
+    });
+  },
+
+  backToInboxDuties() {
+    const career = get().career;
+    const remaining = career === null ? [] : outstandingInboxDuties(career);
+    set({
+      inboxDutyFocus: remaining.length === 0 ? null : { mode: 'choosing' },
+      inboxDutyReminder: null,
+      activeTab: 'home',
+      screen: 'management',
+      error: null,
+    });
+  },
+
+  notifyInboxDutyBlocked(dutyId) {
+    const current = get();
+    const resolved =
+      dutyId ??
+      (current.inboxDutyFocus?.mode === 'focused'
+        ? current.inboxDutyFocus.dutyId
+        : current.career === null
+          ? undefined
+          : outstandingInboxDuties(current.career)[0]);
+    if (resolved !== undefined) {
+      set({ inboxDutyReminder: [resolved], error: null });
+    }
   },
 
   reconcileAssistantInbox() {
@@ -1132,45 +1254,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
       ) {
         throw new Error(t('store.trainBeforeAdvancing'));
       }
-      const guidedFirstWeek =
-        assistantTeaches(career) &&
-        hasAssistantGuideMilestone(career, 'intro-complete') &&
-        hasAssistantGuideMilestone(career, 'first-training-complete') &&
-        !hasAssistantGuideMilestone(career, 'first-week-advanced');
-      if (guidedFirstWeek) {
-        const activeTab = get().activeTab;
-        if (activeTab !== 'home' && activeTab !== 'club') {
-          throw new Error(t('store.returnHomeAndCheckInbox'));
-        }
-        const trainingGroundStarted =
-          career.facilities.trainingGroundBuilt ||
-          (career.facilities.grid?.construction?.kind === 'BUILD' &&
-            career.facilities.grid.construction.type === 'training-pitch');
-        const recoveringWrongOpeningProject =
-          openingTrainingPitchRequired(career) &&
-          career.facilities.grid?.construction !== undefined &&
-          career.facilities.grid.construction.type !== 'training-pitch';
-        if (!trainingGroundStarted && !recoveringWrongOpeningProject) {
-          throw new Error(t('store.buildTrainingGroundFirst'));
-        }
-        if (activeTab !== 'home') {
-          throw new Error(t('store.returnHomeBeforeAdvancing'));
-        }
-        if (
-          !recoveringWrongOpeningProject &&
-          career.market !== undefined &&
-          career.market.headCoach === undefined
-        ) {
-          set({
-            error: null,
-            notice: {
-              tone: 'info',
-              message: t('store.inboxItemLeft'),
-            },
-          });
-          return;
-        }
-      }
       if (career.phase === 'matchday') {
         set({ screen: 'matchday', error: null });
         return;
@@ -1235,7 +1318,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // reads as a broken button.
       const outstandingDuties = outstandingInboxDuties(career);
       if (outstandingDuties.length > 0) {
-        set({ inboxDutyReminder: outstandingDuties, error: null });
+        const focused = get().inboxDutyFocus;
+        set({
+          inboxDutyReminder:
+            focused?.mode === 'focused' &&
+            outstandingDuties.includes(focused.dutyId)
+              ? [focused.dutyId]
+              : outstandingDuties,
+          error: null,
+        });
         return;
       }
 
@@ -1277,6 +1368,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
                 ? seasonBoundaryScreen(next)
                 : 'management',
         weekReview,
+        inboxDutyReminder: null,
+        inboxDutyFocus: null,
         error: null,
       });
       queueCareerSave(get, set, next);
@@ -1693,7 +1786,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
   returnToTitleFromEnding() {
     get().completeEndgameCelebration();
     if (get().error !== null) return;
-    set({ screen: 'welcome', activeTab: 'home' });
+    set({
+      screen: 'welcome',
+      activeTab: 'home',
+      inboxDutyReminder: null,
+      inboxDutyFocus: null,
+    });
   },
 
   /**
@@ -2204,15 +2302,40 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   buildFacility() {
     guarded(set, () => {
-      const next = buildTrainingGround(requireCareer(get()));
-      set({ career: next, error: null });
+      const current = get();
+      const blocked = blockedInboxDutyForAction(
+        current,
+        current.inboxDutyFocus?.mode === 'focused' &&
+          current.inboxDutyFocus.dutyId === 'facility-placement',
+      );
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const next = buildTrainingGround(requireCareer(current));
+      set({
+        career: next,
+        error: null,
+        ...inboxDutyProgressPatch(current, next),
+      });
       queueCareerSave(get, set, next);
     });
   },
 
   buildClubFacility(type, position) {
     guarded(set, () => {
-      const career = requireCareer(get());
+      const current = get();
+      const focus = current.inboxDutyFocus;
+      const allowed =
+        focus?.mode === 'focused' &&
+        ((focus.dutyId === 'facility-placement' && type === 'training-pitch') ||
+          (focus.dutyId === 'coaching-office' && type === 'coaching-office'));
+      const blocked = blockedInboxDutyForAction(current, allowed);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const career = requireCareer(current);
       if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
         set({
           error: null,
@@ -2244,6 +2367,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             discovery,
           }),
         },
+        ...inboxDutyProgressPatch(current, transaction.state),
       });
       queueCareerSave(get, set, transaction.state);
     });
@@ -2251,7 +2375,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   upgradeClubFacility(buildingId) {
     guarded(set, () => {
-      const career = requireCareer(get());
+      const current = get();
+      const blocked = blockedInboxDutyForAction(current, false);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const career = requireCareer(current);
       const building = career.facilities.grid?.buildings.find(
         (candidate) => candidate.id === buildingId,
       );
@@ -2285,6 +2415,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   relocateClubFacility(buildingId, position) {
     guarded(set, () => {
+      const blocked = blockedInboxDutyForAction(get(), false);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
       const transaction = relocateCareerFacility(
         requireCareer(get()),
         buildingId,
@@ -2314,7 +2449,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   closeClubFacility(buildingId) {
     guarded(set, () => {
-      const career = requireCareer(get());
+      const current = get();
+      const blocked = blockedInboxDutyForAction(current, false);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const career = requireCareer(current);
       const building = career.facilities.grid?.buildings.find(
         (candidate) => candidate.id === buildingId,
       );
@@ -2479,7 +2620,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   hireCoach(coachId, role = 'HEAD') {
     guarded(set, () => {
-      const career = requireCareer(get());
+      const current = get();
+      const allowed =
+        current.inboxDutyFocus?.mode === 'focused' &&
+        current.inboxDutyFocus.dutyId === 'head-coach-market' &&
+        role === 'HEAD';
+      const blocked = blockedInboxDutyForAction(current, allowed);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const career = requireCareer(current);
       const next = {
         ...career,
         market: hireCareerCoach(career, requireMarket(career), coachId, role),
@@ -2494,6 +2645,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
               ? t('store.headCoachHired')
               : t('store.assistantCoachHired'),
         },
+        ...inboxDutyProgressPatch(current, next),
       });
       queueCareerSave(get, set, next);
     });
@@ -2521,7 +2673,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   dismissCoach(role = 'HEAD') {
     guarded(set, () => {
-      const career = requireCareer(get());
+      const current = get();
+      const blocked = blockedInboxDutyForAction(current, false);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const career = requireCareer(current);
       const transaction = dismissCareerCoach(
         career,
         requireMarket(career),
@@ -2535,7 +2693,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   signYouth(playerId) {
     guarded(set, () => {
-      const career = requireCareer(get());
+      const current = get();
+      const allowed =
+        current.inboxDutyFocus?.mode === 'focused' &&
+        current.inboxDutyFocus.dutyId === 'youth-intake';
+      const blocked = blockedInboxDutyForAction(current, allowed);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const career = requireCareer(current);
       if (career.youthIntake === undefined)
         throw new Error('there is no youth intake available');
       const transaction = signYouthIntakeOffer(
@@ -2544,14 +2711,28 @@ export const useM1Store = create<M1Store>((set, get) => ({
         playerId,
       );
       const next = { ...transaction.state, youthIntake: transaction.intake };
-      set({ career: next, error: null });
+      set({
+        career: next,
+        error: null,
+        ...inboxDutyProgressPatch(current, next),
+      });
       queueCareerSave(get, set, next);
     });
   },
 
   declineYouth() {
     guarded(set, () => {
-      const career = requireCareer(get());
+      const current = get();
+      const career = requireCareer(current);
+      if (outstandingInboxDuties(career).includes('youth-intake')) {
+        set({ inboxDutyReminder: ['youth-intake'], error: null });
+        return;
+      }
+      const blocked = blockedInboxDutyForAction(current, false);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
       if (career.youthIntake === undefined)
         throw new Error('there is no youth intake available');
       const transaction = declineYouthIntakeOffers(career, career.youthIntake);
