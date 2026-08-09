@@ -26,6 +26,11 @@ export {
   type CareerDatabaseResetOptions,
 } from './hard-reset';
 export {
+  isBrowserDatabaseLockError,
+  reloadBrowserDocument,
+  type BrowserReloadTarget,
+} from './web-database-recovery';
+export {
   careerSaveFileName,
   decodeCareerSaveFile,
   encodeCareerSaveFile,
