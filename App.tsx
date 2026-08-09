@@ -277,21 +277,26 @@ export default function App() {
     }
   }
   return (
-    <ScreenErrorBoundary
-      onRecover={() => useM1Store.setState({
-        screen: 'welcome',
-        error: null,
-        activeTab: 'home',
-        // Overlay state that survives the remount must not haunt the title
-        // screen: a crash while Bert's desk reminder was up would otherwise
-        // recover with his lecture floating over the landing view, and a stale
-        // watched match holds live-match props no screen consumes.
-        inboxDutyReminder: null,
-        watchedMatch: null,
-      })}
-    >
-      <GameApp />
-    </ScreenErrorBoundary>
+    // The boundary's recovery screen uses SafeAreaView. Keep its provider
+    // outside the boundary so a saved-screen render error cannot crash the
+    // recovery screen and leave the player with a blank app.
+    <SafeAreaProvider>
+      <ScreenErrorBoundary
+        onRecover={() => useM1Store.setState({
+          screen: 'welcome',
+          error: null,
+          activeTab: 'home',
+          // Overlay state that survives the remount must not haunt the title
+          // screen: a crash while Bert's desk reminder was up would otherwise
+          // recover with his lecture floating over the landing view, and a stale
+          // watched match holds live-match props no screen consumes.
+          inboxDutyReminder: null,
+          watchedMatch: null,
+        })}
+      >
+        <GameApp />
+      </ScreenErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 
@@ -1472,8 +1477,17 @@ function GameApp() {
     store.screen,
   ]);
 
+  // Reconciliation can replace the career object. Remember the action's output
+  // so this effect does not treat its own update as a new input and recurse
+  // until React stops the app with a maximum-update-depth error.
+  const reconciledAssistantInboxCareerRef = useRef(store.career);
   useEffect(() => {
-    if (store.career !== null) store.reconcileAssistantInbox();
+    const career = store.career;
+    if (career === null || reconciledAssistantInboxCareerRef.current === career) {
+      return;
+    }
+    store.reconcileAssistantInbox();
+    reconciledAssistantInboxCareerRef.current = useM1Store.getState().career;
   }, [store.career, store.reconcileAssistantInbox]);
 
   useEffect(() => {
