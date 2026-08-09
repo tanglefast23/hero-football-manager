@@ -264,6 +264,8 @@ function inboxDutyCopyStem(dutyId: OpeningInboxDutyId): string {
   if (dutyId === 'facility-placement') return 'inboxDuty.trainingPitch';
   if (dutyId === 'head-coach-market') return 'inboxDuty.headCoach';
   if (dutyId === 'youth-intake') return 'inboxDuty.youth';
+  if (dutyId === 'assistant-coach-hire') return 'inboxDuty.assistantCoach';
+  if (dutyId === 'national-cup') return 'inboxDuty.nationalCup';
   return 'inboxDuty.coachingOffice';
 }
 
@@ -418,6 +420,7 @@ function GameApp() {
     useState<AssistantGuideSequenceId | null>(null);
   const [conciergeFocus, setConciergeFocus] =
     useState<AssistantGuideFocus | null>(null);
+  const [firstCupRoundOf32Spoken, setFirstCupRoundOf32Spoken] = useState(false);
   /**
    * Which board money row the manager has just opened, if any.
    *
@@ -1866,6 +1869,12 @@ function GameApp() {
           ...boardFinanceMessage,
           body: boardFinanceMessage.body.slice(boardFinanceMessageStartIndex),
         };
+  const facilityErrorBertVisible =
+    careerTeaches &&
+    store.screen === 'management' &&
+    store.activeTab === 'club' &&
+    clubOfficeTab === 'facility' &&
+    store.error !== null;
   const bertNotice =
     store.notice?.speaker === 'bert' ? store.notice : undefined;
   /**
@@ -1876,6 +1885,58 @@ function GameApp() {
     store.screen === 'management' &&
     store.postMatch !== null &&
     store.postMatchOverlay === 'summary';
+  const firstCupRoundOf32GuideOwed =
+    careerTeaches &&
+    store.screen === 'management' &&
+    store.career !== null &&
+    store.career.eventFlags.includes('milestone:first-cup-win') &&
+    !hasAssistantGuideMilestone(store.career, 'first-cup-round-of-32-seen');
+  useEffect(() => {
+    if (
+      !firstCupRoundOf32GuideOwed ||
+      postMatchSummaryVisible ||
+      firstCupRoundOf32Spoken ||
+      requestedAssistantSequenceId !== null ||
+      store.activeTab === 'league'
+    ) {
+      return;
+    }
+    setConciergeFocus(null);
+    store.setActiveTab('league');
+  }, [
+    firstCupRoundOf32GuideOwed,
+    firstCupRoundOf32Spoken,
+    postMatchSummaryVisible,
+    requestedAssistantSequenceId,
+    store.activeTab,
+    store.setActiveTab,
+  ]);
+  const firstCupRoundOf32BriefingVisible =
+    firstCupRoundOf32GuideOwed &&
+    !postMatchSummaryVisible &&
+    !firstCupRoundOf32Spoken &&
+    requestedAssistantSequenceId === null &&
+    store.activeTab === 'league';
+  const firstCupRoundOf32HelperVisible =
+    firstCupRoundOf32GuideOwed &&
+    firstCupRoundOf32Spoken &&
+    visibleConciergeFocus === 'national-cup';
+  useEffect(() => {
+    if (
+      !firstCupRoundOf32GuideOwed ||
+      !firstCupRoundOf32Spoken ||
+      conciergeFocus !== null
+    ) {
+      return;
+    }
+    store.completeGuideMilestone('first-cup-round-of-32-seen');
+    setFirstCupRoundOf32Spoken(false);
+  }, [
+    conciergeFocus,
+    firstCupRoundOf32GuideOwed,
+    firstCupRoundOf32Spoken,
+    store.completeGuideMilestone,
+  ]);
   /**
    * Whether Bert's guide is covering the screen.
    *
@@ -1891,6 +1952,8 @@ function GameApp() {
       cupMismatchWarning !== undefined ||
       cupGiantKillingCelebration !== undefined ||
       cupExitConsolationVisible ||
+      firstCupRoundOf32BriefingVisible ||
+      facilityErrorBertVisible ||
       facilityComboReveal !== undefined ||
       transferWindowLessonVisible ||
       fansLessonVisible ||
@@ -2142,7 +2205,11 @@ function GameApp() {
         setOpenedBoardFinanceAlertId('emergency-loan');
         return;
       }
-      setConciergeFocus(assistantSequence.pages.at(-1)?.focus ?? null);
+      setConciergeFocus(
+        assistantSequenceId === 'scout-report'
+          ? null
+          : (assistantSequence.pages.at(-1)?.focus ?? null),
+      );
       setRequestedAssistantSequenceId(null);
     }
   }, [
@@ -2411,6 +2478,7 @@ function GameApp() {
           isFirstOnboardingFixture(store.career, store.watchedMatch.fixture.id)
         }
         cupRoundLabel={store.watchedMatch.cupRoundLabel}
+        tiedWinnerTeam={store.watchedMatch.tiedWinnerTeam}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
@@ -2502,6 +2570,7 @@ function GameApp() {
       <PostMatchLedgerScreen
         viewModel={store.postMatch}
         textScale={preferences.textScale}
+        reduceMotion={reduceMotion}
         onContinue={store.continueAfterMatch}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
@@ -3046,7 +3115,8 @@ function GameApp() {
             requestedSection={marketSectionRequest?.section}
             requestedSectionToken={marketSectionRequest?.token}
             lockedSection={
-              focusedInboxDutyId === 'head-coach-market'
+              focusedInboxDutyId === 'head-coach-market' ||
+              focusedInboxDutyId === 'assistant-coach-hire'
                 ? 'COACHES'
                 : focusedInboxDutyId === 'youth-intake'
                   ? 'YOUTH'
@@ -3087,8 +3157,10 @@ function GameApp() {
               setConciergeFocus(null);
               store.openCupFixture(fixtureId);
             }}
-            guideSubTab={leagueGuideSubTab}
+            guideSubTab={firstCupRoundOf32GuideOwed ? 'cup' : leagueGuideSubTab}
             onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}
+            guideRoundOf32={firstCupRoundOf32HelperVisible}
+            onDismissRoundOf32Guide={() => setConciergeFocus(null)}
           />
         ) : store.activeTab === 'league' ? (
           <LeagueTableScreen
@@ -3117,6 +3189,12 @@ function GameApp() {
                 alert?.guideSequenceId !== undefined &&
                 alert.destination !== undefined
               ) {
+                // Opening the Cup button is the whole Must Do objective. Bert
+                // can still explain the bracket, but the manager is no longer
+                // blocked once the button has taken them to League.
+                if (alert.guideSequenceId === 'national-cup') {
+                  store.completeAssistantGuide('national-cup');
+                }
                 if (alertId.startsWith('injury-')) {
                   store.selectPlayer(alertId.slice('injury-'.length));
                 } else if (alertId.startsWith('transfer-request-')) {
@@ -3325,7 +3403,7 @@ function GameApp() {
                     tone="error"
                     onDismiss={() => setDeveloperSaveError(null)}
                   />
-                ) : store.error ? (
+                ) : store.error && !facilityErrorBertVisible ? (
                   <FeedbackNotice
                     message={store.error}
                     tone="error"
@@ -3443,17 +3521,43 @@ function GameApp() {
                 // the face that just winced at the scoreline.
                 sequenceId="first-cup-exit"
                 customMessage={{
-                  title: 'Out of the Cup',
-                  body: [
-                    'The cup run is over. But that’s understandable.',
-                    'You’re playing against the very best teams and leagues. We can slay these giants in the future!',
-                  ],
+                  title: t('firstCupExit.title'),
+                  body: [t('firstCupExit.body1'), t('firstCupExit.body2')],
                 }}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
                 onDone={() =>
                   store.completeGuideMilestone('first-cup-exit-seen')
                 }
+              />
+            ) : guideOverlayVisible && firstCupRoundOf32BriefingVisible ? (
+              <BertBriefingWalkOn
+                key="first-cup-round-of-32"
+                content={content.assistantGuide}
+                sequenceId="first-cup-round-of-32"
+                customMessage={{
+                  title: t('firstCupWin.roundOf32Title'),
+                  body: [
+                    t('firstCupWin.roundOf32Body1'),
+                    t('firstCupWin.roundOf32Body2'),
+                  ],
+                }}
+                navigationAnchor={navigationGuideAnchor}
+                reduceMotion={preferences.reduceMotion}
+                onDone={() => {
+                  setFirstCupRoundOf32Spoken(true);
+                  setConciergeFocus('national-cup');
+                }}
+              />
+            ) : guideOverlayVisible && facilityErrorBertVisible ? (
+              <BertBriefingWalkOn
+                key={`facility-error:${store.error}`}
+                content={content.assistantGuide}
+                sequenceId="facility-error"
+                customMessage={{ body: store.error! }}
+                navigationAnchor={navigationGuideAnchor}
+                reduceMotion={preferences.reduceMotion}
+                onDone={store.clearError}
               />
             ) : guideOverlayVisible && bertNotice !== undefined ? (
               <BertBriefingWalkOn

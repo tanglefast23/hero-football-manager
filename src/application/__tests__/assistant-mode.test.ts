@@ -7,6 +7,7 @@ import {
   DEFAULT_CREATION_RATINGS,
   willRetireAtSeasonTransition,
 } from '../../game';
+import { isFacilityOperational } from '../../game/facilities';
 import {
   clearAdvisorAssistantInboxSuppressions,
   completeAssistantGuideMilestone,
@@ -374,6 +375,28 @@ function resolveSharedManagementDecisions(): void {
     dueAssistantInboxGuideSequences(career).includes('coaching-office')
   ) {
     current.buildClubFacility('coaching-office', { x: 2, y: 0 });
+    current = useM1Store.getState();
+    career = current.career!;
+  }
+
+  const grid = career.facilities.grid;
+  const coachingOffice = grid?.buildings.find(
+    (building) => building.type === 'coaching-office',
+  );
+  const market = career.market;
+  if (
+    coachingOffice !== undefined &&
+    grid !== undefined &&
+    isFacilityOperational(grid, coachingOffice.id) &&
+    market !== undefined &&
+    market.assistantCoach === undefined
+  ) {
+    const candidate = market.coachCandidates.find(
+      (coach) => coach.id !== market.headCoach?.id,
+    );
+    if (candidate === undefined)
+      throw new Error('managed mode parity assistant candidate disappeared');
+    current.hireCoach(candidate.id, 'ASSISTANT');
     current = useM1Store.getState();
   }
 

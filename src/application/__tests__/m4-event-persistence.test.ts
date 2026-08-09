@@ -39,7 +39,7 @@ function clubFans(state: GameState): number {
 
 describe('M4 resolved events survive a reload without rerolling or double-paying', () => {
   it('round-trips typed coach and facility targets and fails soft on malformed optional fields', () => {
-    const staged = awakenedCareerAtEvent(456, 'giant-spider-arrives');
+    const staged = awakenedCareerAtEvent(456, 'meteor-shard-center-circle');
     const targeted: GameState = {
       ...staged,
       pendingEvent: {
@@ -75,10 +75,10 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
 
   it('keeps the same outcome, rewards, and balances after a save/load round trip', () => {
     useM1Store.setState({
-      career: awakenedCareerAtEvent(456, 'giant-spider-arrives'),
+      career: awakenedCareerAtEvent(456, 'meteor-shard-center-circle'),
       screen: 'event',
     });
-    useM1Store.getState().chooseEvent('adopt-spider');
+    useM1Store.getState().chooseEvent('display-meteor');
 
     const resolved = useM1Store.getState().career!;
     expect(useM1Store.getState().error).toBeNull();
@@ -96,16 +96,16 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
 
   it('refuses a second resolution of the same pending event', () => {
     useM1Store.setState({
-      career: awakenedCareerAtEvent(456, 'giant-spider-arrives'),
+      career: awakenedCareerAtEvent(456, 'meteor-shard-center-circle'),
       screen: 'event',
     });
-    useM1Store.getState().chooseEvent('adopt-spider');
+    useM1Store.getState().chooseEvent('display-meteor');
     const afterFirst = useM1Store.getState().career!;
 
     useM1Store.setState({
       career: parseStoredGameState(serializeGameState(afterFirst)),
     });
-    useM1Store.getState().chooseEvent('adopt-spider');
+    useM1Store.getState().chooseEvent('display-meteor');
 
     expect(useM1Store.getState().error).not.toBeNull();
     expect(clubFans(useM1Store.getState().career!)).toBe(clubFans(afterFirst));
@@ -116,26 +116,26 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
 
   it('cannot offer a resolved one-shot story again after a reload', () => {
     useM1Store.setState({
-      career: awakenedCareerAtEvent(456, 'giant-spider-arrives'),
+      career: awakenedCareerAtEvent(456, 'meteor-shard-center-circle'),
       screen: 'event',
     });
-    useM1Store.getState().chooseEvent('adopt-spider');
+    useM1Store.getState().chooseEvent('display-meteor');
     useM1Store.getState().continueAfterEvent();
 
     const reloaded = parseStoredGameState(
       serializeGameState(useM1Store.getState().career!),
     );
-    expect(reloaded.resolvedEventIds).toContain('giant-spider-arrives');
+    expect(reloaded.resolvedEventIds).toContain('meteor-shard-center-circle');
     expect(() =>
       offerCareerEvent(
         { ...reloaded, phase: 'manage', pendingEvent: undefined },
-        'giant-spider-arrives',
+        'meteor-shard-center-circle',
       ),
     ).toThrow('already resolved');
   });
 
   it('drops a pending story the shipped catalog no longer contains', () => {
-    const staged = awakenedCareerAtEvent(456, 'giant-spider-arrives');
+    const staged = awakenedCareerAtEvent(456, 'meteor-shard-center-circle');
     // A content update that renames or retires an event must not brick the save
     // of a player who had it on screen when they updated.
     const orphaned: GameState = {
@@ -152,12 +152,12 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
   });
 
   it('keeps a pending story the catalog still contains', () => {
-    const staged = awakenedCareerAtEvent(456, 'giant-spider-arrives');
+    const staged = awakenedCareerAtEvent(456, 'meteor-shard-center-circle');
 
     const recovered = reconcilePendingStoryEvent(staged, content.events);
 
     expect(recovered).toBe(staged);
-    expect(recovered.pendingEvent?.eventId).toBe('giant-spider-arrives');
+    expect(recovered.pendingEvent?.eventId).toBe('meteor-shard-center-circle');
   });
 
   it('resolves every risky choice to the identical authored outcome on reload', () => {

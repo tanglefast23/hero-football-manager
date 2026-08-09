@@ -114,6 +114,9 @@ export interface M2LeagueScreenProps {
    * sat under the same dimming as everything else he was not talking about.
    */
   onGuideSubTabAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
+  /** First Cup win: point down at the Round of 32 until any touch. */
+  guideRoundOf32?: boolean;
+  onDismissRoundOf32Guide?: () => void;
 }
 
 export function M2LeagueScreen({
@@ -123,6 +126,8 @@ export function M2LeagueScreen({
   onOpenCupFixture,
   guideSubTab,
   onGuideSubTabAnchorChange,
+  guideRoundOf32 = false,
+  onDismissRoundOf32Guide,
 }: M2LeagueScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -562,6 +567,7 @@ export function M2LeagueScreen({
                 <CupBracket
                   rounds={viewModel.cup.rounds}
                   championName={viewModel.cup.championName}
+                  guideRoundOf32={guideRoundOf32}
                 />
               </View>
               <View className="gap-4">
@@ -604,6 +610,7 @@ export function M2LeagueScreen({
   return (
     <ScrollView
       className="flex-1"
+      onTouchStart={guideRoundOf32 ? onDismissRoundOf32Guide : undefined}
       contentContainerStyle={[
         { padding: 16, paddingBottom: 32 },
         desktopContent,

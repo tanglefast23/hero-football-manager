@@ -51,7 +51,6 @@ import {
   beginCareerRenewalTalks,
   beginStoryOnboarding,
   buildCareerMatchTeamDef,
-  buildCareerMatchTeams,
   BUZZ_UNLOCK_SEASON,
   BUZZ_WIN_POINTS,
   careerHeroLimit,
@@ -83,8 +82,11 @@ import {
   maxSigningTermSeasons,
   nextPendingClubLegend,
   nextTrainingUpgradeOffer,
+  pendingTrainingPriorityHolder,
   playerAttributeCaps,
+  playerPotentialGrade,
   pendingImpactFromProduction,
+  POTENTIAL_GRADES,
   POSITION_TRAINING_ATTRIBUTES,
   quickMatchForFixture,
   reconcilePendingClubLegends,
@@ -110,6 +112,7 @@ import {
   submitCareerTransferOffer,
   trainPlayerInstantly,
   userCareerRosterCount,
+  weeklyAmbientTrainingPoints,
   type BuzzSettlementSummary,
   type CareerPlayer,
   type DifficultyMode,
@@ -117,6 +120,7 @@ import {
   type FacilityPosition,
   type FacilityType,
   type GameState,
+  type PlacedFacility,
   type SponsorObjectiveKind,
   type SponsorProfileId,
 } from '../game';
@@ -174,6 +178,47 @@ const FACILITY_PLAN: readonly FacilityPlanEntry[] = [
   { type: 'stadium-stand', position: { x: 4, y: 0 } },
   { type: 'fan-shop', position: { x: 4, y: 2 } },
 ];
+
+const OWNER_INCOME_FACILITY_PLAN: readonly FacilityPlanEntry[] = [
+  { type: 'fan-shop', position: { x: 4, y: 2 } },
+  { type: 'stadium-stand', position: { x: 4, y: 0 } },
+  { type: 'fan-shop', position: { x: 0, y: 3 } },
+  { type: 'stadium-stand', position: { x: 0, y: 4 } },
+  { type: 'fan-shop', position: { x: 2, y: 3 } },
+  { type: 'stadium-stand', position: { x: 2, y: 4 } },
+];
+
+const OWNER_SUPPORT_FACILITY_PLAN: readonly FacilityPlanEntry[] =
+  FACILITY_PLAN.slice(2, -2);
+
+const OWNER_DRILL_PATHS = [
+  'sprints',
+  'finishing',
+  'rondo',
+  'duels',
+  'first-touch',
+  'circuit',
+  'keeper-drills',
+] as const;
+
+const OWNER_IMPORTANT_ATTRIBUTES: Readonly<
+  Record<Role, readonly (keyof Attrs)[]>
+> = {
+  FWD: ['sho', 'pac', 'tec', 'sta'],
+  MID: ['pas', 'def', 'pac', 'sta'],
+  DEF: ['pas', 'def', 'pac', 'sta'],
+  GK: ['ref', 'pas', 'pac', 'sta'],
+};
+
+const OWNER_PATH_BY_ATTRIBUTE: Readonly<Record<keyof Attrs, string>> = {
+  pac: 'sprints',
+  sho: 'finishing',
+  pas: 'rondo',
+  def: 'duels',
+  tec: 'first-touch',
+  sta: 'circuit',
+  ref: 'keeper-drills',
+};
 
 const MANAGED_DRILL_PATHS = [
   'finishing',
@@ -366,6 +411,24 @@ export interface LongCareerSeasonSummary {
   readonly transferSpend: number;
   readonly transferSaleIncome: number;
   readonly trainingDrills: number;
+  readonly trainingPointStart: number;
+  readonly trainingPointAmbientIncome: number;
+  readonly trainingPointStoryDelta: number;
+  readonly trainingPointOtherDelta: number;
+  readonly trainingPointSpend: number;
+  readonly trainingPointEnd: number;
+  readonly superTrainingSessions: number;
+  readonly createdPlayerTrainingDrills: number;
+  readonly createdPlayerTrainingPointSpend: number;
+  readonly createdPlayerSuperTrainingSessions: number;
+  readonly highestImportantAttribute: number;
+  readonly importantAttributeMedian: number;
+  readonly importantAttributesByRole: Readonly<
+    Record<Role, LongCareerImportantAttributeSummary>
+  >;
+  readonly createdPlayerImportantAttributes?: Readonly<
+    Partial<Record<keyof Attrs, number>>
+  >;
   readonly buzzSettlements: readonly BuzzSettlementSummary[];
   readonly sponsorObjectives: readonly LongCareerSponsorObjectiveSummary[];
   readonly recruitment: LongCareerRecruitmentSummary;
@@ -427,6 +490,23 @@ export interface ClubBusinessLongCareerResult {
   readonly seasons: readonly LongCareerSeasonSummary[];
   readonly totals: LongCareerTotals;
   readonly finalStateFingerprint: string;
+  readonly runMode?: 'CONSERVATIVE' | 'OWNER_MAX_TP';
+}
+
+export interface LongCareerImportantAttributeSummary {
+  readonly minimum: number;
+  readonly median: number;
+  readonly maximum: number;
+  readonly average: number;
+}
+
+export interface LongCareerRunOptions {
+  /**
+   * Joe's final measurement policy: exhaust TP in potential order, take risky
+   * stories, hire both coaches at the earliest legal weeks, and build the
+   * TP/economy facility plan without a discretionary cash reserve.
+   */
+  readonly ownerMaxTp?: boolean;
 }
 
 interface RecruitmentWindow {
@@ -453,8 +533,10 @@ interface RunObserver {
 export function runClubBusinessLongCareer(
   seed: number,
   difficulty: DifficultyMode,
+  options: LongCareerRunOptions = {},
 ): ClubBusinessLongCareerResult {
   assertUint32(seed, 'long-career seed');
+  const ownerMaxTp = options.ownerMaxTp === true;
   let state = addCreatedPlayer(
     beginStoryOnboarding(
       createCareer(
@@ -506,10 +588,18 @@ export function runClubBusinessLongCareer(
     const openingFans = userFans(state);
     observer.seasonMinimumCash = openingCash;
     const recruitment = createRecruitmentWindow(
-      firstSeasonInDivision && division < 5,
+      !ownerMaxTp && firstSeasonInDivision && division < 5,
     );
     const seasonBuzzStart = new Set(observer.buzzSettlements.keys());
     const trainingDrillsAtStart = totalTrainingDrills;
+    const trainingPointStart = state.trainingPoints;
+    let trainingPointAmbientIncome = 0;
+    let trainingPointStoryDelta = 0;
+    let trainingPointSpend = 0;
+    let superTrainingSessions = 0;
+    let createdPlayerTrainingDrills = 0;
+    let createdPlayerTrainingPointSpend = 0;
+    let createdPlayerSuperTrainingSessions = 0;
 
     let guard = 0;
     while (state.phase !== 'season-end') {
@@ -524,9 +614,13 @@ export function runClubBusinessLongCareer(
         // week's desk is settled once, and an authored choice is made before
         // the manager starts changing the club underneath that story.
         state = readManagedOverlayLesson(state);
-        state = resolveManagedDeskStory(state);
+        const trainingPointsBeforeStory = state.trainingPoints;
+        state = resolveManagedDeskStory(state, ownerMaxTp);
+        trainingPointStoryDelta +=
+          state.trainingPoints - trainingPointsBeforeStory;
         state = readManagedInboxCards(state);
         state = hireCheapestAffordableHeadCoach(state);
+        if (ownerMaxTp) state = hireCheapestAffordableAssistantCoach(state);
         state = resolveManagedYouthDuty(state);
         state = chooseManagedHeroLicenses(state);
         state = signBalancedSponsorOffers(state);
@@ -557,12 +651,24 @@ export function runClubBusinessLongCareer(
           state.week <= PRESEASON_LAST_WEEK &&
           !recruitment.signingResolved;
         if (!recruitmentPending) {
-          state = advanceFacilityPlan(state);
-          state = buyManagedDrillUpgrades(state);
+          state = ownerMaxTp
+            ? advanceOwnerFacilityPlan(state)
+            : advanceFacilityPlan(state);
+          state = ownerMaxTp
+            ? buyOwnerDrillUpgrades(state)
+            : buyManagedDrillUpgrades(state);
         }
-        const training = trainManagedCore(state);
+        const training = ownerMaxTp
+          ? trainOwnerPotentialRoster(state)
+          : trainManagedCore(state);
         state = training.state;
         totalTrainingDrills += training.drills;
+        trainingPointSpend += training.tpSpent;
+        superTrainingSessions += training.superSessions;
+        createdPlayerTrainingDrills += training.createdPlayerDrills;
+        createdPlayerTrainingPointSpend += training.createdPlayerTpSpent;
+        createdPlayerSuperTrainingSessions +=
+          training.createdPlayerSuperSessions;
         if (
           training.drills > 0 &&
           !hasAssistantGuideMilestone(state, 'first-training-complete')
@@ -578,6 +684,8 @@ export function runClubBusinessLongCareer(
         assertPlayerReachableAdvance(state);
         observeState(state, observer);
         const beforeAdvance = state;
+        trainingPointAmbientIncome +=
+          weeklyAmbientTrainingPoints(beforeAdvance);
         try {
           state = advanceWeek(state);
         } catch (error) {
@@ -622,6 +730,14 @@ export function runClubBusinessLongCareer(
       seasonMinimumCash: observer.seasonMinimumCash,
       recruitment,
       trainingDrills: totalTrainingDrills - trainingDrillsAtStart,
+      trainingPointStart,
+      trainingPointAmbientIncome,
+      trainingPointStoryDelta,
+      trainingPointSpend,
+      superTrainingSessions,
+      createdPlayerTrainingDrills,
+      createdPlayerTrainingPointSpend,
+      createdPlayerSuperTrainingSessions,
       boardUltimatumsIssued: [...observer.ultimatumSeasonById.values()].filter(
         (issuedSeason) => issuedSeason === state.season,
       ).length,
@@ -634,15 +750,18 @@ export function runClubBusinessLongCareer(
     // "First D1" means the season has actually completed. Reaching its opening
     // screen is not enough to claim the survival gate.
     if (division === 1) {
-      return buildRunResult(
-        state,
-        seed,
-        difficulty,
-        seasons,
-        divisionEntrySeason,
-        observer,
-        false,
-      );
+      return {
+        ...buildRunResult(
+          state,
+          seed,
+          difficulty,
+          seasons,
+          divisionEntrySeason,
+          observer,
+          false,
+        ),
+        runMode: ownerMaxTp ? 'OWNER_MAX_TP' : 'CONSERVATIVE',
+      };
     }
     if (seasonIndex + 1 === CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS) break;
     state = renewExpiringPlayers(state);
@@ -652,15 +771,18 @@ export function runClubBusinessLongCareer(
     observeState(state, observer);
   }
 
-  return buildRunResult(
-    state,
-    seed,
-    difficulty,
-    seasons,
-    divisionEntrySeason,
-    observer,
-    true,
-  );
+  return {
+    ...buildRunResult(
+      state,
+      seed,
+      difficulty,
+      seasons,
+      divisionEntrySeason,
+      observer,
+      true,
+    ),
+    runMode: ownerMaxTp ? 'OWNER_MAX_TP' : 'CONSERVATIVE',
+  };
 }
 
 function readManagedOverlayLesson(state: GameState): GameState {
@@ -691,7 +813,10 @@ function readManagedInboxCards(state: GameState): GameState {
   return reconcileSatisfiedAssistantGuideSequences(next);
 }
 
-function resolveManagedDeskStory(state: GameState): GameState {
+function resolveManagedDeskStory(
+  state: GameState,
+  preferRisky = false,
+): GameState {
   let next = settleWeeklyStory(reconcileHomeAssistantInbox(state));
   let guard = 0;
   while (next.pendingEvent !== undefined) {
@@ -712,7 +837,14 @@ function resolveManagedDeskStory(state: GameState): GameState {
         event.trigger.requiresPlayer === true &&
         pending.selectedPlayerId === undefined
       ) {
-        const selected = careerEventTargetCandidates(next, event).playerIds[0];
+        const selected = preferRisky
+          ? careerEventTargetCandidates(next, event)
+              .playerIds.map((id) =>
+                next.players.find((player) => player.id === id),
+              )
+              .filter((player): player is CareerPlayer => player !== undefined)
+              .sort(compareOwnerTrainingPriority)[0]?.id
+          : careerEventTargetCandidates(next, event).playerIds[0];
         if (selected === undefined)
           throw new Error(`event ${event.id} has no eligible user player`);
         next = selectCareerEventPlayer(next, selected);
@@ -727,7 +859,12 @@ function resolveManagedDeskStory(state: GameState): GameState {
         event.trigger.requiresCoach === true &&
         pending.selectedCoachRole === undefined
       ) {
-        const role = careerEventTargetCandidates(next, event).coachRoles[0];
+        const roles = careerEventTargetCandidates(next, event).coachRoles;
+        const role = preferRisky
+          ? roles.includes('HEAD')
+            ? 'HEAD'
+            : roles[0]
+          : roles[0];
         if (role === undefined)
           throw new Error(`event ${event.id} has no eligible coach`);
         next = selectCareerEventCoach(next, role);
@@ -736,22 +873,41 @@ function resolveManagedDeskStory(state: GameState): GameState {
         event.trigger.requiresFacility !== undefined &&
         pending.selectedFacilityId === undefined
       ) {
-        const buildingId = careerEventTargetCandidates(next, event)
-          .facilityIds[0];
+        const facilityIds = careerEventTargetCandidates(
+          next,
+          event,
+        ).facilityIds;
+        const buildingId = preferRisky
+          ? facilityIds
+              .map((id) =>
+                next.facilities.grid?.buildings.find(
+                  (building) => building.id === id,
+                ),
+              )
+              .filter(
+                (building): building is PlacedFacility =>
+                  building !== undefined,
+              )
+              .sort(
+                (left, right) =>
+                  Number(right.type === 'training-pitch') -
+                    Number(left.type === 'training-pitch') ||
+                  left.id.localeCompare(right.id),
+              )[0]?.id
+          : facilityIds[0];
         if (buildingId === undefined)
           throw new Error(`event ${event.id} has no operational building`);
         next = selectCareerEventFacility(next, buildingId);
       }
-      const choice =
-        event.choices.find(
-          (candidate) =>
-            candidate.risky !== true &&
-            eventChoiceUnavailableReason(next, candidate) === undefined,
-        ) ??
-        event.choices.find(
-          (candidate) =>
-            eventChoiceUnavailableReason(next, candidate) === undefined,
-        );
+      const availableChoices = event.choices.filter(
+        (candidate) =>
+          eventChoiceUnavailableReason(next, candidate) === undefined,
+      );
+      const choice = preferRisky
+        ? (availableChoices.find((candidate) => candidate.risky === true) ??
+          availableChoices[0])
+        : (availableChoices.find((candidate) => candidate.risky !== true) ??
+          availableChoices[0]);
       if (choice === undefined)
         throw new Error(`event ${event.id} has no available production choice`);
       const guided = next.eventFlags.includes('m4:event-guide-seen')
@@ -800,6 +956,40 @@ function hireCheapestAffordableHeadCoach(state: GameState): GameState {
   throw new Error(
     'long-career policy found no affordable eligible head coach before advance',
   );
+}
+
+function hireCheapestAffordableAssistantCoach(state: GameState): GameState {
+  const market = state.market;
+  if (market === undefined)
+    throw new Error('owner-policy coach plan has no career market');
+  if (market.assistantCoach !== undefined) return state;
+  const candidates = market.coachCandidates
+    .slice()
+    .sort(
+      (left, right) =>
+        left.weeklyWage - right.weeklyWage || left.id.localeCompare(right.id),
+    );
+  for (const candidate of candidates) {
+    try {
+      return {
+        ...state,
+        market: hireCareerCoach(state, market, candidate.id, 'ASSISTANT'),
+      };
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      if (
+        error.message.includes('is not eligible') ||
+        error.message === 'an assistant coach requires the Coaching Office' ||
+        error.message === 'the same coach cannot fill both staff roles'
+      ) {
+        continue;
+      }
+      if (error.message === 'the club cannot cover the coach weekly wage')
+        break;
+      throw error;
+    }
+  }
+  return state;
 }
 
 function resolveManagedYouthDuty(state: GameState): GameState {
@@ -1182,6 +1372,101 @@ function advanceFacilityPlan(state: GameState): GameState {
   return state;
 }
 
+function advanceOwnerFacilityPlan(state: GameState): GameState {
+  const grid = state.facilities.grid;
+  if (grid === undefined || grid.construction !== undefined) return state;
+  const pitch = grid.buildings.find(
+    (building) => building.type === 'training-pitch',
+  );
+  if (pitch === undefined)
+    return buildRequiredFacility(state, FACILITY_PLAN[0]);
+  const office = grid.buildings.find(
+    (building) => building.type === 'coaching-office',
+  );
+  if (office === undefined)
+    return buildRequiredFacility(state, FACILITY_PLAN[1]);
+
+  for (const entry of OWNER_INCOME_FACILITY_PLAN) {
+    const built = grid.buildings.some(
+      (building) =>
+        building.type === entry.type &&
+        building.x === entry.position.x &&
+        building.y === entry.position.y,
+    );
+    if (!built) return tryOwnerFacilityBuild(state, entry);
+  }
+  for (const entry of OWNER_SUPPORT_FACILITY_PLAN) {
+    if (!grid.buildings.some((building) => building.type === entry.type))
+      return tryOwnerFacilityBuild(state, entry);
+  }
+  if (pitch.level < MAX_FACILITY_LEVEL)
+    return tryOwnerFacilityUpgrade(state, pitch.id);
+  for (const targetLevel of [2, 3] as const) {
+    const upgradeOrder = [
+      ...grid.buildings.filter(
+        (building) =>
+          building.type === 'fan-shop' || building.type === 'stadium-stand',
+      ),
+      ...grid.buildings.filter(
+        (building) =>
+          building.type !== 'coaching-office' &&
+          building.type !== 'training-pitch' &&
+          building.type !== 'fan-shop' &&
+          building.type !== 'stadium-stand',
+      ),
+    ].sort(
+      (left, right) =>
+        Number(left.level >= targetLevel) -
+          Number(right.level >= targetLevel) || left.id.localeCompare(right.id),
+    );
+    const building = upgradeOrder.find(
+      (candidate) => candidate.level < targetLevel,
+    );
+    if (building !== undefined)
+      return tryOwnerFacilityUpgrade(state, building.id);
+  }
+  return state;
+}
+
+function tryOwnerFacilityBuild(
+  state: GameState,
+  entry: FacilityPlanEntry,
+): GameState {
+  if (userCash(state) < FACILITY_CATALOG[entry.type].buildCost) return state;
+  try {
+    return buildCareerFacility(state, entry.type, entry.position).state;
+  } catch {
+    return state;
+  }
+}
+
+function tryOwnerFacilityUpgrade(
+  state: GameState,
+  buildingId: string,
+): GameState {
+  try {
+    return upgradeCareerFacility(state, buildingId).state;
+  } catch {
+    return state;
+  }
+}
+
+function ownerIncomeBaseComplete(state: GameState): boolean {
+  const grid = state.facilities.grid;
+  if (grid === undefined || grid.construction !== undefined) return false;
+  const pitch = grid.buildings.find(
+    (building) => building.type === 'training-pitch',
+  );
+  return (
+    pitch?.level === MAX_FACILITY_LEVEL &&
+    grid.buildings.some((building) => building.type === 'coaching-office') &&
+    grid.buildings.filter((building) => building.type === 'fan-shop').length ===
+      3 &&
+    grid.buildings.filter((building) => building.type === 'stadium-stand')
+      .length === 3
+  );
+}
+
 function buildRequiredFacility(
   state: GameState,
   entry: FacilityPlanEntry,
@@ -1227,9 +1512,26 @@ function buyManagedDrillUpgrades(state: GameState): GameState {
   return next;
 }
 
+function buyOwnerDrillUpgrades(state: GameState): GameState {
+  if (!ownerIncomeBaseComplete(state)) return state;
+  let next = state;
+  for (const pathId of OWNER_DRILL_PATHS) {
+    const offer = nextTrainingUpgradeOffer(next, pathId);
+    if (offer === undefined || offer.blockedReason !== undefined) continue;
+    if (userCash(next) < offer.cost) continue;
+    next = purchaseCareerTrainingUpgrade(next, pathId).state;
+  }
+  return next;
+}
+
 function trainManagedCore(state: GameState): {
   state: GameState;
   drills: number;
+  tpSpent: number;
+  superSessions: number;
+  createdPlayerDrills: number;
+  createdPlayerTpSpent: number;
+  createdPlayerSuperSessions: number;
 } {
   const starters = userLineupIds(state)
     .map((id) => state.players.find((player) => player.id === id))
@@ -1263,6 +1565,11 @@ function trainManagedCore(state: GameState): {
   const order = [...core.slice(rotation), ...core.slice(0, rotation)];
   let next = state;
   let drills = 0;
+  let tpSpent = 0;
+  let superSessions = 0;
+  let createdPlayerDrills = 0;
+  let createdPlayerTpSpent = 0;
+  let createdPlayerSuperSessions = 0;
   for (let index = 0; index < order.length; index += 1) {
     const player = order[index];
     const attributes =
@@ -1277,15 +1584,149 @@ function trainManagedCore(state: GameState): {
     if (resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints)
       continue;
     try {
-      next = trainPlayerInstantly(next, player.id, pathId).state;
+      const resolution = trainPlayerInstantly(next, player.id, pathId);
+      next = resolution.state;
       drills += 1;
+      tpSpent += resolution.tpSpent;
+      superSessions += Number(resolution.isSuper);
+      if (resolution.playerId === state.onboarding?.createdPlayerId) {
+        createdPlayerDrills += 1;
+        createdPlayerTpSpent += resolution.tpSpent;
+        createdPlayerSuperSessions += Number(resolution.isSuper);
+      }
     } catch {
       // A training-priority promise can own the next taps; skip this player and
       // continue the deterministic role rotation instead of fabricating gains.
       continue;
     }
   }
-  return { state: next, drills };
+  return {
+    state: next,
+    drills,
+    tpSpent,
+    superSessions,
+    createdPlayerDrills,
+    createdPlayerTpSpent,
+    createdPlayerSuperSessions,
+  };
+}
+
+function compareOwnerTrainingPriority(
+  left: CareerPlayer,
+  right: CareerPlayer,
+): number {
+  return (
+    POTENTIAL_GRADES.indexOf(playerPotentialGrade(right)) -
+      POTENTIAL_GRADES.indexOf(playerPotentialGrade(left)) ||
+    (right.potential ?? 3) - (left.potential ?? 3) ||
+    (left.age ?? 99) - (right.age ?? 99) ||
+    left.id.localeCompare(right.id)
+  );
+}
+
+function trainOwnerPotentialRoster(state: GameState): {
+  state: GameState;
+  drills: number;
+  tpSpent: number;
+  superSessions: number;
+  createdPlayerDrills: number;
+  createdPlayerTpSpent: number;
+  createdPlayerSuperSessions: number;
+} {
+  const priorityHolderId = pendingTrainingPriorityHolder(state)?.playerId;
+  const order = state.players
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        player.injuryWeeks === 0 &&
+        (player.awayWeeks ?? 0) === 0 &&
+        (player.condition ?? 100) >= 80 &&
+        OWNER_IMPORTANT_ATTRIBUTES[player.role].some(
+          (attribute) =>
+            player.attrs[attribute] < playerAttributeCaps(player)[attribute],
+        ),
+    )
+    .slice()
+    .sort((left, right) => {
+      if (left.id === priorityHolderId) return -1;
+      if (right.id === priorityHolderId) return 1;
+      return compareOwnerTrainingPriority(left, right);
+    });
+  let next = state;
+  let drills = 0;
+  let tpSpent = 0;
+  let superSessions = 0;
+  let createdPlayerDrills = 0;
+  let createdPlayerTpSpent = 0;
+  let createdPlayerSuperSessions = 0;
+  for (const plannedPlayer of order) {
+    for (let batchDrill = 0; batchDrill < 2; batchDrill += 1) {
+      const player = next.players.find(
+        (candidate) => candidate.id === plannedPlayer.id,
+      );
+      if (
+        player === undefined ||
+        player.injuryWeeks > 0 ||
+        (player.awayWeeks ?? 0) > 0
+      ) {
+        break;
+      }
+      const caps = playerAttributeCaps(player);
+      const attribute = OWNER_IMPORTANT_ATTRIBUTES[player.role]
+        .filter((candidate) => player.attrs[candidate] < caps[candidate])
+        .slice()
+        .sort(
+          (left, right) =>
+            player.attrs[left] - player.attrs[right] ||
+            OWNER_IMPORTANT_ATTRIBUTES[player.role].indexOf(left) -
+              OWNER_IMPORTANT_ATTRIBUTES[player.role].indexOf(right),
+        )[0];
+      if (attribute === undefined) break;
+      const pathId = OWNER_PATH_BY_ATTRIBUTE[attribute];
+      if (
+        resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints
+      ) {
+        break;
+      }
+      try {
+        const resolution = trainPlayerInstantly(next, player.id, pathId);
+        next = resolution.state;
+        drills += 1;
+        tpSpent += resolution.tpSpent;
+        superSessions += Number(resolution.isSuper);
+        if (resolution.playerId === state.onboarding?.createdPlayerId) {
+          createdPlayerDrills += 1;
+          createdPlayerTpSpent += resolution.tpSpent;
+          createdPlayerSuperSessions += Number(resolution.isSuper);
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.includes('was promised the next')
+        ) {
+          return {
+            state: next,
+            drills,
+            tpSpent,
+            superSessions,
+            createdPlayerDrills,
+            createdPlayerTpSpent,
+            createdPlayerSuperSessions,
+          };
+        }
+        throw error;
+      }
+    }
+  }
+  return {
+    state: next,
+    drills,
+    tpSpent,
+    superSessions,
+    createdPlayerDrills,
+    createdPlayerTpSpent,
+    createdPlayerSuperSessions,
+  };
 }
 
 function chooseManagedHeroLicenses(state: GameState): GameState {
@@ -1320,7 +1761,10 @@ function chooseManagedHeroLicenses(state: GameState): GameState {
     const starter = playerById.get(lineup[slot]);
     if (starter === undefined)
       throw new Error(`long-career lineup lost player ${lineup[slot]}`);
-    if (starter.power === undefined || starter.licensed) continue;
+    const unavailable = starter.injuryWeeks > 0 || (starter.awayWeeks ?? 0) > 0;
+    const unlicensedHero =
+      starter.power !== undefined && starter.licensed !== true;
+    if (!unavailable && !unlicensedHero) continue;
     selected.delete(starter.id);
     const eligible = next.players
       .filter(
@@ -1328,6 +1772,7 @@ function chooseManagedHeroLicenses(state: GameState): GameState {
           candidate.clubId === next.userClubId &&
           !selected.has(candidate.id) &&
           candidate.injuryWeeks === 0 &&
+          (candidate.awayWeeks ?? 0) === 0 &&
           !(candidate.power !== undefined && !candidate.licensed) &&
           (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK'),
       )
@@ -1343,7 +1788,7 @@ function chooseManagedHeroLicenses(state: GameState): GameState {
       })[0];
     if (eligible === undefined) {
       throw new Error(
-        `unlicensed long-career hero ${starter.id} has no eligible replacement`,
+        `unavailable or unlicensed long-career starter ${starter.id} has no eligible replacement`,
       );
     }
     lineup[slot] = eligible.id;
@@ -1365,14 +1810,26 @@ function settleProductionMatchday(state: GameState): GameState {
   if (matchday === undefined)
     throw new Error('long-career matchday has no active fixture');
   const fixture = matchday.fixture;
-  const teams = buildCareerMatchTeams(state, [
+  const clubIds = [
     ...new Set(
       matchday.fixtures.flatMap((candidate) => [
         candidate.homeClubId,
         candidate.awayClubId,
       ]),
     ),
-  ]);
+  ];
+  const teams = Object.fromEntries(
+    clubIds.map((clubId) => {
+      try {
+        return [clubId, buildCareerMatchTeamDef(state, clubId)];
+      } catch (error) {
+        throw new Error(
+          `long-career season ${state.season} week ${state.week} could not build match club ${clubId}`,
+          { cause: error },
+        );
+      }
+    }),
+  );
   const quickMatches = matchday.fixtures.map((candidate) => ({
     fixture: candidate,
     quick: quickMatchForFixture(
@@ -1476,10 +1933,19 @@ function summarizeSeason(input: {
   readonly seasonMinimumCash: number;
   readonly recruitment: RecruitmentWindow;
   readonly trainingDrills: number;
+  readonly trainingPointStart: number;
+  readonly trainingPointAmbientIncome: number;
+  readonly trainingPointStoryDelta: number;
+  readonly trainingPointSpend: number;
+  readonly superTrainingSessions: number;
+  readonly createdPlayerTrainingDrills: number;
+  readonly createdPlayerTrainingPointSpend: number;
+  readonly createdPlayerSuperTrainingSessions: number;
   readonly boardUltimatumsIssued: number;
   readonly buzzSettlements: readonly BuzzSettlementSummary[];
 }): LongCareerSeasonSummary {
   const { state } = input;
+  const importantAttributes = summarizeImportantAttributes(state);
   const row = leagueStandings(state).find(
     (candidate) => candidate.clubId === state.userClubId,
   );
@@ -1578,6 +2044,28 @@ function summarizeSeason(input: {
       ),
     ),
     trainingDrills: input.trainingDrills,
+    trainingPointStart: input.trainingPointStart,
+    trainingPointAmbientIncome: input.trainingPointAmbientIncome,
+    trainingPointStoryDelta: input.trainingPointStoryDelta,
+    trainingPointOtherDelta:
+      state.trainingPoints -
+      input.trainingPointStart -
+      input.trainingPointAmbientIncome -
+      input.trainingPointStoryDelta +
+      input.trainingPointSpend,
+    trainingPointSpend: input.trainingPointSpend,
+    trainingPointEnd: state.trainingPoints,
+    superTrainingSessions: input.superTrainingSessions,
+    createdPlayerTrainingDrills: input.createdPlayerTrainingDrills,
+    createdPlayerTrainingPointSpend: input.createdPlayerTrainingPointSpend,
+    createdPlayerSuperTrainingSessions:
+      input.createdPlayerSuperTrainingSessions,
+    highestImportantAttribute: importantAttributes.highest,
+    importantAttributeMedian: importantAttributes.median,
+    importantAttributesByRole: importantAttributes.byRole,
+    ...(importantAttributes.created === undefined
+      ? {}
+      : { createdPlayerImportantAttributes: importantAttributes.created }),
     buzzSettlements: input.buzzSettlements,
     sponsorObjectives: sponsorContracts.map((contract) => ({
       slot: contract.slot,
@@ -1605,6 +2093,93 @@ function summarizeSeason(input: {
       .length,
     boardRescues: lines.filter((line) => line.kind === 'board-rescue').length,
   };
+}
+
+function summarizeImportantAttributes(state: GameState): {
+  readonly highest: number;
+  readonly median: number;
+  readonly byRole: Record<Role, LongCareerImportantAttributeSummary>;
+  readonly created?: Partial<Record<keyof Attrs, number>>;
+} {
+  const lineupPlayers = userLineupIds(state)
+    .map((id) => state.players.find((player) => player.id === id))
+    .filter((player): player is CareerPlayer => player !== undefined);
+  const roleValues = (role: Role): number[] =>
+    lineupPlayers
+      .filter((player) => player.role === role)
+      .flatMap((player) =>
+        OWNER_IMPORTANT_ATTRIBUTES[role].map((attribute) =>
+          visibleAttributeValue(player, attribute),
+        ),
+      );
+  const valuesByRole = {
+    GK: roleValues('GK'),
+    DEF: roleValues('DEF'),
+    MID: roleValues('MID'),
+    FWD: roleValues('FWD'),
+  };
+  const allValues = Object.values(valuesByRole).flat();
+  if (allValues.length === 0)
+    throw new Error('owner-policy summary has no starting-eleven attributes');
+  const createdPlayer = state.players.find(
+    (player) => player.id === state.onboarding?.createdPlayerId,
+  );
+  const created =
+    createdPlayer === undefined
+      ? undefined
+      : Object.fromEntries(
+          OWNER_IMPORTANT_ATTRIBUTES[createdPlayer.role].map((attribute) => [
+            attribute,
+            visibleAttributeValue(createdPlayer, attribute),
+          ]),
+        );
+  return {
+    highest: Math.max(...allValues),
+    median: median(allValues),
+    byRole: {
+      GK: summarizeAttributeValues(valuesByRole.GK),
+      DEF: summarizeAttributeValues(valuesByRole.DEF),
+      MID: summarizeAttributeValues(valuesByRole.MID),
+      FWD: summarizeAttributeValues(valuesByRole.FWD),
+    },
+    ...(created === undefined
+      ? {}
+      : { created: created as Partial<Record<keyof Attrs, number>> }),
+  };
+}
+
+function summarizeAttributeValues(
+  values: readonly number[],
+): LongCareerImportantAttributeSummary {
+  if (values.length === 0)
+    throw new Error('owner-policy summary has an empty role group');
+  return {
+    minimum: Math.min(...values),
+    median: median(values),
+    maximum: Math.max(...values),
+    average: roundTwo(
+      values.reduce((sum, value) => sum + value, 0) / values.length,
+    ),
+  };
+}
+
+function median(values: readonly number[]): number {
+  if (values.length === 0)
+    throw new Error('owner-policy summary cannot take an empty median');
+  const sorted = values.slice().sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? roundTwo((sorted[middle - 1] + sorted[middle]) / 2)
+    : sorted[middle];
+}
+
+function visibleAttributeValue(
+  player: CareerPlayer,
+  attribute: keyof Attrs,
+): number {
+  return attribute === 'ref'
+    ? Math.min(999, player.attrs.ref + (player.refDisplayBonus ?? 0))
+    : player.attrs[attribute];
 }
 
 function recruitmentSummary(

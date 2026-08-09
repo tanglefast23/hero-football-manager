@@ -42,6 +42,7 @@ import {
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { recordFanGain } from './fan-growth';
 import {
+  heroLicenseLimitForDivision,
   highestDivisionReached,
   recordHighestDivisionReached,
 } from './promotion-progression';
@@ -820,13 +821,44 @@ function overlayDivisionSpecials(input: {
     }),
   );
 
+  // The named specials own the first field licenses. Excess generated heroes
+  // become ordinary players on this season's host. Merely unlicensing them is
+  // not enough: a generated squad can have no same-role ordinary reserve, so
+  // startingEleven would have to field an unlicensed hero and still crash.
+  // Without this reconciliation, the D2 host can start three generated heroes
+  // plus three specials against a three-license cap.
+  const fieldLicenseLimit = heroLicenseLimitForDivision(input.division);
+  let ordinaryLicenseSlots = Math.max(0, fieldLicenseLimit - specials.length);
+  const adjustedCarried = carried.map((player) => {
+    if (
+      player.clubId !== hostId ||
+      player.power === undefined ||
+      player.licensed !== true
+    ) {
+      return player;
+    }
+    if (ordinaryLicenseSlots > 0) {
+      ordinaryLicenseSlots -= 1;
+      return player;
+    }
+    const ordinary = { ...player };
+    delete ordinary.power;
+    delete ordinary.powerTier;
+    ordinary.licensed = false;
+    ordinary.onHeroWage = false;
+    return ordinary;
+  });
+  const adjustedHostSquad = adjustedCarried.filter(
+    (player) => player.clubId === hostId,
+  );
+
   // Specials come first in the HOST'S slice, because startingEleven takes the
   // first N of each role in array order — an appended special becomes the sixth
   // defender and never plays. They go LAST in the roster as a whole, so the
   // global ordering every other caller sees is undisturbed: putting them at
   // index 0 silently changed which player "the first rival forward" means.
-  const hostPlayers = [...specials, ...hostSquad];
-  const players = [...carried, ...specials];
+  const hostPlayers = [...specials, ...adjustedHostSquad];
+  const players = [...adjustedCarried, ...specials];
   const clubs = input.clubs.map((club) =>
     club.id === hostId
       ? {

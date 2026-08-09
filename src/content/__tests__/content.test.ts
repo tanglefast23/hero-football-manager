@@ -89,6 +89,45 @@ describe('validated M1 launch content', () => {
     expect(content.training.focusDrills).toHaveLength(35);
     expect(content.sponsors.brands).toHaveLength(12);
     expect(
+      content.rivalHeroIntros.intros.map((intro) => ({
+        heroId: intro.heroId,
+        victoryLines: intro.victoryLines,
+      })),
+    ).toEqual([
+      {
+        heroId: 'special-f171',
+        victoryLines: [
+          'I slowed down for the replay. You’re welcome.',
+          'I finished celebrating before your team finished turning around.',
+        ],
+      },
+      {
+        heroId: 'special-f178',
+        victoryLines: [
+          'Coach, I kept my eye on the ball. Your keeper should try it.',
+          'That wasn’t a shooting lane. I made one.',
+        ],
+      },
+      {
+        heroId: 'special-f174',
+        victoryLines: [
+          'I rallied eleven players. You couldn’t rally four defenders.',
+          'Coach, next time bring a plan your whole team can follow.',
+        ],
+      },
+      {
+        heroId: 'special-f176',
+        victoryLines: ['Bruno Smash Goal', 'Bruno Smash Player'],
+      },
+      {
+        heroId: 'special-f168',
+        victoryLines: [
+          'Coach, I prepared for every move. You prepared an excuse.',
+          'I knew your game plan before your players did.',
+        ],
+      },
+    ]);
+    expect(
       content.sponsors.objectives.map((objective) => objective.kind),
     ).toEqual(['LEAGUE_WINS', 'LEAGUE_GOALS', 'LEAGUE_FINISH']);
     const drillPaths = new Map<string, number[]>();
@@ -381,7 +420,7 @@ describe('validated M1 launch content', () => {
     // Fewer than before by design: a targeted story earns its reward against a
     // real risk, so most of the new cards have a losing branch that costs the
     // thing they were pointed at.
-    expect(goodNews.length).toBeGreaterThanOrEqual(9);
+    expect(goodNews.length).toBeGreaterThanOrEqual(8);
   });
 
   test('loads byte-identically and does not share mutable parsed objects', () => {
@@ -750,7 +789,7 @@ describe('validated M1 launch content', () => {
         {
           focus: 'emergency-loan',
           body: [
-            "This is the club's only automatic emergency loan. Repayments begin next season.",
+            "This is the club's only automatic emergency loan. Repayments begin next season. Fan Shops and Stadium Stands make money, and you can build up to three of each. Every other facility is limited to one.",
           ],
         },
       ],

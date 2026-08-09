@@ -700,7 +700,18 @@ describe('assistant guide application flow', () => {
     expect(
       outstandingInboxDuties({ ...weekThree, week: LAST_GATED_INBOX_WEEK + 1 }),
     ).toEqual([]);
-    expect(outstandingInboxDuties({ ...weekThree, season: 2 })).toEqual([]);
+    // The Cup card is a later Must Do, so it remains blocking whenever its
+    // guide is due; unlike the three opening jobs, a season change does not
+    // silently retire it.
+    expect(outstandingInboxDuties({ ...weekThree, season: 2 })).toEqual([
+      'national-cup',
+    ]);
+    expect(
+      outstandingInboxDuties({
+        ...completeAssistantGuideSequence(weekThree, 'national-cup'),
+        season: 2,
+      }),
+    ).toEqual([]);
   });
 
   it('does not resurrect an unusable Youth card in an older declined save', () => {

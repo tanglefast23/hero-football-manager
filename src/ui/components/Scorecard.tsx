@@ -252,7 +252,7 @@ interface StatusChipProps {
   label: string;
   selected?: boolean;
   /** `info` is the calm counterpart to `danger` — the safe half of a pair. */
-  tone?: 'normal' | 'hero' | 'success' | 'danger' | 'info';
+  tone?: 'normal' | 'hero' | 'success' | 'danger' | 'info' | 'story';
 }
 
 export function StatusChip({
@@ -270,7 +270,9 @@ export function StatusChip({
           ? 'border-red-dark bg-red-light text-ink'
           : tone === 'info'
             ? 'border-blue-dark bg-blue-light text-ink'
-            : 'border-ink/40 bg-white text-ink';
+            : tone === 'story'
+              ? 'border-story-dark bg-story-light text-ink'
+              : 'border-ink/40 bg-white text-ink';
 
   return (
     <View className={cx('min-h-8 justify-center border-2 px-2 py-1', palette)}>

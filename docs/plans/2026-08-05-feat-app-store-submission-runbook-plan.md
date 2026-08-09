@@ -617,7 +617,7 @@ Use the current questionnaire and definitions. Audit the release visually, not j
 | Cartoon/fantasy violence | Stylized tackles, knockdowns, flattening, fire/thunder, freezing, webbing/cocoon effects | Observe frequency in representative sessions; likely non-zero. Never minimize to obtain a lower rating |
 | Realistic/prolonged graphic violence | No blood, gore, death, or realistic violence found | Verify final visuals before `None` |
 | Guns/weapons | None found | Verify final powers/art |
-| Horror/fear | Giant spider, abandoned lab, haunted scoreboard, ghost/death-themed awakening language played comedically | Inspect final art/audio and choose None/Infrequent/Frequent from live definitions |
+| Horror/fear | Abandoned lab, haunted scoreboard, ghost/death-themed awakening language played comedically | Inspect final art/audio and choose None/Infrequent/Frequent from live definitions |
 | Medical treatment | Limping/collapse, CPR, defibrillator-like magical recovery, injuries | Follow current questionnaire wording and context definitions |
 | Gambling/simulated gambling | No player wagering, casino, gacha, loot box, or real-money gambling found; isolated lottery/betting jokes exist | Do not classify ordinary RNG, soccer competition, or a dialogue joke as simulated gambling without Apple's definition; inspect exact UI |
 | Contests | Sports competition exists but no real prize contest found | Apply Apple's displayed definition; do not infer solely from matches |

@@ -1683,11 +1683,22 @@ export const RivalHeroIntroHeroIdSchema = z.enum([
   'special-f168',
 ]);
 
-const RivalHeroIntroSchema = z.strictObject({
-  heroId: RivalHeroIntroHeroIdSchema,
-  /** One compact speech bubble, not a branching dialogue tree. */
-  taunt: z.string().trim().min(1).max(160),
-});
+const RivalHeroIntroSchema = z
+  .strictObject({
+    heroId: RivalHeroIntroHeroIdSchema,
+    /** One compact speech bubble, not a branching dialogue tree. */
+    taunt: z.string().trim().min(1).max(160),
+    /** The full-time recap draws one stable line from this small authored pool. */
+    victoryLines: z.array(z.string().trim().min(1).max(160)).length(2),
+  })
+  .superRefine((intro, context) => {
+    addDuplicateIssues(
+      intro.victoryLines,
+      context,
+      ['victoryLines'],
+      'rival victory line',
+    );
+  });
 
 export const RivalHeroIntroCatalogSchema = z
   .strictObject({

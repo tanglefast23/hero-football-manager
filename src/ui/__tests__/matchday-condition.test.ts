@@ -63,7 +63,7 @@ describe('matchday condition guidance', () => {
 
   it('uses the approved Bert copy with the affected player name', () => {
     expect(matchdayConditionWarningCopy('Jojo')).toBe(
-      'Boss, Jojo is below peak. The lower a player’s condition, the less effectively they’ll play on the field and the sooner they’ll tire. Training builds skill, but rest anyone you need at their best.',
+      "Boss, Jojo is below peak. The lower a player's COND stat, they more tired they start the game.",
     );
   });
 

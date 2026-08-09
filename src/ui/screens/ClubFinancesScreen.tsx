@@ -2331,25 +2331,30 @@ function GroundsSection({
           >
             {showBuildPlacementHelper ? (
               <View
-                ref={facilityPlacementFocusRef}
-                collapsable={false}
-                accessible
-                accessibilityRole="header"
-                accessibilityLabel={t('clubFinances.buildHere')}
                 pointerEvents="none"
-                {...guideHeadingProps()}
-                className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
-                style={[
-                  styles.guidedFacilityGlow,
-                  styles.facilityPlacementHelper,
-                ]}
+                style={styles.facilityPlacementHelperAnchor}
               >
-                <PixelText
-                  accessibilityLiveRegion="polite"
-                  className="text-center text-sm uppercase text-ink"
+                <View
+                  ref={facilityPlacementFocusRef}
+                  collapsable={false}
+                  accessible
+                  accessibilityRole="header"
+                  accessibilityLabel={t('clubFinances.buildHere')}
+                  pointerEvents="none"
+                  {...guideHeadingProps()}
+                  className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
+                  style={[
+                    styles.guidedFacilityGlow,
+                    styles.facilityPlacementHelper,
+                  ]}
                 >
-                  {t('clubFinances.buildHere')}
-                </PixelText>
+                  <PixelText
+                    accessibilityLiveRegion="polite"
+                    className="text-center text-sm uppercase text-ink"
+                  >
+                    {t('clubFinances.buildHere')}
+                  </PixelText>
+                </View>
               </View>
             ) : null}
             {guidedFirstFacility &&
@@ -3585,13 +3590,18 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
 
 /** The temporary gold placement instruction and its grid-level hover label. */
 const styles = StyleSheet.create({
-  facilityPlacementHelper: {
+  facilityPlacementHelperAnchor: {
     position: 'absolute',
-    top: 12,
-    left: '50%',
-    width: 144,
-    marginLeft: -72,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 30,
+  },
+  facilityPlacementHelper: {
+    width: 144,
   },
   facilityPlacementHoverTip: {
     position: 'absolute',

@@ -41,6 +41,15 @@ export type TrainingDrillTier = 1 | 2 | 3 | 4 | 5;
 
 export const MAX_TRAINING_DRILL_TIER: TrainingDrillTier = 5;
 
+/** Fielded Hero License cap associated with one reached division tier. */
+export function heroLicenseLimitForDivision(
+  division: DivisionLevel,
+): 2 | 3 | 4 {
+  if (division === 1) return 4;
+  if (division <= 3) return 3;
+  return 2;
+}
+
 const TRAINING_DRILL_TIER_SUFFIX: Readonly<Record<TrainingDrillTier, string>> =
   {
     1: '',

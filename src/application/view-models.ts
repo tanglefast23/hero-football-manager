@@ -44,6 +44,7 @@ import {
   currentUserDivision,
   difficultyRules,
   isConsideringRetirement,
+  isRivalHeroIntroHeroId,
   maxRenewalTermSeasons,
   maxSigningTermSeasons,
   retirementCardCopy,
@@ -138,6 +139,7 @@ import type {
   MatchDayBannerViewModel,
   MatchDayViewModel,
   FulltimeReactionViewModel,
+  RivalMockeryViewModel,
   PostMatchViewModel,
   SeasonEndViewModel,
   StoryEventPlayerViewModel,
@@ -2376,6 +2378,7 @@ function deskStoryAlert(
     title: copyOrEnglish(t, `event.${event.id}.title`, event.title),
     detail: copyOrEnglish(t, `event.${event.id}.body`, event.body),
     tone: 'event',
+    isStory: true,
   };
 }
 
@@ -2965,16 +2968,21 @@ export function isHomeDeskClear(state: GameState): boolean {
  * This runs when the career arrives at a manage week rather than when the player
  * leaves one, because a match week reaches its desk through the match rather
  * than through Advance Week — deciding on the way out would skip every week with
- * a fixture, which is most of them. The week stamp makes repeat calls free.
+ * a fixture, which is most of them. The week stamp makes repeat calls free unless
+ * an achievement was earned after that desk was settled.
  */
 export function settleWeeklyStory(state: GameState): GameState {
   if (state.phase !== 'manage' || state.pendingEvent !== undefined)
     return state;
   if (state.onboarding !== undefined && state.onboarding.stage !== 'complete')
     return state;
+  const hasQueuedAchievement = (state.pendingMilestones ?? []).some((entry) =>
+    LAUNCH_CONTENT.events.events.some((event) => event.id === entry.eventId),
+  );
   if (
     state.eventClock.storySettledSeason === state.season &&
-    state.eventClock.storySettledWeek === state.week
+    state.eventClock.storySettledWeek === state.week &&
+    !hasQueuedAchievement
   ) {
     return state;
   }
@@ -4255,6 +4263,15 @@ export function postMatchViewModel(
     pool,
     t,
   );
+  const rivalMockery = rivalVictoryMockery(
+    before,
+    fixtureId,
+    opponentClubId,
+    isHome ? 'away' : 'home',
+    score,
+    outcomeLabel,
+    t,
+  );
   const buzz =
     buzzPowerFiredPlayerIds === undefined || before.season < 3
       ? undefined
@@ -4319,6 +4336,7 @@ export function postMatchViewModel(
       ? {}
       : { facilityCompletion: completedFacility }),
     ...(reaction === undefined ? {} : { reaction }),
+    ...(rivalMockery === undefined ? {} : { rivalMockery }),
   };
 }
 
@@ -4459,6 +4477,45 @@ function cupOpponentTiersAbove(
  * blame — pointing at an empty touchline is worse than crying.
  */
 const BLAME_ROLL_IN = 3;
+
+function rivalVictoryMockery(
+  state: GameState,
+  fixtureId: string,
+  opponentClubId: string,
+  matchSide: 'home' | 'away',
+  score: { homeGoals: number; awayGoals: number },
+  outcomeLabel: 'WIN' | 'DRAW' | 'LOSS',
+  t: CopyFn,
+): RivalMockeryViewModel | undefined {
+  if (outcomeLabel !== 'LOSS') return undefined;
+  const hero = state.players.find(
+    (player) =>
+      player.clubId === opponentClubId && isRivalHeroIntroHeroId(player.id),
+  );
+  if (hero === undefined || !isRivalHeroIntroHeroId(hero.id)) return undefined;
+  const authored = LAUNCH_CONTENT.rivalHeroIntros.intros.find(
+    (intro) => intro.heroId === hero.id,
+  );
+  if (authored === undefined || authored.victoryLines.length === 0)
+    return undefined;
+  const draw = `${state.careerSeed}:${fixtureId}:${score.homeGoals}-${score.awayGoals}:${hero.id}`;
+  const line =
+    authored.victoryLines[
+      hashString(`rival-victory-line:${draw}`) % authored.victoryLines.length
+    ]!;
+  return {
+    heroId: hero.id,
+    heroName: hero.name,
+    role: hero.role,
+    ...(hero.lookId === undefined ? {} : { lookId: hero.lookId }),
+    matchSide,
+    line: copyOrEnglish(
+      t,
+      `rivalHeroVictory.${hero.id}.${proseSlug(line)}`,
+      line,
+    ),
+  };
+}
 
 function fulltimeReaction(
   state: GameState,

@@ -50,10 +50,10 @@ export interface EventOfferOptions {
  * "quiet weeks that came up empty", so weeks that never rolled cannot inflate
  * the odds of the next one that does.
  *
- * The quiet-week rule applies to the RANDOM deck only. Authored one-shots with a
- * fixed window — the Giant Spider is the one that ships — fire inside it either
- * way: their window falls in the opening season, when Bert's tutorial queue keeps
- * the desk busy nearly every week, so gating them would retire them by accident.
+ * The quiet-week rule applies to the RANDOM deck only. Achievement stories use
+ * the direct lane above it and do not wait for an empty desk. Authored one-shots
+ * with a fixed window — the Giant Spider is the one that ships — also fire on a
+ * busy desk, or Bert's opening queue can retire them before they are seen.
  */
 export function eventOfferForWeek(
   state: GameState,
@@ -66,6 +66,20 @@ export function eventOfferForWeek(
   if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') {
     return { eventClock: { ...state.eventClock } };
   }
+
+  /**
+   * Recognition is the direct consequence of an achievement, so it is the first
+   * story lane checked. It does not wait behind a scheduled one-shot, the normal
+   * week-after-story gap, or a busy desk, and it never resets the random deck's
+   * drought counter.
+   */
+  const milestone = (state.pendingMilestones ?? []).find((entry) =>
+    catalog.events.some((event) => event.id === entry.eventId),
+  );
+  if (milestone !== undefined) {
+    return { eventId: milestone.eventId, eventClock: { ...state.eventClock } };
+  }
+
   const hadStoryLastWeek =
     state.resolvedEventHistory?.some(
       (entry) => entry.season === state.season && entry.week === state.week - 1,
@@ -95,25 +109,6 @@ export function eventOfferForWeek(
 
   if (!options.deskClear) {
     return { eventClock: { ...state.eventClock } };
-  }
-
-  /**
-   * Recognition has its own lane, ahead of the random deck.
-   *
-   * A milestone was earned, not drawn, so it does not roll the weekly chance —
-   * otherwise a hero's goal in week 9 could be congratulated in week 15. It
-   * also leaves `weeksWithoutEvent` alone: the drought ramp keeps climbing
-   * underneath, so a run of milestones delays the random story rather than
-   * starving it, and the deck fires as soon as the queue empties.
-   *
-   * Unlike the Giant Spider one-shot above, this waits for a clear desk and
-   * never resets the counter. Those two differences are the whole design.
-   */
-  const milestone = (state.pendingMilestones ?? []).find((entry) =>
-    catalog.events.some((event) => event.id === entry.eventId),
-  );
-  if (milestone !== undefined) {
-    return { eventId: milestone.eventId, eventClock: { ...state.eventClock } };
   }
 
   const weeklyRoll = deterministicCareerEventRoll(

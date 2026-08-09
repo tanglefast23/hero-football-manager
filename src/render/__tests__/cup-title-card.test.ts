@@ -155,7 +155,7 @@ describe('the card is wired into the live match without skipping any of it', () 
   it('pauses the clock rather than dropping the time into the accumulator', () => {
     const screen = source('src/render/MatchScreen.tsx');
     const pauseBranch = screen.slice(
-      screen.indexOf('if (pausedRef.current) {'),
+      screen.indexOf("if (pausedRef.current && s.phase !== 'fulltime') {"),
       screen.indexOf('// Ledger item 7 — capped catch-up'),
     );
 

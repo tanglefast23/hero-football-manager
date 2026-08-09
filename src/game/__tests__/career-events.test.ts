@@ -122,17 +122,17 @@ describe('career event state', () => {
     const initial = createCareer(createLaunchCareerSetup());
     const playerId = 'bramble-rovers-p13';
     const pending = selectCareerEventPlayer(
-      offerCareerEvent(initial, 'giant-spider-arrives'),
+      offerCareerEvent(initial, 'test-career-event'),
       playerId,
     );
     const resolved = applyCareerEventOutcome(
       pending,
-      'adopt-spider',
-      'The mascot meeting requires two weeks of ice packs.',
+      'test-risky-choice',
+      'The event has a clear result.',
       {
         moneyDelta: -100,
         fanDelta: 20,
-        flags: ['spider-adopted'],
+        flags: ['test-event-success'],
         playerEffect: {
           playerId,
           injuryWeeks: 2,
@@ -150,9 +150,9 @@ describe('career event state', () => {
     );
 
     expect(resolved.pendingEvent).toMatchObject({
-      eventId: 'giant-spider-arrives',
+      eventId: 'test-career-event',
       selectedPlayerId: playerId,
-      resolvedChoiceId: 'adopt-spider',
+      resolvedChoiceId: 'test-risky-choice',
       resolvedOutcomeIndex: 0,
       resolvedRisky: true,
       resolvedSuccess: true,
@@ -165,15 +165,15 @@ describe('career event state', () => {
       morale: 55,
       attrs: { pac: 67 },
     });
-    expect(resolved.eventFlags).toContain('spider-adopted');
+    expect(resolved.eventFlags).toContain('test-event-success');
 
     const dismissed = dismissCareerEvent(resolved);
     expect(dismissed.pendingEvent).toBeUndefined();
-    expect(dismissed.resolvedEventIds).toContain('giant-spider-arrives');
+    expect(dismissed.resolvedEventIds).toContain('test-career-event');
     expect(dismissed.resolvedEventHistory).toEqual([
-      { eventId: 'giant-spider-arrives', season: 1, week: 1 },
+      { eventId: 'test-career-event', season: 1, week: 1 },
     ]);
-    expect(() => offerCareerEvent(dismissed, 'giant-spider-arrives')).toThrow(
+    expect(() => offerCareerEvent(dismissed, 'test-career-event')).toThrow(
       'already resolved',
     );
   });

@@ -156,7 +156,7 @@ describe('M2 weekly sidecars', () => {
         club.id === state.userClubId ? { ...club, cash: -50_000 } : club,
       ),
     };
-    for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
+    for (let week = 0; week < 2; week += 1) state = settleScheduledWeek(state);
 
     // The rescue clears the hole and preserves the old $15,000 operating floor,
     // so the cheaper Stand leaves $5,000 to pay the next bills.
@@ -169,7 +169,7 @@ describe('M2 weekly sidecars', () => {
         remainingWeeks: 30,
       },
     });
-    expect(state.ledgers[3].lines).toContainEqual(
+    expect(state.ledgers.at(-1)?.lines).toContainEqual(
       expect.objectContaining({
         kind: 'emergency-loan',
         label: 'Board emergency loan',
@@ -212,6 +212,39 @@ describe('M2 weekly sidecars', () => {
       remainingBalance: 21_266,
       remainingWeeks: 29,
     });
+  });
+
+  test('issues the promised loan the week after a warning even if cash is green', () => {
+    let warned = fullCareer(506);
+    warned = {
+      ...warned,
+      clubs: warned.clubs.map((club) =>
+        club.id === warned.userClubId ? { ...club, cash: -50_000 } : club,
+      ),
+    };
+    warned = settleScheduledWeek(warned);
+    expect(warned.financialSafety).toMatchObject({
+      consecutiveNegativeWeeks: 1,
+      emergencyLoanUsed: false,
+    });
+
+    const recoveredBeforeNextWeek = {
+      ...warned,
+      clubs: warned.clubs.map((club) =>
+        club.id === warned.userClubId ? { ...club, cash: 100_000 } : club,
+      ),
+    };
+    const rescued = settleScheduledWeek(recoveredBeforeNextWeek);
+
+    expect(rescued.financialSafety).toMatchObject({
+      emergencyLoanUsed: true,
+      loan: {
+        originalAmount: expect.any(Number),
+      },
+    });
+    expect(rescued.ledgers.at(-1)?.lines).toContainEqual(
+      expect.objectContaining({ kind: 'emergency-loan' }),
+    );
   });
 
   test('runs a persistent four-week protected-player ultimatum and forced sale', () => {

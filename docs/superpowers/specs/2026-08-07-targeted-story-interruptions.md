@@ -84,7 +84,7 @@ Ranked on one question: *does the card pose a decision, or a coin-flip with flav
 
 **Also cut — 4 of the 7 milestone cards** (owner decision, 2026-08-07; replacements in §5.4): `milestone-first-win` ("a win is not a milestone, it is Saturday"), `milestone-first-hero-goal`, `milestone-statement-win`, `milestone-promotion-push`. Their entries in `CAREER_MILESTONES` (`career-events.ts:128-136`) and their earned-flag detectors go with them.
 
-**Kept (21):** the 3 surviving `milestone-*` beats (`unbeaten-run`, `first-cup-win`, `crowd-thousand`); the three surviving chains (`rival-bid-arrives` → `rival-bid-deadline-day`, `leaking-stand-roof` → `west-stand-reopening`, `terrace-choir-forms` → `terrace-choir-anthem`); and `abandoned-lab-field-trip`, `haunted-scoreboard`, `meteor-shard-center-circle`, `giant-spider-arrives`, `mysterious-energy-salesman`, `hero-commercial`, `hero-school-visit`, `old-boy-comes-home`, `youth-coach-breakthrough`, `player-slump`, `two-player-feud`, `rival-scout-duel`.
+**Kept (20):** the 3 surviving `milestone-*` beats (`unbeaten-run`, `first-cup-win`, `crowd-thousand`); the three surviving chains (`rival-bid-arrives` → `rival-bid-deadline-day`, `leaking-stand-roof` → `west-stand-reopening`, `terrace-choir-forms` → `terrace-choir-anthem`); and `abandoned-lab-field-trip`, `haunted-scoreboard`, `meteor-shard-center-circle`, `mysterious-energy-salesman`, `hero-commercial`, `hero-school-visit`, `old-boy-comes-home`, `youth-coach-breakthrough`, `player-slump`, `two-player-feud`, `rival-scout-duel`.
 
 ### 4.1 Migration debt this creates — verified, not assumed
 
@@ -149,19 +149,18 @@ The stapling existed for a real reason: milestones are gated on achievements, an
 
 1. **Delete the stapling.** `withCareerMilestoneRecognition` goes; `resolvedNextEventId` becomes authored-only. `outcomeHasFollowUp` is then true only for a genuine part 2, and no copy change is needed — "Continue the story" becomes true again.
 2. **A milestone is offered on its own card, ahead of the random deck.** A persisted `pendingMilestones: { eventId: string; selectedPlayerId?: string }[]` is appended to at weekly settlement, in `CAREER_MILESTONES` order, by the same detectors that set the flags today. `eventOfferForWeek` drains its head. This is a queue, not a re-scan of earned flags every week — cheaper and with no recomputation edge cases (Grok's suggestion, adopted).
-3. **It is NOT "like the Giant Spider".** The spider is checked *before* `deskClear` and *does* reset `weeksWithoutEvent` (`event-selection.ts:72-79`). Milestones sit in a different lane. The exact rules matrix, so no implementer has to guess:
+3. **An earned milestone is immediate.** It bypasses the clear-desk and previous-story gates. It does not roll the random-story chance and does not reset `weeksWithoutEvent`. The exact rules matrix is:
 
 | | fires on a busy desk? | rolls the 18%? | resets `weeksWithoutEvent`? | blocked the week after a story? |
 |---|---|---|---|---|
-| `giant-spider-arrives` (authored one-shot) | yes | no | **yes** (unchanged) | yes |
-| **milestone offer** | **no — desk-clear only** | **no** | **no** | **yes** |
+| **milestone offer** | **yes** | **no** | **no** | **no** |
 | random deck | no | yes | yes | yes |
 | **milestone resolve** | — | — | **no** | — |
 | random resolve | — | — | yes (unchanged, `store.ts:2391-2393`) | — |
 
 The two "no"s in the milestone row are the point: a milestone delays the random story by occupying the week, but the drought ramp keeps climbing underneath, so the deck fires as soon as the queue empties. **Both the offer path and the resolve path must be changed** — fixing only the offer leaves milestone resolution zeroing the counter at `store.ts:2391-2393`.
 
-4. **One card a week, none the week after a card** — unchanged. A milestone bulge drains one every other week instead of stacking three deep.
+4. **One milestone card at a time.** If one result earns several milestones, their cards drain back-to-back before the manager returns to the desk.
 5. **A milestone carries a target only when the milestone is about a person.** `store.ts:1587` currently passes the *previous* story's `selectedPlayerId` into the injected milestone and `offerCareerEvent` locks it (`career-events.ts:286-290`) — so a slumping striker gets welded onto a hero-goal card. That inheritance is deleted. In its place: a milestone whose detector identifies a player (only `milestone-hat-trick`) is queued **with that player's id**, engine-set and locked. Everything else is queued with no target.
 6. **A banked-but-unseen milestone on an old save.** The queue is new, so a career that earned `crowd-thousand` last week and has not been shown the card would have an empty queue and never see it. On load, the queue is **seeded once** from `banked flags − resolvedEventIds` for the three surviving milestones, so nothing already earned is silently swallowed. (Breaking old saves is acceptable in development per `save-migrations-deferred`, but this one costs a single line and avoids a confusing hole.)
 7. **A scorer who leaves before recognition.** The hat-trick entry carries a player id and the card has no picker, so `offerCareerEvent`'s drop-the-departed-player rule would leave a `requiresPlayer` card that can never be resolved. Instead the **queue entry is dropped** when its carried player is no longer at the club.
@@ -298,7 +297,7 @@ Five engine defects this build must fix, all found in the survey and confirmed b
 3. **`injury` and `statDelta` are silently dropped with no player selected** (`store.ts:2360`). The content gate makes that unreachable by requiring `requiresPlayer` on any event that uses a player effect.
 4. **Squad-wide morale is currently implicit** — it happens when an event has a `morale` effect and no player is selected (`store.ts:2385-2393`). Every §8 line that says "squad morale" uses the new explicit `squadMorale` type instead, so a targeted event can hit both the player *and* the room without the engine guessing.
 
-   **This is a migration, not an addition.** At least 10 kept events apply `morale` with no `requiresPlayer` and depend on that fallback today (the spider, the haunted scoreboard, the surviving milestones, the choir pair). The decision: **migrate every one of those outcomes to `squadMorale` and delete the fallback entirely**, in the same commit. A gate rule then makes `morale` on an event without `requiresPlayer` a build failure, so the implicit path cannot come back. Half-fixing it — new type for new content, fallback left for old — would leave two ways to say the same thing and a defect that reads as intentional.
+   **This is a migration, not an addition.** Kept events that apply `morale` with no `requiresPlayer` depend on that fallback today, including the haunted scoreboard, the surviving milestones, and the choir pair. The decision: **migrate every one of those outcomes to `squadMorale` and delete the fallback entirely**, in the same commit. A gate rule then makes `morale` on an event without `requiresPlayer` a build failure, so the implicit path cannot come back. Half-fixing it — new type for new content, fallback left for old — would leave two ways to say the same thing and a defect that reads as intentional.
 5. **Club TP and coach TP read identically in prose.** Every §8 line is spelled as either `{type:'tp'}` (club Training Points) or `{type:'coachBoost', facet:'tp'}` (that coach's weekly TP). In §8.2 the safe branches marked **+1 TP** are club TP; only lines that say *"his week produces…"* are coach TP.
 
 ### 6.2 Coach effects — one new type, three facets

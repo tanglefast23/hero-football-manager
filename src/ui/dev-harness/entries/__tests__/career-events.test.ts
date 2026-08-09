@@ -220,7 +220,7 @@ describe('the career events Dev Harness controller', () => {
   });
 
   test('says nothing changed rather than showing an empty receipt', () => {
-    const state = offered('giant-spider-arrives');
+    const state = offered('meteor-shard-center-circle');
     expect(careerEventChanges(state, state)).toEqual(['nothing changed']);
   });
 });

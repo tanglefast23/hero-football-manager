@@ -3,23 +3,40 @@
   "intros": [
     {
       "heroId": "special-f171",
-      "taunt": "I’ll be in your box before this speech bubble disappears."
+      "taunt": "I’ll be in your box before this speech bubble disappears.",
+      "victoryLines": [
+        "I slowed down for the replay. You’re welcome.",
+        "I finished celebrating before your team finished turning around."
+      ]
     },
     {
       "heroId": "special-f178",
-      "taunt": "My shooting coach said “keep your eyes on the ball.” I may have overdone it."
+      "taunt": "My shooting coach said “keep your eyes on the ball.” I may have overdone it.",
+      "victoryLines": [
+        "Coach, I kept my eye on the ball. Your keeper should try it.",
+        "That wasn’t a shooting lane. I made one."
+      ]
     },
     {
       "heroId": "special-f174",
-      "taunt": "Team, assemble! Yes, even the substitute keeper."
+      "taunt": "Team, assemble! Yes, even the substitute keeper.",
+      "victoryLines": [
+        "I rallied eleven players. You couldn’t rally four defenders.",
+        "Coach, next time bring a plan your whole team can follow."
+      ]
     },
     {
       "heroId": "special-f176",
-      "taunt": "Please don’t make me angry. The groundskeeper just fixed the goalposts."
+      "taunt": "Please don’t make me angry. The groundskeeper just fixed the goalposts.",
+      "victoryLines": ["Bruno Smash Goal", "Bruno Smash Player"]
     },
     {
       "heroId": "special-f168",
-      "taunt": "My superpower is preparation. My backup superpower is an absurd transfer budget."
+      "taunt": "My superpower is preparation. My backup superpower is an absurd transfer budget.",
+      "victoryLines": [
+        "Coach, I prepared for every move. You prepared an excuse.",
+        "I knew your game plan before your players did."
+      ]
     }
   ]
 }

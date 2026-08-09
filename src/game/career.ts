@@ -394,43 +394,26 @@ export function completeMatchday(
     participantIdsByFixture,
   );
 
-  const playedLeagueState: GameState = {
-    ...state,
-    fixtures,
-    players,
-    seasonStatLines,
-    // Banked now, because the scorer list does not survive the week.
-    ...(hatTrickScorerId === undefined
-      ? {}
-      : {
-          eventFlags: state.eventFlags.includes('milestone:hat-trick')
-            ? state.eventFlags
-            : [...state.eventFlags, 'milestone:hat-trick'],
-          pendingMilestones:
-            (state.pendingMilestones ?? []).some(
-              (entry) => entry.eventId === 'milestone-hat-trick',
-            ) || state.resolvedEventIds.includes('milestone-hat-trick')
-              ? state.pendingMilestones
-              : [
-                  ...(state.pendingMilestones ?? []),
-                  {
-                    eventId: 'milestone-hat-trick',
-                    selectedPlayerId: hatTrickScorerId,
-                  },
-                ],
-        }),
-    ...(pendingImpact === undefined
-      ? {}
-      : {
-          clubBusiness: {
-            ...state.clubBusiness,
-            pendingUserMatchImpacts: appendPendingUserMatchImpact(
-              state.clubBusiness.pendingUserMatchImpacts,
-              pendingImpact,
-            ),
-          },
-        }),
-  };
+  const playedLeagueState = bankHatTrickMilestone(
+    {
+      ...state,
+      fixtures,
+      players,
+      seasonStatLines,
+      ...(pendingImpact === undefined
+        ? {}
+        : {
+            clubBusiness: {
+              ...state.clubBusiness,
+              pendingUserMatchImpacts: appendPendingUserMatchImpact(
+                state.clubBusiness.pendingUserMatchImpacts,
+                pendingImpact,
+              ),
+            },
+          }),
+    },
+    hatTrickScorerId,
+  );
   if (nationalCupUserFixtureForCurrentWeek(playedLeagueState) !== undefined) {
     return { ...playedLeagueState, phase: 'matchday' };
   }
@@ -593,6 +576,31 @@ function hatTrickScorer(
     if (scorer !== undefined) return scorer[0];
   }
   return undefined;
+}
+
+/** Banks the scorer while the settlement result still carries goal identities. */
+function bankHatTrickMilestone(
+  state: GameState,
+  scorerPlayerId: string | undefined,
+): GameState {
+  if (scorerPlayerId === undefined) return state;
+  const eventId = 'milestone-hat-trick';
+  const alreadyQueued = (state.pendingMilestones ?? []).some(
+    (entry) => entry.eventId === eventId,
+  );
+  return {
+    ...state,
+    eventFlags: state.eventFlags.includes('milestone:hat-trick')
+      ? state.eventFlags
+      : [...state.eventFlags, 'milestone:hat-trick'],
+    pendingMilestones:
+      alreadyQueued || state.resolvedEventIds.includes(eventId)
+        ? state.pendingMilestones
+        : [
+            ...(state.pendingMilestones ?? []),
+            { eventId, selectedPlayerId: scorerPlayerId },
+          ],
+  };
 }
 
 function settleCurrentWeek(
@@ -1654,6 +1662,7 @@ function completeNationalCupMatchday(
     throw new Error('the matchday has no scheduled league or Hero Cup fixture');
   }
   validateResults(state, cupMatchday.fixtures, results);
+  const hatTrickScorerId = hatTrickScorer(state, cupMatchday.fixtures, results);
   const result = results[0];
   const cupFixture = nationalCupFixtureById(state, cupMatchday.fixture.id);
   if (cupFixture === undefined || state.m2 === undefined) {
@@ -1689,34 +1698,37 @@ function completeNationalCupMatchday(
           [pendingImpact.fixtureId, pendingImpact.participantPlayerIds],
         ]);
   const progressed: GameState = queueCupGiantKillingCelebration(
-    {
-      ...state,
-      m2: resolveNextM2NationalCupRound(state.m2, cupResult),
-      players: resolveCareerMatchFame(
-        state,
-        cupMatchday.fixtures,
-        resultByFixtureId,
-        participantIdsByFixture,
-        new Map([[result.fixtureId, winnerClubId]]),
-      ),
-      seasonStatLines: recordStatLines(
-        state,
-        cupMatchday.fixtures,
-        resultByFixtureId,
-        'cup',
-      ),
-      ...(pendingImpact === undefined
-        ? {}
-        : {
-            clubBusiness: {
-              ...state.clubBusiness,
-              pendingUserMatchImpacts: appendPendingUserMatchImpact(
-                state.clubBusiness.pendingUserMatchImpacts,
-                pendingImpact,
-              ),
-            },
-          }),
-    },
+    bankHatTrickMilestone(
+      {
+        ...state,
+        m2: resolveNextM2NationalCupRound(state.m2, cupResult),
+        players: resolveCareerMatchFame(
+          state,
+          cupMatchday.fixtures,
+          resultByFixtureId,
+          participantIdsByFixture,
+          new Map([[result.fixtureId, winnerClubId]]),
+        ),
+        seasonStatLines: recordStatLines(
+          state,
+          cupMatchday.fixtures,
+          resultByFixtureId,
+          'cup',
+        ),
+        ...(pendingImpact === undefined
+          ? {}
+          : {
+              clubBusiness: {
+                ...state.clubBusiness,
+                pendingUserMatchImpacts: appendPendingUserMatchImpact(
+                  state.clubBusiness.pendingUserMatchImpacts,
+                  pendingImpact,
+                ),
+              },
+            }),
+      },
+      hatTrickScorerId,
+    ),
     cupGiantKillingCelebration(state, cupFixture, winnerClubId),
   );
   const cupOutcome: WeeklyMatchOutcome =
@@ -1790,11 +1802,10 @@ function resolveFinancialSafety(
       : 0;
   let emergencyLoanUsed = previous.emergencyLoanUsed;
   const rules = difficultyRules(state);
-  if (
-    balanceAfter < 0 &&
-    consecutiveNegativeWeeks >= rules.negativeWeeksBeforeIntervention &&
-    !emergencyLoanUsed
-  ) {
+  if (previous.consecutiveNegativeWeeks > 0 && !emergencyLoanUsed) {
+    // The first red week is the warning. Once it has been shown, the loan is a
+    // board decision already in motion: it lands at the next settlement even
+    // if prize money or other income has brought the balance above zero.
     // The rescue clears the hole AND leaves a Stadium Stand's worth of cash on
     // the table. A flat sum paid off the deficit and left whatever happened to
     // remain, which on a bad week was nothing — the one intervention the club
@@ -1804,7 +1815,7 @@ function resolveFinancialSafety(
     //
     // Never smaller than the difficulty's own figure, so this can only ever
     // raise a rescue, never shrink one.
-    const deficit = -balanceAfter;
+    const deficit = Math.max(0, -balanceAfter);
     const amount = Math.max(
       rules.emergencyLoanAmount,
       checkedAdd(deficit, EMERGENCY_LOAN_FLOOR, 'emergency loan floor'),
@@ -1982,9 +1993,12 @@ function nationalCupFixtureAsLeagueFixture(
   };
 }
 
-function deterministicPenaltyWinner(
-  state: GameState,
-  fixture: NationalCupFixture,
+export function deterministicPenaltyWinner(
+  state: Pick<GameState, 'careerSeed'>,
+  fixture: Pick<
+    NationalCupFixture,
+    'matchSeed' | 'round' | 'homeClubId' | 'awayClubId'
+  >,
 ): string {
   const homeWins =
     ((fixture.matchSeed ^

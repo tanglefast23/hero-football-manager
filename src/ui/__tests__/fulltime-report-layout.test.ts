@@ -42,7 +42,9 @@ describe('full-time report layout', () => {
   it('puts the touchline reaction below the result, not beside it', () => {
     const source = screen();
 
-    expect(source).toContainSource('{viewModel.reaction ? (');
+    expect(source).toContainSource(
+      '{viewModel.reaction || viewModel.rivalMockery ? (',
+    );
     expect(source).toContainSource(
       '<FulltimeReaction reaction={viewModel.reaction}',
     );

@@ -26,6 +26,8 @@ module.exports = {
         grey: '#9a95a4',
         'grey-dark': '#6b6675',
         'grey-light': '#c9c5d0',
+        'story-dark': '#7a5a8d',
+        'story-light': '#dfcfee',
         pitch: '#5cb85c',
         'pitch-dark': '#3f8a4a',
         'pitch-light': '#8fd98f',

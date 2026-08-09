@@ -22,6 +22,8 @@ export interface PlayerRunSpriteProps {
   playerId: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   lookId?: string;
+  /** Match kit family when the sprite represents one side of a completed match. */
+  side?: 'home' | 'away';
   /** Whole-number multiple of the 24×30 cell; fractional values blur the art. */
   scale?: number;
   /** False parks the sprite on its standing frame. */
@@ -41,6 +43,7 @@ export function PlayerRunSprite({
   playerId,
   role,
   lookId,
+  side = 'home',
   scale = 4,
   walking = false,
   accessibilityLabel,
@@ -60,8 +63,9 @@ export function PlayerRunSprite({
   }, [walking]);
 
   const visualId = useMemo(
-    () => `r:${playerLookId(playerId, role, lookId)}`,
-    [playerId, role, lookId],
+    () =>
+      `${side === 'home' ? 'r' : 'u'}:${playerLookId(playerId, role, lookId)}`,
+    [playerId, role, lookId, side],
   );
 
   const atlas = useMemo(() => {

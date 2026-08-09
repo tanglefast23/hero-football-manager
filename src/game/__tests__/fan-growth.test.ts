@@ -3,11 +3,7 @@ import { join } from 'node:path';
 
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
-import {
-  applyCareerEventOutcome,
-  offerCareerEvent,
-  selectCareerEventPlayer,
-} from '../career-events';
+import { applyCareerEventOutcome, offerCareerEvent } from '../career-events';
 import {
   FIRST_FAN_GAIN_FLAG,
   hasEverGainedFans,
@@ -47,16 +43,12 @@ describe('first fan gain', () => {
 
   it('is set by a story outcome that brings supporters in', () => {
     const initial = fresh();
-    const playerId = 'bramble-rovers-p13';
-    const pending = selectCareerEventPlayer(
-      offerCareerEvent(initial, 'giant-spider-arrives'),
-      playerId,
-    );
+    const pending = offerCareerEvent(initial, 'meteor-shard-center-circle');
 
     const resolved = applyCareerEventOutcome(
       pending,
-      'adopt-spider',
-      'The mascot meeting requires two weeks of ice packs.',
+      'display-meteor',
+      'The shard draws a crowd.',
       { fanDelta: 20 },
     );
 
@@ -65,16 +57,12 @@ describe('first fan gain', () => {
 
   it('is left alone by a story outcome that costs the club supporters', () => {
     const initial = fresh();
-    const playerId = 'bramble-rovers-p13';
-    const pending = selectCareerEventPlayer(
-      offerCareerEvent(initial, 'giant-spider-arrives'),
-      playerId,
-    );
+    const pending = offerCareerEvent(initial, 'meteor-shard-center-circle');
 
     const resolved = applyCareerEventOutcome(
       pending,
-      'adopt-spider',
-      'The mascot meeting empties a stand.',
+      'display-meteor',
+      'The display empties a stand.',
       { fanDelta: -20 },
     );
 

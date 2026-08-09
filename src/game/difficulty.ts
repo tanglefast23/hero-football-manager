@@ -14,6 +14,7 @@ export const DEFAULT_DIFFICULTY: DifficultyMode = 'COZY';
 export interface DifficultyRules {
   seasonOneWageSubsidyPercent: number;
   sponsorIncomePercent: number;
+  /** Negative weeks after the automatic loan before the board starts an ultimatum. */
   negativeWeeksBeforeIntervention: number;
   emergencyLoanAmount: number;
   /** Annual percentage applied independently to all seven rival attributes. */

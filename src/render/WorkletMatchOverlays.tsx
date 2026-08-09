@@ -76,6 +76,8 @@ interface WorkletMatchOverlaysProps {
   scale: number;
   ringRadius: number;
   reduceMotion: boolean;
+  /** Player rendered in the centred full-time scene instead of on the pitch. */
+  hiddenPlayer: number;
 }
 
 interface FlameLayer {
@@ -294,17 +296,20 @@ export function WorkletSpeedLines({
   visualPositions,
   scale,
   ringRadius,
+  hiddenPlayer,
 }: {
   slot: SharedValue<number>;
   life: SharedValue<number>;
   visualPositions: SharedValue<Float32Array>;
   scale: number;
   ringRadius: number;
+  hiddenPlayer: number;
 }) {
   const lines = usePathValue((builder) => {
     'worklet';
     const player = slot.value;
-    if (player < 0 || player >= RENDER_PLAYER_COUNT) return;
+    if (player < 0 || player >= RENDER_PLAYER_COUNT || player === hiddenPlayer)
+      return;
     const progress = life.value;
     if (progress <= 0 || progress >= 1) return;
     const cx = visualPositions.value[player * 2] * scale;
@@ -328,7 +333,7 @@ export function WorkletSpeedLines({
     }
   });
   const opacity = useDerivedValue(() => {
-    if (slot.value < 0) return 0;
+    if (slot.value < 0 || slot.value === hiddenPlayer) return 0;
     const progress = life.value;
     if (progress <= 0 || progress >= 1) return 0;
     return 0.85 * (1 - progress);
@@ -388,12 +393,13 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     scale,
     ringRadius,
     reduceMotion,
+    hiddenPlayer,
   } = props;
 
   const possession = usePathValue((builder) => {
     'worklet';
     const index = carrier.value;
-    if (index < 0) return;
+    if (index < 0 || index === hiddenPlayer) return;
     builder.addCircle(
       visualPositions.value[index * 2] * scale,
       visualPositions.value[index * 2 + 1] * scale,
@@ -403,20 +409,22 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
 
   return (
     <Fragment>
-      {heroPlayers.map((playerIndex) => (
-        <WorkletZoneIndicator
-          key={playerIndex}
-          playerIndex={playerIndex}
-          visualPositions={visualPositions}
-          statuses={statuses}
-          zoneFractions={zoneFractions}
-          visualTick={visualTick}
-          controlledTeam={controlledTeam}
-          scale={scale}
-          ringRadius={ringRadius}
-          reduceMotion={reduceMotion}
-        />
-      ))}
+      {heroPlayers
+        .filter((playerIndex) => playerIndex !== hiddenPlayer)
+        .map((playerIndex) => (
+          <WorkletZoneIndicator
+            key={playerIndex}
+            playerIndex={playerIndex}
+            visualPositions={visualPositions}
+            statuses={statuses}
+            zoneFractions={zoneFractions}
+            visualTick={visualTick}
+            controlledTeam={controlledTeam}
+            scale={scale}
+            ringRadius={ringRadius}
+            reduceMotion={reduceMotion}
+          />
+        ))}
       {FLAME_LAYERS.map((layer) => (
         <WorkletFlameLayer
           key={layer.color}
@@ -428,6 +436,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           scale={scale}
           ringRadius={ringRadius}
           reduceMotion={reduceMotion}
+          hiddenPlayer={hiddenPlayer}
         />
       ))}
       <Path path={possession} color="#ffffff" style="stroke" strokeWidth={2} />
@@ -443,17 +452,19 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           reduceMotion={reduceMotion}
         />
       ))}
-      {encoreMarkers.map((marker) => (
-        <WorkletEncoreBolt
-          key={marker.slot}
-          slot={marker.slot}
-          grantTick={marker.grantTick}
-          visualPositions={visualPositions}
-          visualTick={visualTick}
-          scale={scale}
-          ringRadius={ringRadius}
-        />
-      ))}
+      {encoreMarkers
+        .filter((marker) => marker.slot !== hiddenPlayer)
+        .map((marker) => (
+          <WorkletEncoreBolt
+            key={marker.slot}
+            slot={marker.slot}
+            grantTick={marker.grantTick}
+            visualPositions={visualPositions}
+            visualTick={visualTick}
+            scale={scale}
+            ringRadius={ringRadius}
+          />
+        ))}
     </Fragment>
   );
 }
@@ -629,6 +640,7 @@ function WorkletFlameLayer({
   scale,
   ringRadius,
   reduceMotion,
+  hiddenPlayer,
 }: {
   layer: FlameLayer;
   visualPositions: SharedValue<Float32Array>;
@@ -638,6 +650,7 @@ function WorkletFlameLayer({
   scale: number;
   ringRadius: number;
   reduceMotion: boolean;
+  hiddenPlayer: number;
 }) {
   const path = usePathValue((builder) => {
     'worklet';
@@ -649,6 +662,7 @@ function WorkletFlameLayer({
     // sibling worklet: a decoy clone that inherits ignited/active status must
     // draw its flames, not just its status tint.
     for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
+      if (player === hiddenPlayer) continue;
       const status = statuses.value[player];
       const fireCaster = (fireTorchMask & (1 << player)) !== 0;
       if (

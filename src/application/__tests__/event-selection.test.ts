@@ -93,6 +93,26 @@ describe('M4 event selection', () => {
     });
   });
 
+  it('offers a queued achievement story on the first desk after it is earned', () => {
+    const initial = createCareer(createLaunchCareerSetup(1));
+    const state = {
+      ...initial,
+      season: 1,
+      week: 13,
+      phase: 'manage' as const,
+      eventClock: { weeksWithoutEvent: 3, riskyChoices: 0 },
+      pendingMilestones: [{ eventId: 'milestone-first-cup-win' }],
+      resolvedEventHistory: [
+        { eventId: 'the-rondo-circle', season: 1, week: 12 },
+      ],
+    };
+
+    expect(eventOfferForWeek(state, content, { deskClear: false })).toEqual({
+      eventId: 'milestone-first-cup-win',
+      eventClock: state.eventClock,
+    });
+  });
+
   it('keeps the random deck off a week that already has something to read', () => {
     const initial = createCareer(createLaunchCareerSetup(99));
     const state = {

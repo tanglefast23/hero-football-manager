@@ -732,6 +732,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     'ceremony.': 'award-ceremony-lines.json',
     'powerEffect.': 'powers.json',
     'rivalHeroIntro.': 'rival-hero-intros.json',
+    'rivalHeroVictory.': 'rival-hero-intros.json',
     'drill.': 'training.json',
     'sponsor.': 'sponsors.json',
   };

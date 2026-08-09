@@ -55,7 +55,7 @@ This is compatible with existing canon, not a re-litigation:
    collapsed player. Each option secretly *is* the awakening trigger — the player thinks they are
    giving first aid; they are actually choosing an origin story. The reveal is the joke.
    - 💧 **Give him water** (something is floating in it) → **Chemical** origin
-   - 🪲 **Put him on the stretcher** (a weird insect is on it) → **Creature-bite** origin (the "spider")
+   - 🪲 **Put him on the stretcher** (a weird insect is on it) → **Creature-bite** origin
    - 💊 **Listen to the on-pitch doctor** (prescription bottle in hand) → **Serum** origin
 
 5. **Awakening (guaranteed, 1 of 6).** The choice picks the origin's **themed power pair**; a

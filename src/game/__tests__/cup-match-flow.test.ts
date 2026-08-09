@@ -207,6 +207,36 @@ describe('player-controlled Hero Cup match flow', () => {
       saves: 3,
       passesCompleted: 9,
     });
+    expect(settled.pendingMilestones).toContainEqual({
+      eventId: 'milestone-first-cup-win',
+    });
+  });
+
+  test('banks a Cup hat-trick with the scorer attached to its story', () => {
+    const afterLeague = cupReadyCareer(true);
+    const fixture = activeCareerMatchday(afterLeague)!.fixture;
+    const scorerPlayerId = afterLeague.lineups.find(
+      (lineup) => lineup.clubId === afterLeague.userClubId,
+    )!.playerIds[0];
+
+    const settled = completeMatchday(afterLeague, [
+      {
+        fixtureId: fixture.id,
+        homeGoals: 3,
+        awayGoals: 0,
+        scorerPlayerIds: [scorerPlayerId, scorerPlayerId, scorerPlayerId],
+      },
+    ]);
+
+    expect(settled.pendingMilestones).toEqual(
+      expect.arrayContaining([
+        {
+          eventId: 'milestone-hat-trick',
+          selectedPlayerId: scorerPlayerId,
+        },
+        { eventId: 'milestone-first-cup-win' },
+      ]),
+    );
   });
 
   test('uses a stable penalty winner when the production match finishes level', () => {

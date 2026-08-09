@@ -108,7 +108,8 @@ function MatchWeekMarquee({
 function alertPalette(alert: ClubAlertViewModel): string {
   if (alert.mustDoDutyId !== undefined) return 'border-blue-dark bg-blue-light';
   if (alert.tone === 'urgent') return 'border-red-dark bg-red-light';
-  return 'border-grey-dark bg-paper-dark';
+  if (alert.isStory) return 'border-story-dark bg-story-light';
+  return 'border-gold-dark bg-gold-light';
 }
 
 export interface ClubHomeScreenProps {
@@ -321,6 +322,9 @@ export function ClubHomeScreen({
                       {alert.isHero ? (
                         <StatusChip label={t('clubHome.hero')} tone="hero" />
                       ) : null}
+                      {alert.isStory ? (
+                        <StatusChip label={t('clubHome.story')} tone="story" />
+                      ) : null}
                       {alert.mustDoDutyId !== undefined ? (
                         <StatusChip
                           label={t('clubHome.mustDo')}
@@ -346,11 +350,7 @@ export function ClubHomeScreen({
             {visibleNotes.map((note) => (
               <View
                 key={note.id}
-                className={`border-2 border-b-4 p-3 ${
-                  note.kind === 'tip'
-                    ? 'border-gold-dark bg-gold-light'
-                    : 'border-grey-dark bg-paper-dark'
-                }`}
+                className="border-2 border-b-4 border-grey-dark bg-paper-dark p-3"
               >
                 <View
                   accessible
@@ -365,7 +365,7 @@ export function ClubHomeScreen({
                   }
                 >
                   {note.kind === 'tip' ? (
-                    <PixelText className="mb-1 text-xs uppercase text-gold-dark">
+                    <PixelText className="mb-1 text-xs uppercase text-grey-dark">
                       {t('clubHome.managersTip')}
                     </PixelText>
                   ) : null}

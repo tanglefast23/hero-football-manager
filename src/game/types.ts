@@ -188,7 +188,7 @@ interface CareerEventState {
 }
 
 /**
- * A milestone earned but not yet shown, waiting for the next clear desk.
+ * A milestone earned but not yet shown, waiting for its post-achievement story.
  *
  * Only the hat-trick carries a player: a milestone about a person names that
  * person, and every other recognition beat is about the club.

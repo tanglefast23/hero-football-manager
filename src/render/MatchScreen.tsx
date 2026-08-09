@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   AppState,
+  Easing,
   StyleSheet,
   Text,
   View,
@@ -27,6 +29,15 @@ import {
 } from 'react-native-reanimated';
 import { createMatch, MAX_SUBSTITUTIONS, queueInput, tick } from '../sim/match';
 import { queueControlledAutoSubstitution } from '../game/match-policy';
+import { isRivalHeroIntroHeroId } from '../game/rival-hero-intro';
+import {
+  FULLTIME_RIVAL_VICTORY_HOLD_MS,
+  FULLTIME_RIVAL_VICTORY_FADE_AT_MS,
+  FULLTIME_RIVAL_VICTORY_FADE_MS,
+  FULLTIME_RIVAL_VICTORY_REDUCED_HOLD_MS,
+  RivalHeroVictorySprite,
+} from './RivalHeroVictorySprite';
+import { winningHeadlineHero, type WinningHeadlineHero } from './rival-victory';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
@@ -407,6 +418,7 @@ export function MatchScreen({
   onPerformanceLimitChange,
   audioProfile = 'full',
   cupRoundLabel,
+  tiedWinnerTeam,
   powerCutInQaEntries,
   powerMatchQa,
   presentationOnly = false,
@@ -441,6 +453,8 @@ export function MatchScreen({
   audioProfile?: MatchAudioProfile;
   /** Set only for a Hero Cup tie; it opens the match on the title card. */
   cupRoundLabel?: CupRoundLabel;
+  /** The shoot-out winner to use if a Hero Cup match finishes level. */
+  tiedWinnerTeam?: 0 | 1;
   /** Dev-only held fixture for visual QA. Ignored by production bundles. */
   powerCutInQaEntries?: readonly PowerCutInQaEntry[];
   /** Dev-only live match scenario. It still fires through the real engine. */
@@ -579,6 +593,25 @@ export function MatchScreen({
   // End-of-match hold deadline (RAF/performance.now() timebase), set once
   // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
   const fulltimeDeadlineRef = useRef<number | null>(null);
+  const [victoryHero, setVictoryHero] = useState<WinningHeadlineHero | null>(
+    null,
+  );
+  const victorySceneFade = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    victorySceneFade.setValue(0);
+    if (victoryHero === null || reduceMotion) return undefined;
+    const fade = Animated.sequence([
+      Animated.delay(FULLTIME_RIVAL_VICTORY_FADE_AT_MS),
+      Animated.timing(victorySceneFade, {
+        toValue: 1,
+        duration: FULLTIME_RIVAL_VICTORY_FADE_MS,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ]);
+    fade.start();
+    return () => fade.stop();
+  }, [reduceMotion, victoryHero, victorySceneFade]);
   // Whether the result has already been handed to the career. The loop effect
   // restarts on a settings change (Reduce Motion, cut-in mode), and a restart
   // after the deadline has passed would otherwise re-hand the same result on
@@ -1298,11 +1331,12 @@ export function MatchScreen({
 
     const loop = (now: number) => {
       const s = stateRef.current!;
-      if (pausedRef.current) {
+      if (pausedRef.current && s.phase !== 'fulltime') {
         // Paused: keep the frame clock current (so resuming doesn't dump the
         // whole pause duration into the accumulator) and reschedule — but skip
         // the setFrame/setHud work, so a paused match doesn't re-render at
-        // display refresh rate.
+        // display refresh rate. Full time is exempt: the result handoff must
+        // still reach its deadline after the simulation has already stopped.
         last = now;
         resetFramePacingMonitor(performanceMonitorRef.current);
         performanceBadWindowsRef.current = 0;
@@ -1975,10 +2009,24 @@ export function MatchScreen({
         // `now` is the RAF timestamp: the same performance.now() timebase
         // the rest of the loop uses.
         if (fulltimeDeadlineRef.current === null) {
+          const winner = winningHeadlineHero(
+            home,
+            away,
+            s.score,
+            tiedWinnerTeam,
+          );
+          setVictoryHero(winner ?? null);
           // The `else if` below guarantees a later RAF before unmounting, so
           // even Reduce Motion presents the final React/Atlas frame once.
           fulltimeDeadlineRef.current =
-            now + (reduceMotion ? 0 : FULLTIME_HOLD_MS);
+            now +
+            (winner === undefined
+              ? reduceMotion
+                ? 0
+                : FULLTIME_HOLD_MS
+              : reduceMotion
+                ? FULLTIME_RIVAL_VICTORY_REDUCED_HOLD_MS
+                : FULLTIME_RIVAL_VICTORY_HOLD_MS);
         } else if (now >= fulltimeDeadlineRef.current) {
           if (handedOffRef.current) return;
           handedOffRef.current = true;
@@ -2000,12 +2048,15 @@ export function MatchScreen({
     controlledTeam,
     cutInMode,
     firstMatchTutorial,
+    home,
     onDone,
     powerMatchQa,
     publishAtlasFrame,
     reduceMotion,
     resumeAtlasFrame,
     suppressCosmeticEffects,
+    tiedWinnerTeam,
+    away,
   ]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
@@ -2100,10 +2151,34 @@ export function MatchScreen({
   // Ledger item 4 — tints carry status ONLY. A normal player gets white (a
   // no-op multiply) so the sprite's own kit/skin/hair colors survive instead
   // of being flattened to a solid team-color block.
+  const victoryHeroMatchIndex =
+    victoryHero === null
+      ? -1
+      : match.players.findIndex(
+          (player) => player.def.id === victoryHero.heroId,
+        );
+  const victoryHeroSprite = useMemo(() => {
+    if (victoryHero === null) return null;
+    const sideIndex = victoryHero.team === 0 ? 0 : 11;
+    return spriteRects(
+      spriteKeyForMatchPlayer(
+        sideIndex,
+        victoryHero.heroId,
+        victoryHero.role,
+        'run0',
+        victoryHero.lookId,
+      ),
+    );
+  }, [spriteRects, victoryHero]);
+
   const colors: SkColor[] = useMemo(() => {
     const tints = frame.statuses.map((st, i) => {
       const player = playerAt(match, i);
-      if (player === undefined || !frame.visible[i])
+      if (
+        player === undefined ||
+        !frame.visible[i] ||
+        i === victoryHeroMatchIndex
+      )
         return skColor('rgba(255,255,255,0)');
       if (
         player.def.power === 'SHADOW_MARK' &&
@@ -2158,7 +2233,16 @@ export function MatchScreen({
     });
     tints.push(skColor('#ffffff')); // ball — no tint
     return tints;
-  }, [frame, heroTint, hud.tick, atlas, colorSafeKits, match, reduceMotion]);
+  }, [
+    frame,
+    heroTint,
+    hud.tick,
+    atlas,
+    colorSafeKits,
+    match,
+    reduceMotion,
+    victoryHeroMatchIndex,
+  ]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));
   const stoppage =
@@ -2186,10 +2270,12 @@ export function MatchScreen({
   let fireTorchMask = 0;
   match.players.forEach((player, index) => {
     if (!player.def.power) return;
+    if (index === victoryHeroMatchIndex) return;
     if (player.team !== controlledTeam) rivalHeroPlayers.push(index);
     if (player.def.power === 'FIRE_TORCH') fireTorchMask |= 1 << index;
   });
   const activeWebTraps = match.players.flatMap((player, index) =>
+    index !== victoryHeroMatchIndex &&
     player.def.power === 'WEB_TRAP' &&
     isActive(match, index) &&
     player.powerAnchor !== undefined
@@ -2395,11 +2481,19 @@ export function MatchScreen({
   });
 
   const activeSpeedster = match.players.findIndex(
-    (player) =>
-      player.def.power === 'SUPER_SPEED' && player.powerState.kind === 'active',
+    (player, index) =>
+      index !== victoryHeroMatchIndex &&
+      player.def.power === 'SUPER_SPEED' &&
+      player.powerState.kind === 'active',
   );
+  const presentedPowerEffects =
+    victoryHeroMatchIndex === -1
+      ? drawablePowerEffects
+      : drawablePowerEffects.filter(
+          (effect) => effect.sourcePlayer !== victoryHeroMatchIndex,
+        );
   const powerEffectActors = [
-    ...drawablePowerEffects.flatMap((effect) =>
+    ...presentedPowerEffects.flatMap((effect) =>
       livePowerEffectActors({
         id: effect.id,
         power: effect.power,
@@ -2710,7 +2804,7 @@ export function MatchScreen({
       condition: match.players[index].condition,
     })),
   );
-  const railHeroTiles: MatchRailHeroTile[] = activeOnFieldIndices
+  const controlledRailHeroTiles: MatchRailHeroTile[] = activeOnFieldIndices
     .flatMap((index) => {
       const player = match.players[index];
       const power = player.def.power;
@@ -2725,10 +2819,45 @@ export function MatchScreen({
           powerColor: presentation.color,
           heat: heatFraction(player.gauge),
           status: railHeroStatus(player.powerState),
+          rival: false,
         },
       ];
     })
     .slice(0, RAIL_HERO_TILE_CAP);
+  const rivalTeamOffset = controlledTeam === 0 ? 11 : 0;
+  const rivalHeadlineIndex = Array.from(
+    { length: 11 },
+    (_, slot) => rivalTeamOffset + slot,
+  ).find((index) => {
+    const player = match.players[index];
+    return (
+      player.outReason !== 'redcard' &&
+      player.def.power !== undefined &&
+      isRivalHeroIntroHeroId(player.def.id)
+    );
+  });
+  const rivalRailHeroTiles: MatchRailHeroTile[] =
+    rivalHeadlineIndex === undefined
+      ? []
+      : (() => {
+          const player = match.players[rivalHeadlineIndex];
+          const power = player.def.power;
+          if (power === undefined) return [];
+          const presentation = powerCutInPresentation(power, t);
+          return [
+            {
+              id: player.def.id,
+              name: player.def.name,
+              powerName: presentation.name,
+              powerGlyph: presentation.glyph,
+              powerColor: '#d94f52',
+              heat: heatFraction(player.gauge),
+              status: railHeroStatus(player.powerState),
+              rival: true,
+            },
+          ];
+        })();
+  const railHeroTiles = [...controlledRailHeroTiles, ...rivalRailHeroTiles];
   const railClockLine = `${t(
     match.half === 1 ? 'matchScreen.firstHalf' : 'matchScreen.secondHalf',
   )} · ${minute}'${stoppage ? '+' : ''}${paused ? ` · ${t('matchScreen.paused')}` : ''}`;
@@ -2981,6 +3110,17 @@ export function MatchScreen({
                     colorBlendMode="modulate"
                     sampling={PIXEL_ART_SAMPLING}
                   />
+                  {victoryHero === null || victoryHeroSprite === null ? null : (
+                    <RivalHeroVictorySprite
+                      heroId={victoryHero.heroId}
+                      image={atlas.image as SkImage}
+                      sprite={victoryHeroSprite}
+                      pitchWidth={pitchWidth}
+                      pitchHeight={pitchH}
+                      drawScale={playerSpriteScale.drawScale}
+                      reduceMotion={reduceMotion}
+                    />
+                  )}
                   <WorkletSlideTackleEffects
                     layer="grass"
                     visualPositions={workletVisualPositions}
@@ -3000,7 +3140,7 @@ export function MatchScreen({
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
                   />
-                  {drawablePowerEffects.map((effect) => (
+                  {presentedPowerEffects.map((effect) => (
                     <PowerEffectScene
                       key={effect.id}
                       power={effect.power}
@@ -3040,6 +3180,7 @@ export function MatchScreen({
                     scale={scale}
                     ringRadius={ringR}
                     reduceMotion={reduceMotion}
+                    hiddenPlayer={victoryHeroMatchIndex}
                   />
                   {/* Radial burst off the hero for the speed powers. Batched into
                     one hard-edged path; idle when its slot is -1. */}
@@ -3049,6 +3190,7 @@ export function MatchScreen({
                     visualPositions={workletVisualPositions}
                     scale={scale}
                     ringRadius={ringR}
+                    hiddenPlayer={victoryHeroMatchIndex}
                   />
                 </Group>
                 {/* White-out for the speed powers, over the camera so a punched-in
@@ -3495,6 +3637,15 @@ export function MatchScreen({
           </View>
         </View>
       ) : null}
+      {victoryHero === null || reduceMotion ? null : (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: '#241f2e', opacity: victorySceneFade },
+          ]}
+        />
+      )}
     </View>
   );
 }

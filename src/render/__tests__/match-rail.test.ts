@@ -127,6 +127,18 @@ describe('desktop match control rail', () => {
     expect(RAIL_HERO_TILE_CAP).toBe(4);
   });
 
+  it('adds the active division rival after the controlled hero cap', () => {
+    const match = matchSource();
+    const rail = railSource();
+
+    expect(match).toContainSource('isRivalHeroIntroHeroId(player.def.id)');
+    expect(match).toContainSource('...controlledRailHeroTiles');
+    expect(match).toContainSource('...rivalRailHeroTiles');
+    expect(match).toContainSource('rival: true');
+    expect(rail).toContainSource("t('rivalHeroIntro.divisionRival')");
+    expect(rail).toContainSource('styles.heatFillRival');
+  });
+
   it('leaves the pitch aspect-correct and full-height beside a 440pt rail', () => {
     const width = 1280;
     const height = 800;

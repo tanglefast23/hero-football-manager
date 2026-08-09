@@ -40,6 +40,7 @@ import {
   createCareer,
   currentUserDivision,
   declineYouthIntakeOffers,
+  deterministicPenaltyWinner,
   dismissAssistantInboxProductForCurrentWeek,
   dismissAssistantInboxProductPermanently,
   dismissCareerCoach,
@@ -373,6 +374,8 @@ export interface WatchedMatch {
   controlledTeam: 0 | 1;
   /** Present only for a Hero Cup tie; it opens the match on a title card. */
   cupRoundLabel?: NationalCupRoundLabel;
+  /** The deterministic shoot-out winner if this Cup match ends level. */
+  tiedWinnerTeam?: 0 | 1;
 }
 
 export type PostMatchOverlay = 'summary' | null;
@@ -574,9 +577,11 @@ interface M1Store {
 }
 
 function inboxDutyTargetTab(dutyId: OpeningInboxDutyId): ManagementTab {
-  return dutyId === 'facility-placement' || dutyId === 'coaching-office'
-    ? 'club'
-    : 'market';
+  if (dutyId === 'facility-placement' || dutyId === 'coaching-office') {
+    return 'club';
+  }
+  if (dutyId === 'national-cup') return 'league';
+  return 'market';
 }
 
 function blockedInboxDutyForAction(
@@ -1112,11 +1117,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   completeAssistantGuide(sequenceId) {
     guarded(set, () => {
+      const current = get();
       const next = completeAssistantGuideSequence(
-        requireCareer(get()),
+        requireCareer(current),
         sequenceId,
       );
-      set({ career: next, error: null });
+      set({
+        career: next,
+        error: null,
+        ...inboxDutyProgressPatch(current, next),
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -1522,8 +1532,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       if (pendingRivalHeroIntro(career) !== undefined) return;
       assertLeagueCupCheckpointPersisted(get(), career);
-      const { fixture, teams, cupRoundLabel } = currentMatchday(career);
+      const { kind, fixture, teams, cupRoundLabel } = currentMatchday(career);
       const userIsFixtureHome = fixture.homeClubId === career.userClubId;
+      const tiedWinnerTeam =
+        kind === 'national-cup'
+          ? deterministicPenaltyWinner(career, fixture) === fixture.homeClubId
+            ? 0
+            : 1
+          : undefined;
       set({
         watchedMatch: {
           fixture,
@@ -1534,6 +1550,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           // Only a cup matchday carries a round; a league week leaves this
           // undefined and the match opens with no title card.
           ...(cupRoundLabel === undefined ? {} : { cupRoundLabel }),
+          ...(tiedWinnerTeam === undefined ? {} : { tiedWinnerTeam }),
         },
         screen: 'watched',
         error: null,
@@ -1644,13 +1661,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (get().career !== career || get().lastPersistedCareer !== career)
         return;
     }
-    const currentCareer = get().career;
+    const reachedCareer = get().career;
+    // React normally settles the new desk while the report is open. Do it here
+    // too when an achievement is waiting, so a very fast Continue press and a
+    // headless store caller both get the same report -> interruption order.
+    const currentCareer =
+      reachedCareer?.phase === 'manage' &&
+      reachedCareer.pendingEvent === undefined &&
+      (reachedCareer.pendingMilestones?.length ?? 0) > 0
+        ? settleWeeklyStory(reachedCareer)
+        : reachedCareer;
     const currentSeasonBoundary =
       currentCareer !== null &&
       (currentCareer.phase === 'season-end' ||
         currentCareer.phase === 'complete');
     const currentHasSecondMatch = currentCareer?.phase === 'matchday';
     set({
+      ...(currentCareer !== reachedCareer ? { career: currentCareer } : {}),
       postMatch:
         currentSeasonBoundary || currentHasSecondMatch ? null : get().postMatch,
       weekReview: null,
@@ -1668,10 +1695,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
       activeTab: 'home',
       error: null,
     });
+    if (currentCareer !== null && currentCareer !== reachedCareer) {
+      queueCareerSave(get, set, currentCareer);
+    }
   },
 
   dismissPostMatchSummary() {
-    set({ postMatch: null, postMatchOverlay: null, error: null });
+    const career = get().career;
+    set({
+      postMatch: null,
+      postMatchOverlay: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
+      ...(career?.pendingEvent === undefined ? {} : { screen: 'event' }),
+      error: null,
+    });
   },
 
   continueWeekReview() {
@@ -1987,8 +2025,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
         guidedCareer,
         launchContent.events,
       );
-      const next = continuation.state;
-      if (continuation.followed) {
+      const next =
+        !continuation.followed &&
+        (continuation.state.pendingMilestones?.length ?? 0) > 0
+          ? settleWeeklyStory(continuation.state)
+          : continuation.state;
+      if (continuation.followed || next.pendingEvent !== undefined) {
         set({ career: next, screen: 'event', weekReview: null, error: null });
         queueCareerSave(get, set, next);
         return;
@@ -2301,223 +2343,244 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   buildFacility() {
-    guarded(set, () => {
-      const current = get();
-      const blocked = blockedInboxDutyForAction(
-        current,
-        current.inboxDutyFocus?.mode === 'focused' &&
-          current.inboxDutyFocus.dutyId === 'facility-placement',
-      );
-      if (blocked !== undefined) {
-        set({ inboxDutyReminder: [blocked], error: null });
-        return;
-      }
-      const next = buildTrainingGround(requireCareer(current));
-      set({
-        career: next,
-        error: null,
-        ...inboxDutyProgressPatch(current, next),
-      });
-      queueCareerSave(get, set, next);
-    });
+    guarded(
+      set,
+      () => {
+        const current = get();
+        const blocked = blockedInboxDutyForAction(
+          current,
+          current.inboxDutyFocus?.mode === 'focused' &&
+            current.inboxDutyFocus.dutyId === 'facility-placement',
+        );
+        if (blocked !== undefined) {
+          set({ inboxDutyReminder: [blocked], error: null });
+          return;
+        }
+        const next = buildTrainingGround(requireCareer(current));
+        set({
+          career: next,
+          error: null,
+          ...inboxDutyProgressPatch(current, next),
+        });
+        queueCareerSave(get, set, next);
+      },
+      facilityTransactionErrorCopy,
+    );
   },
 
   buildClubFacility(type, position) {
-    guarded(set, () => {
-      const current = get();
-      const focus = current.inboxDutyFocus;
-      const allowed =
-        focus?.mode === 'focused' &&
-        ((focus.dutyId === 'facility-placement' && type === 'training-pitch') ||
-          (focus.dutyId === 'coaching-office' && type === 'coaching-office'));
-      const blocked = blockedInboxDutyForAction(current, allowed);
-      if (blocked !== undefined) {
-        set({ inboxDutyReminder: [blocked], error: null });
-        return;
-      }
-      const career = requireCareer(current);
-      if (
-        type !== 'coaching-office' &&
-        outstandingInboxDuties(career).includes('coaching-office')
-      ) {
-        // Keep this guard below the UI as well. A stale confirmation, keyboard
-        // action, or direct store call must not spend money on the wrong build
-        // while the Coaching Office is this week's required desk job.
+    guarded(
+      set,
+      () => {
+        const current = get();
+        const focus = current.inboxDutyFocus;
+        const allowed =
+          focus?.mode === 'focused' &&
+          ((focus.dutyId === 'facility-placement' &&
+            type === 'training-pitch') ||
+            (focus.dutyId === 'coaching-office' && type === 'coaching-office'));
+        const blocked = blockedInboxDutyForAction(current, allowed);
+        if (blocked !== undefined) {
+          set({ inboxDutyReminder: [blocked], error: null });
+          return;
+        }
+        const career = requireCareer(current);
+        if (
+          type !== 'coaching-office' &&
+          outstandingInboxDuties(career).includes('coaching-office')
+        ) {
+          // Keep this guard below the UI as well. A stale confirmation, keyboard
+          // action, or direct store call must not spend money on the wrong build
+          // while the Coaching Office is this week's required desk job.
+          set({
+            inboxDutyReminder: ['coaching-office'],
+            error: null,
+            notice: null,
+          });
+          return;
+        }
+        if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
+          set({
+            error: null,
+            notice: {
+              tone: 'info',
+              message: t(OPENING_TRAINING_PITCH_REMINDER_KEY),
+            },
+          });
+          return;
+        }
+        const transaction = buildCareerFacility(career, type, position);
+        const discovery =
+          transaction.newlyDiscoveredAdjacencies.length === 0
+            ? ''
+            : // Glued rather than authored with a leading space: no catalog entry
+              // carries edge whitespace, and a translator cannot be asked to keep it.
+              ` ${t('store.adjacencyDiscovered', {
+                adjacencies: transaction.newlyDiscoveredAdjacencies
+                  .map((id) => adjacencyDescription(t, id))
+                  .join(', '),
+              })}`;
         set({
-          inboxDutyReminder: ['coaching-office'],
-          error: null,
-          notice: null,
-        });
-        return;
-      }
-      if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
-        set({
+          career: transaction.state,
           error: null,
           notice: {
-            tone: 'info',
-            message: t(OPENING_TRAINING_PITCH_REMINDER_KEY),
+            tone: 'success',
+            message: t('store.facilityBuildStarted', {
+              facility: facilityName(t, type),
+              discovery,
+            }),
           },
+          ...inboxDutyProgressPatch(current, transaction.state),
         });
-        return;
-      }
-      const transaction = buildCareerFacility(career, type, position);
-      const discovery =
-        transaction.newlyDiscoveredAdjacencies.length === 0
-          ? ''
-          : // Glued rather than authored with a leading space: no catalog entry
-            // carries edge whitespace, and a translator cannot be asked to keep it.
-            ` ${t('store.adjacencyDiscovered', {
-              adjacencies: transaction.newlyDiscoveredAdjacencies
-                .map((id) => adjacencyDescription(t, id))
-                .join(', '),
-            })}`;
-      set({
-        career: transaction.state,
-        error: null,
-        notice: {
-          tone: 'success',
-          message: t('store.facilityBuildStarted', {
-            facility: facilityName(t, type),
-            discovery,
-          }),
-        },
-        ...inboxDutyProgressPatch(current, transaction.state),
-      });
-      queueCareerSave(get, set, transaction.state);
-    });
+        queueCareerSave(get, set, transaction.state);
+      },
+      facilityTransactionErrorCopy,
+    );
   },
 
   upgradeClubFacility(buildingId) {
-    guarded(set, () => {
-      const current = get();
-      const blocked = blockedInboxDutyForAction(current, false);
-      if (blocked !== undefined) {
-        set({ inboxDutyReminder: [blocked], error: null });
-        return;
-      }
-      const career = requireCareer(current);
-      const building = career.facilities.grid?.buildings.find(
-        (candidate) => candidate.id === buildingId,
-      );
-      if (building === undefined)
-        throw new Error(`unknown facility ${buildingId}`);
-      const transaction = upgradeCareerFacility(career, buildingId);
-      const discovery =
-        transaction.newlyDiscoveredAdjacencies.length === 0
-          ? ''
-          : // Glued rather than authored with a leading space: no catalog entry
-            // carries edge whitespace, and a translator cannot be asked to keep it.
-            ` ${t('store.adjacencyDiscovered', {
-              adjacencies: transaction.newlyDiscoveredAdjacencies
-                .map((id) => adjacencyDescription(t, id))
-                .join(', '),
-            })}`;
-      set({
-        career: transaction.state,
-        error: null,
-        notice: {
-          tone: 'success',
-          message: t('store.facilityUpgradeStarted', {
-            facility: facilityName(t, building.type),
-            discovery,
-          }),
-        },
-      });
-      queueCareerSave(get, set, transaction.state);
-    });
+    guarded(
+      set,
+      () => {
+        const current = get();
+        const blocked = blockedInboxDutyForAction(current, false);
+        if (blocked !== undefined) {
+          set({ inboxDutyReminder: [blocked], error: null });
+          return;
+        }
+        const career = requireCareer(current);
+        const building = career.facilities.grid?.buildings.find(
+          (candidate) => candidate.id === buildingId,
+        );
+        if (building === undefined)
+          throw new Error(`unknown facility ${buildingId}`);
+        const transaction = upgradeCareerFacility(career, buildingId);
+        const discovery =
+          transaction.newlyDiscoveredAdjacencies.length === 0
+            ? ''
+            : // Glued rather than authored with a leading space: no catalog entry
+              // carries edge whitespace, and a translator cannot be asked to keep it.
+              ` ${t('store.adjacencyDiscovered', {
+                adjacencies: transaction.newlyDiscoveredAdjacencies
+                  .map((id) => adjacencyDescription(t, id))
+                  .join(', '),
+              })}`;
+        set({
+          career: transaction.state,
+          error: null,
+          notice: {
+            tone: 'success',
+            message: t('store.facilityUpgradeStarted', {
+              facility: facilityName(t, building.type),
+              discovery,
+            }),
+          },
+        });
+        queueCareerSave(get, set, transaction.state);
+      },
+      facilityTransactionErrorCopy,
+    );
   },
 
   relocateClubFacility(buildingId, position) {
-    guarded(set, () => {
-      const blocked = blockedInboxDutyForAction(get(), false);
-      if (blocked !== undefined) {
-        set({ inboxDutyReminder: [blocked], error: null });
-        return;
-      }
-      const transaction = relocateCareerFacility(
-        requireCareer(get()),
-        buildingId,
-        position,
-      );
-      const discovery =
-        transaction.newlyDiscoveredAdjacencies.length === 0
-          ? ''
-          : // Glued rather than authored with a leading space: no catalog entry
-            // carries edge whitespace, and a translator cannot be asked to keep it.
-            ` ${t('store.adjacencyDiscovered', {
-              adjacencies: transaction.newlyDiscoveredAdjacencies
-                .map((id) => adjacencyDescription(t, id))
-                .join(', '),
-            })}`;
-      set({
-        career: transaction.state,
-        error: null,
-        notice: {
-          tone: 'success',
-          message: t('store.facilityMoved', { discovery }),
-        },
-      });
-      queueCareerSave(get, set, transaction.state);
-    });
+    guarded(
+      set,
+      () => {
+        const blocked = blockedInboxDutyForAction(get(), false);
+        if (blocked !== undefined) {
+          set({ inboxDutyReminder: [blocked], error: null });
+          return;
+        }
+        const transaction = relocateCareerFacility(
+          requireCareer(get()),
+          buildingId,
+          position,
+        );
+        const discovery =
+          transaction.newlyDiscoveredAdjacencies.length === 0
+            ? ''
+            : // Glued rather than authored with a leading space: no catalog entry
+              // carries edge whitespace, and a translator cannot be asked to keep it.
+              ` ${t('store.adjacencyDiscovered', {
+                adjacencies: transaction.newlyDiscoveredAdjacencies
+                  .map((id) => adjacencyDescription(t, id))
+                  .join(', '),
+              })}`;
+        set({
+          career: transaction.state,
+          error: null,
+          notice: {
+            tone: 'success',
+            message: t('store.facilityMoved', { discovery }),
+          },
+        });
+        queueCareerSave(get, set, transaction.state);
+      },
+      facilityTransactionErrorCopy,
+    );
   },
 
   closeClubFacility(buildingId) {
-    guarded(set, () => {
-      const current = get();
-      const blocked = blockedInboxDutyForAction(current, false);
-      if (blocked !== undefined) {
-        set({ inboxDutyReminder: [blocked], error: null });
-        return;
-      }
-      const career = requireCareer(current);
-      const building = career.facilities.grid?.buildings.find(
-        (candidate) => candidate.id === buildingId,
-      );
-      if (building === undefined)
-        throw new Error(`unknown facility ${buildingId}`);
-      const staffedOffice =
-        building.type === 'coaching-office' &&
-        career.market?.assistantCoach !== undefined;
-      if (staffedOffice) {
-        const transaction = closeStaffedCareerCoachingOffice(
-          career,
-          buildingId,
+    guarded(
+      set,
+      () => {
+        const current = get();
+        const blocked = blockedInboxDutyForAction(current, false);
+        if (blocked !== undefined) {
+          set({ inboxDutyReminder: [blocked], error: null });
+          return;
+        }
+        const career = requireCareer(current);
+        const building = career.facilities.grid?.buildings.find(
+          (candidate) => candidate.id === buildingId,
         );
-        const net = transaction.confirmation.netCashEffect;
+        if (building === undefined)
+          throw new Error(`unknown facility ${buildingId}`);
+        const staffedOffice =
+          building.type === 'coaching-office' &&
+          career.market?.assistantCoach !== undefined;
+        if (staffedOffice) {
+          const transaction = closeStaffedCareerCoachingOffice(
+            career,
+            buildingId,
+          );
+          const net = transaction.confirmation.netCashEffect;
+          set({
+            career: transaction.state,
+            error: null,
+            notice: {
+              tone: 'info',
+              message: t('store.coachingOfficeClosed', {
+                facility: facilityName(t, building.type),
+                amount: formatMoneyForCopy(t, net, true),
+              }),
+            },
+          });
+          queueCareerSave(get, set, transaction.state);
+          return;
+        }
+        const transaction = closeCareerFacility(career, buildingId);
+        const refund = -transaction.cost;
         set({
           career: transaction.state,
           error: null,
           notice: {
             tone: 'info',
-            message: t('store.coachingOfficeClosed', {
-              facility: facilityName(t, building.type),
-              amount: formatMoneyForCopy(t, net, true),
-            }),
+            message:
+              refund === 0
+                ? t('store.facilityClosed', {
+                    facility: facilityName(t, building.type),
+                  })
+                : t('store.facilityClosedRefund', {
+                    facility: facilityName(t, building.type),
+                    amount: formatIntegerForCopy(t, refund),
+                  }),
           },
         });
         queueCareerSave(get, set, transaction.state);
-        return;
-      }
-      const transaction = closeCareerFacility(career, buildingId);
-      const refund = -transaction.cost;
-      set({
-        career: transaction.state,
-        error: null,
-        notice: {
-          tone: 'info',
-          message:
-            refund === 0
-              ? t('store.facilityClosed', {
-                  facility: facilityName(t, building.type),
-                })
-              : t('store.facilityClosedRefund', {
-                  facility: facilityName(t, building.type),
-                  amount: formatIntegerForCopy(t, refund),
-                }),
-        },
-      });
-      queueCareerSave(get, set, transaction.state);
-    });
+      },
+      facilityTransactionErrorCopy,
+    );
   },
 
   startScoutMission(optionId) {
@@ -2637,18 +2700,24 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const current = get();
       const allowed =
         current.inboxDutyFocus?.mode === 'focused' &&
-        current.inboxDutyFocus.dutyId === 'head-coach-market' &&
-        role === 'HEAD';
+        ((current.inboxDutyFocus.dutyId === 'head-coach-market' &&
+          role === 'HEAD') ||
+          (current.inboxDutyFocus.dutyId === 'assistant-coach-hire' &&
+            role === 'ASSISTANT'));
       const blocked = blockedInboxDutyForAction(current, allowed);
       if (blocked !== undefined) {
         set({ inboxDutyReminder: [blocked], error: null });
         return;
       }
       const career = requireCareer(current);
-      const next = {
+      const hired = {
         ...career,
         market: hireCareerCoach(career, requireMarket(career), coachId, role),
       };
+      const next =
+        role === 'ASSISTANT'
+          ? completeAssistantGuideSequence(hired, 'assistant-coach-hire')
+          : hired;
       set({
         career: next,
         error: null,
@@ -2972,8 +3041,10 @@ function currentMatchday(state: GameState) {
   const teams = isFirstOnboardingFixture(state, fixture.id)
     ? {
         ...builtTeams,
-        [fixture.homeClubId]: withoutPowers(builtTeams[fixture.homeClubId]),
-        [fixture.awayClubId]: withoutPowers(builtTeams[fixture.awayClubId]),
+        // The new club still earns its first power through the awakening. The
+        // division rival keeps his authored power so the teaser is honest and
+        // his live red rail meter can charge and fire in this match.
+        [state.userClubId]: withoutPowers(builtTeams[state.userClubId]),
       }
     : builtTeams;
   return {
@@ -3454,12 +3525,63 @@ export function careerClimbCompleted(state: {
 function guarded(
   set: (partial: Partial<M1Store>) => void,
   action: () => void,
+  copyError: (error: unknown) => string = errorMessage,
 ): void {
   try {
     action();
   } catch (error) {
-    set({ error: errorMessage(error) });
+    set({ error: copyError(error) });
   }
+}
+
+/** Turns every player-reachable facility refusal into Bert-ready copy. */
+export function facilityTransactionErrorCopy(error: unknown): string {
+  const raw = errorMessage(error);
+  if (/ is not unlocked$/.test(raw)) return t('facilityError.locked');
+  if (/ is already built;| limit reached;/.test(raw)) {
+    return t('facilityError.buildLimit');
+  }
+  if (
+    raw === 'only one facility construction project may be active at a time'
+  ) {
+    return t('facilityError.constructionBusy');
+  }
+  if (
+    raw === 'facility transaction is not affordable' ||
+    raw === 'available cash must be a non-negative safe integer'
+  ) {
+    return t('facilityError.notEnoughCash');
+  }
+  if (/ is outside the facility grid$/.test(raw)) {
+    return t('facilityError.outsideGrid');
+  }
+  if (/ overlaps /.test(raw)) return t('facilityError.overlap');
+  if (/^Coaching Office upgrades are disabled/.test(raw)) {
+    return t('facilityError.coachingOfficeUpgrade');
+  }
+  if (/ is already at level /.test(raw)) return t('facilityError.maxLevel');
+  if (/ cannot move while construction is active$/.test(raw)) {
+    return t('facilityError.moveDuringConstruction');
+  }
+  if (/ is already at that position$/.test(raw)) {
+    return t('facilityError.samePosition');
+  }
+  if (/ cannot close while construction is active$/.test(raw)) {
+    return t('facilityError.closeDuringConstruction');
+  }
+  if (/^a staffed Coaching Office must dismiss/.test(raw)) {
+    return t('facilityError.staffedOffice');
+  }
+  if (/^Level \d facilities unlock in /.test(raw)) {
+    return t('facilityError.upgradeLocked');
+  }
+  const severance = raw.match(
+    /needs \$([\d,]+) more to cover assistant severance/,
+  );
+  if (severance !== null) {
+    return t('facilityError.severanceShort', { amount: severance[1] });
+  }
+  return t('facilityError.unavailable');
 }
 
 function errorMessage(error: unknown): string {

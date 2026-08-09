@@ -248,9 +248,8 @@ export function earnedCareerMilestoneFlags(state: GameState): string[] {
 /**
  * Appends any newly earned milestone flags, and queues the beats they earned.
  *
- * Idempotent and order-stable. The queue is what the weekly offer drains, so a
- * career that earns three milestones in three weeks shows them one a week
- * rather than stacking them behind whatever story happens to resolve next.
+ * Idempotent and order-stable. The queue keeps simultaneous achievements in
+ * recognition order and keeps them out of the random story deck.
  */
 export function recordCareerMilestones(state: GameState): GameState {
   const additions = earnedCareerMilestoneFlags(state).filter(

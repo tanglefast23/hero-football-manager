@@ -1,4 +1,12 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Easing,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActionButton,
@@ -20,14 +28,23 @@ import {
   SpeechBubbleTail,
   speechBubbleStyles,
 } from '../speech-bubble';
-import type { FulltimeReactionViewModel } from '../models';
+import type {
+  FulltimeReactionViewModel,
+  RivalMockeryViewModel,
+} from '../models';
 import { useCopy, type CopyFn } from '../../i18n';
+import { PlayerRunSprite } from '../../render/PlayerRunSprite';
+import {
+  playRivalHeroLaugh,
+  stopRivalHeroLaugh,
+} from '../../render/rival-hero-voice';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
   onContinue: () => void;
   onReplayHighlight?: (highlightId: string) => void;
   textScale?: TextScale;
+  reduceMotion?: boolean;
   onOpenSettings: () => void;
 }
 
@@ -37,6 +54,7 @@ export function PostMatchLedgerScreen({
   onReplayHighlight,
   onOpenSettings,
   textScale = 1,
+  reduceMotion = false,
 }: PostMatchLedgerScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -117,10 +135,12 @@ export function PostMatchLedgerScreen({
           />
         </View>
 
-        {viewModel.reaction ? (
+        {viewModel.reaction || viewModel.rivalMockery ? (
           <FulltimeReaction
             reaction={viewModel.reaction}
+            mockery={viewModel.rivalMockery}
             textScale={textScale}
+            reduceMotion={reduceMotion}
             t={t}
           />
         ) : null}
@@ -243,41 +263,137 @@ function TeamLine({
  */
 function FulltimeReaction({
   reaction,
+  mockery,
   textScale,
+  reduceMotion,
   t,
 }: {
-  reaction: FulltimeReactionViewModel;
+  reaction?: FulltimeReactionViewModel;
+  mockery?: RivalMockeryViewModel;
   textScale: TextScale;
+  reduceMotion: boolean;
   t: CopyFn;
 }) {
   const blaming =
-    reaction.pose === 'point' && reaction.assistantPortraitId !== undefined;
+    reaction?.pose === 'point' && reaction.assistantPortraitId !== undefined;
   const mood =
-    reaction.pose === 'joy'
-      ? t('postMatchLedger.a11y.coachIsCelebrating', {
-          coach: reaction.coachName,
-        })
-      : blaming
-        ? t('postMatchLedger.a11y.coachIsBlaming', {
+    reaction === undefined
+      ? ''
+      : reaction.pose === 'joy'
+        ? t('postMatchLedger.a11y.coachIsCelebrating', {
             coach: reaction.coachName,
-            assistant: reaction.assistantName ?? '',
           })
-        : reaction.pose === 'cry'
-          ? t('postMatchLedger.a11y.coachIsInTears', {
+        : blaming
+          ? t('postMatchLedger.a11y.coachIsBlaming', {
               coach: reaction.coachName,
+              assistant: reaction.assistantName ?? '',
             })
-          : // A draw leaves him at rest, so there is no mood to name — read out who
-            // is talking and let the line carry the rest.
-            t('postMatchLedger.a11y.coachOnTheResult', {
-              coach: reaction.coachName,
-            });
+          : reaction.pose === 'cry'
+            ? t('postMatchLedger.a11y.coachIsInTears', {
+                coach: reaction.coachName,
+              })
+            : // A draw leaves him at rest, so there is no mood to name — read out who
+              // is talking and let the line carry the rest.
+              t('postMatchLedger.a11y.coachOnTheResult', {
+                coach: reaction.coachName,
+              });
 
   return (
-    <View className="mt-6 items-start">
-      {/* The same bubble Bert speaks out of, down to the drawn tail — see
+    <View className="mt-6 flex-row items-end justify-between gap-4">
+      {reaction ? (
+        <View className="min-w-0 flex-1 items-start">
+          {/* The same bubble Bert speaks out of, down to the drawn tail — see
           src/ui/speech-bubble.tsx. The tail points at the gaffer's half, not the
           assistant's: it is his line either way. */}
-      <View style={[speechBubbleStyles.box, styles.reactionBubble]}>
+          <View style={[speechBubbleStyles.box, styles.reactionBubble]}>
+            <Text
+              style={[
+                speechBubbleStyles.text,
+                scaledBody(
+                  textScale,
+                  SPEECH_BUBBLE_FONT_SIZE,
+                  SPEECH_BUBBLE_LINE_HEIGHT,
+                ),
+              ]}
+            >
+              {reaction.line}
+            </Text>
+            <SpeechBubbleTail left={REACTION_TAIL_LEFT} />
+          </View>
+          <View
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={t('postMatchLedger.a11y.coachReaction', {
+              mood,
+              line: reaction.line,
+            })}
+            className="flex-row items-end gap-3"
+          >
+            <ManagementSprite
+              spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`}
+              width={COACH_SPRITE_WIDTH}
+            />
+            {blaming ? (
+              <ManagementSprite
+                spriteKey={`coach:${reaction.assistantPortraitId}:rest`}
+                width={COACH_SPRITE_WIDTH}
+              />
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+      {mockery ? (
+        <RivalMockery
+          mockery={mockery}
+          textScale={textScale}
+          reduceMotion={reduceMotion}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function RivalMockery({
+  mockery,
+  textScale,
+  reduceMotion,
+}: {
+  mockery: RivalMockeryViewModel;
+  textScale: TextScale;
+  reduceMotion: boolean;
+}) {
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    playRivalHeroLaugh(mockery.heroId);
+    if (reduceMotion) return () => stopRivalHeroLaugh();
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, {
+          toValue: 1,
+          duration: 180,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounce, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.delay(180),
+      ]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      stopRivalHeroLaugh();
+    };
+  }, [bounce, mockery.heroId, reduceMotion]);
+
+  return (
+    <View className="min-w-0 flex-1 items-end">
+      <View style={[speechBubbleStyles.box, styles.mockeryBubble]}>
         <Text
           style={[
             speechBubbleStyles.text,
@@ -288,35 +404,37 @@ function FulltimeReaction({
             ),
           ]}
         >
-          {reaction.line}
+          {mockery.line}
         </Text>
-        <SpeechBubbleTail left={REACTION_TAIL_LEFT} />
+        <SpeechBubbleTail right={RIVAL_SPRITE_WIDTH / 2} />
       </View>
-      <View
-        accessible
-        accessibilityRole="image"
-        accessibilityLabel={t('postMatchLedger.a11y.coachReaction', {
-          mood,
-          line: reaction.line,
-        })}
-        className="flex-row items-end gap-3"
+      <Animated.View
+        style={{
+          transform: [
+            {
+              translateY: bounce.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -9],
+              }),
+            },
+          ],
+        }}
       >
-        <ManagementSprite
-          spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`}
-          width={COACH_SPRITE_WIDTH}
+        <PlayerRunSprite
+          playerId={mockery.heroId}
+          role={mockery.role}
+          lookId={mockery.lookId}
+          side={mockery.matchSide}
+          scale={3}
+          accessibilityLabel={mockery.heroName}
         />
-        {blaming ? (
-          <ManagementSprite
-            spriteKey={`coach:${reaction.assistantPortraitId}:rest`}
-            width={COACH_SPRITE_WIDTH}
-          />
-        ) : null}
-      </View>
+      </Animated.View>
     </View>
   );
 }
 
 const COACH_SPRITE_WIDTH = 56;
+const RIVAL_SPRITE_WIDTH = 72;
 /** He stands flush left under the bubble, so the tail points at his middle. */
 const REACTION_TAIL_LEFT = COACH_SPRITE_WIDTH / 2;
 
@@ -325,6 +443,10 @@ const styles = StyleSheet.create({
     maxWidth: 280,
     // The drawn tail hangs below the bubble, so the sprite has to start below
     // the point rather than below the box.
+    marginBottom: 18,
+  },
+  mockeryBubble: {
+    maxWidth: 280,
     marginBottom: 18,
   },
 });

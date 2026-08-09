@@ -75,26 +75,33 @@ export const speechBubbleStyles = StyleSheet.create({
 /**
  * The tail, pointing down at whoever is speaking.
  *
- * `left` is where the point should land, measured from the bubble's left edge —
- * the speaker's centre, not the bubble's, so a bubble that has slid sideways to
- * stay on screen still points at the right person.
+ * `left` or `right` is where the point should land from that bubble edge — the
+ * speaker's centre, not the bubble's, so a bubble that has slid sideways to stay
+ * on screen still points at the right person.
  *
  * Returns the two triangles bare, with no wrapper: they are absolutely
  * positioned against the bubble, and a wrapper View would become the box they
  * measure from and drop them at the end of the text instead.
  */
-export function SpeechBubbleTail({ left }: { left: number }) {
+export function SpeechBubbleTail({
+  left,
+  right,
+}: {
+  left?: number;
+  right?: number;
+}) {
+  const borderPosition =
+    left === undefined
+      ? { right: (right ?? TAIL_HALF_WIDTH) - TAIL_HALF_WIDTH }
+      : { left: left - TAIL_HALF_WIDTH };
+  const fillPosition =
+    left === undefined
+      ? { right: (right ?? TAIL_FILL_INSET) - TAIL_FILL_INSET }
+      : { left: left - TAIL_FILL_INSET };
   return (
     <>
-      <View
-        style={[
-          speechBubbleStyles.tailBorder,
-          { left: left - TAIL_HALF_WIDTH },
-        ]}
-      />
-      <View
-        style={[speechBubbleStyles.tailFill, { left: left - TAIL_FILL_INSET }]}
-      />
+      <View style={[speechBubbleStyles.tailBorder, borderPosition]} />
+      <View style={[speechBubbleStyles.tailFill, fillPosition]} />
     </>
   );
 }
