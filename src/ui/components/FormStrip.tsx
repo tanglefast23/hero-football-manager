@@ -35,9 +35,9 @@ export type FormResult = 'W' | 'D' | 'L';
  * says what a trophy is worth.
  */
 const FORM_EXPLAINER: Readonly<Record<FormResult, string>> = {
-  W: 'clubHome.form.won',
-  D: 'clubHome.form.drawn',
-  L: 'clubHome.form.lost',
+  W: 'clubHome.form.weekWon',
+  D: 'clubHome.form.weekDrawn',
+  L: 'clubHome.form.weekLost',
 };
 
 const INK = '#241f2e';
@@ -151,7 +151,7 @@ function FormCell({ result, delay, reduceMotion }: FormCellProps) {
 
 export interface FormStripProps {
   /** Oldest first, as `recentForm` builds it. The tail is what gets shown. */
-  results: readonly FormResult[];
+  results: readonly { result: FormResult; week: number }[];
   reduceMotion?: boolean;
 }
 
@@ -178,22 +178,25 @@ export function FormStrip({ results, reduceMotion = false }: FormStripProps) {
       style={styles.strip}
       onLayout={onLayout}
     >
-      {shown.map((result, index) => (
-        <InfoTip
-          // Re-keying on the measured count is deliberate: a rotation that makes
-          // room for another result replays the cascade at the new width.
-          key={`${shown.length}-${index}-${result}`}
-          align="right"
-          text={t(FORM_EXPLAINER[result])}
-          accessibilityLabel={t(FORM_EXPLAINER[result])}
-        >
-          <FormCell
-            result={result}
-            delay={formCellEnterDelay(index, shown.length)}
-            reduceMotion={reduceMotion}
-          />
-        </InfoTip>
-      ))}
+      {shown.map(({ result, week }, index) => {
+        const explanation = t(FORM_EXPLAINER[result], { week });
+        return (
+          <InfoTip
+            // Re-keying on the measured count is deliberate: a rotation that makes
+            // room for another result replays the cascade at the new width.
+            key={`${shown.length}-${index}-${week}-${result}`}
+            align="right"
+            text={explanation}
+            accessibilityLabel={explanation}
+          >
+            <FormCell
+              result={result}
+              delay={formCellEnterDelay(index, shown.length)}
+              reduceMotion={reduceMotion}
+            />
+          </InfoTip>
+        );
+      })}
     </View>
   );
 }

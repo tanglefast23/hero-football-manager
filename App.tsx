@@ -18,7 +18,9 @@ import {
   LogBox,
   Platform,
   Share,
+  StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
@@ -137,6 +139,8 @@ import {
   ClubHomeScreen,
   ClubLegacyScreen,
   BertBriefingWalkOn,
+  TutorialSpotlight,
+  TutorialTapCue,
   MatchdayConditionWarning,
   matchdayConditionWarningPlayer,
   CharacterCreationScreen,
@@ -199,7 +203,10 @@ import {
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
-import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
+import {
+  tutorialCuePositionAbove,
+  type TutorialAnchorLayout,
+} from './src/ui/tutorial-cue-position';
 import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
 import { assistantFiction } from './src/ui/assistant-fiction';
@@ -373,6 +380,8 @@ export default function App() {
 
 function GameApp() {
   const store = useM1Store();
+  const { width: viewportWidth, height: viewportHeight } =
+    useWindowDimensions();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences>(
@@ -416,6 +425,8 @@ function GameApp() {
   // hole over it. Measured by the screen that draws it; owned here because the
   // briefing overlay is a sibling of that screen, not a child.
   const [leagueSubTabGuideAnchor, setLeagueSubTabGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
+  const [marketDealsGuideAnchor, setMarketDealsGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
   const [requestedAssistantSequenceId, setRequestedAssistantSequenceId] =
     useState<AssistantGuideSequenceId | null>(null);
@@ -1971,6 +1982,12 @@ function GameApp() {
     !postMatchSummaryVisible;
   const bertBriefingVisible =
     guideOverlayVisible || store.inboxDutyReminder !== null;
+  const scoutDealsGuideVisible =
+    assistantSequenceId === null &&
+    visibleConciergeFocus === 'scout-report' &&
+    store.screen === 'management' &&
+    store.activeTab === 'market' &&
+    marketDealsGuideAnchor !== null;
   const assistantObjective =
     store.career === null
       ? null
@@ -2211,11 +2228,7 @@ function GameApp() {
         setOpenedBoardFinanceAlertId('emergency-loan');
         return;
       }
-      setConciergeFocus(
-        assistantSequenceId === 'scout-report'
-          ? null
-          : (assistantSequence.pages.at(-1)?.focus ?? null),
-      );
+      setConciergeFocus(assistantSequence.pages.at(-1)?.focus ?? null);
       setRequestedAssistantSequenceId(null);
     }
   }, [
@@ -3190,6 +3203,7 @@ function GameApp() {
             onSubmitContractOffer={submitTransferOfferWithFeedback}
             onCloseNegotiation={store.closeTransferTalks}
             onDismissGuideFocus={() => setConciergeFocus(null)}
+            onDealsGuideAnchorChange={setMarketDealsGuideAnchor}
             guideFocus={visibleConciergeFocus ?? undefined}
             requestedSection={marketSectionRequest?.section}
             requestedSectionToken={marketSectionRequest?.token}
@@ -3360,7 +3374,9 @@ function GameApp() {
           >
             <View
               className="flex-1"
-              {...bertBriefingBackgroundProps(bertBriefingVisible)}
+              {...bertBriefingBackgroundProps(
+                bertBriefingVisible || scoutDealsGuideVisible,
+              )}
             >
               <ScreenTransition
                 screenKey={screenKey}
@@ -3496,6 +3512,48 @@ function GameApp() {
                 }}
               />
             </View>
+            {scoutDealsGuideVisible && marketDealsGuideAnchor !== null ? (
+              <View
+                accessibilityViewIsModal
+                accessibilityLabel={t('market.openDealsGuide')}
+                style={StyleSheet.absoluteFill}
+              >
+                <TutorialSpotlight
+                  anchor={marketDealsGuideAnchor}
+                  viewportWidth={viewportWidth}
+                  viewportHeight={viewportHeight}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('market.a11y.dealsDesk')}
+                  onPress={() => {
+                    setMarketSectionRequest((current) => ({
+                      section: 'TRANSFERS',
+                      token: (current?.token ?? 0) + 1,
+                    }));
+                    setConciergeFocus(null);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: marketDealsGuideAnchor.x,
+                    top: marketDealsGuideAnchor.y,
+                    width: marketDealsGuideAnchor.width,
+                    height: marketDealsGuideAnchor.height,
+                  }}
+                />
+                <TutorialTapCue
+                  label={t('market.tapMe')}
+                  detail={t('market.tab.deals')}
+                  direction="down"
+                  reduceMotion={reduceMotion}
+                  style={tutorialCuePositionAbove(
+                    marketDealsGuideAnchor,
+                    viewportWidth,
+                    viewportHeight,
+                  )}
+                />
+              </View>
+            ) : null}
             {guideOverlayVisible && cupMismatchWarning !== undefined ? (
               <BertBriefingWalkOn
                 key={cupMismatchWarning.fixtureId}
@@ -3609,7 +3667,6 @@ function GameApp() {
                 customMessage={{
                   title: 'The desk is shut',
                   body: [
-                    'That report is yours to keep — scouting a player is what lets you open talks for him at all, and he waits on the Deals tab until you do.',
                     'Registrations only happen inside a transfer window: Weeks 1 to 4, then Weeks 17 and 18. Outside them the desk refuses every deal, however much you offer.',
                     'So scout now and decide now. Walk in on the first day of the window with the name already chosen and the money already put aside.',
                   ],

@@ -1,4 +1,9 @@
-import { SAVE_FAILURE_BLOCK_LIMIT, setStoreCopy, useM1Store } from '../store';
+import {
+  SAVE_FAILURE_BLOCK_LIMIT,
+  setStoreCopy,
+  transferTransactionErrorCopy,
+  useM1Store,
+} from '../store';
 import {
   createCareerRepository,
   createReplayRepository,
@@ -41,6 +46,14 @@ import {
 describe('M1 app store integration', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
+  });
+
+  it('gives an unaffordable transfer tap the requested cash message', () => {
+    expect(
+      transferTransactionErrorCopy(
+        new Error('transfer fee exceeds current cash'),
+      ),
+    ).toBe('Not enough Cash');
   });
 
   it("has Bert explain the scout's one-time favor when the first trip is unaffordable", () => {
@@ -432,7 +445,7 @@ describe('M1 app store integration', () => {
     const started = useM1Store.getState().career!;
     // The shipped opening bank now funds one tier-one drill. This test needs
     // two taps to verify popup sequencing, so fund that exact test contract.
-    useM1Store.setState({ career: { ...started, trainingPoints: 16 } });
+    useM1Store.setState({ career: { ...started, trainingPoints: 14 } });
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
     const unassignedPlayerId = 'bramble-rovers-p14';
@@ -447,19 +460,19 @@ describe('M1 app store integration', () => {
 
     const trained = useM1Store.getState().career!;
     const result = useM1Store.getState().lastDrillResult!;
-    // A new Division 5 club owns Sprints 1: 8 TP.
+    // A new Division 5 club owns Sprints 1: 7 TP.
     expect(result).toMatchObject({
       playerId,
       attribute: 'pac',
       before: beforePac,
-      tpSpent: 8,
+      tpSpent: 7,
       sequence: 1,
     });
     expect(result.after).toBeGreaterThan(result.before);
     expect(
       trained.players.find((player) => player.id === playerId)?.attrs.pac,
     ).toBe(result.after);
-    expect(trained.trainingPoints).toBe(before.trainingPoints - 8);
+    expect(trained.trainingPoints).toBe(before.trainingPoints - 7);
     expect(
       trained.players.find((player) => player.id === unassignedPlayerId)?.attrs
         .sta,
@@ -472,7 +485,7 @@ describe('M1 app store integration', () => {
       sequence: 2,
     });
     expect(useM1Store.getState().career?.trainingPoints).toBe(
-      before.trainingPoints - 16,
+      before.trainingPoints - 14,
     );
 
     finishOpeningInboxJobs();
@@ -562,9 +575,9 @@ describe('M1 app store integration', () => {
    */
   it('runs the drills queued behind a skipped presentation', () => {
     startCreatedCareer(789);
-    // The 24 TP launch grant buys the three drills exercised by this case.
+    // The 21 TP test bank buys the three drills exercised by this case.
     useM1Store.setState({
-      career: { ...useM1Store.getState().career!, trainingPoints: 24 },
+      career: { ...useM1Store.getState().career!, trainingPoints: 21 },
     });
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
@@ -578,7 +591,7 @@ describe('M1 app store integration', () => {
     const finished = useM1Store.getState().career!;
     expect(useM1Store.getState().error).toBeNull();
     // All three counted: the TP, the tally, and the stat itself.
-    expect(finished.trainingPoints).toBe(before.trainingPoints - 24);
+    expect(finished.trainingPoints).toBe(before.trainingPoints - 21);
     expect(finished.totalInstantDrills).toBe(3);
     expect(useM1Store.getState().lastDrillResult).toMatchObject({
       sequence: 3,
@@ -823,7 +836,7 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().trainPlayer(playerId, 'sprints');
 
-    expect(useM1Store.getState().error).toContain('needs 8 TP');
+    expect(useM1Store.getState().error).toContain('needs 7 TP');
     expect(useM1Store.getState().lastDrillResult).toBeNull();
     expect(
       useM1Store

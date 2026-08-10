@@ -747,8 +747,9 @@ function transferListing(
       buyerName: bid.buyerName,
       fee: bid.quote.fee,
     })),
-    available:
-      windowOpen && affordable && listing.saleBlockedReason === undefined,
+    // An unaffordable target stays pressable so the manager gets a direct
+    // refusal from the desk instead of a grey control with no response.
+    available: windowOpen && listing.saleBlockedReason === undefined,
     ...(!windowOpen
       ? { blockedReason: t('market.transferWindowClosed') }
       : listing.saleBlockedReason !== undefined

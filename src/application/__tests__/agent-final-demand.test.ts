@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   marketNegotiationViewModel,
   offerQuoteKey,
@@ -79,6 +81,17 @@ describe('the wage the panel quotes', () => {
 });
 
 describe('the agent s closing ultimatum', () => {
+  it('keeps the needed wage hidden until the agent gives his final demand', () => {
+    const screen = readFileSync(
+      join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
+      'utf8',
+    );
+
+    expect(screen).not.toContain("t('market.wageNeeded')");
+    expect(screen).toContain('finalDemand.weeklyWage');
+    expect(screen).toContain('<AgentFinalDemandGate');
+  });
+
   it('is absent until the final round', () => {
     expect(view(opened()).finalDemand).toBeUndefined();
     const afterOne = submitContractOffer(opened(), {

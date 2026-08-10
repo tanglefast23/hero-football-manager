@@ -133,7 +133,10 @@ export interface HomeViewModel {
   nextMatchTimingLabel: string;
   /** True only when the engine has an unresolved league or Hero Cup fixture this week. */
   isCurrentGameWeek: boolean;
-  form: readonly ('W' | 'D' | 'L')[];
+  form: readonly {
+    result: 'W' | 'D' | 'L';
+    week: number;
+  }[];
   resources: ResourceSummaryViewModel;
   nextFixture: FixtureViewModel;
   alerts: readonly ClubAlertViewModel[];

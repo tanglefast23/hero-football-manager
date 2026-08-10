@@ -2631,7 +2631,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   actOnTransfer(playerId, direction, bidId) {
-    guarded(set, () => {
+    guardedTransfer(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
       if (direction === 'BUY') {
@@ -3582,6 +3582,21 @@ export function facilityTransactionErrorCopy(error: unknown): string {
     return t('facilityError.severanceShort', { amount: severance[1] });
   }
   return t('facilityError.unavailable');
+}
+
+/** Turns the pressable-but-unaffordable transfer refusal into player copy. */
+export function transferTransactionErrorCopy(error: unknown): string {
+  const raw = errorMessage(error);
+  return raw === 'transfer fee exceeds current cash'
+    ? t('market.notEnoughCash')
+    : raw;
+}
+
+function guardedTransfer(
+  set: (partial: Partial<M1Store>) => void,
+  action: () => void,
+): void {
+  guarded(set, action, transferTransactionErrorCopy);
 }
 
 function errorMessage(error: unknown): string {
