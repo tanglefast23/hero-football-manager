@@ -92,7 +92,7 @@ const KEEPER_DRILL_IDS = [
   'keeper-drills-v',
 ];
 
-/** Rescales `gains.ref` across the whole keeper ladder; costs stay at 10/15/21/28/36. */
+/** Rescales `gains.ref` across the whole keeper ladder; costs stay at 8/13/19/26/36. */
 function contentWithKeeperGainScale(multiplier: number): LaunchContent {
   return {
     ...baseContent,
