@@ -18,11 +18,16 @@ import {
   nextDistinctPlayerLook,
 } from '../game/player-appearance';
 import { SPECIAL_HERO_ROSTER } from '../game/special-heroes';
+import { COACH_WAGE_PER_LEVEL, type CoachCandidate } from '../game/market';
+import {
+  coachWeeklyWageForRole,
+  type CareerMarketState,
+} from '../game/market-career';
 import { playerLookId } from '../render/sprites/player-look';
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
-export const LAUNCH_ROSTER_VERSION = 2;
+export const LAUNCH_ROSTER_VERSION = 3;
 let careerSeedNonce = 0;
 let lastGeneratedCareerSeed: number | undefined;
 
@@ -211,6 +216,37 @@ function sameFocusDrills(
   });
 }
 
+function repriceCoachMarket(market: CareerMarketState): CareerMarketState {
+  return {
+    ...market,
+    coachCandidates: market.coachCandidates.map((coach) =>
+      repriceCoach(coach, 'HEAD'),
+    ),
+    ...(market.headCoach === undefined
+      ? {}
+      : { headCoach: repriceCoach(market.headCoach, 'HEAD') }),
+    ...(market.assistantCoach === undefined
+      ? {}
+      : { assistantCoach: repriceCoach(market.assistantCoach, 'ASSISTANT') }),
+  };
+}
+
+function repriceCoach(
+  coach: CoachCandidate,
+  role: 'HEAD' | 'ASSISTANT',
+): CoachCandidate {
+  const headWeeklyWage = Math.round(
+    (COACH_WAGE_PER_LEVEL *
+      coach.level *
+      (100 - coach.loyaltyDiscountPercent)) /
+      100,
+  );
+  return {
+    ...coach,
+    weeklyWage: coachWeeklyWageForRole({ weeklyWage: headWeeklyWage }, role),
+  };
+}
+
 export function reconcileLaunchRoster(
   state: GameState,
   content: LaunchContent = loadLaunchContent(),
@@ -234,6 +270,7 @@ export function reconcileLaunchRoster(
     state.launchRosterVersion === undefined &&
     isLegacyThirteenPlayerLaunchRoster(state, launchPlayers);
   const needsDevelopmentHeadroomUpgrade = (state.launchRosterVersion ?? 0) < 2;
+  const needsCoachWageReduction = (state.launchRosterVersion ?? 0) < 3;
   const missing = needsLegacyRosterExpansion
     ? launchPlayers.filter(
         (player) =>
@@ -277,6 +314,7 @@ export function reconcileLaunchRoster(
     missing.length > 0 ||
     state.trainingRules === undefined ||
     staleTrainingRules ||
+    needsCoachWageReduction ||
     state.playerRequestRules === undefined ||
     state.sponsorRules === undefined ||
     savedAwakening === undefined ||
@@ -392,6 +430,9 @@ export function reconcileLaunchRoster(
               : createFacilityGrid(),
           }
         : state.facilities,
+    ...(needsCoachWageReduction && state.market !== undefined
+      ? { market: repriceCoachMarket(state.market) }
+      : {}),
     players,
     ...((state.trainingRules === undefined || staleTrainingRules) &&
     launch.trainingRules !== undefined

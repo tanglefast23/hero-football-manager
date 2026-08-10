@@ -281,7 +281,7 @@ describe('launch career adapter', () => {
 
     const reconciled = reconcileLaunchRoster(established, content);
 
-    expect(reconciled.launchRosterVersion).toBe(2);
+    expect(reconciled.launchRosterVersion).toBe(3);
     expect(
       reconciled.players.some((player) => player.id === 'bramble-rovers-p14'),
     ).toBe(false);
@@ -328,6 +328,46 @@ describe('launch career adapter', () => {
     );
 
     expect(reconciled.cashTransactions).toEqual([]);
+  });
+
+  it('reprices every saved coach once', () => {
+    const current = createCareer(
+      createLaunchCareerSetup(20260810, DEFAULT_USER_CLUB_ID),
+    );
+    const headCoach = current.market!.coachCandidates[0]!;
+    const assistantCoach = current.market!.coachCandidates[1]!;
+    const saved = {
+      ...current,
+      launchRosterVersion: 2,
+      market: {
+        ...current.market!,
+        coachCandidates: current
+          .market!.coachCandidates.slice(2)
+          .map((coach) => ({
+            ...coach,
+            weeklyWage: 400 * coach.level,
+          })),
+        headCoach: { ...headCoach, weeklyWage: 400 * headCoach.level },
+        assistantCoach: {
+          ...assistantCoach,
+          weeklyWage: 200 * assistantCoach.level,
+        },
+      },
+    };
+
+    const migrated = reconcileLaunchRoster(saved);
+
+    expect(migrated.launchRosterVersion).toBe(3);
+    expect(migrated.market?.headCoach?.weeklyWage).toBe(300 * headCoach.level);
+    expect(migrated.market?.assistantCoach?.weeklyWage).toBe(
+      150 * assistantCoach.level,
+    );
+    expect(
+      migrated.market?.coachCandidates.every(
+        (coach) => coach.weeklyWage === 300 * coach.level,
+      ),
+    ).toBe(true);
+    expect(reconcileLaunchRoster(migrated)).toStrictEqual(migrated);
   });
 
   it('reloads a full career past season 1 without adding orphan launch players', () => {
