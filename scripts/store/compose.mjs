@@ -37,7 +37,9 @@ for (let i = 0; i < args.length; i += 1) {
 const framePath = positional[0];
 const outPath = positional[1];
 if (!framePath || !outPath) {
-  console.error('usage: compose.mjs <frame.png> <out.png> [--y N] [--line TEXT]...');
+  console.error(
+    'usage: compose.mjs <frame.png> <out.png> [--y N] [--line TEXT]...',
+  );
   process.exit(1);
 }
 
@@ -70,7 +72,12 @@ canvas.clear(hexColor(ck, PALETTE.ink));
 const paint = new ck.Paint();
 paint.setAntiAlias(false);
 canvas.drawImage(frame, 0, 0, paint);
-canvas.drawImage(cardBig.image, Math.round((W - cardBig.width) / 2), cardY, paint);
+canvas.drawImage(
+  cardBig.image,
+  Math.round((W - cardBig.width) / 2),
+  cardY,
+  paint,
+);
 
 const out = surface.makeImageSnapshot();
 writePng(ck, out, outPath);
@@ -78,7 +85,18 @@ writePng(ck, out, outPath);
 // CanvasKit always encodes RGBA. App Store screenshots must have no alpha
 // channel at all — an opaque alpha channel still counts as one and is
 // rejected — so re-encode as 24-bit RGB.
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', outPath, '-pix_fmt', 'rgb24', '-f', 'image2', `${outPath}.rgb.png`]);
+execFileSync('ffmpeg', [
+  '-y',
+  '-loglevel',
+  'error',
+  '-i',
+  outPath,
+  '-pix_fmt',
+  'rgb24',
+  '-f',
+  'image2',
+  `${outPath}.rgb.png`,
+]);
 fs.renameSync(`${outPath}.rgb.png`, outPath);
 
 console.log(

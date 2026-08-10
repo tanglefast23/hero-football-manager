@@ -26,7 +26,8 @@ const ck = await CanvasKitInit();
 const paint = new ck.Paint();
 const panelSurface = ck.MakeSurface(PANEL.w, PANEL.h);
 const bandSurface = ck.MakeSurface(PITCH.w, BAND_H);
-if (!panelSurface || !bandSurface) throw new Error('could not allocate surfaces');
+if (!panelSurface || !bandSurface)
+  throw new Error('could not allocate surfaces');
 
 const info = (w, h) => ({
   width: w,
@@ -47,7 +48,10 @@ function read(surface, img, r, w, h) {
   return canvas.readPixels(0, 0, info(w, h));
 }
 
-const files = fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
+const files = fs
+  .readdirSync(dir)
+  .filter((f) => f.endsWith('.png'))
+  .sort();
 const rows = [];
 
 for (const f of files) {
@@ -55,23 +59,36 @@ for (const f of files) {
   if (!img) continue;
 
   const panel = read(panelSurface, img, PANEL, PANEL.w, PANEL.h);
-  let pr = 0, pg = 0, pb = 0, pn = 0;
+  let pr = 0,
+    pg = 0,
+    pb = 0,
+    pn = 0;
   for (let i = 0; panel && i < panel.length; i += 4 * 37) {
-    pr += panel[i]; pg += panel[i + 1]; pb += panel[i + 2]; pn += 1;
+    pr += panel[i];
+    pg += panel[i + 1];
+    pb += panel[i + 2];
+    pn += 1;
   }
   const gold = pn > 0 && pr / pn > 150 && pg / pn > 110 && pb / pn < 120;
 
   let fire = 0;
   for (let top = PITCH.y; top < PITCH.y + PITCH.h; top += BAND_H) {
     const h = Math.min(BAND_H, PITCH.y + PITCH.h - top);
-    const band = read(bandSurface, img, { x: PITCH.x, y: top, w: PITCH.w, h }, PITCH.w, h);
+    const band = read(
+      bandSurface,
+      img,
+      { x: PITCH.x, y: top, w: PITCH.w, h },
+      PITCH.w,
+      h,
+    );
     if (!band) continue;
     for (let i = 0; i < band.length; i += 4 * 7) {
       if (
         Math.abs(band[i] - FIRE[0]) < 26 &&
         Math.abs(band[i + 1] - FIRE[1]) < 26 &&
         Math.abs(band[i + 2] - FIRE[2]) < 26
-      ) fire += 1;
+      )
+        fire += 1;
     }
   }
 
@@ -80,7 +97,9 @@ for (const f of files) {
 }
 
 const withFire = rows.filter((r) => r.fire > 0).sort((a, b) => b.fire - a.fire);
-console.log(`frames: ${rows.length}, gold-panel frames: ${rows.filter((r) => r.gold).length}`);
+console.log(
+  `frames: ${rows.length}, gold-panel frames: ${rows.filter((r) => r.gold).length}`,
+);
 console.log('\ntop pitch-flame frames:');
 for (const r of withFire.slice(0, 20)) {
   console.log(`  ${r.f}  firePx=${r.fire}  goldPanel=${r.gold}`);

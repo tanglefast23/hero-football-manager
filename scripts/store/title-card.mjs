@@ -67,10 +67,18 @@ function measure(ck, typeface, size, text) {
  * Largest multiple-of-`step` size at which every line fits `maxWidth`.
  * Silkscreen is an 8px-grid pixel face, so only whole steps stay crisp.
  */
-function fitSize(ck, typeface, lines, maxWidth, { min = 8, max = 96, step = 4 }) {
+function fitSize(
+  ck,
+  typeface,
+  lines,
+  maxWidth,
+  { min = 8, max = 96, step = 4 },
+) {
   let best = min;
   for (let size = min; size <= max; size += step) {
-    const widest = Math.max(...lines.map((l) => measure(ck, typeface, size, l)));
+    const widest = Math.max(
+      ...lines.map((l) => measure(ck, typeface, size, l)),
+    );
     if (widest <= maxWidth) best = size;
     else break;
   }
@@ -142,7 +150,11 @@ export function drawTitleCard(
   const lipH = lip;
   const bandH = band;
   canvas.save();
-  canvas.clipRRect(rrect(fx, fy, fw, fh, radius - border), ck.ClipOp.Intersect, false);
+  canvas.clipRRect(
+    rrect(fx, fy, fw, fh, radius - border),
+    ck.ClipOp.Intersect,
+    false,
+  );
   paint.setColor(hexColor(ck, accent.light));
   canvas.drawRect(ck.XYWHRect(fx, fy, fw, bandH), paint);
   paint.setColor(hexColor(ck, accent.dark));
