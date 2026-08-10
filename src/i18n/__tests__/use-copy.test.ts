@@ -8,6 +8,12 @@ describe('copyFor', () => {
     expect(t.locale).toBe('en');
   });
 
+  test('reuses one pure copy function per locale', () => {
+    expect(copyFor('en')).toBe(copyFor('en'));
+    expect(copyFor('vi')).toBe(copyFor('vi'));
+    expect(copyFor('en')).not.toBe(copyFor('vi'));
+  });
+
   test('every shipped locale returns its own copy, not the English fallback', () => {
     // There is no untranslated locale left to demonstrate fallback with, which
     // is what finishing the translation phases looks like. Fallback itself is

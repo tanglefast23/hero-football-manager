@@ -104,6 +104,7 @@ import {
   playFacilityStartSfx,
   playTransactionConfirmSfx,
   playManagementActionSfx,
+  prewarmManagementSfx,
   setManagementSfxMasterVolume,
   teardownManagementSfx,
 } from './src/render/management-sfx';
@@ -380,8 +381,8 @@ function GameApp() {
    * `facesFor(preferences.language)` further down always read state directly and
    * was always correct. This is the same source; now it is the only one.
    *
-   * `t` is memoised because `copyFor` returns a fresh closure per call and
-   * several memos below key on its identity.
+   * `copyFor` also caches one pure function per locale. The memo keeps this
+   * component's dependency explicit and avoids a lookup on unrelated renders.
    */
   const locale = preferences.language;
   const t = useMemo(() => copyFor(locale), [locale]);
@@ -1187,6 +1188,36 @@ function GameApp() {
   useEffect(() => {
     setHapticsEnabled(preferences.hapticsEnabled);
   }, [preferences.hapticsEnabled]);
+
+  useEffect(() => {
+    if (
+      Platform.OS === 'web' ||
+      bootError !== null ||
+      !store.persistenceReady ||
+      store.persistenceLoadError !== null ||
+      store.screen !== 'welcome' ||
+      landingView !== 'title'
+    )
+      return undefined;
+
+    let warmTimer: ReturnType<typeof setTimeout> | undefined;
+    const titleFrame = requestAnimationFrame(() => {
+      // Effects run after the title commit. Crossing its next frame and then
+      // yielding once more keeps 33 player allocations out of the title paint.
+      warmTimer = setTimeout(prewarmManagementSfx, 0);
+    });
+
+    return () => {
+      cancelAnimationFrame(titleFrame);
+      if (warmTimer !== undefined) clearTimeout(warmTimer);
+    };
+  }, [
+    bootError,
+    landingView,
+    store.persistenceLoadError,
+    store.persistenceReady,
+    store.screen,
+  ]);
 
   /**
    * The face-off is decoration, and decoration must never be able to strand a

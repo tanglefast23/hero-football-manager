@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const mockPlayers: Array<{
+  muted: boolean;
   volume: number;
   play: jest.Mock;
   pause: jest.Mock;
@@ -22,6 +23,7 @@ jest.mock('expo-haptics', () => ({
 jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(() => {
     const player = {
+      muted: false,
       volume: -1,
       play: jest.fn(),
       pause: jest.fn(),
@@ -46,6 +48,7 @@ import {
   playMatchControlSfx,
   playMatchStatementSfx,
   playPositiveSfx,
+  prewarmManagementSfx,
   playStatStepSfx,
   playSuperCelebrationSfx,
   playSuperTrainingYaySfx,
@@ -70,6 +73,29 @@ describe('management feedback sounds', () => {
 
   afterEach(() => {
     teardownManagementSfx();
+  });
+
+  it('stores initial volume without creating the catalog', () => {
+    expect(mockPlayers).toHaveLength(0);
+
+    setManagementSfxMasterVolume(0.5);
+
+    expect(mockPlayers).toHaveLength(0);
+  });
+
+  it('prewarms the ordered catalog once and applies stored mute', () => {
+    setManagementSfxMasterVolume(0);
+
+    prewarmManagementSfx();
+    prewarmManagementSfx();
+
+    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers.every((player) => player.volume === 0)).toBe(true);
+    expect(mockPlayers.every((player) => player.muted)).toBe(true);
+
+    setManagementSfxMasterVolume(0.4);
+    expect(mockPlayers.every((player) => player.volume === 0.4)).toBe(true);
+    expect(mockPlayers.every((player) => !player.muted)).toBe(true);
   });
 
   it('restarts the supplied ding for each revealed stat', async () => {
@@ -379,6 +405,7 @@ describe('management feedback sounds', () => {
   it('rebuilds the catalog and replays the cue when the audio session dies', async () => {
     // iOS kills the session server while backgrounded: the next native call
     // rejects and the old player can never play again.
+    prewarmManagementSfx();
     mockPlayers[16].seekTo.mockImplementation(() =>
       Promise.reject(new Error('Session lookup failed')),
     );
@@ -398,6 +425,7 @@ describe('management feedback sounds', () => {
   });
 
   it('recovers a dead rapid voice and replays the tap on the rebuilt pool', async () => {
+    prewarmManagementSfx();
     mockPlayers[2].seekTo.mockImplementation(() =>
       Promise.reject(new Error('Unable to find the native shared object')),
     );

@@ -50,6 +50,7 @@ function initRivalHeroVoice(): void {
       });
       player.loop = false;
       player.volume = masterVolume;
+      player.muted = masterVolume === 0;
       players.set(heroId, player);
     } catch (error) {
       warnOnce(`${heroId} laugh failed to load`, error);
@@ -59,7 +60,6 @@ function initRivalHeroVoice(): void {
 
 export function setRivalHeroVoiceMasterVolume(volume: number): void {
   masterVolume = Math.max(0, Math.min(1, volume));
-  initRivalHeroVoice();
   if (masterVolume === 0) stopRivalHeroLaugh();
   for (const player of players.values()) {
     try {
