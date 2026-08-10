@@ -1,0 +1,47 @@
+{
+  "seed": 20260893,
+  "schemaVersion": 5,
+  "season": 1,
+  "week": 3,
+  "phase": "matchday",
+  "userClubId": "bramble-rovers",
+  "heroes": [
+    {
+      "id": "bramble-rovers-p01",
+      "name": "Sam Mitts",
+      "role": "GK",
+      "power": "GIANT_GK"
+    },
+    {
+      "id": "bramble-rovers-p10",
+      "name": "Dario Flint",
+      "role": "FWD",
+      "power": "FIRE_TORCH"
+    }
+  ],
+  "bytes": 358016,
+  "screenshot": {
+    "file": "01-heroes-change-matches.png",
+    "title": "HEROES CHANGE MATCHES",
+    "size": "1320x2868 (6.9-inch portrait, accepted)",
+    "colour": "8-bit RGB, no alpha",
+    "sha256": "176ae9e3adc9acd7",
+    "sourceFrame": "f508 of 780 captured during one watched match",
+    "shows": "FIRE TORCH announce (SUPER POWER) with Dario Flint ignited on the pitch; score 1-2 at 70 minutes"
+  },
+  "determinism": {
+    "predictedBy": "src/__tests__/store-seed-search.test.ts via quickMatchForFixture",
+    "predictedFireTick": 1531,
+    "predictedMinute": 69,
+    "predictedScoreAtFire": "1-2",
+    "predictedFinal": "1-2",
+    "observedOnDevice": "FIRE TORCH panel at 70 minutes, score 1-2; match ended 1-2",
+    "note": "Quick Result and the unattended watched match resolved identically, so the firing tick could be found headlessly and the capture aimed."
+  },
+  "build": {
+    "commit": "ea825448",
+    "config": "Release-iphonesimulator, embedded JS bundle, no dev harness flag",
+    "device": "iPhone 17 Pro Max simulator, iOS 26.5"
+  },
+  "staging": "Save seeded into career_saves slot 1; all assistant-guide milestones/sequences flagged complete so no coach-mark overlay appears. No harness control is visible. No live match input was given during capture, which is what keeps the run deterministic."
+}
