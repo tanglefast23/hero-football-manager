@@ -1450,7 +1450,7 @@ function facilityGridViewModel(
             }),
       };
     }),
-    catalog: Object.values(FACILITY_CATALOG)
+    catalog: FACILITY_BUILD_MENU_ORDER.map((type) => FACILITY_CATALOG[type])
       .filter((definition) => definition.available)
       .map((definition) => {
         const builtCount = grid.buildings.filter(
@@ -1533,6 +1533,22 @@ function facilityGridViewModel(
   };
 }
 
+/** Card order is a presentation choice; the simulation catalog keeps its own stable order. */
+const FACILITY_BUILD_MENU_ORDER = [
+  'training-pitch',
+  'coaching-office',
+  'fan-shop',
+  'stadium-stand',
+  'keeper-court',
+  'medical-bay',
+  'dorm',
+  'scout-office',
+  'gym',
+  'youth-field',
+  'tech-center',
+  'shooting-range',
+] as const satisfies readonly FacilityType[];
+
 /** Every line states a real effect site in src/game — no facility says "nothing". */
 function facilityEffectLabel(
   type: FacilityType,
@@ -1573,8 +1589,7 @@ function facilityEffectLabel(
   if (type === 'youth-field') {
     return t('clubFinances.facilityYouthEffect', { amount: level * 5 });
   }
-  if (type === 'fan-shop')
-    return t('clubFinances.facilityShopEffect', { level });
+  if (type === 'fan-shop') return t('clubFinances.facilityShopEffect');
   if (type === 'stadium-stand')
     return t('clubFinances.facilityStandEffect', { percent: level * 50 });
   throw new Error(`missing facility effect copy for ${type}`);

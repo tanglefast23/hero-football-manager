@@ -786,7 +786,7 @@ describe('coach market', () => {
     expect(legend).toMatchObject({
       name: 'Ari Flint',
       level: 4,
-      weeklyWage: 1200,
+      weeklyWage: 900,
       specialties: ['ATTACK', 'MOTIVATOR'],
       loyaltyDiscountPercent: 25,
     });
