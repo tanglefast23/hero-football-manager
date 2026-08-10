@@ -18,6 +18,39 @@ function finishConstruction(grid: FacilityGridState): FacilityGridState {
 }
 
 describe('club finances immediate transaction history', () => {
+  test('orders the facility cards in manager-priority pairs', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260810));
+    const catalog = clubFinancesViewModel(initial).facilities.catalog;
+
+    expect(catalog.map((facility) => facility.type)).toEqual([
+      'training-pitch',
+      'coaching-office',
+      'fan-shop',
+      'stadium-stand',
+      'keeper-court',
+      'medical-bay',
+      'dorm',
+      'scout-office',
+      'gym',
+      'youth-field',
+      'tech-center',
+      'shooting-range',
+    ]);
+    expect(
+      Object.fromEntries(
+        catalog.map((facility) => [facility.type, facility.effectLabel]),
+      ),
+    ).toMatchObject({
+      'training-pitch': '+12 TP per level +10% DEF Training',
+      'coaching-office': 'Unlock Assistant Coach',
+      'fan-shop': '+$$$ Merchandise sales multiplier. Scales with Fans.',
+      'stadium-stand': '+50% home gate income',
+      'medical-bay': 'Recovery -1 week',
+      dorm: '+4 condition recovery weekly',
+      'scout-office': '3 names per mission',
+    });
+  });
+
   test('offers only the Training Pitch for the guided first facility', () => {
     const initial = createCareer(createLaunchCareerSetup(20260805));
     const openingCatalog = clubFinancesViewModel(initial).facilities.catalog;
@@ -522,7 +555,7 @@ describe('club finances immediate transaction history', () => {
     }).state;
     const viewModel = clubFinancesViewModel(withPitch);
 
-    const expected = `+${TRAINING_PITCH_TP_PER_LEVEL} TP per completed level`;
+    const expected = `+${TRAINING_PITCH_TP_PER_LEVEL} TP per level`;
 
     expect(
       viewModel.facilities.catalog.find(
