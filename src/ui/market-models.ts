@@ -13,6 +13,8 @@ export interface MarketWindowViewModel {
   readonly open: boolean;
   readonly label: string;
   readonly detail: string;
+  /** Zero while open; otherwise the weekly advances to Week 17 or next Season's Week 1. */
+  readonly weeksUntilOpen: number;
 }
 
 export interface ScoutMissionChoiceViewModel {

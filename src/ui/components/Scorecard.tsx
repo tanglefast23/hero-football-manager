@@ -39,7 +39,7 @@ export interface PaperPanelProps {
   stamp?: string;
   className?: string;
   /** 'attention' tints the whole card gold — used to flag unsaved/needs-action state. */
-  tone?: 'default' | 'attention';
+  tone?: 'default' | 'attention' | 'muted';
 }
 
 /** Chunky pixel card: white face, thick ink outline with a deeper bottom edge. */
@@ -52,11 +52,16 @@ export function PaperPanel({
   tone = 'default',
 }: PaperPanelProps) {
   const attention = tone === 'attention';
+  const muted = tone === 'muted';
   return (
     <View
       className={cx(
         'relative border-2 border-b-4 p-4',
-        attention ? 'border-gold-dark bg-gold-light' : 'border-ink bg-white',
+        attention
+          ? 'border-gold-dark bg-gold-light'
+          : muted
+            ? 'border-grey-dark bg-grey-light'
+            : 'border-ink bg-white',
         className,
       )}
     >
@@ -72,7 +77,11 @@ export function PaperPanel({
                 <Text
                   className={cx(
                     'flex-1 font-pixel text-sm uppercase',
-                    attention ? 'text-gold-dark' : 'text-red-dark',
+                    attention
+                      ? 'text-gold-dark'
+                      : muted
+                        ? 'text-grey-dark'
+                        : 'text-red-dark',
                   )}
                 >
                   {kicker}
@@ -84,13 +93,15 @@ export function PaperPanel({
                     'border-2 border-b-4 px-2 py-1',
                     attention
                       ? 'border-gold-dark bg-gold'
-                      : 'border-stamp bg-red-light/40',
+                      : muted
+                        ? 'border-grey-dark bg-grey'
+                        : 'border-stamp bg-red-light/40',
                   )}
                 >
                   <Text
                     className={cx(
                       'font-pixel text-sm uppercase',
-                      attention ? 'text-ink' : 'text-red-dark',
+                      attention || muted ? 'text-ink' : 'text-red-dark',
                     )}
                   >
                     {stamp}
@@ -195,11 +206,18 @@ interface MetricProps {
   /** Plain string, or a live element like the report's counting numbers. */
   value: ReactNode;
   tone?: 'normal' | 'hero' | 'positive' | 'negative';
+  muted?: boolean;
 }
 
-export function Metric({ label, value, tone = 'normal' }: MetricProps) {
-  const valueColor =
-    tone === 'hero'
+export function Metric({
+  label,
+  value,
+  tone = 'normal',
+  muted = false,
+}: MetricProps) {
+  const valueColor = muted
+    ? 'text-grey-dark'
+    : tone === 'hero'
       ? 'text-gold-dark'
       : tone === 'positive'
         ? 'text-pitch-ink'
@@ -208,8 +226,20 @@ export function Metric({ label, value, tone = 'normal' }: MetricProps) {
           : 'text-ink';
 
   return (
-    <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-2 py-2">
-      <PixelText className="text-sm uppercase text-ink/70">{label}</PixelText>
+    <View
+      className={cx(
+        'min-w-0 flex-1 border-2 border-b-4 px-2 py-2',
+        muted ? 'border-grey-dark bg-grey-light' : 'border-ink bg-white',
+      )}
+    >
+      <PixelText
+        className={cx(
+          'text-sm uppercase',
+          muted ? 'text-grey-dark' : 'text-ink/70',
+        )}
+      >
+        {label}
+      </PixelText>
       {typeof value === 'string' ? (
         <Text
           className={cx('mt-1 font-mono text-base', valueColor)}

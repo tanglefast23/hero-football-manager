@@ -4,10 +4,12 @@ import {
   beginStoryOnboarding,
   buildCareerTeams,
   createCareer,
+  enableFullCareer,
   playerAttributeCaps,
   playerPotentialGrade,
 } from '../../game';
 import { runHeadlessFullCareer } from '../../game/headless';
+import { reducedPlayerWeeklyWage } from '../../game/market';
 import { serializeGameState } from '../../persistence/game-state-codec';
 import { playerLookId } from '../../render/sprites/player-look';
 import {
@@ -84,7 +86,7 @@ describe('launch career adapter', () => {
       (club) => club.id === DEFAULT_USER_CLUB_ID,
     )!;
     const expected = bramble.players.reduce(
-      (sum, player) => sum + player.weeklyWage,
+      (sum, player) => sum + reducedPlayerWeeklyWage(player.weeklyWage),
       0,
     );
 
@@ -221,7 +223,7 @@ describe('launch career adapter', () => {
     expect(
       migrated.players.find((player) => player.id === 'bramble-rovers-p12')
         ?.weeklyWage,
-    ).toBe(authoredP12Wage);
+    ).toBe(reducedPlayerWeeklyWage(authoredP12Wage));
     const bramblePayroll = migrated.players
       .filter((player) => player.clubId === DEFAULT_USER_CLUB_ID)
       .reduce((sum, player) => sum + player.weeklyWage, 0);
@@ -281,7 +283,7 @@ describe('launch career adapter', () => {
 
     const reconciled = reconcileLaunchRoster(established, content);
 
-    expect(reconciled.launchRosterVersion).toBe(3);
+    expect(reconciled.launchRosterVersion).toBe(4);
     expect(
       reconciled.players.some((player) => player.id === 'bramble-rovers-p14'),
     ).toBe(false);
@@ -330,6 +332,44 @@ describe('launch career adapter', () => {
     expect(reconciled.cashTransactions).toEqual([]);
   });
 
+  it('cuts saved player wages once and leaves current coach contracts alone', () => {
+    const current = enableFullCareer(
+      createCareer(createLaunchCareerSetup(20260810, DEFAULT_USER_CLUB_ID)),
+    );
+    const market = current.market!;
+    const saved = {
+      ...current,
+      launchRosterVersion: 3,
+      players: current.players.map((player) => ({
+        ...player,
+        weeklyWage: 1_000,
+      })),
+      clubs: current.clubs.map((club) => ({
+        ...club,
+        weeklyWages:
+          current.players.filter((player) => player.clubId === club.id).length *
+          1_000,
+      })),
+      market,
+    };
+
+    const migrated = reconcileLaunchRoster(saved);
+
+    expect(migrated.launchRosterVersion).toBe(4);
+    expect(migrated.players.every((player) => player.weeklyWage === 900)).toBe(
+      true,
+    );
+    expect(migrated.market).toStrictEqual(market);
+    for (const club of migrated.clubs) {
+      expect(club.weeklyWages).toBe(
+        migrated.players
+          .filter((player) => player.clubId === club.id)
+          .reduce((sum, player) => sum + player.weeklyWage, 0),
+      );
+    }
+    expect(reconcileLaunchRoster(migrated)).toStrictEqual(migrated);
+  });
+
   it('reprices every saved coach once', () => {
     const current = createCareer(
       createLaunchCareerSetup(20260810, DEFAULT_USER_CLUB_ID),
@@ -338,7 +378,17 @@ describe('launch career adapter', () => {
     const assistantCoach = current.market!.coachCandidates[1]!;
     const saved = {
       ...current,
-      launchRosterVersion: 2,
+      launchRosterVersion: 3,
+      players: current.players.map((player) => ({
+        ...player,
+        weeklyWage: 900,
+      })),
+      clubs: current.clubs.map((club) => ({
+        ...club,
+        weeklyWages:
+          current.players.filter((player) => player.clubId === club.id).length *
+          900,
+      })),
       market: {
         ...current.market!,
         coachCandidates: current
@@ -357,7 +407,7 @@ describe('launch career adapter', () => {
 
     const migrated = reconcileLaunchRoster(saved);
 
-    expect(migrated.launchRosterVersion).toBe(3);
+    expect(migrated.launchRosterVersion).toBe(4);
     expect(migrated.market?.headCoach?.weeklyWage).toBe(300 * headCoach.level);
     expect(migrated.market?.assistantCoach?.weeklyWage).toBe(
       150 * assistantCoach.level,
@@ -367,6 +417,9 @@ describe('launch career adapter', () => {
         (coach) => coach.weeklyWage === 300 * coach.level,
       ),
     ).toBe(true);
+    expect(migrated.players.every((player) => player.weeklyWage === 900)).toBe(
+      true,
+    );
     expect(reconcileLaunchRoster(migrated)).toStrictEqual(migrated);
   });
 

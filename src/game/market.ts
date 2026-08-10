@@ -364,6 +364,16 @@ export function isTransferWindowOpen(week: number): boolean {
   return week <= 4 || (week >= 17 && week <= 18);
 }
 
+/** Whole weekly advances until registration next opens; zero while it is open. */
+export function weeksUntilTransferWindowOpen(week: number): number {
+  if (!Number.isSafeInteger(week) || week < 1 || week > 30) {
+    throw new Error('week must be a safe integer from 1 to 30');
+  }
+  if (isTransferWindowOpen(week)) return 0;
+  if (week < 17) return 17 - week;
+  return 31 - week;
+}
+
 export interface ValuationPlayer {
   readonly id: string;
   readonly role: Role;
@@ -453,6 +463,19 @@ export function playerValuation(
  */
 const GLOBAL_WAGE_SCALE = 0.96;
 
+/** Player-only relief applied after every existing wage rule. Coach wages are separate. */
+export const PLAYER_WAGE_REDUCTION_PERCENT = 10;
+
+export function reducedPlayerWeeklyWage(currentWeeklyWage: number): number {
+  if (!Number.isSafeInteger(currentWeeklyWage) || currentWeeklyWage < 0) {
+    throw new Error('player weekly wage must be a non-negative safe integer');
+  }
+  return checkedRound(
+    (currentWeeklyWage * (100 - PLAYER_WAGE_REDUCTION_PERCENT)) / 100,
+    'reduced player weekly wage',
+  );
+}
+
 /**
  * Rebased generated-player wage curve. Seven-stat average is compared with the
  * division's support rating, so rival growth and star premiums remain visible
@@ -488,7 +511,7 @@ export function generatedPlayerWeeklyWage(
       (DIVISION_SUPPORT_STRENGTHS[division] * ATTR_NAMES.length),
     'division-anchored weekly wage',
   );
-  return Math.max(150, wage);
+  return reducedPlayerWeeklyWage(Math.max(150, wage));
 }
 
 /** Asking club quote: 105-125% of deterministic market value. */

@@ -36,7 +36,7 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'assistant-coach-hire': ['listing'],
   'facility-placement': ['explaining'],
   'facility-upgrade': ['listing'],
-  'facility-adjacency': ['confiding'],
+  'facility-adjacency': ['pointing-out'],
   // A refused facility action is bad news from a person, not a red developer bar.
   'facility-error': ['bad-news'],
   'scout-mission': ['explaining'],

@@ -163,6 +163,7 @@ describe('marketViewModel', () => {
     );
     expect(open).toEqual(marketViewModel(baseSource()));
     expect(closed.window.label).toBe('Window closed');
+    expect(closed.window.weeksUntilOpen).toBe(5);
     expect(closed.transfers[0]).toMatchObject({
       available: false,
       blockedReason: 'Registration window closed.',

@@ -326,14 +326,14 @@ describe('M2 weekly sidecars', () => {
     };
     const trained = trainPlayerInstantly(prepared, playerId, 'sprints').state;
 
-    // The tap costs 8 condition, and the wellbeing tick returns 12 a week.
+    // The tap costs 8 condition, and the wellbeing tick returns 10 a week.
     expect(
       trained.players.find((player) => player.id === playerId)?.condition,
     ).toBe(52);
     expect(
       advanceWeek(trained).players.find((player) => player.id === playerId)
         ?.condition,
-    ).toBe(64);
+    ).toBe(62);
   });
 
   test('applies match result and playing-time morale through normal M2 settlement', () => {

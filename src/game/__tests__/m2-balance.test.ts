@@ -37,10 +37,11 @@ describe('M2 deterministic management balance rails', () => {
       // 113,256 at no cut, 131,950 at 4%, 135,714 at 5% — roughly 4,700 of
       // six-season peak cash for every one percent off the wage bill, because a
       // passive club banks the saving every week and never spends it. The
-      // permanent 500-fan first-reach reward moved the sampled peak to 141,116;
-      // 147k keeps about four percent headroom without turning this into an
+      // permanent 500-fan first-reach reward moved the sampled peak to 141,116.
+      // The approved player-only 10% wage cut moved the sampled peak to 180,994;
+      // 190k keeps about five percent headroom without turning this into an
       // unmeasured ceiling. If the opening reads rich, start here.
-      expect(summary.maximumBalance).toBeLessThanOrEqual(147_000);
+      expect(summary.maximumBalance).toBeLessThanOrEqual(190_000);
       expect(summary.minimumWeeklyNet).toBeGreaterThanOrEqual(-15_000);
       expect(summary.maximumWeeklyNet).toBeLessThanOrEqual(40_000);
       expect(Number.isSafeInteger(summary.endingCash)).toBe(true);

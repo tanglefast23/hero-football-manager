@@ -165,6 +165,24 @@ describe('story-event result contract', () => {
     expect(rewardArt).toContainSource("fans: 'supporters'");
     expect(sprites).toContainSource('supporters: [');
   });
+
+  it('plays the result cue once and gives Return to the Office a neutral tap', () => {
+    const screen = source('src/ui/screens/StoryEventScreen.tsx');
+    const resolvedResult = screen.slice(
+      screen.indexOf('if (resolved) {'),
+      screen.indexOf(
+        '\n  return (\n    <SafeAreaView',
+        screen.indexOf('if (resolved) {'),
+      ),
+    );
+
+    expect(screen.match(/playEventSuccessSfx\(\)/g)).toHaveLength(1);
+    expect(screen.match(/playManagementActionSfx\('warning'\)/g)).toHaveLength(
+      1,
+    );
+    expect(resolvedResult).toContainSource('onPress={onContinue}');
+    expect(resolvedResult).toContainSource('pressSfx="click"');
+  });
 });
 
 describe('match-speed contract', () => {

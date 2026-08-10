@@ -113,10 +113,11 @@ describe('active-manager economy rail', () => {
       // 939,220 -> 966,881, 939,680 -> 978,021 and 977,800 -> 1,004,522, so the
       // 1.0M ceiling now sits under the worst sampled seed. The permanent
       // 500-fan first-reach reward raises weekly gate and merchandise income;
-      // measured peaks are now 1,129,549, 1,144,617, and 1,176,448. A 1.2M
-      // ceiling retains a narrow guardrail above the measured worst case.
+      // measured peaks are now 1,129,549, 1,144,617, and 1,176,448. The
+      // approved player-only 10% wage cut moved the sampled worst case to
+      // 1,216,228. A 1.25M ceiling retains a narrow guardrail above it.
       expect(Math.max(...balances)).toBeLessThanOrEqual(
-        /* CEILING */ 1_200_000,
+        /* CEILING */ 1_250_000,
       );
       expect(balances.every((b) => Number.isSafeInteger(b))).toBe(true);
       expect(state.trainingPoints).toBeGreaterThanOrEqual(0);

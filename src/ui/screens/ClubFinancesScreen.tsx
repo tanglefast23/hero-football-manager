@@ -608,6 +608,25 @@ export function ClubFinancesScreen({
         firstGuidedFacilityUpgradeId(facilities.buildings) ?? null,
       );
       setSelectedBuildType(null);
+    } else if (guideFocus === 'facility-adjacency') {
+      setSelectedBuildingId(null);
+      setSelectedBuildType(null);
+      if (facilityGuideScrollFrameRef.current !== null) {
+        cancelAnimationFrame(facilityGuideScrollFrameRef.current);
+      }
+      facilityGuideScrollFrameRef.current = requestAnimationFrame(() => {
+        facilityGuideScrollFrameRef.current = null;
+        scrollToTarget(
+          scrollRef,
+          scrollViewportRef,
+          facilityGuideGridTargetRef,
+          latestScrollOffsetRef.current,
+          12,
+          !reduceMotion,
+        );
+        focusGuideTarget(facilityGuideGridTargetRef.current);
+      });
+      return;
     }
     scrollToTarget(
       scrollRef,
@@ -615,7 +634,13 @@ export function ClubFinancesScreen({
       groundsRef,
       latestScrollOffsetRef.current,
     );
-  }, [facilities.buildings, guideFocus, guideGrounds, scrollToCoachingOffice]);
+  }, [
+    facilities.buildings,
+    guideFocus,
+    guideGrounds,
+    reduceMotion,
+    scrollToCoachingOffice,
+  ]);
 
   useEffect(() => {
     const slots = viewModel.sponsorship?.slots ?? [];

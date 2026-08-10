@@ -175,6 +175,10 @@ describe('briefing beats', () => {
     expect(market).toContainSource("guideFocus === 'scout-report'");
     expect(app).toContainSource('scoutDealsGuideVisible');
     expect(app).toContainSource("label={t('market.tapMe')}");
+    expect(app).toMatchSource(
+      /onPress=\{\(\) => \{[\s\S]{0,220}section: 'TRANSFERS'[\s\S]{0,180}setConciergeFocus\(null\);/,
+    );
+    expect(app).toContainSource("visibleConciergeFocus !== 'scout-report'");
     expect(app).not.toContainSource('That report is yours to keep');
     expect(app).toContainSource(
       'store.completeAssistantGuide(assistantSequenceId)',

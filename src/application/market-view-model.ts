@@ -17,6 +17,7 @@ import {
   type ValuationPlayer,
   contractPerkPercent,
   requiredWeeklyWage,
+  weeksUntilTransferWindowOpen,
   FINAL_NEGOTIATION_ROUND,
   type PitchCard,
   type PlayerPersonality,
@@ -382,6 +383,7 @@ export function marketViewModel(
     cash: source.cash,
     window: {
       open: transferWindowOpen,
+      weeksUntilOpen: weeksUntilTransferWindowOpen(source.week),
       label: transferWindowOpen
         ? t('market.windowOpenLabel')
         : t('market.windowClosedLabel'),
