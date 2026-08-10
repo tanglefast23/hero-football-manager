@@ -9,6 +9,7 @@ import {
   completeFirstOnboardingMatch,
   completeMatchday,
   completePostMatchAwakening,
+  CREATED_PLAYER_ROOKIE_WAGE,
   createCareer,
   releaseCareerPlayer,
   renewCareerPlayer,
@@ -55,7 +56,7 @@ describe('default two-season career journey', () => {
     ).toBe(userClub.cash);
     expect(
       renewed.players.find((player) => player.id === expired[0].id)?.weeklyWage,
-    ).toBe(720);
+    ).toBe(CREATED_PLAYER_ROOKIE_WAGE * 4);
     expect(seasonEndViewModel(renewed, content, 1).canContinue).toBe(true);
     const seasonTwo = startNextSeason(renewed);
     expect(seasonTwo).toMatchObject({ season: 2, week: 1, phase: 'manage' });

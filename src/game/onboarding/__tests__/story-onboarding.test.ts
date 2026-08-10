@@ -4,7 +4,10 @@ import {
   completePostMatchAwakening,
   resolvePostMatchAwakening,
 } from '../../post-match-awakening';
-import { DEFAULT_CREATION_RATINGS } from '../player-creation';
+import {
+  CREATED_PLAYER_ROOKIE_WAGE,
+  DEFAULT_CREATION_RATINGS,
+} from '../player-creation';
 import {
   addCreatedPlayer,
   beginStoryOnboarding,
@@ -141,14 +144,14 @@ describe('story onboarding state machine', () => {
     expect(avatar).toMatchObject({
       name: 'Jo Rook',
       role: 'FWD',
-      weeklyWage: 180,
+      weeklyWage: CREATED_PLAYER_ROOKIE_WAGE,
       contractSeasonsRemaining: 1,
       onHeroWage: false,
       licensed: false,
     });
     expect(avatar?.attrs.ref).toBe(10);
     expect(avatar?.lookId).toMatch(/^c\d{3}$/);
-    expect(created.clubs[0].weeklyWages).toBe(580);
+    expect(created.clubs[0].weeklyWages).toBe(400 + CREATED_PLAYER_ROOKIE_WAGE);
     expect(created.lineups[0].playerIds).toContain(avatar?.id);
     expect(created.onboarding).toMatchObject({
       stage: 'first-match',
@@ -200,7 +203,7 @@ describe('story onboarding state machine', () => {
     expect(avatar).toMatchObject({
       power: expect.stringMatching(/SUPER_SPEED|SUPER_STRENGTH|FIRE_TORCH/),
       licensed: true,
-      weeklyWage: 180,
+      weeklyWage: CREATED_PLAYER_ROOKIE_WAGE,
       onHeroWage: false,
     });
     expect(revealed.players.filter((player) => player.power)).toHaveLength(1);
