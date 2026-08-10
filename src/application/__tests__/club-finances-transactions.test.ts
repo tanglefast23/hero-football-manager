@@ -456,7 +456,7 @@ describe('club finances immediate transaction history', () => {
     expect(d5Gym?.upgradeBlockedReason).toBeUndefined();
     expect(viewModel.facilities.activeAdjacencies).toEqual(['gym-dorm']);
     expect(gymBuilding).toMatchObject({
-      effectLabel: '+25% PAC + STA training',
+      effectLabel: '+10% PAC + STA training',
       canUpgrade: false,
       upgradeShortfall: 9_000,
       canRelocate: false,

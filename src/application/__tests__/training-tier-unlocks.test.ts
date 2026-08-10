@@ -38,22 +38,22 @@ describe('training drill tier purchases', () => {
     // the tier it bought.
     expect(optionAt(5)).toMatchObject({
       drillName: 'Sprints 1',
-      gain: 4,
+      gain: 2,
       tpCost: 10,
     });
     expect(optionAt(4)).toMatchObject({
       drillName: 'Sprints 1',
-      gain: 4,
+      gain: 2,
       tpCost: 10,
     });
     expect(optionAt(2)).toMatchObject({
       drillName: 'Sprints 1',
-      gain: 4,
+      gain: 2,
       tpCost: 10,
     });
     expect(optionAt(2, 4)).toMatchObject({
       drillName: 'Sprints 4',
-      gain: 16,
+      gain: 9,
       tpCost: 28,
     });
   });
@@ -105,7 +105,7 @@ describe('training drill tier purchases', () => {
       drillName: 'Sprints 1',
       ownedTier: 1,
       nextTier: 2,
-      nextGain: 7,
+      nextGain: 4,
       cost: 3_000,
       blockedReason: 'Tier 2 drills unlock in D4 · County League.',
     });

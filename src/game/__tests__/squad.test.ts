@@ -306,8 +306,8 @@ describe('career squad integration', () => {
       initial.players.find((player) => player.id.endsWith('-p9'))?.attrs.pac,
     ).toBe(50);
 
-    // A Division 5 career unlocks tiers I and II, so each path resolves to its
-    // 10 TP tier-II tap for +5. A SUPER roll would disturb these exact values,
+    // A new Division 5 career owns tier I, so each path resolves to its
+    // 10 TP tap for +2. A SUPER roll would disturb these exact values,
     // so probe nonces to keep both taps ordinary.
     let trained = initial;
     for (const tap of [
@@ -329,7 +329,7 @@ describe('career squad integration', () => {
     expect(trained.trainingPoints).toBe(80);
     expect(
       trained.players.find((player) => player.id.endsWith('-p9'))?.attrs.pac,
-    ).toBe(54);
+    ).toBe(52);
     expect(
       trained.players.find((player) => player.id.endsWith('-p9'))?.attrs.def,
     ).toBe(50);
@@ -340,7 +340,7 @@ describe('career squad integration', () => {
     expect(
       trained.players.find((player) => player.id === `${CLUB_IDS[0]}-p1`)?.attrs
         .def,
-    ).toBe(54);
+    ).toBe(52);
     expect(
       trained.players.find((player) => player.id === `${CLUB_IDS[0]}-p2`)?.attrs
         .def,

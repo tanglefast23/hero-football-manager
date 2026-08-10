@@ -90,9 +90,9 @@ describe('training stat options', () => {
 
     expect(finishing).toMatchObject({
       currentValue: 73,
-      gain: 4,
-      baseValueAfter: 77,
-      trainingAdjustment: 2,
+      gain: 2,
+      baseValueAfter: 75,
+      trainingAdjustment: 0,
       trainingModifiers: [
         { label: 'Youth', helps: true },
         { label: 'FWD', helps: true },

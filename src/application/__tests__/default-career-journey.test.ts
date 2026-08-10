@@ -100,7 +100,7 @@ describe('default two-season career journey', () => {
       first.players.find(
         (player) => player.id === 'bramble-rovers-created-player',
       )?.attrs,
-    ).toMatchObject({ pac: 439, sta: 50 });
+    ).toMatchObject({ pac: 200, sta: 50 });
   });
 });
 

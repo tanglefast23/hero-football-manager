@@ -284,7 +284,8 @@ describe('training modifier signs', () => {
 
     expect(option.trainingModifiers.map((m) => m.label)).toContain('Youth');
     expect(option.trainingModifiers.every((m) => m.helps)).toBe(true);
-    // And the net difference is what the second box prints, signed.
-    expect(option.trainingAdjustment).toBeGreaterThan(0);
+    // Small positive modifiers can bank progress without crossing an integer
+    // boundary on a one-point keeper drill, but they must never reduce it.
+    expect(option.trainingAdjustment).toBeGreaterThanOrEqual(0);
   });
 });
