@@ -429,6 +429,10 @@ describe('M1 app store integration', () => {
 
   it('trains a player the moment a drill is tapped and reviews the week without it', () => {
     startCreatedCareer(789);
+    const started = useM1Store.getState().career!;
+    // The shipped opening bank now funds one tier-one drill. This test needs
+    // two taps to verify popup sequencing, so fund that exact test contract.
+    useM1Store.setState({ career: { ...started, trainingPoints: 20 } });
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
     const unassignedPlayerId = 'bramble-rovers-p14';
@@ -443,7 +447,7 @@ describe('M1 app store integration', () => {
 
     const trained = useM1Store.getState().career!;
     const result = useM1Store.getState().lastDrillResult!;
-    // Division 5 unlocks tier II, so the tap resolves Sprints 2: 10 TP.
+    // A new Division 5 club owns Sprints 1: 10 TP.
     expect(result).toMatchObject({
       playerId,
       attribute: 'pac',

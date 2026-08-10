@@ -43,7 +43,7 @@ describe('the career events Dev Harness controller', () => {
         ...new Set(EVENTS.map((event) => event.category)),
       ]),
     );
-    expect(eventsForCase('all')).toHaveLength(54);
+    expect(eventsForCase('all')).toHaveLength(53);
     expect(eventsForCase('target-player')).toHaveLength(21);
     expect(eventsForCase('target-coach')).toHaveLength(9);
     expect(eventsForCase('target-facility')).toHaveLength(6);

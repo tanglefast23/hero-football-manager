@@ -51,9 +51,7 @@ export interface EventOfferOptions {
  * the odds of the next one that does.
  *
  * The quiet-week rule applies to the RANDOM deck only. Achievement stories use
- * the direct lane above it and do not wait for an empty desk. Authored one-shots
- * with a fixed window — the Giant Spider is the one that ships — also fire on a
- * busy desk, or Bert's opening queue can retire them before they are seen.
+ * the direct lane above it and do not wait for an empty desk.
  */
 export function eventOfferForWeek(
   state: GameState,
@@ -66,12 +64,10 @@ export function eventOfferForWeek(
   if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') {
     return { eventClock: { ...state.eventClock } };
   }
-
   /**
    * Recognition is the direct consequence of an achievement, so it is the first
-   * story lane checked. It does not wait behind a scheduled one-shot, the normal
-   * week-after-story gap, or a busy desk, and it never resets the random deck's
-   * drought counter.
+   * story lane checked. It does not wait behind the normal week-after-story gap
+   * or a busy desk, and it never resets the random deck's drought counter.
    */
   const milestone = (state.pendingMilestones ?? []).find((entry) =>
     catalog.events.some((event) => event.id === entry.eventId),
@@ -93,20 +89,6 @@ export function eventOfferForWeek(
     };
   }
 
-  const spider = catalog.events.find(
-    (event) => event.id === 'giant-spider-arrives',
-  );
-  if (
-    spider !== undefined &&
-    eventIsEligible(state, spider) &&
-    !state.resolvedEventIds.includes(spider.id)
-  ) {
-    return {
-      eventId: spider.id,
-      eventClock: { ...state.eventClock, weeksWithoutEvent: 0 },
-    };
-  }
-
   if (!options.deskClear) {
     return { eventClock: { ...state.eventClock } };
   }
@@ -122,7 +104,6 @@ export function eventOfferForWeek(
 
   const carriedOnly = carriedOnlyCareerEventIds(catalog);
   const candidates = catalog.events
-    .filter((event) => event.id !== 'giant-spider-arrives')
     // Recognition has its own lane above. Milestone cards carry a `requiredFlag`
     // that the club has by definition once earned, so without this they would
     // also sit in the random deck and could be drawn out of queue order.
