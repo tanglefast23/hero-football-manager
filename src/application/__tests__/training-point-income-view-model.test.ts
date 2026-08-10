@@ -79,6 +79,55 @@ describe('training point income view model', () => {
     expect(income.rows[1].points).toBeGreaterThan(0);
   });
 
+  it('uses event-adjusted coach and Training Pitch income', () => {
+    const initial = career();
+    const built = finishConstruction(
+      buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state,
+    );
+    const candidate = { ...built.market!.coachCandidates[0], level: 1 };
+    const market = hireCareerCoach(
+      built,
+      { ...built.market!, coachCandidates: [candidate] },
+      candidate.id,
+      'HEAD',
+    );
+    const adjusted: GameState = {
+      ...built,
+      market: {
+        ...market,
+        headCoach: {
+          ...market.headCoach!,
+          boosts: { weeklyTp: -1 },
+        },
+      },
+      facilities: {
+        ...built.facilities,
+        grid: {
+          ...built.facilities.grid!,
+          buildings: built.facilities.grid!.buildings.map((building) =>
+            building.type === 'training-pitch'
+              ? { ...building, boosts: { tpBonusPercent: -20 } }
+              : building,
+          ),
+        },
+      },
+    };
+
+    const income = clubFinancesViewModel(adjusted).trainingPointIncome;
+
+    expect(
+      income.rows.find((row) => row.id === 'training-points-pitch')?.points,
+    ).toBe(10);
+    expect(
+      income.rows.find((row) => row.id === 'training-points-head-coach')
+        ?.points,
+    ).toBe(4);
+    expect(income.rows.reduce((sum, row) => sum + row.points, 0)).toBe(
+      income.total,
+    );
+    expect(income.total).toBe(weeklyAmbientTrainingPoints(adjusted));
+  });
+
   /**
    * The whole point of the section: it explains a number the engine credits,
    * so the rows may never add up to anything else. The view model throws rather
