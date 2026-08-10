@@ -585,7 +585,7 @@
     "clubFinances.facilityScoutNames": "{count} nama per misi",
     "clubFinances.facilityScoutPowers": "{names} · kekuatan pasti",
     "clubFinances.facilityScoutTighter": "{names} · rentang statistik rapat",
-    "clubFinances.facilityShopEffect": "+$$$ Pengali penjualan merchandise. Meningkat sesuai jumlah suporter.",
+    "clubFinances.facilityShopEffect": "+$$$ Pengali penjualan. Naik sesuai jumlah suporter.",
     "clubFinances.facilityStandEffect": "+{percent}% pemasukan tiket kandang",
     "clubFinances.facilityTrainingEffect": "+{percent}% latihan {attributes}",
     "clubFinances.facilityYouthEffect": "Kekuatan awal pemain muda +{amount}",

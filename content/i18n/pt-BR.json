@@ -559,7 +559,7 @@
     "clubFinances.facilityBenefit.youthField": "Melhora o geral inicial das próximas levas da base. Joias melhores pedem luvas maiores.",
     "clubFinances.facilityBuildLimitReached": "Limite atingido · {built} de {limit}.",
     "clubFinances.facilityCardStats": "{built}/{limit} · {width}x{height} · {cost} · {weeks}s · {upkeep}/sem",
-    "clubFinances.facilityCoachingOfficeEffect": "Libera a vaga de auxiliar técnico",
+    "clubFinances.facilityCoachingOfficeEffect": "Libera auxiliar técnico",
     "clubFinances.facilityCombo.fanShopStadium.discovery": "A torcida passa na loja em dia de jogo. Bônus: +10% de venda.",
     "clubFinances.facilityCombo.fanShopStadium.effect": "+10% de venda de loja",
     "clubFinances.facilityCombo.fanShopStadium.pair": "Loja do Clube + Arquibancada",

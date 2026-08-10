@@ -585,7 +585,7 @@
     "clubFinances.facilityScoutNames": "{count} nombres por misión",
     "clubFinances.facilityScoutPowers": "{names} · poderes confirmados",
     "clubFinances.facilityScoutTighter": "{names} · rangos más finos",
-    "clubFinances.facilityShopEffect": "+$$$ Multiplicador de ventas de merchandising. Aumenta con la afición.",
+    "clubFinances.facilityShopEffect": "+$$$ Multiplicador de ventas. Aumenta con la afición.",
     "clubFinances.facilityStandEffect": "+{percent}% de taquilla en casa",
     "clubFinances.facilityTrainingEffect": "+{percent}% entreno de {attributes}",
     "clubFinances.facilityYouthEffect": "Fuerza inicial de cantera +{amount}",

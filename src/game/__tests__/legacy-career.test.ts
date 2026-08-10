@@ -149,7 +149,7 @@ describe('career club-legend transactions', () => {
       name: 'Ari Flint',
       specialties: ['ATTACK', 'TECHNIQUE'],
       level: 2,
-      weeklyWage: 640,
+      weeklyWage: 480,
       personality: 'LOYAL',
       requiredDivision: 4,
       requiredFame: 100,
