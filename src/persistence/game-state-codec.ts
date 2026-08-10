@@ -1534,44 +1534,170 @@ const boardUltimatumSchema = z
       'must be at most 4',
     ),
     targetCash: nonnegativeInteger,
-    candidates: z.array(boardSaleCandidateSchema).min(3).max(4),
+    consequence: z.enum(['FACILITY_CONVERSION', 'FORCED_SALE']).optional(),
+    waitingForFacilityHomeGate: z.boolean().optional(),
+    candidates: z.array(boardSaleCandidateSchema).max(4),
     protectedPlayerId: nonemptyString.optional(),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((ultimatum, context) => {
+    const consequence = ultimatum.consequence ?? 'FORCED_SALE';
+    if (
+      consequence === 'FORCED_SALE' &&
+      (ultimatum.candidates.length < 3 || ultimatum.candidates.length > 4)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['candidates'],
+        message: 'a player-sale ultimatum must show three or four candidates',
+      });
+    }
+    if (
+      consequence === 'FACILITY_CONVERSION' &&
+      (ultimatum.candidates.length > 0 ||
+        ultimatum.protectedPlayerId !== undefined ||
+        ultimatum.waitingForFacilityHomeGate !== undefined)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['candidates'],
+        message: 'a facility ultimatum cannot carry player-sale state',
+      });
+    }
+  });
 
-const boardUltimatumResolutionSchema = z.discriminatedUnion('kind', [
-  z
-    .object({
-      id: nonemptyString,
-      kind: z.literal('TARGET_MET'),
-      resolvedSeason: positiveInteger,
-      resolvedWeek: positiveInteger.refine(
-        (value) => value <= 30,
-        'must be at most 30',
-      ),
-      targetCash: nonnegativeInteger,
-    })
-    .passthrough(),
-  z
-    .object({
-      id: nonemptyString,
-      kind: z.literal('FORCED_SALE'),
-      resolvedSeason: positiveInteger,
-      resolvedWeek: positiveInteger.refine(
-        (value) => value <= 30,
-        'must be at most 30',
-      ),
-      targetCash: nonnegativeInteger,
-      playerId: nonemptyString,
-      buyerClubId: nonemptyString,
-      replacementPlayerId: nonemptyString,
-      fee: positiveInteger,
-      discountPercent: z.literal(30),
-      moraleDelta: z.literal(-8),
-      fansLost: nonnegativeInteger,
-    })
-    .passthrough(),
-]);
+const boardUltimatumResolutionSchema = z
+  .discriminatedUnion('kind', [
+    z
+      .object({
+        id: nonemptyString,
+        kind: z.literal('TARGET_MET'),
+        resolvedSeason: positiveInteger,
+        resolvedWeek: positiveInteger.refine(
+          (value) => value <= 30,
+          'must be at most 30',
+        ),
+        targetCash: nonnegativeInteger,
+      })
+      .passthrough(),
+    z
+      .object({
+        id: nonemptyString,
+        kind: z.literal('FACILITY_CONVERSION'),
+        resolvedSeason: positiveInteger,
+        resolvedWeek: positiveInteger.refine(
+          (value) => value <= 30,
+          'must be at most 30',
+        ),
+        targetCash: nonnegativeInteger,
+        removedFacilityId: nonemptyString.optional(),
+        removedFacilityType: z
+          .enum([
+            'training-pitch',
+            'gym',
+            'tech-center',
+            'shooting-range',
+            'keeper-court',
+            'medical-bay',
+            'dorm',
+            'scout-office',
+            'coaching-office',
+            'youth-field',
+            'fan-shop',
+            'stadium-stand',
+          ])
+          .optional(),
+        addedFacilities: z
+          .array(
+            z
+              .object({
+                buildingId: nonemptyString,
+                type: z.enum(['fan-shop', 'stadium-stand']),
+                x: nonnegativeInteger,
+                y: nonnegativeInteger,
+              })
+              .passthrough(),
+          )
+          .max(3),
+        failureReason: z
+          .enum([
+            'COMMERCIAL_LIMITS_REACHED',
+            'NO_REPLACEABLE_BUILDING',
+            'NO_SPACE',
+          ])
+          .optional(),
+      })
+      .passthrough(),
+    z
+      .object({
+        id: nonemptyString,
+        kind: z.literal('FORCED_SALE'),
+        resolvedSeason: positiveInteger,
+        resolvedWeek: positiveInteger.refine(
+          (value) => value <= 30,
+          'must be at most 30',
+        ),
+        targetCash: nonnegativeInteger,
+        playerId: nonemptyString,
+        buyerClubId: nonemptyString,
+        replacementPlayerId: nonemptyString,
+        fee: positiveInteger,
+        discountPercent: z.literal(30),
+        moraleDelta: z.literal(-8),
+        fansLost: nonnegativeInteger,
+      })
+      .passthrough(),
+  ])
+  .superRefine((resolution, context) => {
+    if (resolution.kind !== 'FACILITY_CONVERSION') return;
+    const hasRemovedId = resolution.removedFacilityId !== undefined;
+    const hasRemovedType = resolution.removedFacilityType !== undefined;
+    if (hasRemovedId !== hasRemovedType) {
+      context.addIssue({
+        code: 'custom',
+        path: ['removedFacilityId'],
+        message: 'a board facility removal needs both its ID and type',
+      });
+    }
+    if (
+      resolution.removedFacilityType === 'training-pitch' ||
+      resolution.removedFacilityType === 'coaching-office' ||
+      resolution.removedFacilityType === 'fan-shop' ||
+      resolution.removedFacilityType === 'stadium-stand'
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['removedFacilityType'],
+        message: 'the board cannot remove a protected or commercial facility',
+      });
+    }
+    const failed = resolution.failureReason !== undefined;
+    if (failed === resolution.addedFacilities.length > 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['failureReason'],
+        message:
+          'a board facility result must either add facilities or explain why it failed',
+      });
+    }
+    if (failed && hasRemovedId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['removedFacilityId'],
+        message: 'a failed board facility plan cannot remove a building',
+      });
+    }
+    if (
+      new Set(resolution.addedFacilities.map((facility) => facility.buildingId))
+        .size !== resolution.addedFacilities.length
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['addedFacilities'],
+        message: 'board facility additions must have unique IDs',
+      });
+    }
+  });
 
 const seasonRecapAwardSchema = z
   .object({
@@ -1857,6 +1983,7 @@ const gameStateSchema = z
       .object({
         consecutiveNegativeWeeks: nonnegativeInteger,
         emergencyLoanUsed: z.boolean(),
+        facilityConversionUsed: z.boolean().optional(),
         loan: z
           .object({
             originalAmount: positiveInteger,
@@ -1887,6 +2014,18 @@ const gameStateSchema = z
   })
   .passthrough()
   .superRefine((state, context) => {
+    if (
+      state.financialSafety?.facilityConversionUsed === true &&
+      state.financialSafety.boardUltimatum?.consequence ===
+        'FACILITY_CONVERSION'
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['financialSafety', 'boardUltimatum', 'consequence'],
+        message:
+          'a used facility conversion cannot have another facility ultimatum',
+      });
+    }
     if (
       state.careerMode === 'full' &&
       (state.m2 === undefined || state.market === undefined)

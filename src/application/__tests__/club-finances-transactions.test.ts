@@ -43,7 +43,7 @@ describe('club finances immediate transaction history', () => {
     ).toMatchObject({
       'training-pitch': '+12 TP per level +10% DEF Training',
       'coaching-office': 'Unlock Assistant Coach',
-      'fan-shop': '+$$$ Merchandise sales multiplier. Scales with Fans.',
+      'fan-shop': '+$$$ Merchandise boost. Scales with Fans.',
       'stadium-stand': '+50% home gate income',
       'medical-bay': 'Recovery -1 week',
       dorm: '+4 condition recovery weekly',

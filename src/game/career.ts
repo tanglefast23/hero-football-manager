@@ -73,10 +73,15 @@ import {
   reconcileStoryYouthIntake,
 } from './youth-intake';
 import {
+  applyBoardFacilityConversionConsequences,
   applyBoardForcedSaleConsequences,
+  boardFacilityConversionAtDeadline,
   boardForcedSaleAtDeadline,
+  boardUltimatumConsequence,
+  createBoardFacilityUltimatum,
   createBoardUltimatum,
   targetMetResolution,
+  type BoardFacilityConversionResolution,
   type BoardForcedSaleResolution,
 } from './board-ultimatum';
 import {
@@ -761,10 +766,20 @@ function settleWeekResults(
   const safety = resolveFinancialSafety(trainedState, userClub.cash, lines);
   const settledLines = safety.lines;
   const balanceAfter = safety.balanceAfter;
+  const facilityIntervenedState =
+    safety.facilityConversion === undefined
+      ? trainedState
+      : applyBoardFacilityConversionConsequences(
+          trainedState,
+          safety.facilityConversion,
+        );
   const intervenedState =
     safety.forcedSale === undefined
-      ? trainedState
-      : applyBoardForcedSaleConsequences(trainedState, safety.forcedSale);
+      ? facilityIntervenedState
+      : applyBoardForcedSaleConsequences(
+          facilityIntervenedState,
+          safety.forcedSale,
+        );
   const intervenedUserClub = intervenedState.clubs.find(
     (club) => club.id === state.userClubId,
   );
@@ -1759,6 +1774,7 @@ function resolveFinancialSafety(
   lines: LedgerLine[];
   balanceAfter: number;
   financialSafety?: FinancialSafetyState;
+  facilityConversion?: BoardFacilityConversionResolution;
   forcedSale?: BoardForcedSaleResolution;
 } {
   const previous = state.financialSafety ?? {
@@ -1801,6 +1817,16 @@ function resolveFinancialSafety(
         )
       : 0;
   let emergencyLoanUsed = previous.emergencyLoanUsed;
+  let facilityConversionUsed =
+    previous.facilityConversionUsed ??
+    ((previous.boardUltimatum !== undefined &&
+      boardUltimatumConsequence(previous.boardUltimatum) === 'FORCED_SALE') ||
+      previous.latestBoardResolution?.kind === 'FACILITY_CONVERSION' ||
+      previous.latestBoardResolution?.kind === 'FORCED_SALE' ||
+      (previous.latestBoardResolution?.kind === 'TARGET_MET' &&
+        !previous.latestBoardResolution.id.startsWith(
+          'board-facility-ultimatum-',
+        )));
   const rules = difficultyRules(state);
   if (previous.consecutiveNegativeWeeks > 0 && !emergencyLoanUsed) {
     // The first red week is the warning. Once it has been shown, the loan is a
@@ -1855,8 +1881,25 @@ function resolveFinancialSafety(
       ? undefined
       : { ...previous.latestBoardResolution };
   let forcedSale: BoardForcedSaleResolution | undefined;
+  let facilityConversion: BoardFacilityConversionResolution | undefined;
   if (boardUltimatum !== undefined) {
+    if (
+      boardUltimatum.waitingForFacilityHomeGate === true &&
+      baseLines.some((line) => line.kind === 'tickets')
+    ) {
+      const {
+        waitingForFacilityHomeGate: _waitingForFacilityHomeGate,
+        ...afterFirstHomeGate
+      } = boardUltimatum;
+      boardUltimatum = afterFirstHomeGate;
+    }
     if (balanceAfter >= boardUltimatum.targetCash) {
+      if (boardUltimatumConsequence(boardUltimatum) === 'FORCED_SALE') {
+        // Legacy saves reached this stage before facility conversion existed.
+        // Once a sale-stage round resolves, it must never be followed by the
+        // newer first-stage facility intervention.
+        facilityConversionUsed = true;
+      }
       latestBoardResolution = targetMetResolution(state, boardUltimatum);
       boardUltimatum = undefined;
     } else if (boardUltimatum.weeksRemaining > 1) {
@@ -1864,6 +1907,34 @@ function resolveFinancialSafety(
         ...boardUltimatum,
         weeksRemaining: boardUltimatum.weeksRemaining - 1,
       };
+    } else if (boardUltimatum.waitingForFacilityHomeGate === true) {
+      // Four ordinary settlements have elapsed without one home gate. Keep the
+      // last week open until the new commercial facility gets one home match
+      // to affect cash, then resolve against that settlement's final balance.
+    } else if (
+      boardUltimatumConsequence(boardUltimatum) === 'FACILITY_CONVERSION'
+    ) {
+      facilityConversion = boardFacilityConversionAtDeadline(
+        state,
+        boardUltimatum,
+      );
+      const convertedState = applyBoardFacilityConversionConsequences(
+        state,
+        facilityConversion,
+      );
+      facilityConversionUsed = true;
+      consecutiveNegativeWeeks = 0;
+      latestBoardResolution = facilityConversion;
+      // The money-making buildings need home fixtures to work. The next round
+      // starts now and gives them four full settlements before a player sale.
+      const playerSaleUltimatum = createBoardUltimatum(convertedState);
+      boardUltimatum =
+        playerSaleUltimatum === undefined
+          ? undefined
+          : {
+              ...playerSaleUltimatum,
+              waitingForFacilityHomeGate: true,
+            };
     } else {
       forcedSale = boardForcedSaleAtDeadline(state, boardUltimatum);
       if (forcedSale === undefined) {
@@ -1900,6 +1971,7 @@ function resolveFinancialSafety(
           'board forced-sale balance',
         );
         consecutiveNegativeWeeks = 0;
+        facilityConversionUsed = true;
         latestBoardResolution = forcedSale;
         boardUltimatum = undefined;
       }
@@ -1909,7 +1981,9 @@ function resolveFinancialSafety(
     consecutiveNegativeWeeks >= rules.negativeWeeksBeforeIntervention &&
     emergencyLoanUsed
   ) {
-    boardUltimatum = createBoardUltimatum(state);
+    boardUltimatum = facilityConversionUsed
+      ? createBoardUltimatum(state)
+      : createBoardFacilityUltimatum(state);
   }
 
   // The floor is the last line and it never runs out. Everything above it —
@@ -1939,10 +2013,12 @@ function resolveFinancialSafety(
     financialSafety: {
       consecutiveNegativeWeeks,
       emergencyLoanUsed,
+      facilityConversionUsed,
       ...(loan === undefined ? {} : { loan }),
       ...(boardUltimatum === undefined ? {} : { boardUltimatum }),
       ...(latestBoardResolution === undefined ? {} : { latestBoardResolution }),
     },
+    ...(facilityConversion === undefined ? {} : { facilityConversion }),
     ...(forcedSale === undefined ? {} : { forcedSale }),
   };
 }

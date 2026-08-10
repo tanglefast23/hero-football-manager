@@ -430,7 +430,10 @@ export function ClubHomeScreen({
                       label={
                         viewModel.boardResolution.kind === 'TARGET_MET'
                           ? t('clubHome.resolved')
-                          : t('clubHome.squadRebuilt')
+                          : viewModel.boardResolution.kind ===
+                              'FACILITY_CONVERSION'
+                            ? t('clubHome.facilitiesReworked')
+                            : t('clubHome.squadRebuilt')
                       }
                       tone="success"
                     />
@@ -440,17 +443,23 @@ export function ClubHomeScreen({
                   kicker={
                     viewModel.boardResolution.kind === 'TARGET_MET'
                       ? t('clubHome.interventionClosed')
-                      : t('clubHome.academyReliefPromotion')
+                      : viewModel.boardResolution.kind === 'FACILITY_CONVERSION'
+                        ? t('clubHome.boardFacilityPlan')
+                        : t('clubHome.academyReliefPromotion')
                   }
                   title={
                     viewModel.boardResolution.kind === 'TARGET_MET'
                       ? t('clubHome.noSaleRequired')
-                      : viewModel.boardResolution.replacementPlayer?.name
+                      : viewModel.boardResolution.kind === 'FACILITY_CONVERSION'
+                        ? t('clubHome.finalRoundBegins')
+                        : viewModel.boardResolution.replacementPlayer?.name
                   }
                   stamp={
                     viewModel.boardResolution.kind === 'TARGET_MET'
                       ? t('clubHome.safe')
-                      : t('clubHome.newYouth')
+                      : viewModel.boardResolution.kind === 'FACILITY_CONVERSION'
+                        ? t('clubHome.fourWeeks')
+                        : t('clubHome.newYouth')
                   }
                   className="bg-pitch-light"
                 >
@@ -574,7 +583,12 @@ export function ClubHomeScreen({
                 {guideBoard ? (
                   <TutorialTapCue
                     label={t('clubHome.bertSays')}
-                    detail={t('clubHome.protectOnePlayer')}
+                    detail={t(
+                      viewModel.boardUltimatum.consequence ===
+                        'FACILITY_CONVERSION'
+                        ? 'clubHome.replaceABuilding'
+                        : 'clubHome.protectOnePlayer',
+                    )}
                     style={{
                       left: '50%',
                       marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -584,7 +598,12 @@ export function ClubHomeScreen({
                 ) : null}
                 <SectionLabel
                   eyebrow={t('clubHome.boardIntervention')}
-                  title={t('clubHome.protectOnePlayer')}
+                  title={t(
+                    viewModel.boardUltimatum.consequence ===
+                      'FACILITY_CONVERSION'
+                      ? 'clubHome.replaceABuilding'
+                      : 'clubHome.protectOnePlayer',
+                  )}
                   right={
                     <StatusChip
                       label={t('clubHome.weeksRemaining', {
@@ -597,7 +616,12 @@ export function ClubHomeScreen({
                 />
                 <PaperPanel
                   kicker={t('clubHome.boardDeadline')}
-                  title={t('clubHome.reachTheTarget')}
+                  title={t(
+                    viewModel.boardUltimatum.consequence ===
+                      'FACILITY_CONVERSION'
+                      ? 'clubHome.reachTheTargetSaveABuilding'
+                      : 'clubHome.reachTheTarget',
+                  )}
                   stamp={t('clubHome.careerContinues')}
                   className="bg-red-light"
                 >
@@ -608,12 +632,18 @@ export function ClubHomeScreen({
                     {/* One sentence, one key. Split across JSX it would force every
                   language into English word order, and the target and discount
                   do not sit in the same place in all of them. */}
-                    {t('clubHome.boardUltimatumBody', {
-                      target: viewModel.boardUltimatum.targetLabel,
-                      discount:
-                        viewModel.boardUltimatum.candidates[0]
-                          ?.discountPercent ?? 30,
-                    })}
+                    {t(
+                      viewModel.boardUltimatum.consequence ===
+                        'FACILITY_CONVERSION'
+                        ? 'clubHome.boardFacilityUltimatumBody'
+                        : 'clubHome.boardUltimatumBody',
+                      {
+                        target: viewModel.boardUltimatum.targetLabel,
+                        discount:
+                          viewModel.boardUltimatum.candidates[0]
+                            ?.discountPercent ?? 30,
+                      },
+                    )}
                   </Text>
                   <View className="mt-3 flex-row gap-2">
                     <Metric
@@ -631,86 +661,91 @@ export function ClubHomeScreen({
                       })}
                     />
                   </View>
-                  <View className="mt-4 gap-2">
-                    {viewModel.boardUltimatum.candidates.map((candidate) => {
-                      const protectedPlayer =
-                        candidate.playerId ===
-                        viewModel.boardUltimatum?.protectedPlayerId;
-                      return (
-                        <Pressable
-                          key={candidate.playerId}
-                          accessibilityRole="radio"
-                          // One whole sentence per state, so the closing clause is
-                          // free to move where the language needs it.
-                          accessibilityLabel={t(
-                            protectedPlayer
-                              ? 'clubHome.a11y.candidateProtected'
-                              : 'clubHome.a11y.candidateProtect',
-                            {
-                              player: candidate.playerName,
-                              role: candidate.role,
-                              wage: formatCurrency(t, candidate.weeklyWage),
-                              fee: formatCurrency(t, candidate.forcedSaleFee),
-                            },
-                          )}
-                          accessibilityState={{ selected: protectedPlayer }}
-                          onPress={() =>
-                            onProtectBoardCandidate(candidate.playerId)
-                          }
-                          className={
-                            protectedPlayer
-                              ? 'min-h-14 flex-row items-center gap-3 border-2 border-b-4 border-blue-dark bg-blue-light p-2'
-                              : 'min-h-14 flex-row items-center gap-3 border-2 border-ink bg-white p-2'
-                          }
-                          style={({ pressed }) => ({
-                            opacity: pressed ? 0.72 : undefined,
-                          })}
-                        >
-                          <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                            <PixelPortrait
-                              playerId={candidate.playerId}
-                              role={candidate.role}
-                              lookId={candidate.lookId}
-                            />
-                          </View>
-                          <View className="flex-1">
-                            <View className="flex-row items-center gap-2">
-                              <Text
-                                className="flex-1 text-base font-bold text-ink"
-                                numberOfLines={1}
-                              >
-                                {candidate.playerName}
-                              </Text>
-                              {candidate.isHero ? (
-                                <StatusChip
-                                  label={t('clubHome.hero')}
-                                  tone="hero"
-                                />
-                              ) : null}
-                            </View>
-                            <Text className="mt-1 font-mono text-sm text-ink/65">
-                              {t('clubHome.candidateTerms', {
+                  {viewModel.boardUltimatum.consequence === 'FORCED_SALE' ? (
+                    <View className="mt-4 gap-2">
+                      {viewModel.boardUltimatum.candidates.map((candidate) => {
+                        const protectedPlayer =
+                          candidate.playerId ===
+                          viewModel.boardUltimatum?.protectedPlayerId;
+                        return (
+                          <Pressable
+                            key={candidate.playerId}
+                            accessibilityRole="radio"
+                            // One whole sentence per state, so the closing clause is
+                            // free to move where the language needs it.
+                            accessibilityLabel={t(
+                              protectedPlayer
+                                ? 'clubHome.a11y.candidateProtected'
+                                : 'clubHome.a11y.candidateProtect',
+                              {
+                                player: candidate.playerName,
                                 role: candidate.role,
                                 wage: formatCurrency(t, candidate.weeklyWage),
                                 fee: formatCurrency(t, candidate.forcedSaleFee),
-                              })}
-                            </Text>
-                          </View>
-                          <Text
+                              },
+                            )}
+                            accessibilityState={{ selected: protectedPlayer }}
+                            onPress={() =>
+                              onProtectBoardCandidate(candidate.playerId)
+                            }
                             className={
                               protectedPlayer
-                                ? 'font-pixel text-sm uppercase text-blue-dark'
-                                : 'font-pixel text-sm uppercase text-ink/45'
+                                ? 'min-h-14 flex-row items-center gap-3 border-2 border-b-4 border-blue-dark bg-blue-light p-2'
+                                : 'min-h-14 flex-row items-center gap-3 border-2 border-ink bg-white p-2'
                             }
+                            style={({ pressed }) => ({
+                              opacity: pressed ? 0.72 : undefined,
+                            })}
                           >
-                            {protectedPlayer
-                              ? t('clubHome.protected')
-                              : t('clubHome.protect')}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
+                            <View className="overflow-hidden border-2 border-ink bg-blue-light">
+                              <PixelPortrait
+                                playerId={candidate.playerId}
+                                role={candidate.role}
+                                lookId={candidate.lookId}
+                              />
+                            </View>
+                            <View className="flex-1">
+                              <View className="flex-row items-center gap-2">
+                                <Text
+                                  className="flex-1 text-base font-bold text-ink"
+                                  numberOfLines={1}
+                                >
+                                  {candidate.playerName}
+                                </Text>
+                                {candidate.isHero ? (
+                                  <StatusChip
+                                    label={t('clubHome.hero')}
+                                    tone="hero"
+                                  />
+                                ) : null}
+                              </View>
+                              <Text className="mt-1 font-mono text-sm text-ink/65">
+                                {t('clubHome.candidateTerms', {
+                                  role: candidate.role,
+                                  wage: formatCurrency(t, candidate.weeklyWage),
+                                  fee: formatCurrency(
+                                    t,
+                                    candidate.forcedSaleFee,
+                                  ),
+                                })}
+                              </Text>
+                            </View>
+                            <Text
+                              className={
+                                protectedPlayer
+                                  ? 'font-pixel text-sm uppercase text-blue-dark'
+                                  : 'font-pixel text-sm uppercase text-ink/45'
+                              }
+                            >
+                              {protectedPlayer
+                                ? t('clubHome.protected')
+                                : t('clubHome.protect')}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : null}
                 </PaperPanel>
               </View>
             ),

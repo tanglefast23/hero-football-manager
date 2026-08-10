@@ -21,7 +21,10 @@ import { buildCareerFacility } from '../management';
 import { FACILITY_CATALOG } from '../facilities';
 import { hireCareerCoach, startCareerScoutMission } from '../market-career';
 import type { FixtureResult, GameState } from '../types';
-import { protectBoardUltimatumPlayer } from '../board-ultimatum';
+import {
+  createBoardUltimatum,
+  protectBoardUltimatumPlayer,
+} from '../board-ultimatum';
 
 function fullCareer(seed: number) {
   return createCareer(createLaunchCareerSetup(seed));
@@ -247,7 +250,7 @@ describe('M2 weekly sidecars', () => {
     );
   });
 
-  test('runs a persistent four-week protected-player ultimatum and forced sale', () => {
+  test('converts facilities once, then gives home matches four weeks before a forced sale', () => {
     let state = fullCareer(5051);
     // A club that has already spent its one emergency loan and is still under
     // water — which is exactly when the board escalates to an ultimatum, and is
@@ -263,11 +266,31 @@ describe('M2 weekly sidecars', () => {
       financialSafety: { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true },
     };
     for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
-    const ultimatum = state.financialSafety?.boardUltimatum;
+    const facilityUltimatum = state.financialSafety?.boardUltimatum;
 
-    expect(ultimatum).toMatchObject({ weeksRemaining: 4, targetCash: 0 });
-    expect(ultimatum?.candidates).toHaveLength(4);
-    const protectedId = ultimatum!.candidates[0].playerId;
+    expect(facilityUltimatum).toMatchObject({
+      consequence: 'FACILITY_CONVERSION',
+      weeksRemaining: 4,
+      targetCash: 0,
+      candidates: [],
+    });
+    for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
+    expect(state.financialSafety).toMatchObject({
+      facilityConversionUsed: true,
+      latestBoardResolution: {
+        kind: 'FACILITY_CONVERSION',
+        addedFacilities: [{ type: 'stadium-stand' }],
+      },
+      boardUltimatum: {
+        consequence: 'FORCED_SALE',
+        weeksRemaining: 4,
+        waitingForFacilityHomeGate: true,
+        candidates: expect.any(Array),
+      },
+    });
+    const ultimatum = state.financialSafety!.boardUltimatum!;
+    expect(ultimatum.candidates).toHaveLength(4);
+    const protectedId = ultimatum.candidates[0].playerId;
     state = protectBoardUltimatumPlayer(state, protectedId);
     for (let week = 0; week < 3; week += 1) state = settleScheduledWeek(state);
     expect(state.financialSafety?.boardUltimatum?.weeksRemaining).toBe(1);
@@ -471,6 +494,117 @@ describe('M2 weekly sidecars', () => {
         amount: adjacencyIncome,
       }),
     );
+  });
+
+  test('holds the final sale week until a post-conversion home gate settles', () => {
+    const base = fullCareer(5052);
+    const saleUltimatum = createBoardUltimatum(base);
+    if (saleUltimatum === undefined) {
+      throw new Error('the home-gate test has too few board sale candidates');
+    }
+    let state: GameState = {
+      ...base,
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: -20_000 } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        facilityConversionUsed: true,
+        boardUltimatum: {
+          ...saleUltimatum,
+          weeksRemaining: 1,
+          targetCash: 1_000_000,
+          waitingForFacilityHomeGate: true,
+        },
+      },
+    };
+
+    state = settleScheduledWeek(state);
+    expect(state.financialSafety?.boardUltimatum).toMatchObject({
+      weeksRemaining: 1,
+      waitingForFacilityHomeGate: true,
+    });
+
+    const firstHomeWeek = state.fixtures
+      .filter(
+        (fixture) =>
+          fixture.season === state.season &&
+          fixture.homeClubId === state.userClubId,
+      )
+      .sort((left, right) => left.week - right.week)[0]?.week;
+    if (firstHomeWeek === undefined) {
+      throw new Error('the home-gate test career has no home fixture');
+    }
+    state = { ...state, week: firstHomeWeek, phase: 'manage' };
+    state = settleScheduledWeek(state);
+
+    expect(state.ledgers.at(-1)?.lines).toContainEqual(
+      expect.objectContaining({
+        kind: 'tickets',
+        labelKey: 'ledger.leagueHomeGate',
+      }),
+    );
+    expect(state.financialSafety?.latestBoardResolution?.kind).toBe(
+      'FORCED_SALE',
+    );
+    expect(state.financialSafety?.boardUltimatum).toBeUndefined();
+  });
+
+  test('does not put a legacy sale-stage save back into the facility round', () => {
+    const base = fullCareer(5053);
+    const currentUltimatum = createBoardUltimatum(base);
+    if (currentUltimatum === undefined) {
+      throw new Error('the legacy test has too few board sale candidates');
+    }
+    const { consequence: _consequence, ...legacyUltimatum } = currentUltimatum;
+    let state: GameState = {
+      ...base,
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: 1_000_000 } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 1,
+        emergencyLoanUsed: true,
+        boardUltimatum: legacyUltimatum,
+      },
+    };
+
+    state = settleScheduledWeek(state);
+
+    expect(state.financialSafety).toMatchObject({
+      facilityConversionUsed: true,
+      latestBoardResolution: { kind: 'TARGET_MET' },
+    });
+    expect(state.financialSafety?.boardUltimatum).toBeUndefined();
+  });
+
+  test('recognizes an already-resolved legacy sale deadline as post-facility', () => {
+    const base = fullCareer(5054);
+    let state: GameState = {
+      ...base,
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: -20_000 } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 3,
+        emergencyLoanUsed: true,
+        latestBoardResolution: {
+          id: 'board-ultimatum-legacy-target-met',
+          kind: 'TARGET_MET',
+          resolvedSeason: base.season,
+          resolvedWeek: base.week,
+          targetCash: 0,
+        },
+      },
+    };
+
+    state = settleScheduledWeek(state);
+
+    expect(state.financialSafety).toMatchObject({
+      facilityConversionUsed: true,
+      boardUltimatum: { consequence: 'FORCED_SALE' },
+    });
   });
 
   test('adds the full weekly income from three separately built Fan Shops', () => {
