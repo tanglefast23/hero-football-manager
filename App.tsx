@@ -214,7 +214,7 @@ import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
 import { useSuspendFlush } from './src/ui/use-suspend-flush';
 import {
-  DEVELOPER_MODE_AVAILABLE,
+  developerModeAvailable as developerModeAvailableForSurface,
   qaRootRoutesEnabled,
 } from './src/ui/release-surface';
 import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
@@ -380,6 +380,10 @@ export default function App() {
 
 function GameApp() {
   const store = useM1Store();
+  const developerModeAvailable = developerModeAvailableForSurface(
+    __DEV__,
+    Platform.OS,
+  );
   const { width: viewportWidth, height: viewportHeight } =
     useWindowDimensions();
   const content = useMemo(loadLaunchContent, []);
@@ -753,7 +757,7 @@ function GameApp() {
     });
   }, [savePreferences]);
   const toggleDeveloperMode = useCallback(() => {
-    if (!DEVELOPER_MODE_AVAILABLE) return;
+    if (!developerModeAvailable) return;
     const current = preferencesRef.current;
     const developerMode = !current.developerMode;
     if (!developerMode) setDeveloperManualSaveSelecting(false);
@@ -917,7 +921,7 @@ function GameApp() {
       const career = useM1Store.getState().career;
       setDeveloperManualSaveSelecting(false);
       if (
-        !DEVELOPER_MODE_AVAILABLE ||
+        !developerModeAvailable ||
         !preferencesRef.current.developerMode ||
         repository === null ||
         career === null
@@ -942,7 +946,7 @@ function GameApp() {
       const repository = developerSaveRepositoryRef.current;
       const careerSeed = useM1Store.getState().career?.careerSeed;
       if (
-        !DEVELOPER_MODE_AVAILABLE ||
+        !developerModeAvailable ||
         repository === null ||
         careerSeed === undefined
       )
@@ -1389,7 +1393,7 @@ function GameApp() {
           createCareerRepository(database),
           createReplayRepository(database),
           createPreferencesRepository(database),
-          DEVELOPER_MODE_AVAILABLE
+          developerModeAvailable
             ? createDeveloperSaveRepository(database)
             : Promise.resolve(null),
         ]);
@@ -1479,7 +1483,7 @@ function GameApp() {
   }, [bootAttempt, store.initializePersistence]);
 
   useEffect(() => {
-    if (!DEVELOPER_MODE_AVAILABLE) return;
+    if (!developerModeAvailable) return;
     const repository = developerSaveRepositoryRef.current;
     const careerSeed = store.career?.careerSeed;
     setDeveloperManualSaveSelecting(false);
@@ -1521,7 +1525,7 @@ function GameApp() {
    * would spend a rotation slot on the slot they just loaded.
    */
   useEffect(() => {
-    if (!DEVELOPER_MODE_AVAILABLE) return;
+    if (!developerModeAvailable) return;
     const career = store.career;
     const repository = developerSaveRepositoryRef.current;
     if (!preferences.developerMode || career === null || repository === null) {
@@ -2832,7 +2836,7 @@ function GameApp() {
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         developerSaveSummaries={
-          DEVELOPER_MODE_AVAILABLE && preferences.developerMode
+          developerModeAvailable && preferences.developerMode
             ? developerSaveSummaries
             : undefined
         }
@@ -3454,9 +3458,7 @@ function GameApp() {
                 cutInMode={preferences.cutInMode}
                 performanceLimited={performanceLimitActive}
                 developerMode={
-                  DEVELOPER_MODE_AVAILABLE
-                    ? preferences.developerMode
-                    : undefined
+                  developerModeAvailable ? preferences.developerMode : undefined
                 }
                 assistantMode={
                   store.career === null
@@ -3494,7 +3496,7 @@ function GameApp() {
                 onRetry3x={retryThreeTimesSpeed}
                 onEmailSupport={emailSupport}
                 onToggleDeveloperMode={
-                  DEVELOPER_MODE_AVAILABLE ? toggleDeveloperMode : undefined
+                  developerModeAvailable ? toggleDeveloperMode : undefined
                 }
                 onSetAssistantMode={
                   store.career === null ? undefined : handleSetAssistantMode

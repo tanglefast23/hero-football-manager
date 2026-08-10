@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import {
   DEVELOPER_MODE_AVAILABLE,
+  developerModeAvailable,
   qaRootRoutesEnabled,
 } from '../release-surface';
 
@@ -19,10 +20,8 @@ describe('App Store release surface', () => {
   });
 
   test('keeps the release preflight able to read the Developer Mode switch', () => {
-    // The switch is hand-flipped, so the preflight is the only thing that stops
-    // an archive shipping the save/load rail. It reads the declaration by
-    // pattern: reword the constant and the guard must still find it, or the
-    // release passes with Developer Mode silently on.
+    // The manual QA override is hand-flipped, so the preflight must stop an
+    // archive from shipping it. Debug and web availability do not use it.
     const guard =
       /export const DEVELOPER_MODE_AVAILABLE: boolean = (true|false);/;
     expect(guard.exec(source('src/ui/release-surface.ts'))?.[1]).toBe(
@@ -33,18 +32,23 @@ describe('App Store release surface', () => {
     );
   });
 
-  test('gates the developer save rail on the switch rather than on __DEV__', () => {
-    // Developer Mode has to survive a build where __DEV__ is false — a static
-    // web export or TestFlight — which is the whole point of the switch.
+  test('enables Developer Mode on Debug and web surfaces but not native Release', () => {
+    expect(developerModeAvailable(true, 'ios')).toBe(true);
+    expect(developerModeAvailable(true, 'android')).toBe(true);
+    expect(developerModeAvailable(false, 'web')).toBe(true);
+    expect(developerModeAvailable(false, 'ios')).toBe(false);
+    expect(developerModeAvailable(false, 'android')).toBe(false);
+
     const app = source('App.tsx');
     expect(app).toContainSource(
-      'developerMode={DEVELOPER_MODE_AVAILABLE ? preferences.developerMode : undefined}',
+      'const developerModeAvailable = developerModeAvailableForSurface(__DEV__, Platform.OS)',
     );
     expect(app).toContainSource(
-      'onToggleDeveloperMode={DEVELOPER_MODE_AVAILABLE ? toggleDeveloperMode : undefined}',
+      'developerMode={developerModeAvailable ? preferences.developerMode : undefined}',
     );
-    expect(app).not.toContainSource('__DEV__ ? preferences.developerMode');
-    expect(app).not.toContainSource('__DEV__ && preferences.developerMode');
+    expect(app).toContainSource(
+      'onToggleDeveloperMode={developerModeAvailable ? toggleDeveloperMode : undefined}',
+    );
   });
 
   test('ships one adaptive iPhone and iPad configuration', () => {
