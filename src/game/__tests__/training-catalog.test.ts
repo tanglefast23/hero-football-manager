@@ -9,12 +9,12 @@ describe('training catalog is TP-only with rebalanced costs', () => {
     }
   });
 
-  test('TP cost is 10/15/21/28/36 by tier', () => {
+  test('TP cost is 8/13/19/26/36 by tier', () => {
     const byTier: Record<number, number> = {
-      1: 10,
-      2: 15,
-      3: 21,
-      4: 28,
+      1: 8,
+      2: 13,
+      3: 19,
+      4: 26,
       5: 36,
     };
     for (const drill of catalog.focusDrills) {

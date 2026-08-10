@@ -190,7 +190,7 @@ describe('opening TP timeline', () => {
       creation: CREATION,
       content,
     });
-    expect(ordinary.tapCount).toBe(4);
+    expect(ordinary.tapCount).toBe(5);
     expect(ordinary.tpSpent).toBe(40);
     expect(ordinary.tpBanked).toBe(2);
     reconcileTrainingPoints(ordinary, LAUNCH_TP);
@@ -202,7 +202,7 @@ describe('opening TP timeline', () => {
       creation: CREATION,
       content,
     });
-    expect(smart.tapCount).toBe(4);
+    expect(smart.tapCount).toBe(5);
     expect(smart.tpSpent).toBe(40);
     expect(smart.tpBanked).toBe(2);
     reconcileTrainingPoints(smart, LAUNCH_TP);
