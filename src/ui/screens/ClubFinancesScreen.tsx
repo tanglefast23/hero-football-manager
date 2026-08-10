@@ -3123,7 +3123,7 @@ function BuildMenuSection({
                 name: entry.name,
                 built: entry.builtCount,
                 limit: entry.buildLimit,
-                effect: entry.effectLabel,
+                effect: entry.effectLabel.replace(/[.!?]+$/u, ''),
                 width: entry.width,
                 height: entry.height,
               }),

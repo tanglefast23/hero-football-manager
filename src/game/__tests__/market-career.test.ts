@@ -43,6 +43,19 @@ import {
 import type { GameState } from '../types';
 
 describe('career market integration', () => {
+  test('scales head coaches from 300 and assistants from 150 per level', () => {
+    expect(COACH_WAGE_PER_LEVEL).toBe(300);
+    for (let level = 1; level <= 5; level += 1) {
+      const headWeeklyWage = COACH_WAGE_PER_LEVEL * level;
+      expect(
+        coachWeeklyWageForRole({ weeklyWage: headWeeklyWage }, 'HEAD'),
+      ).toBe(300 * level);
+      expect(
+        coachWeeklyWageForRole({ weeklyWage: headWeeklyWage }, 'ASSISTANT'),
+      ).toBe(150 * level);
+    }
+  });
+
   test('waives only an unaffordable first scouting mission', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(20260805)),
