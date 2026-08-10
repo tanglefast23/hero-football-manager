@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { assistantBeatsEntry } from './entries/assistant-beats';
+import { contractRenewalEntry } from './entries/contract-renewal';
 import { awardsCeremonyEntry } from './entries/awards-ceremony';
 import { boardUltimatumEntry } from './entries/board-ultimatum';
 import { careerEventsEntry } from './entries/career-events';
@@ -16,6 +17,7 @@ import { retirementLegacyEntry } from './entries/retirement-legacy';
 import { rivalHeroIntroEntry } from './entries/rival-hero-intro';
 import { seasonPodiumEntry } from './entries/season-podium';
 import { squadSortHintEntry } from './entries/squad-sort-hint';
+import { liveMatchControlsEntry } from './entries/live-match-controls';
 import type { DevHarnessRoutableEntry } from './route';
 
 /**
@@ -66,6 +68,7 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   clubBusinessEntry,
   careerEventsEntry,
   playerRequestsEntry,
+  liveMatchControlsEntry,
   squadSortHintEntry,
   boardUltimatumEntry,
   cupMismatchWarningEntry,
@@ -78,4 +81,5 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   endgameCelebrationEntry,
   hallOfFameEntry,
   assistantBeatsEntry,
+  contractRenewalEntry,
 ]);
