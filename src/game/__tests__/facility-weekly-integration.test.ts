@@ -109,12 +109,11 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // The 40% scale funds one 10-TP tap a week before the Pitch opens. Its first
-    // payment lifts the bank enough to fund both players on the next week.
-    const oneTapNet = BASE_WEEKLY_TRAINING_POINTS - 10;
-    const pitchAndOneTapNet = oneTapNet + TRAINING_PITCH_TP_PER_LEVEL;
+    // The 40% scale funds one 8-TP tap a week before the Pitch opens. The bank
+    // can fund both players once the Pitch becomes operational.
+    const oneTapNet = BASE_WEEKLY_TRAINING_POINTS - 8;
     const pitchAndTwoTapNet =
-      BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL - 20;
+      BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL - 16;
     // The opening balance is the career's launch grant. Taken from the first
     // recorded balance rather than retyped, so retuning the grant retunes this
     // expectation with it — the shape of the climb is what this test owns.
@@ -123,8 +122,8 @@ describe('facility weekly integration', () => {
       launch,
       launch + oneTapNet,
       launch + oneTapNet * 2,
-      launch + oneTapNet * 2 + pitchAndOneTapNet,
-      launch + oneTapNet * 2 + pitchAndOneTapNet + pitchAndTwoTapNet,
+      launch + oneTapNet * 2 + pitchAndTwoTapNet,
+      launch + oneTapNet * 2 + pitchAndTwoTapNet * 2,
     ]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.

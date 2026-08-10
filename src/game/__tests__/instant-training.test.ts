@@ -46,8 +46,8 @@ describe('trainPlayerInstantly', () => {
     const res = trainPlayerInstantly(state, player.id, 'sprints');
     const trained = res.state.players.find((p) => p.id === player.id)!;
 
-    expect(res.tpSpent).toBe(10); // tier-II sprints, unlocked from D5
-    expect(res.state.trainingPoints).toBe(state.trainingPoints - 10);
+    expect(res.tpSpent).toBe(8); // Tier I sprints, owned from D5
+    expect(res.state.trainingPoints).toBe(state.trainingPoints - 8);
     expect(trained.condition).toBe(
       (player.condition ?? 100) - INSTANT_DRILL_CONDITION_COST,
     );
@@ -98,7 +98,7 @@ describe('trainPlayerInstantly', () => {
         player.id,
         'sprints',
       ),
-    ).toThrow('needs 10 TP');
+    ).toThrow('needs 8 TP');
   });
 
   it('is deterministic: the same state resolves identically twice', () => {

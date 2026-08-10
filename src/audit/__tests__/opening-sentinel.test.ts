@@ -108,18 +108,18 @@ describe('opening sentinel', () => {
     expect(
       byArm
         .get('ordinary')!
-        .every((run) => run.tapCount === 4 && run.tpBanked === 2),
+        .every((run) => run.tapCount === 5 && run.tpBanked === 2),
     ).toBe(true);
     expect(
       byArm
         .get('smart-breadth')!
-        .every((run) => run.tapCount === 4 && run.tpBanked === 2),
+        .every((run) => run.tapCount === 5 && run.tpBanked === 2),
     ).toBe(true);
     expect(
-      byArm.get('smart-extra-fwd')!.every((run) => run.tapCount === 4),
+      byArm.get('smart-extra-fwd')!.every((run) => run.tapCount === 5),
     ).toBe(true);
     expect(
-      byArm.get('joe-observed-no-coach')!.every((run) => run.tapCount === 3),
+      byArm.get('joe-observed-no-coach')!.every((run) => run.tapCount === 4),
     ).toBe(true);
     expect(
       byArm
