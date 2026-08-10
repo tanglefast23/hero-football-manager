@@ -87,6 +87,7 @@ import {
   SEASON_WEEKS,
   SPONSOR_PAYMENT_WEEKS,
   trainingPathAttribute,
+  cappedFacilityBoost,
   cappedCoachBoost,
   coachMotivatorBonusPercent,
   coachTrainingBonusPercent,
@@ -1161,18 +1162,32 @@ function trainingPointIncomeViewModel(
   t: CopyFn,
 ): TrainingPointIncomeViewModel {
   const grid = state.facilities.grid;
+  const bestPitch = grid?.buildings
+    .filter(
+      (building) =>
+        building.type === 'training-pitch' &&
+        isFacilityOperational(grid, building.id),
+    )
+    .reduce<PlacedFacility | undefined>(
+      (best, building) =>
+        best === undefined || building.level > best.level ? building : best,
+      undefined,
+    );
   const pitchLevel =
     grid === undefined
       ? state.facilities.trainingGroundBuilt
         ? 1
         : 0
-      : grid.buildings
-          .filter(
-            (building) =>
-              building.type === 'training-pitch' &&
-              isFacilityOperational(grid, building.id),
-          )
-          .reduce((maximum, building) => Math.max(maximum, building.level), 0);
+      : (bestPitch?.level ?? 0);
+  const rawPitchPoints = pitchLevel * TRAINING_PITCH_TP_PER_LEVEL;
+  const pitchPoints = Math.max(
+    0,
+    Math.round(
+      (rawPitchPoints *
+        (100 + cappedFacilityBoost(bestPitch?.boosts, 'tpBonusPercent'))) /
+        100,
+    ),
+  );
   const head = state.market?.headCoach;
   const assistant = state.market?.assistantCoach;
   const rows = [
@@ -1191,7 +1206,7 @@ function trainingPointIncomeViewModel(
             detail: t('clubFinances.tpPitchDetail', {
               points: TRAINING_PITCH_TP_PER_LEVEL,
             }),
-            points: pitchLevel * TRAINING_PITCH_TP_PER_LEVEL,
+            points: pitchPoints,
           },
         ]),
     ...(head === undefined
@@ -1201,7 +1216,7 @@ function trainingPointIncomeViewModel(
             id: 'training-points-head-coach',
             label: head.name,
             detail: t('clubFinances.tpHeadCoachDetail', { level: head.level }),
-            points: coachWeeklyTrainingPoints(head.level, 'HEAD'),
+            points: coachWeeklyTrainingPointsWithBoosts(head, 'HEAD'),
           },
         ]),
     ...(assistant === undefined
@@ -1213,7 +1228,7 @@ function trainingPointIncomeViewModel(
             detail: t('clubFinances.tpAssistantCoachDetail', {
               level: assistant.level,
             }),
-            points: coachWeeklyTrainingPoints(assistant.level, 'ASSISTANT'),
+            points: coachWeeklyTrainingPointsWithBoosts(assistant, 'ASSISTANT'),
           },
         ]),
   ];
