@@ -186,6 +186,7 @@ function initManagementSfx(): void {
         keepAudioSessionActive: true,
       });
       player.volume = masterVolume;
+      player.muted = masterVolume === 0;
       players.set(key, player);
       ownedPlayers.add(player);
     } catch (error) {
@@ -207,6 +208,7 @@ function initManagementSfx(): void {
           keepAudioSessionActive: true,
         });
         player.volume = masterVolume;
+        player.muted = masterVolume === 0;
         pool.push(player);
         ownedPlayers.add(player);
       } catch (error) {
@@ -221,9 +223,6 @@ function initManagementSfx(): void {
 
 export function setManagementSfxMasterVolume(volume: number): void {
   masterVolume = Math.max(0, Math.min(1, volume));
-  // App calls this on mount, before a player can reach a management button.
-  // Initialising here keeps asset/player construction off the first real tap.
-  initManagementSfx();
   // Called straight from a React effect, so a throwing native setter here would
   // take the render with it — every other module in this folder guards its own.
   for (const player of ownedPlayers) {
@@ -234,6 +233,11 @@ export function setManagementSfxMasterVolume(volume: number): void {
       warnOnce('volume apply failed', error);
     }
   }
+}
+
+/** Build the ordered cue catalog without playing it. First use remains the fallback. */
+export function prewarmManagementSfx(): void {
+  initManagementSfx();
 }
 
 export function playTrainingStatDing(): void {

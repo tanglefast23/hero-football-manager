@@ -7,7 +7,7 @@ import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
 import { FansGlyph } from './components/FansGlyph';
-import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
+import { SfxPressable as Pressable } from './components/SfxPressable';
 import { playUiClickSfx } from '../render/management-sfx';
 import { managementHeaderLine } from './management-header';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
@@ -29,8 +29,6 @@ const TABS: ReadonlyArray<{
   { id: 'market', labelKey: 'managementShell.tab.market', glyph: '⇄', available: true, tipKey: 'managementShell.tabTip.market' },
   { id: 'league', labelKey: 'managementShell.tab.league', glyph: '≡', available: true, tipKey: 'managementShell.tabTip.league' },
 ];
-
-const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';
 
 // Persistent chrome must not consume the screen when iOS Dynamic Type is at
 // its accessibility maximum. The full names remain available to assistive
@@ -467,8 +465,7 @@ export function ManagementShell({
             </View>
           )
         ) : null}
-        <HoverTipAnchor
-          tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}
+        <View
           className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
         >
           {guideTarget === 'advance-week' ? (
@@ -499,7 +496,7 @@ export function ManagementShell({
               maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
             />
           </IdleAttract>
-        </HoverTipAnchor>
+        </View>
         <View
           ref={navigationGuideAnchor.anchorRef}
           collapsable={false}

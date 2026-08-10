@@ -2382,7 +2382,6 @@
     "managementShell.a11y.tab": "Onglet {tab}",
     "managementShell.a11y.tabUnavailable": "Onglet {tab}, indisponible",
     "managementShell.advanceWeek": "Semaine suivante  ›",
-    "managementShell.advanceWeekTip": "Match, salaires et imprévus · touche Entrée",
     "managementShell.bertsJob": "Tâche de Bert",
     "managementShell.cueAdvanceWeek": "Semaine suivante",
     "managementShell.cueOpenSquad": "Ouvrir l'effectif",
