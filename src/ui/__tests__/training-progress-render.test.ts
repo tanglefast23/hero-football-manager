@@ -73,6 +73,15 @@ describe('training stat option rendering', () => {
     expect(source).toContainSource(
       "{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}",
     );
+    // Whole scores stay equal to the match engine. A separate one-decimal bank
+    // shows the saved fraction, floored so 0.97 never promises a paid-out 1.0.
+    expect(source).toContainSource('Math.floor(bank.hundredths / 10) / 10');
+    expect(source).toContainSource('/ 1.0');
+    expect(
+      loadCatalog('en').strings['trainingDrill.fractionalGainsSaved'],
+    ).toBe(
+      'Fractional gains are saved. Each full 1.0 adds +1 to a later drill.',
+    );
     // Only the modifier that costs wears a colour. Marking the bonuses green as
     // well emphasised every word — which emphasises nothing — and forced a
     // green-on-red pairing that measured 1.9:1 against the 4.5:1 text needs.
@@ -90,6 +99,11 @@ describe('training stat option rendering', () => {
     // Gold is gone. A drag is a drag; amber read as neither.
     expect(source).not.toContainSource(
       'border-gold-dark bg-gold-light px-3 py-2',
+    );
+    // An outside tap cancels the popup with the supplied negative cue. The
+    // visible Cancel button keeps its ordinary click because it names itself.
+    expect(source).toMatchSource(
+      /accessible=\{false\}\n\s+pressSfx="warning"\n\s+onPress=\{\(\) => setPendingConfirm\(null\)\}/,
     );
   });
 });

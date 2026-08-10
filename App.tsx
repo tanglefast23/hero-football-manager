@@ -2721,6 +2721,83 @@ function GameApp() {
     );
   } else {
     const home = homeViewModel(store.career, t);
+    /**
+     * One route for both copies of the current job: the inbox row and Bert's
+     * durable bottom strip. Keeping the alert id as the handoff means the strip
+     * cannot drift to a shallower tab-only shortcut later.
+     */
+    const openHomeAlert = (alertId: string): void => {
+      // Every row opens from the desk. A blue row becomes the one focused job
+      // before its destination opens, so no intermediate render can change
+      // boards without passing the same guard as a later tap.
+      const alert = home.alerts.find((candidate) => candidate.id === alertId);
+      if (alert?.mustDoDutyId !== undefined) {
+        store.focusInboxDuty(alert.mustDoDutyId);
+      }
+      if (
+        alert?.guideSequenceId !== undefined &&
+        alert.destination !== undefined
+      ) {
+        // Opening the Cup button is the whole Must Do objective. Bert can still
+        // explain the bracket, but the manager is no longer blocked once the
+        // button has taken them to League.
+        if (alert.guideSequenceId === 'national-cup') {
+          store.completeAssistantGuide('national-cup');
+        }
+        if (alertId.startsWith('injury-')) {
+          store.selectPlayer(alertId.slice('injury-'.length));
+        } else if (alertId.startsWith('transfer-request-')) {
+          store.selectPlayer(alertId.slice('transfer-request-'.length));
+        }
+        openAssistantGuide(alert.guideSequenceId, alert.destination);
+      } else if (alertId === DESK_STORY_ALERT_ID) store.openDeskStory();
+      else if (alertId.startsWith('training-upgrade:'))
+        store.setActiveTab('squad');
+      else if (alertId === 'training-ground' || alertId === 'build-reminder') {
+        setClubOfficeTab('facility');
+        store.setActiveTab('club');
+      } else if (alertId.startsWith('injury-')) {
+        store.selectPlayer(alertId.slice('injury-'.length));
+        store.setActiveTab('squad');
+      } else if (alertId.startsWith('transfer-request-')) {
+        store.selectPlayer(alertId.slice('transfer-request-'.length));
+        store.setActiveTab('squad');
+      } else if (alertId.startsWith('training-cap:')) {
+        if (alert?.playerId !== undefined) {
+          store.selectPlayer(alert.playerId);
+          setDrillFocusToken((current) => (current ?? 0) + 1);
+        }
+        store.setActiveTab('squad');
+      } else if (alertId === 'renewals') store.setActiveTab('squad');
+      else if (
+        alertId === 'financial-warning' ||
+        alertId === 'emergency-loan'
+      ) {
+        setClubOfficeTab('finances');
+        store.setActiveTab('club');
+        // The ledger alone never said what the row said. Bert repeats the whole
+        // warning here, one bubble per tap, because the desk clips it at two
+        // lines and nothing else in the game finishes the sentence.
+        setBoardFinanceMessageStartIndex(0);
+        setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);
+      } else if (alertId === 'board-ultimatum') {
+        store.notify(
+          'Choose one protected player in the Board intervention panel below.',
+        );
+      } else if (alertId.startsWith('board-resolution')) {
+        store.notify(
+          'The board intervention result is itemized in the latest club ledger.',
+        );
+      } else if (alertId.startsWith('retirement-announcement-')) {
+        store.notify(
+          'Final season confirmed. Plan the farewell now; the legacy choice arrives after retirement.',
+        );
+      } else store.notify('This alert is resolved from the season review.');
+    };
+    const guideObjectiveAlert =
+      blockingInboxDuty === undefined
+        ? undefined
+        : home.alerts.find((alert) => alert.mustDoDutyId === blockingInboxDuty);
     screen = (
       <ManagementShell
         clubName={home.clubName}
@@ -2773,10 +2850,12 @@ function GameApp() {
           focusedInboxDutyId === undefined ? displayedGuideObjective : undefined
         }
         onGuideObjectivePress={
-          assistantObjectiveTargetTab !== undefined &&
-          assistantObjectiveTargetTab !== store.activeTab
-            ? () => store.setActiveTab(assistantObjectiveTargetTab)
-            : undefined
+          guideObjectiveAlert !== undefined
+            ? () => openHomeAlert(guideObjectiveAlert.id)
+            : assistantObjectiveTargetTab !== undefined &&
+                assistantObjectiveTargetTab !== store.activeTab
+              ? () => store.setActiveTab(assistantObjectiveTargetTab)
+              : undefined
         }
         guideTarget={
           hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget
@@ -3175,81 +3254,7 @@ function GameApp() {
             onOpenFixture={store.openMatchday}
             onOpenManagerTipDestination={openManagerTipDestination}
             showManagerTips={careerTeaches}
-            onOpenAlert={(alertId) => {
-              // Every row opens from the desk. A blue row becomes the one focused
-              // job before its destination opens, so no intermediate render can
-              // change boards without passing the same guard as a later tap.
-              const alert = home.alerts.find(
-                (candidate) => candidate.id === alertId,
-              );
-              if (alert?.mustDoDutyId !== undefined) {
-                store.focusInboxDuty(alert.mustDoDutyId);
-              }
-              if (
-                alert?.guideSequenceId !== undefined &&
-                alert.destination !== undefined
-              ) {
-                // Opening the Cup button is the whole Must Do objective. Bert
-                // can still explain the bracket, but the manager is no longer
-                // blocked once the button has taken them to League.
-                if (alert.guideSequenceId === 'national-cup') {
-                  store.completeAssistantGuide('national-cup');
-                }
-                if (alertId.startsWith('injury-')) {
-                  store.selectPlayer(alertId.slice('injury-'.length));
-                } else if (alertId.startsWith('transfer-request-')) {
-                  store.selectPlayer(alertId.slice('transfer-request-'.length));
-                }
-                openAssistantGuide(alert.guideSequenceId, alert.destination);
-              } else if (alertId === DESK_STORY_ALERT_ID) store.openDeskStory();
-              else if (alertId.startsWith('training-upgrade:'))
-                store.setActiveTab('squad');
-              else if (
-                alertId === 'training-ground' ||
-                alertId === 'build-reminder'
-              ) {
-                setClubOfficeTab('facility');
-                store.setActiveTab('club');
-              } else if (alertId.startsWith('injury-')) {
-                store.selectPlayer(alertId.slice('injury-'.length));
-                store.setActiveTab('squad');
-              } else if (alertId.startsWith('transfer-request-')) {
-                store.selectPlayer(alertId.slice('transfer-request-'.length));
-                store.setActiveTab('squad');
-              } else if (alertId.startsWith('training-cap:')) {
-                if (alert?.playerId !== undefined) {
-                  store.selectPlayer(alert.playerId);
-                  setDrillFocusToken((current) => (current ?? 0) + 1);
-                }
-                store.setActiveTab('squad');
-              } else if (alertId === 'renewals') store.setActiveTab('squad');
-              else if (
-                alertId === 'financial-warning' ||
-                alertId === 'emergency-loan'
-              ) {
-                setClubOfficeTab('finances');
-                store.setActiveTab('club');
-                // The ledger alone never said what the row said. Bert repeats
-                // the whole warning here, one bubble per tap, because the desk
-                // clips it at two lines and nothing else in the game finishes
-                // the sentence.
-                setBoardFinanceMessageStartIndex(0);
-                setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);
-              } else if (alertId === 'board-ultimatum') {
-                store.notify(
-                  'Choose one protected player in the Board intervention panel below.',
-                );
-              } else if (alertId.startsWith('board-resolution')) {
-                store.notify(
-                  'The board intervention result is itemized in the latest club ledger.',
-                );
-              } else if (alertId.startsWith('retirement-announcement-')) {
-                store.notify(
-                  'Final season confirmed. Plan the farewell now; the legacy choice arrives after retirement.',
-                );
-              } else
-                store.notify('This alert is resolved from the season review.');
-            }}
+            onOpenAlert={openHomeAlert}
             onOpenLeague={() => store.setActiveTab('league')}
             onProtectBoardCandidate={(playerId) =>
               performManagementAction(

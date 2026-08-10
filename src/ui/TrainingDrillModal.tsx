@@ -830,6 +830,7 @@ export function TrainingDrillModal({
             <View style={[styles.noticeLayer, styles.noticeCenter]}>
               <Pressable
                 accessible={false}
+                pressSfx="warning"
                 onPress={() => setPendingConfirm(null)}
                 style={StyleSheet.absoluteFill}
               >
@@ -947,6 +948,29 @@ export function TrainingDrillModal({
                         <Text className="font-pixel text-base text-ink">
                           {pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}
                           {pendingConfirm.trainingAdjustment}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {pendingConfirm.fractionalBonusBanks.length > 0 ? (
+                      <View className="border border-ink/20 bg-paper-dark px-3 py-2">
+                        {pendingConfirm.fractionalBonusBanks.map((bank) => (
+                          <View
+                            key={bank.label}
+                            className="flex-row items-center justify-between"
+                          >
+                            <Text className="text-xs text-ink/60">
+                              {bank.label}
+                            </Text>
+                            <Text className="font-mono text-xs text-ink">
+                              {(Math.floor(bank.hundredths / 10) / 10).toFixed(
+                                1,
+                              )}{' '}
+                              / 1.0
+                            </Text>
+                          </View>
+                        ))}
+                        <Text className="mt-1 text-xs leading-4 text-ink/55">
+                          {t('trainingDrill.fractionalGainsSaved')}
                         </Text>
                       </View>
                     ) : null}

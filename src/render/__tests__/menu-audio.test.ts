@@ -67,6 +67,10 @@ const PLAYERS_PER_BUILD = 8;
 /** The same player after a session death rebuilt the whole set. */
 const rebuilt = (index: number): number => PLAYERS_PER_BUILD + index;
 const MUSIC_INDEXES = Object.values(MUSIC);
+const NON_RIVAL_MUSIC_INDEXES = MUSIC_INDEXES.filter(
+  (index) => index !== MUSIC.rival,
+);
+const TWO_DB_GAIN = 10 ** (2 / 20);
 
 describe('non-match music ownership', () => {
   beforeEach(() => {
@@ -225,9 +229,10 @@ describe('non-match music ownership', () => {
     setMenuMasterVolume(0.5);
     setMenuTheme('opening');
 
-    expect(MUSIC_INDEXES.every((i) => mockPlayers[i].volume === 0.25)).toBe(
-      true,
-    );
+    expect(
+      NON_RIVAL_MUSIC_INDEXES.every((i) => mockPlayers[i].volume === 0.25),
+    ).toBe(true);
+    expect(mockPlayers[MUSIC.rival].volume).toBeCloseTo(0.25 * TWO_DB_GAIN, 8);
     expect(mockPlayers[SFX.advanceWeek].volume).toBe(0.5);
     expect(setAudioModeAsync).toHaveBeenCalledWith({
       playsInSilentMode: false,
@@ -256,9 +261,10 @@ describe('non-match music ownership', () => {
 
     setMenuTheme('management');
     setMenuMasterVolume(1);
-    expect(MUSIC_INDEXES.every((i) => mockPlayers[i].volume === 0.5)).toBe(
-      true,
-    );
+    expect(
+      NON_RIVAL_MUSIC_INDEXES.every((i) => mockPlayers[i].volume === 0.5),
+    ).toBe(true);
+    expect(mockPlayers[MUSIC.rival].volume).toBeCloseTo(0.5 * TWO_DB_GAIN, 8);
   });
 
   it('recovers the active theme if a native player stops at the end', async () => {

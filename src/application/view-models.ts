@@ -3978,6 +3978,15 @@ export function squadTrainingViewModel(
                 label: trainingModifierLabel(t, modifier),
                 helps: modifier.helps,
               })),
+              fractionalBonusBanks: preview.fractionalBonusBanks.map(
+                (bank) => ({
+                  label:
+                    bank.kind === 'STAMINA'
+                      ? t('trainingDrill.staminaBonusBank')
+                      : t('trainingDrill.trainingBonusBank'),
+                  hundredths: bank.hundredths,
+                }),
+              ),
               // The stored value, never the displayed one: a keeper whose card
               // has stalled at 999 may still have real room to train.
               atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,

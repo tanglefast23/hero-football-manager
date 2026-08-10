@@ -167,6 +167,15 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(loadCatalog('en').strings['managementShell.bertsJob']).toBe(
       "Bert's job",
     );
+    // The durable strip reuses the inbox alert handler. It must focus the same
+    // duty, open the same Bert sequence and land on the same deep destination.
+    expect(appSource).toContainSource(
+      'const openHomeAlert = (alertId: string)',
+    );
+    expect(appSource).toContainSource(
+      '? () => openHomeAlert(guideObjectiveAlert.id)',
+    );
+    expect(appSource).toContainSource('onOpenAlert={openHomeAlert}');
   });
 
   it('never dismisses guidance before the press it collides with has landed', () => {
