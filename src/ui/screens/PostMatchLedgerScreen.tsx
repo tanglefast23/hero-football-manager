@@ -198,6 +198,10 @@ export function PostMatchLedgerScreen({
             // '▸' is not in Silkscreen, so it stays outside the catalog.
             label={`${t('postMatchLedger.backToTheOffice')}  ▸`}
             accessibilityLabel={t('postMatchLedger.a11y.continueToTheHome')}
+            // Leaving the report is navigation, not another result beat. The
+            // rival has already laughed beside the coach; the positive cue here
+            // sounded like a second character reaction as the screen closed.
+            pressSfx="click"
             onPress={onContinue}
           />
         </DesktopClamp>

@@ -14,6 +14,7 @@ import type {
 import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
 import { DIVISION_TYPICAL_PACE } from './pyramid';
+import { reducedPlayerWeeklyWage } from './market';
 import {
   isStoryFeaturePacingActive,
   isStoryYouthUnlocked,
@@ -387,7 +388,7 @@ export function createEmergencyYouthReplacement(
     lookId: nextDistinctPlayerLook({ id, role }, state.players),
     attrs,
     licensed: false,
-    weeklyWage: 75 + targetStrength * 2,
+    weeklyWage: reducedPlayerWeeklyWage(75 + targetStrength * 2),
     onHeroWage: false,
     contractSeasonsRemaining: 2,
     morale: 55,
@@ -455,7 +456,7 @@ function createOffer(
     role,
     attrs,
     licensed: false,
-    weeklyWage: 100 + targetStrength * 3,
+    weeklyWage: reducedPlayerWeeklyWage(100 + targetStrength * 3),
     onHeroWage: false,
     contractSeasonsRemaining: 3,
     morale: 65,

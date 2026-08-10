@@ -17,12 +17,13 @@ import {
   isPlayerLookIdForRole,
   nextDistinctPlayerLook,
 } from '../game/player-appearance';
+import { reducedPlayerWeeklyWage } from '../game/market';
 import { SPECIAL_HERO_ROSTER } from '../game/special-heroes';
 import { playerLookId } from '../render/sprites/player-look';
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
-export const LAUNCH_ROSTER_VERSION = 2;
+export const LAUNCH_ROSTER_VERSION = 3;
 let careerSeedNonce = 0;
 let lastGeneratedCareerSeed: number | undefined;
 
@@ -89,7 +90,7 @@ export function createLaunchCareerSetup(
       ticketPrice: club.ticketPrice,
       sponsorMonthlyFee: club.sponsorMonthlyFee,
       weeklyWages: club.players.reduce(
-        (sum, player) => sum + player.weeklyWage,
+        (sum, player) => sum + reducedPlayerWeeklyWage(player.weeklyWage),
         0,
       ),
     })),
@@ -105,7 +106,7 @@ export function createLaunchCareerSetup(
           ? {}
           : { power: player.powerId, powerTier: 1 as const }),
         licensed: club.id === userClubId ? false : player.licensed,
-        weeklyWage: player.weeklyWage,
+        weeklyWage: reducedPlayerWeeklyWage(player.weeklyWage),
         onHeroWage: club.id === userClubId ? false : player.onHeroWage,
         // M1 intentionally contains one renewal: the created hero's wage cliff.
         // Keep ordinary user-club contracts alive through Season 1 so they do not
@@ -234,6 +235,7 @@ export function reconcileLaunchRoster(
     state.launchRosterVersion === undefined &&
     isLegacyThirteenPlayerLaunchRoster(state, launchPlayers);
   const needsDevelopmentHeadroomUpgrade = (state.launchRosterVersion ?? 0) < 2;
+  const needsPlayerWageReduction = (state.launchRosterVersion ?? 0) < 3;
   const missing = needsLegacyRosterExpansion
     ? launchPlayers.filter(
         (player) =>
@@ -277,6 +279,7 @@ export function reconcileLaunchRoster(
     missing.length > 0 ||
     state.trainingRules === undefined ||
     staleTrainingRules ||
+    needsPlayerWageReduction ||
     state.playerRequestRules === undefined ||
     state.sponsorRules === undefined ||
     savedAwakening === undefined ||
@@ -284,6 +287,12 @@ export function reconcileLaunchRoster(
     state.facilities.grid === undefined;
   const players = [
     ...state.players.map((player) => {
+      const migratedPlayer = needsPlayerWageReduction
+        ? {
+            ...player,
+            weeklyWage: reducedPlayerWeeklyWage(player.weeklyWage),
+          }
+        : player;
       const current = launchById.get(player.id);
       const legacyWage = legacyReserveWages.get(player.id);
       const correctsLaunchPotential =
@@ -323,7 +332,11 @@ export function reconcileLaunchRoster(
         !player.onHeroWage
       ) {
         changed = true;
-        return { ...player, ...potentialPatch, weeklyWage: current.weeklyWage };
+        return {
+          ...migratedPlayer,
+          ...potentialPatch,
+          weeklyWage: current.weeklyWage,
+        };
       }
       if (
         state.season === 1 &&
@@ -339,7 +352,7 @@ export function reconcileLaunchRoster(
       ) {
         changed = true;
         return {
-          ...player,
+          ...migratedPlayer,
           ...potentialPatch,
           contractSeasonsRemaining: Math.max(
             1,
@@ -349,8 +362,8 @@ export function reconcileLaunchRoster(
         };
       }
       return correctsLaunchPotential
-        ? { ...player, ...potentialPatch }
-        : player;
+        ? { ...migratedPlayer, ...potentialPatch }
+        : migratedPlayer;
     }),
     ...missing.map((player) => ({ ...player, attrs: { ...player.attrs } })),
   ];

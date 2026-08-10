@@ -325,6 +325,10 @@ export function StoryEventScreen({
                         : t('storyEvent.a11y.continueAfterResult')
                     }
                     onPress={onContinue}
+                    // The result itself already owns the win or miss cue. This
+                    // exit only confirms the tap, so it must not sound like a
+                    // second outcome while the office is opening.
+                    pressSfx="click"
                   />
                 </View>
               </View>

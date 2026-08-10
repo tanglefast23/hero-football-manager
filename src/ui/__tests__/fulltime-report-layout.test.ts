@@ -85,4 +85,13 @@ describe('full-time report layout', () => {
       "t('postMatchLedger.a11y.coachIsCelebrating'",
     );
   });
+
+  it('plays the rival laugh on arrival, not again when leaving the report', () => {
+    const source = screen();
+
+    expect(source.match(/playRivalHeroLaugh\(mockery\.heroId\)/g)).toHaveLength(
+      1,
+    );
+    expect(source).toContainSource('pressSfx="click"');
+  });
 });

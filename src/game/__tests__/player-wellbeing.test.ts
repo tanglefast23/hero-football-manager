@@ -92,25 +92,25 @@ describe('weekly player wellbeing', () => {
     const bench = result.players.find((player) => player.id === benchId);
 
     expect(result.matchOutcome).toBe('win');
-    // Drill costs land at tap time now, so settlement is pure +12 recovery.
+    // Drill costs land at tap time now, so settlement is pure +10 recovery.
     expect(starter).toMatchObject({
-      condition: 62,
+      condition: 60,
       morale: 55,
       consecutiveLowMoraleWeeks: 0,
     });
     expect(bench).toMatchObject({
-      condition: 62,
+      condition: 60,
       morale: 52,
       consecutiveLowMoraleWeeks: 0,
     });
     expect(JSON.stringify(state)).toBe(before);
   });
 
-  test('speeds weekly condition recovery by 4 per Dorm level, best level only', () => {
-    expect(weeklyConditionRecovery(0)).toBe(12);
-    expect(weeklyConditionRecovery(1)).toBe(16);
-    expect(weeklyConditionRecovery(2)).toBe(20);
-    expect(weeklyConditionRecovery(3)).toBe(24);
+  test('speeds weekly condition recovery by 3 per Dorm level, best level only', () => {
+    expect(weeklyConditionRecovery(0)).toBe(10);
+    expect(weeklyConditionRecovery(1)).toBe(13);
+    expect(weeklyConditionRecovery(2)).toBe(16);
+    expect(weeklyConditionRecovery(3)).toBe(19);
     expect(() => weeklyConditionRecovery(4)).toThrow('Dorm level');
 
     const base = withUserPlayerChanges(career(9), (player) => ({
@@ -143,12 +143,12 @@ describe('weekly player wellbeing', () => {
         (player) => player.clubId === state.userClubId,
       )!.condition ?? 0;
 
-    expect(conditionAfterOneWeek(base)).toBe(62);
-    expect(conditionAfterOneWeek(withDorms(1))).toBe(66);
-    expect(conditionAfterOneWeek(withDorms(3))).toBe(74);
+    expect(conditionAfterOneWeek(base)).toBe(60);
+    expect(conditionAfterOneWeek(withDorms(1))).toBe(63);
+    expect(conditionAfterOneWeek(withDorms(3))).toBe(69);
     // A second Dorm is not a second bonus, whichever order they were built in.
-    expect(conditionAfterOneWeek(withDorms(1, 3))).toBe(74);
-    expect(conditionAfterOneWeek(withDorms(3, 1))).toBe(74);
+    expect(conditionAfterOneWeek(withDorms(1, 3))).toBe(69);
+    expect(conditionAfterOneWeek(withDorms(3, 1))).toBe(69);
   });
 
   test('leaves an unfinished Dorm out of condition recovery until it opens', () => {
@@ -180,8 +180,8 @@ describe('weekly player wellbeing', () => {
         (player) => player.clubId === state.userClubId,
       )!.condition ?? 0;
 
-    expect(conditionAfterOneWeek(building)).toBe(62);
-    expect(conditionAfterOneWeek(open)).toBe(66);
+    expect(conditionAfterOneWeek(building)).toBe(60);
+    expect(conditionAfterOneWeek(open)).toBe(63);
   });
 
   test('tracks sustained low morale and resets the counter on recovery', () => {

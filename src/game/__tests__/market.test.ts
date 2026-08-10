@@ -11,9 +11,11 @@ import {
   generatedPlayerWeeklyWage,
   isCoachCandidateEligible,
   isTransferWindowOpen,
+  weeksUntilTransferWindowOpen,
   maxCoachLevelForClub,
   pitchCardAffinity,
   playerValuation,
+  reducedPlayerWeeklyWage,
   MAX_RENEWAL_ASK_MULTIPLE,
   renewalContractAsk,
   resolveScoutMission,
@@ -282,6 +284,18 @@ describe('transfer rules and valuations', () => {
     expect([0, 5, 16, 19, 30, 31].some(isTransferWindowOpen)).toBe(false);
   });
 
+  it('counts weekly advances to the next registration window', () => {
+    expect(weeksUntilTransferWindowOpen(1)).toBe(0);
+    expect(weeksUntilTransferWindowOpen(4)).toBe(0);
+    expect(weeksUntilTransferWindowOpen(5)).toBe(12);
+    expect(weeksUntilTransferWindowOpen(16)).toBe(1);
+    expect(weeksUntilTransferWindowOpen(17)).toBe(0);
+    expect(weeksUntilTransferWindowOpen(18)).toBe(0);
+    expect(weeksUntilTransferWindowOpen(19)).toBe(12);
+    expect(weeksUntilTransferWindowOpen(28)).toBe(3);
+    expect(weeksUntilTransferWindowOpen(30)).toBe(1);
+  });
+
   it('incorporates role stats, age, potential, power tier, contract control, and division anchors', () => {
     const ordinary = valuationPlayer('ordinary');
     const stronger = valuationPlayer('stronger', {
@@ -368,6 +382,27 @@ describe('transfer rules and valuations', () => {
       expect(DIVISION_TRANSFER_VALUE_ANCHORS[level]).toBeGreaterThan(0);
       expect(DIVISION_WEEKLY_WAGE_ANCHORS[level]).toBeGreaterThan(0);
     }
+  });
+
+  it('applies the ten-percent player wage cut after the existing wage curve', () => {
+    const expected: Readonly<Record<DivisionLevel, number>> = {
+      5: 135,
+      4: 199,
+      3: 293,
+      2: 432,
+      1: 605,
+    };
+    for (const division of [5, 4, 3, 2, 1] as const) {
+      const support = DIVISION_SUPPORT_STRENGTHS[division];
+      const attrs = Object.fromEntries(
+        Object.keys(BASE_ATTRS).map((attribute) => [attribute, support]),
+      ) as unknown as Attrs;
+      expect(generatedPlayerWeeklyWage(attrs, division)).toBe(
+        expected[division],
+      );
+    }
+    expect(reducedPlayerWeeklyWage(1_000)).toBe(900);
+    expect(reducedPlayerWeeklyWage(0)).toBe(0);
   });
 
   it('keeps the awakening renewal cliff at the locked three-to-five times wage', () => {

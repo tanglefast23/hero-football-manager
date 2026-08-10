@@ -54,6 +54,8 @@ export interface BertBriefingWalkOnProps {
     /** Omitted when the beat is plain talk rather than a headlined moment. */
     readonly title?: string;
     readonly body: string | readonly string[];
+    /** Keeps one-off copy attached to the screen element it explains. */
+    readonly focus?: AssistantGuideFocus;
   };
   moneyAnchor?: TutorialAnchorLayout | null;
   /** The Board Loan card, left lit while Bert explains the one rescue. */
@@ -109,7 +111,7 @@ export function BertBriefingWalkOn({
             : customMessage.body
           ).map((text, pageIndex) => ({
             text,
-            focus: 'assistant' as const,
+            focus: customMessage.focus ?? ('assistant' as const),
             kind: 'body' as const,
             pageIndex,
           })),

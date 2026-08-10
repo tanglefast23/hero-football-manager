@@ -1775,6 +1775,15 @@ function GameApp() {
                 presentation.milestone,
               ),
           );
+  const facilityComboRevealVisible =
+    facilityComboReveal !== undefined &&
+    store.activeTab === 'club' &&
+    clubOfficeTab === 'facility';
+  useEffect(() => {
+    if (facilityComboReveal === undefined) return;
+    setClubOfficeTab('facility');
+    if (store.activeTab !== 'club') store.setActiveTab('club');
+  }, [facilityComboReveal?.id, store.activeTab, store.setActiveTab]);
   /**
    * Bert's one consolation for going out of the Cup.
    *
@@ -1850,6 +1859,9 @@ function GameApp() {
     store.activeTab === 'market' &&
     store.career !== null &&
     (store.career.market?.scoutReports.length ?? 0) > 0 &&
+    // Finish the report lesson's action first. Otherwise this second lesson
+    // lays its scrim over the lit Deals tab before the manager can press it.
+    visibleConciergeFocus !== 'scout-report' &&
     !isTransferWindowOpen(store.career.week) &&
     !hasAssistantGuideMilestone(store.career, 'transfer-window-seen');
   /**
@@ -1970,7 +1982,7 @@ function GameApp() {
       cupExitConsolationVisible ||
       firstCupRoundOf32BriefingVisible ||
       facilityErrorBertVisible ||
-      facilityComboReveal !== undefined ||
+      facilityComboRevealVisible ||
       transferWindowLessonVisible ||
       fansLessonVisible ||
       fansLedgerTourVisible ||
@@ -3646,18 +3658,23 @@ function GameApp() {
                 onFocusChange={setActiveGuideFocus}
                 onDone={completeAssistantGuideSequence}
               />
-            ) : guideOverlayVisible && facilityComboReveal !== undefined ? (
+            ) : guideOverlayVisible &&
+              facilityComboRevealVisible &&
+              facilityComboReveal !== undefined ? (
               <BertBriefingWalkOn
                 key={facilityComboReveal.id}
                 content={content.assistantGuide}
+                sequenceId="facility-adjacency"
                 customMessage={{
                   title: t('clubFinances.secretCombo', {
                     pair: facilityComboReveal.pairLabel,
                   }),
                   body: facilityComboReveal.discoveryCopy,
+                  focus: 'facility-adjacency',
                 }}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
+                onFocusChange={setActiveGuideFocus}
                 onDone={() =>
                   store.completeGuideMilestone(facilityComboReveal.milestone)
                 }
@@ -3667,10 +3684,10 @@ function GameApp() {
                 key="transfer-window"
                 content={content.assistantGuide}
                 customMessage={{
-                  title: 'The desk is shut',
+                  title: t('market.transferWindowLessonTitle'),
                   body: [
-                    'Registrations only happen inside a transfer window: Weeks 1 to 4, then Weeks 17 and 18. Outside them the desk refuses every deal, however much you offer.',
-                    'So scout now and decide now. Walk in on the first day of the window with the name already chosen and the money already put aside.',
+                    t('bert.custom.transferWindow.body1'),
+                    t('bert.custom.transferWindow.body2'),
                   ],
                 }}
                 navigationAnchor={navigationGuideAnchor}
