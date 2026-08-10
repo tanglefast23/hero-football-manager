@@ -1644,13 +1644,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (get().career !== career || get().lastPersistedCareer !== career)
         return;
     }
-    const currentCareer = get().career;
+    const reachedCareer = get().career;
+    // React normally settles the new desk while the report is open. Do it here
+    // too when an achievement is waiting, so a very fast Continue press and a
+    // headless store caller both get the same report -> interruption order.
+    const currentCareer =
+      reachedCareer?.phase === 'manage' &&
+      reachedCareer.pendingEvent === undefined &&
+      (reachedCareer.pendingMilestones?.length ?? 0) > 0
+        ? settleWeeklyStory(reachedCareer)
+        : reachedCareer;
     const currentSeasonBoundary =
       currentCareer !== null &&
       (currentCareer.phase === 'season-end' ||
         currentCareer.phase === 'complete');
     const currentHasSecondMatch = currentCareer?.phase === 'matchday';
     set({
+      ...(currentCareer !== reachedCareer ? { career: currentCareer } : {}),
       postMatch:
         currentSeasonBoundary || currentHasSecondMatch ? null : get().postMatch,
       weekReview: null,
@@ -1668,10 +1678,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
       activeTab: 'home',
       error: null,
     });
+    if (currentCareer !== null && currentCareer !== reachedCareer) {
+      queueCareerSave(get, set, currentCareer);
+    }
   },
 
   dismissPostMatchSummary() {
-    set({ postMatch: null, postMatchOverlay: null, error: null });
+    const career = get().career;
+    set({
+      postMatch: null,
+      postMatchOverlay: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
+      ...(career?.pendingEvent === undefined ? {} : { screen: 'event' }),
+      error: null,
+    });
   },
 
   continueWeekReview() {
@@ -1987,8 +2008,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
         guidedCareer,
         launchContent.events,
       );
-      const next = continuation.state;
-      if (continuation.followed) {
+      const next =
+        !continuation.followed &&
+        (continuation.state.pendingMilestones?.length ?? 0) > 0
+          ? settleWeeklyStory(continuation.state)
+          : continuation.state;
+      if (continuation.followed || next.pendingEvent !== undefined) {
         set({ career: next, screen: 'event', weekReview: null, error: null });
         queueCareerSave(get, set, next);
         return;

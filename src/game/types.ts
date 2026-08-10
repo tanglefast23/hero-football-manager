@@ -188,7 +188,8 @@ interface CareerEventState {
 }
 
 /**
- * A milestone earned but not yet shown, waiting for the next clear desk.
+ * A milestone earned but not yet shown. Achievement stories bypass the normal
+ * clear-desk and previous-story gates so recognition follows the result.
  *
  * Only the hat-trick carries a player: a milestone about a person names that
  * person, and every other recognition beat is about the club.

@@ -10,18 +10,6 @@ import {
 describe('M4 event selection', () => {
   const content = loadLaunchContent().events;
 
-  it('guarantees the Giant Spider story in its Season 1 window', () => {
-    const initial = createCareer(createLaunchCareerSetup(3));
-    const state = { ...initial, season: 1, week: 7, phase: 'manage' as const };
-
-    expect(
-      eventOfferForWeek(state, content, { deskClear: true }),
-    ).toMatchObject({
-      eventId: 'giant-spider-arrives',
-      eventClock: { weeksWithoutEvent: 0 },
-    });
-  });
-
   it('does not interrupt the first-hero onboarding journey', () => {
     const initial = createCareer(createLaunchCareerSetup(3));
     const state = {
@@ -46,7 +34,7 @@ describe('M4 event selection', () => {
       week: 12,
       phase: 'manage' as const,
       eventClock: { weeksWithoutEvent: 7, riskyChoices: 2 },
-      resolvedEventIds: ['giant-spider-arrives', 'mysterious-energy-salesman'],
+      resolvedEventIds: ['mysterious-energy-salesman'],
     };
 
     const first = eventOfferForWeek(state, content, { deskClear: true });
@@ -54,7 +42,6 @@ describe('M4 event selection', () => {
 
     expect(second).toEqual(first);
     expect(first.eventId).toBeDefined();
-    expect(first.eventId).not.toBe('giant-spider-arrives');
     expect(first.eventId).not.toBe('mysterious-energy-salesman');
     expect(first.eventClock.weeksWithoutEvent).toBe(0);
   });
@@ -93,6 +80,26 @@ describe('M4 event selection', () => {
     });
   });
 
+  it('offers a queued achievement story on the first desk after it is earned', () => {
+    const initial = createCareer(createLaunchCareerSetup(1));
+    const state = {
+      ...initial,
+      season: 1,
+      week: 13,
+      phase: 'manage' as const,
+      eventClock: { weeksWithoutEvent: 3, riskyChoices: 0 },
+      pendingMilestones: [{ eventId: 'milestone-first-cup-win' }],
+      resolvedEventHistory: [
+        { eventId: 'the-rondo-circle', season: 1, week: 12 },
+      ],
+    };
+
+    expect(eventOfferForWeek(state, content, { deskClear: false })).toEqual({
+      eventId: 'milestone-first-cup-win',
+      eventClock: state.eventClock,
+    });
+  });
+
   it('keeps the random deck off a week that already has something to read', () => {
     const initial = createCareer(createLaunchCareerSetup(99));
     const state = {
@@ -101,7 +108,6 @@ describe('M4 event selection', () => {
       week: 12,
       phase: 'manage' as const,
       eventClock: { weeksWithoutEvent: 7, riskyChoices: 2 },
-      resolvedEventIds: ['giant-spider-arrives'],
     };
 
     expect(
@@ -110,19 +116,6 @@ describe('M4 event selection', () => {
     expect(eventOfferForWeek(state, content, { deskClear: false })).toEqual({
       eventClock: state.eventClock,
     });
-  });
-
-  /**
-   * The spider's window is Season 1 weeks 7-12, when Bert's tutorial queue keeps
-   * the desk busy almost every week. Gating it would quietly retire it.
-   */
-  it('fires the authored spider inside its window even on a busy week', () => {
-    const initial = createCareer(createLaunchCareerSetup(3));
-    const state = { ...initial, season: 1, week: 7, phase: 'manage' as const };
-
-    expect(
-      eventOfferForWeek(state, content, { deskClear: false }).eventId,
-    ).toBe('giant-spider-arrives');
   });
 
   it('does not count a busy week towards the dry spell', () => {
@@ -283,7 +276,7 @@ describe('M4 event selection', () => {
       week: 12,
       phase: 'manage' as const,
       eventClock: { weeksWithoutEvent: 8, riskyChoices: 0 },
-      resolvedEventIds: ['giant-spider-arrives', repeatable.id],
+      resolvedEventIds: [repeatable.id],
     };
 
     expect(

@@ -12,6 +12,7 @@ import {
   buildCareerFacility,
   careerHeroLimit,
   completeAssistantGuideMilestone,
+  createCareer,
   currentUserDivision,
   DEFAULT_CREATION_RATINGS,
   leagueStandings,
@@ -23,6 +24,7 @@ import {
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
+import { createLaunchCareerSetup } from '../launch';
 import {
   awakeningCutsceneViewModel,
   clubFinancesViewModel,
@@ -221,120 +223,6 @@ describe('M1 app store integration', () => {
       playerId: createdPlayerId,
       firstHero: true,
     });
-  });
-
-  it('awards the spider mascot success bonuses without awakening anyone', () => {
-    startAwakenedCareer(3);
-    const career = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: { ...career, week: 7, phase: 'manage' },
-      screen: 'management',
-    });
-
-    // Stories land on the desk when the week is reconciled, not as an ambush on
-    // the way out of it; the card is then opened from the inbox.
-    useM1Store.getState().reconcileAssistantInbox();
-    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe(
-      'giant-spider-arrives',
-    );
-    useM1Store.getState().openDeskStory();
-    expect(useM1Store.getState().screen).toBe('event');
-    const beforeChoice = useM1Store.getState().career!;
-    const userClub = beforeChoice.clubs.find(
-      (club) => club.id === beforeChoice.userClubId,
-    )!;
-    const moraleBefore = beforeChoice.players
-      .filter((player) => player.clubId === beforeChoice.userClubId)
-      .map((player) => ({ id: player.id, morale: player.morale }));
-    expect(
-      storyEventViewModel(beforeChoice, loadLaunchContent()).choices,
-    ).toEqual([
-      expect.objectContaining({
-        id: 'adopt-spider',
-        consequenceHint:
-          '35% chance: +10 squad morale and +100 fans. Otherwise nothing.',
-        tone: 'risky',
-      }),
-      expect.objectContaining({
-        id: 'call-groundskeeper',
-        consequenceHint: 'Guaranteed: +8 TP',
-        tone: 'safe',
-      }),
-    ]);
-
-    useM1Store.getState().chooseEvent('adopt-spider');
-    const resolved = useM1Store.getState().career!;
-    expect(resolved.eventFlags).toContain('spider-adopted');
-    expect(
-      resolved.clubs.find((club) => club.id === resolved.userClubId)?.fans,
-    ).toBe(userClub.fans + 100);
-    for (const player of moraleBefore) {
-      expect(
-        resolved.players.find((candidate) => candidate.id === player.id)
-          ?.morale,
-      ).toBe(Math.min(100, player.morale + 10));
-    }
-    // No hasFollowUp: a resolved story only chains into a milestone recognition
-    // when the club has an unseen one banked, and by this point in the fixture
-    // it has none. It used to chain into `first-win` — the 2026-08-02 +5 on the
-    // opening opponent means that match is now a defeat, so the first win comes
-    // later and so does the beat that celebrates it. The chaining itself is
-    // covered where it belongs, by the milestone tests.
-    expect(
-      storyEventViewModel(resolved, loadLaunchContent()).successCutscene,
-    ).toEqual({
-      artKey: 'event-giant-spider-success',
-      headline: 'A mascot is born',
-      rewards: ['+10 squad morale', '+100 fans'],
-    });
-    expect(userHeroes()).toHaveLength(1);
-    useM1Store.getState().continueAfterEvent();
-    expect(useM1Store.getState().career?.resolvedEventIds).toContain(
-      'giant-spider-arrives',
-    );
-    expect(useM1Store.getState().career?.eventFlags).toContain(
-      'm4:event-guide-seen',
-    );
-  });
-
-  it('gives no reward when the spider mascot gamble fails', () => {
-    startAwakenedCareer(456);
-    const career = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: offerCareerEvent(
-        { ...career, week: 7, phase: 'manage', pendingEvent: undefined },
-        'giant-spider-arrives',
-      ),
-      screen: 'event',
-    });
-    const beforeChoice = useM1Store.getState().career!;
-
-    useM1Store.getState().chooseEvent('adopt-spider');
-    const resolved = useM1Store.getState().career!;
-    expect(useM1Store.getState().error).toBeNull();
-    expect(resolved.eventFlags).not.toContain('spider-adopted');
-    expect(resolved.clubs).toEqual(beforeChoice.clubs);
-    expect(resolved.players).toEqual(beforeChoice.players);
-    expect(resolved.trainingPoints).toBe(beforeChoice.trainingPoints);
-  });
-
-  it('always awards the safe spider-event training points', () => {
-    startAwakenedCareer(456);
-    const career = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: offerCareerEvent(
-        { ...career, week: 7, phase: 'manage', pendingEvent: undefined },
-        'giant-spider-arrives',
-      ),
-      screen: 'event',
-    });
-    const beforeChoice = useM1Store.getState().career!;
-
-    useM1Store.getState().chooseEvent('call-groundskeeper');
-    const resolved = useM1Store.getState().career!;
-    expect(useM1Store.getState().error).toBeNull();
-    expect(resolved.trainingPoints).toBe(beforeChoice.trainingPoints + 8);
-    expect(resolved.eventFlags).not.toContain('spider-adopted');
   });
 
   it('validates exact player, coach, and facility selections and guards the no-target escape', () => {
@@ -989,6 +877,72 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState()).toMatchObject({
       postMatch: null,
       postMatchOverlay: null,
+    });
+  });
+
+  it('shows the financial summary before a queued achievement story', () => {
+    const postMatch = examplePostMatch();
+    const career = {
+      ...createCareer(createLaunchCareerSetup(20260810)),
+      phase: 'manage' as const,
+      pendingMilestones: [{ eventId: 'milestone-first-cup-win' }],
+    };
+    useM1Store.setState({
+      career,
+      screen: 'postmatch',
+      postMatch,
+      postMatchOverlay: null,
+    });
+
+    useM1Store.getState().continueAfterMatch();
+
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'management',
+      postMatchOverlay: 'summary',
+      career: {
+        pendingEvent: { eventId: 'milestone-first-cup-win' },
+      },
+    });
+
+    useM1Store.getState().dismissPostMatchSummary();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'event',
+      postMatch: null,
+      postMatchOverlay: null,
+      career: {
+        pendingEvent: { eventId: 'milestone-first-cup-win' },
+      },
+    });
+  });
+
+  it('shows simultaneous achievements in one post-match interruption sequence', () => {
+    const base = createCareer(createLaunchCareerSetup(20260811));
+    useM1Store.setState({
+      career: {
+        ...base,
+        phase: 'manage',
+        pendingMilestones: [{ eventId: 'milestone-crowd-thousand' }],
+        pendingEvent: {
+          eventId: 'milestone-first-cup-win',
+          resolvedChoiceId: 'remember-the-night',
+          outcomeText: 'The first Cup win is recorded.',
+        },
+        eventClock: {
+          ...base.eventClock,
+          storySettledSeason: base.season,
+          storySettledWeek: base.week,
+        },
+      },
+      screen: 'event',
+    });
+
+    useM1Store.getState().continueAfterEvent();
+
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'event',
+      career: {
+        pendingEvent: { eventId: 'milestone-crowd-thousand' },
+      },
     });
   });
 

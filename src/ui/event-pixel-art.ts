@@ -43,7 +43,6 @@ export const EVENT_PALETTE: Readonly<Record<string, string>> = {
 
 /** The 2-3 story objects for each event's `art` key. */
 export const EVENT_OBJECTS: Readonly<Record<string, readonly string[]>> = {
-  'event-giant-spider': ['spider', 'scarf'],
   'event-meteor-shard': ['meteor-crystal', 'star-sparkle'],
   'event-lightning-training': ['lightning-bolt', 'cone'],
   'event-energy-salesman': ['drink-can', 'sunglasses'],

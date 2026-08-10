@@ -206,13 +206,13 @@ describe('deterministic career event rolls', () => {
 
     const first = deterministicCareerEventRoll(
       context,
-      'approach-spider',
+      'approach-story',
       0,
       100,
     );
     const second = deterministicCareerEventRoll(
       context,
-      'approach-spider',
+      'approach-story',
       0,
       100,
     );
@@ -229,10 +229,8 @@ describe('deterministic career event rolls', () => {
   it('keeps choice streams independent', () => {
     const context = { careerSeed: 456, season: 1, week: 9, riskyChoices: 1 };
     expect(
-      deterministicCareerEventRoll(context, 'approach-spider', 0, 100),
-    ).not.toBe(
-      deterministicCareerEventRoll(context, 'approach-spider', 1, 100),
-    );
+      deterministicCareerEventRoll(context, 'approach-story', 0, 100),
+    ).not.toBe(deterministicCareerEventRoll(context, 'approach-story', 1, 100));
   });
 
   it.each([
@@ -242,7 +240,7 @@ describe('deterministic career event rolls', () => {
     [{ careerSeed: 1, season: 1, week: 9, riskyChoices: -1 }],
   ])('rejects invalid roll context %p', (context) => {
     expect(() =>
-      deterministicCareerEventRoll(context, 'approach-spider', 0, 100),
+      deterministicCareerEventRoll(context, 'approach-story', 0, 100),
     ).toThrow();
   });
 });

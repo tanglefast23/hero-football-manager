@@ -11,20 +11,20 @@ import { storyEventViewModel } from '../view-models';
 describe('M4 risky-success cutscene rewards', () => {
   it('names every kind of earned bonus, including squad development', () => {
     const content = loadLaunchContent();
-    const spider = content.events.events.find(
-      (event) => event.id === 'giant-spider-arrives',
+    const meteor = content.events.events.find(
+      (event) => event.id === 'meteor-shard-center-circle',
     )!;
     const withDevelopment = {
       ...content,
       events: {
         ...content.events,
         events: content.events.events.map((event) =>
-          event.id !== spider.id
+          event.id !== meteor.id
             ? event
             : {
                 ...event,
                 choices: event.choices.map((choice) =>
-                  choice.id !== 'adopt-spider'
+                  choice.id !== 'display-meteor'
                     ? choice
                     : {
                         ...choice,
@@ -34,7 +34,16 @@ describe('M4 risky-success cutscene rewards', () => {
                             : {
                                 ...outcome,
                                 effects: [
-                                  ...outcome.effects,
+                                  {
+                                    type: 'squadMorale' as const,
+                                    amount: 10,
+                                  },
+                                  { type: 'fans' as const, amount: 100 },
+                                  {
+                                    type: 'flag' as const,
+                                    flag: 'test-success',
+                                    value: true,
+                                  },
                                   {
                                     type: 'statDelta' as const,
                                     attribute: 'tec' as const,
@@ -52,9 +61,9 @@ describe('M4 risky-success cutscene rewards', () => {
     };
     const initial = createCareer(createLaunchCareerSetup());
     const resolved = applyCareerEventOutcome(
-      offerCareerEvent(initial, spider.id),
-      'adopt-spider',
-      'The spider becomes the mascot.',
+      offerCareerEvent(initial, meteor.id),
+      'display-meteor',
+      'The shard draws a crowd.',
       { moraleDelta: 10, fanDelta: 100 } as never,
       { outcomeIndex: 0, risky: true, success: true },
     );

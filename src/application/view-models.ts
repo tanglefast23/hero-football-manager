@@ -2964,16 +2964,21 @@ export function isHomeDeskClear(state: GameState): boolean {
  * This runs when the career arrives at a manage week rather than when the player
  * leaves one, because a match week reaches its desk through the match rather
  * than through Advance Week — deciding on the way out would skip every week with
- * a fixture, which is most of them. The week stamp makes repeat calls free.
+ * a fixture, which is most of them. The week stamp makes repeat calls free unless
+ * an achievement was earned after that desk was settled.
  */
 export function settleWeeklyStory(state: GameState): GameState {
   if (state.phase !== 'manage' || state.pendingEvent !== undefined)
     return state;
   if (state.onboarding !== undefined && state.onboarding.stage !== 'complete')
     return state;
+  const hasQueuedAchievement = (state.pendingMilestones ?? []).some((entry) =>
+    LAUNCH_CONTENT.events.events.some((event) => event.id === entry.eventId),
+  );
   if (
     state.eventClock.storySettledSeason === state.season &&
-    state.eventClock.storySettledWeek === state.week
+    state.eventClock.storySettledWeek === state.week &&
+    !hasQueuedAchievement
   ) {
     return state;
   }

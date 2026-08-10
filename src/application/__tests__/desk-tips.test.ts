@@ -163,7 +163,7 @@ describe("manager's tips", () => {
   it('yields the quiet week to a story rather than stacking under it', () => {
     const withStory = offerCareerEvent(
       deskClearCareer(20261207),
-      'giant-spider-arrives',
+      'meteor-shard-center-circle',
     );
 
     expect(settleWeeklyTip(withStory)).toBe(withStory);

@@ -1423,7 +1423,7 @@ add a stable id to every outcome in `content/events.json`.
 **The id must include the choice**, because an event can have several risky
 choices each with a success and a setback outcome — so `derby-night.success` is
 not unique. Derive it as `<eventId>.<choiceId>.<role>`, e.g.
-`giant-spider-arrives.adopt-spider.success`. Never derive from the array index:
+`meteor-shard-center-circle.display-meteor.success`. Never derive from the array index:
 that is the fragility this task exists to remove.
 
 - [ ] **Step 4: Run the test and watch it pass**

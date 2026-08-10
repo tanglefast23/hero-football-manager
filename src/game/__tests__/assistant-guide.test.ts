@@ -30,7 +30,7 @@ describe('assistant guide milestones', () => {
   test('is idempotent and preserves unrelated event flags', () => {
     const state = {
       ...createCareer(createLaunchCareerSetup(842)),
-      eventFlags: ['spider-adopted'],
+      eventFlags: ['unrelated-event-flag'],
     };
     const once = completeAssistantGuideMilestone(
       state,
@@ -42,7 +42,7 @@ describe('assistant guide milestones', () => {
     );
 
     expect(once.eventFlags).toEqual([
-      'spider-adopted',
+      'unrelated-event-flag',
       'guide:bert:first-training-complete',
     ]);
     expect(twice).toBe(once);

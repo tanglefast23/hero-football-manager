@@ -394,43 +394,26 @@ export function completeMatchday(
     participantIdsByFixture,
   );
 
-  const playedLeagueState: GameState = {
-    ...state,
-    fixtures,
-    players,
-    seasonStatLines,
-    // Banked now, because the scorer list does not survive the week.
-    ...(hatTrickScorerId === undefined
-      ? {}
-      : {
-          eventFlags: state.eventFlags.includes('milestone:hat-trick')
-            ? state.eventFlags
-            : [...state.eventFlags, 'milestone:hat-trick'],
-          pendingMilestones:
-            (state.pendingMilestones ?? []).some(
-              (entry) => entry.eventId === 'milestone-hat-trick',
-            ) || state.resolvedEventIds.includes('milestone-hat-trick')
-              ? state.pendingMilestones
-              : [
-                  ...(state.pendingMilestones ?? []),
-                  {
-                    eventId: 'milestone-hat-trick',
-                    selectedPlayerId: hatTrickScorerId,
-                  },
-                ],
-        }),
-    ...(pendingImpact === undefined
-      ? {}
-      : {
-          clubBusiness: {
-            ...state.clubBusiness,
-            pendingUserMatchImpacts: appendPendingUserMatchImpact(
-              state.clubBusiness.pendingUserMatchImpacts,
-              pendingImpact,
-            ),
-          },
-        }),
-  };
+  const playedLeagueState = bankHatTrickMilestone(
+    {
+      ...state,
+      fixtures,
+      players,
+      seasonStatLines,
+      ...(pendingImpact === undefined
+        ? {}
+        : {
+            clubBusiness: {
+              ...state.clubBusiness,
+              pendingUserMatchImpacts: appendPendingUserMatchImpact(
+                state.clubBusiness.pendingUserMatchImpacts,
+                pendingImpact,
+              ),
+            },
+          }),
+    },
+    hatTrickScorerId,
+  );
   if (nationalCupUserFixtureForCurrentWeek(playedLeagueState) !== undefined) {
     return { ...playedLeagueState, phase: 'matchday' };
   }
@@ -593,6 +576,31 @@ function hatTrickScorer(
     if (scorer !== undefined) return scorer[0];
   }
   return undefined;
+}
+
+/** Banks the scorer while the settlement result still carries goal identities. */
+function bankHatTrickMilestone(
+  state: GameState,
+  scorerPlayerId: string | undefined,
+): GameState {
+  if (scorerPlayerId === undefined) return state;
+  const eventId = 'milestone-hat-trick';
+  const alreadyQueued = (state.pendingMilestones ?? []).some(
+    (entry) => entry.eventId === eventId,
+  );
+  return {
+    ...state,
+    eventFlags: state.eventFlags.includes('milestone:hat-trick')
+      ? state.eventFlags
+      : [...state.eventFlags, 'milestone:hat-trick'],
+    pendingMilestones:
+      alreadyQueued || state.resolvedEventIds.includes(eventId)
+        ? state.pendingMilestones
+        : [
+            ...(state.pendingMilestones ?? []),
+            { eventId, selectedPlayerId: scorerPlayerId },
+          ],
+  };
 }
 
 function settleCurrentWeek(
@@ -1654,6 +1662,7 @@ function completeNationalCupMatchday(
     throw new Error('the matchday has no scheduled league or Hero Cup fixture');
   }
   validateResults(state, cupMatchday.fixtures, results);
+  const hatTrickScorerId = hatTrickScorer(state, cupMatchday.fixtures, results);
   const result = results[0];
   const cupFixture = nationalCupFixtureById(state, cupMatchday.fixture.id);
   if (cupFixture === undefined || state.m2 === undefined) {
@@ -1689,34 +1698,37 @@ function completeNationalCupMatchday(
           [pendingImpact.fixtureId, pendingImpact.participantPlayerIds],
         ]);
   const progressed: GameState = queueCupGiantKillingCelebration(
-    {
-      ...state,
-      m2: resolveNextM2NationalCupRound(state.m2, cupResult),
-      players: resolveCareerMatchFame(
-        state,
-        cupMatchday.fixtures,
-        resultByFixtureId,
-        participantIdsByFixture,
-        new Map([[result.fixtureId, winnerClubId]]),
-      ),
-      seasonStatLines: recordStatLines(
-        state,
-        cupMatchday.fixtures,
-        resultByFixtureId,
-        'cup',
-      ),
-      ...(pendingImpact === undefined
-        ? {}
-        : {
-            clubBusiness: {
-              ...state.clubBusiness,
-              pendingUserMatchImpacts: appendPendingUserMatchImpact(
-                state.clubBusiness.pendingUserMatchImpacts,
-                pendingImpact,
-              ),
-            },
-          }),
-    },
+    bankHatTrickMilestone(
+      {
+        ...state,
+        m2: resolveNextM2NationalCupRound(state.m2, cupResult),
+        players: resolveCareerMatchFame(
+          state,
+          cupMatchday.fixtures,
+          resultByFixtureId,
+          participantIdsByFixture,
+          new Map([[result.fixtureId, winnerClubId]]),
+        ),
+        seasonStatLines: recordStatLines(
+          state,
+          cupMatchday.fixtures,
+          resultByFixtureId,
+          'cup',
+        ),
+        ...(pendingImpact === undefined
+          ? {}
+          : {
+              clubBusiness: {
+                ...state.clubBusiness,
+                pendingUserMatchImpacts: appendPendingUserMatchImpact(
+                  state.clubBusiness.pendingUserMatchImpacts,
+                  pendingImpact,
+                ),
+              },
+            }),
+      },
+      hatTrickScorerId,
+    ),
     cupGiantKillingCelebration(state, cupFixture, winnerClubId),
   );
   const cupOutcome: WeeklyMatchOutcome =
