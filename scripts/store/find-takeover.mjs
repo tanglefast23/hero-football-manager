@@ -12,7 +12,10 @@ const dir = process.argv[2] || '/tmp/hfm-frames';
 const REGION = { x: 0, y: 2380, w: 1320, h: 480 };
 
 const ck = await CanvasKitInit();
-const files = fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
+const files = fs
+  .readdirSync(dir)
+  .filter((f) => f.endsWith('.png'))
+  .sort();
 const rows = [];
 
 for (const f of files) {
@@ -34,12 +37,20 @@ for (const f of files) {
     alphaType: ck.AlphaType.Unpremul,
     colorSpace: ck.ColorSpace.SRGB,
   });
-  let r = 0, g = 0, b = 0, n = 0;
-  for (let i = 0; i < px.length; i += 4 * 37) { // stride-sample, plenty stable
-    r += px[i]; g += px[i + 1]; b += px[i + 2]; n += 1;
+  let r = 0,
+    g = 0,
+    b = 0,
+    n = 0;
+  for (let i = 0; i < px.length; i += 4 * 37) {
+    // stride-sample, plenty stable
+    r += px[i];
+    g += px[i + 1];
+    b += px[i + 2];
+    n += 1;
   }
   rows.push({ f, r: r / n, g: g / n, b: b / n });
-  img.delete(); surface.delete();
+  img.delete();
+  surface.delete();
 }
 
 const med = (xs) => xs.slice().sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -51,7 +62,9 @@ for (const row of rows) {
   row.d = Math.hypot(row.r - mr, row.g - mg, row.b - mb);
 }
 rows.sort((a, b) => b.d - a.d);
-console.log(`median control colour rgb(${mr.toFixed(0)},${mg.toFixed(0)},${mb.toFixed(0)})`);
+console.log(
+  `median control colour rgb(${mr.toFixed(0)},${mg.toFixed(0)},${mb.toFixed(0)})`,
+);
 console.log('most-different frames:');
 for (const row of rows.slice(0, 18)) {
   console.log(

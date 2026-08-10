@@ -8,7 +8,11 @@
  */
 import fs from 'node:fs';
 import { createLaunchCareerSetup } from '../application/launch';
-import { advanceWeek, createCareer, activeCareerMatchday } from '../game/career';
+import {
+  advanceWeek,
+  createCareer,
+  activeCareerMatchday,
+} from '../game/career';
 import { quickMatchForFixture } from '../game/matchday';
 import { buildCareerTeams } from '../game/squad';
 import type { GameState } from '../game/types';
@@ -116,7 +120,6 @@ test('search career seeds for a firing flame power', () => {
   }
 
   fs.writeFileSync('/tmp/hfm-flame-search.json', JSON.stringify(hits, null, 2));
-
 
   expect(hits.length).toBeGreaterThan(0);
 });
