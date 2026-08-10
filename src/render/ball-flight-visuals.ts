@@ -5,6 +5,17 @@ export const BALL_HEIGHT_VISUAL_SCALE = 2.6;
 export const BALL_AIRBORNE_THRESHOLD_CM = 2;
 const BALL_MINIMUM_ARC_LIFT_PX = 6;
 
+/** One cue at shadow take-off, never once per airborne animation frame. */
+export function ballFlightWhooshStarted(
+  previousHeightCm: number,
+  nextHeightCm: number,
+): boolean {
+  return (
+    previousHeightCm < BALL_AIRBORNE_THRESHOLD_CM &&
+    nextHeightCm >= BALL_AIRBORNE_THRESHOLD_CM
+  );
+}
+
 export function ballVisualOffset(heightCm: number, pitchScale: number): number {
   'worklet';
   const height = Math.max(0, heightCm);

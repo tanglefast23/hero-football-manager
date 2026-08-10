@@ -29,6 +29,7 @@ export type SfxKey =
   | 'fulltime-whistle'
   | 'kick-pass'
   | 'kick-shot'
+  | 'ball-flight-whoosh'
   | 'tackle-thud'
   | 'grunt'
   | 'body-fall'
@@ -72,6 +73,7 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'fulltime-whistle': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'kick-pass': require('../../assets/audio/sfx/kick-pass.wav'),
   'kick-shot': require('../../assets/audio/sfx/kick-shot.m4a'),
+  'ball-flight-whoosh': require('../../assets/audio/sfx/ball-flight-whoosh.m4a'),
   'tackle-thud': require('../../assets/audio/sfx/tackle-thud.m4a'),
   grunt: require('../../assets/audio/sfx/grunt.wav'),
   'body-fall': require('../../assets/audio/sfx/body-fall.m4a'),
@@ -133,6 +135,11 @@ const MUSIC_VOLUME = 0.5;
 // The fire crackle is levelled as a bed, already 4 LU under the one-shots; this
 // puts it a little further down again, below the cues it burns underneath.
 const FIRE_LOOP_VOLUME = 0.7;
+// The supplied whoosh supports the kick and shadow instead of announcing a
+// separate event. Twelve decibels below a normal one-shot keeps it underneath.
+const SFX_BASE_VOLUME: Partial<Record<SfxKey, number>> = {
+  'ball-flight-whoosh': 0.25,
+};
 // Multiplies the existing mix without changing its balance. The dev overlay
 // owns the five user-facing steps; keeping this as a plain 0..1 number makes
 // the audio layer usable by a future release settings screen too.
@@ -180,6 +187,7 @@ const SHOWCASE_BASE_SFX: readonly SfxKey[] = [
   'kickoff-whistle',
   'kick-pass',
   'kick-shot',
+  'ball-flight-whoosh',
   'tackle-thud',
   'grunt',
   'body-fall',
@@ -344,8 +352,8 @@ function setPlayerVolume(
 }
 
 function applyMasterVolume(): void {
-  for (const player of sfxPlayers.values()) {
-    setPlayerVolume(player, 1, 'SFX');
+  for (const [key, player] of sfxPlayers) {
+    setPlayerVolume(player, SFX_BASE_VOLUME[key] ?? 1, 'SFX');
   }
   if (themePlayer) setPlayerVolume(themePlayer, MUSIC_VOLUME, 'theme');
   if (fireLoopPlayer)
@@ -561,6 +569,12 @@ export function playForEvent(e: MatchEvent): void {
   for (const key of filesForEvent(e)) {
     playSfxKey(key, false);
   }
+}
+
+/** Quiet render-owned cue for the tick on which the airborne shadow appears. */
+export function playBallFlightWhoosh(): void {
+  if (!ready || masterVolume === 0) return;
+  playSfxKey('ball-flight-whoosh', false);
 }
 
 export function startTheme(): void {

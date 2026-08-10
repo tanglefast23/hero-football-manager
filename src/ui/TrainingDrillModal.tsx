@@ -14,6 +14,7 @@ import { BertFullBody } from './BertFullBody';
 import { energyBand } from '../render/match-energy-ui';
 import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
 import {
+  playDrillCompleteSfx,
   playDrillResultSfx,
   playSuperTrainingSfx,
   playManagementActionSfx,
@@ -220,6 +221,7 @@ export function TrainingDrillModal({
     seenSequenceRef.current = result.sequence;
 
     streakRef.current += 1;
+    playDrillCompleteSfx();
     if (result.isSuper) {
       playSuperTrainingSfx();
       playManagementHaptic('hero');

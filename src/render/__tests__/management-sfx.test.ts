@@ -38,6 +38,7 @@ jest.mock('expo-audio', () => ({
 
 import {
   playCoachDepartureSfx,
+  playDrillCompleteSfx,
   playDrillGainRevealSfx,
   playDrillProgressSfx,
   playEventSuccessSfx,
@@ -89,12 +90,17 @@ describe('management feedback sounds', () => {
     prewarmManagementSfx();
     prewarmManagementSfx();
 
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     expect(mockPlayers.every((player) => player.volume === 0)).toBe(true);
     expect(mockPlayers.every((player) => player.muted)).toBe(true);
 
     setManagementSfxMasterVolume(0.4);
-    expect(mockPlayers.every((player) => player.volume === 0.4)).toBe(true);
+    expect(mockPlayers[27].volume).toBeCloseTo(0.23829847041728445);
+    expect(
+      mockPlayers
+        .filter((_, index) => index !== 27)
+        .every((player) => player.volume === 0.4),
+    ).toBe(true);
     expect(mockPlayers.every((player) => !player.muted)).toBe(true);
   });
 
@@ -103,9 +109,14 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     const trainingDing = mockPlayers[1];
-    expect(mockPlayers.every((player) => player.volume === 0.5)).toBe(true);
+    expect(mockPlayers[27].volume).toBeCloseTo(0.29787308802160557);
+    expect(
+      mockPlayers
+        .filter((_, index) => index !== 27)
+        .every((player) => player.volume === 0.5),
+    ).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
     expect(trainingDing.play).toHaveBeenCalledTimes(1);
 
@@ -118,7 +129,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -204,7 +215,7 @@ describe('management feedback sounds', () => {
 
     playMatchDayCallSfx(false);
     await Promise.resolve();
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     // 'match-day-fanfare' is appended last, so it owns the final catalog slot;
     // the bugle keeps the slot before it.
     expect(mockPlayers[25].play).toHaveBeenCalledTimes(1);
@@ -229,9 +240,9 @@ describe('management feedback sounds', () => {
 
     const uiClickPool = [
       mockPlayers[2],
-      mockPlayers[27],
       mockPlayers[28],
       mockPlayers[29],
+      mockPlayers[30],
     ];
     // One press, one rewind, one play — on a voice of its own, so four quick
     // presses never share a playhead.
@@ -307,7 +318,7 @@ describe('management feedback sounds', () => {
     playDrillProgressSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     const progress = mockPlayers[18];
     expect(progress.seekTo).toHaveBeenCalledWith(0);
     expect(progress.play).toHaveBeenCalledTimes(1);
@@ -320,6 +331,39 @@ describe('management feedback sounds', () => {
     expect(mockPlayers[19].play).toHaveBeenCalledTimes(1);
     // The reveal must not restart the bed the count-up just stopped.
     expect(progress.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('plays the supplied drill-complete cue once, 2 dB below three-quarter gain', async () => {
+    const sounds = readFileSync(
+      join(process.cwd(), 'src/render/management-sfx.ts'),
+      'utf8',
+    );
+    const modal = readFileSync(
+      join(process.cwd(), 'src/ui/TrainingDrillModal.tsx'),
+      'utf8',
+    );
+
+    expect(sounds).toContainSource(
+      "'drill-complete': require('../../assets/audio/sfx/drill-complete-heavy.wav')",
+    );
+    expect(sounds).toContainSource(
+      'const DRILL_COMPLETE_GAIN = 0.75 * 10 ** (-2 / 20)',
+    );
+    expect(modal).toContainSource(
+      'streakRef.current += 1;\n    playDrillCompleteSfx();\n    if (result.isSuper)',
+    );
+
+    playDrillCompleteSfx();
+    await Promise.resolve();
+
+    expect(mockPlayers).toHaveLength(34);
+    const completion = mockPlayers[27];
+    expect(completion.volume).toBeCloseTo(0.5957461760432111);
+    expect(completion.seekTo).toHaveBeenCalledWith(0);
+    expect(completion.play).toHaveBeenCalledTimes(1);
+
+    setManagementSfxMasterVolume(0.4);
+    expect(completion.volume).toBeCloseTo(0.23829847041728445);
   });
 
   it('ties the progress bed to the count-up inside the drill scene', () => {
@@ -342,7 +386,7 @@ describe('management feedback sounds', () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
@@ -351,7 +395,7 @@ describe('management feedback sounds', () => {
     playPositiveSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     // 'positive' is appended last, so it owns the final player slot.
     const positive = mockPlayers[16];
     expect(positive.seekTo).toHaveBeenCalledWith(0);
@@ -376,7 +420,7 @@ describe('management feedback sounds', () => {
 
     playSuperTrainingYaySfx();
     await Promise.resolve();
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
   });
 
@@ -427,9 +471,9 @@ describe('management feedback sounds', () => {
     await Promise.resolve();
 
     // Same catalog rebuilt in the same order — every index above stays valid.
-    expect(mockPlayers).toHaveLength(66);
+    expect(mockPlayers).toHaveLength(68);
     expect(mockPlayers[16].release).toHaveBeenCalledTimes(1);
-    const rebuiltPositive = mockPlayers[33 + 16];
+    const rebuiltPositive = mockPlayers[34 + 16];
     expect(rebuiltPositive.seekTo).toHaveBeenCalledWith(0);
     await Promise.resolve();
     expect(rebuiltPositive.play).toHaveBeenCalledTimes(1);
@@ -446,10 +490,10 @@ describe('management feedback sounds', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(66);
+    expect(mockPlayers).toHaveLength(68);
     // The rebuilt pool starts from a fresh cursor, so the retry lands on the
     // rebuilt catalog's own ui-click voice.
-    const rebuiltUiClick = mockPlayers[33 + 2];
+    const rebuiltUiClick = mockPlayers[34 + 2];
     expect(rebuiltUiClick.seekTo).toHaveBeenCalledWith(0);
     await Promise.resolve();
     expect(rebuiltUiClick.play).toHaveBeenCalledTimes(1);
@@ -462,12 +506,12 @@ describe('management feedback sounds', () => {
     playStatStepSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(33);
+    expect(mockPlayers).toHaveLength(34);
     const statStepPool = [
       mockPlayers[17],
-      mockPlayers[30],
       mockPlayers[31],
       mockPlayers[32],
+      mockPlayers[33],
     ];
     expect(
       statStepPool.every((player) => player.seekTo.mock.calls.length === 1),

@@ -28,7 +28,9 @@ jest.mock('expo-audio', () => ({
 }));
 
 import {
+  audioKeysForProfile,
   initAudio,
+  playBallFlightWhoosh,
   playForEvent,
   setMasterVolume,
   startFireAmbience,
@@ -47,6 +49,22 @@ describe('match audio session recovery', () => {
 
   afterEach(() => {
     teardownAudio();
+  });
+
+  it('plays the supplied ball-flight whoosh at quiet gain', async () => {
+    initAudio();
+    const whooshIndex =
+      audioKeysForProfile('full').indexOf('ball-flight-whoosh');
+    const whoosh = mockPlayers[whooshIndex];
+
+    expect(whoosh.volume).toBe(0.25);
+    playBallFlightWhoosh();
+    await Promise.resolve();
+    expect(whoosh.seekTo).toHaveBeenCalledWith(0);
+    expect(whoosh.play).toHaveBeenCalledTimes(1);
+
+    setMasterVolume(0.4);
+    expect(whoosh.volume).toBeCloseTo(0.1);
   });
 
   it('rebuilds every player and resumes the theme when the audio session dies', () => {

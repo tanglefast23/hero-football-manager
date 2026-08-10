@@ -19,7 +19,8 @@ type ExplicitManagementSfxKey =
   | 'match-day-bugle'
   | 'quick-result-faceoff'
   | 'match-day-fanfare'
-  | 'match-control';
+  | 'match-control'
+  | 'drill-complete';
 
 export type ManagementActionCue =
   | 'select'
@@ -116,10 +117,20 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // from `ui-click`, so speed, pause, settings, and management screens keep their
   // existing cues.
   'match-control': require('../../assets/audio/sfx/match-control-whistle.wav'),
+  // The supplied heavy drill-finish cue. Appended so every existing semantic
+  // key keeps its catalog order; its own base gain is pinned below.
+  'drill-complete': require('../../assets/audio/sfx/drill-complete-heavy.wav'),
+};
+
+const DRILL_COMPLETE_GAIN = 0.75 * 10 ** (-2 / 20);
+
+const MANAGEMENT_SFX_BASE_GAIN: Partial<Record<ManagementSfxKey, number>> = {
+  'drill-complete': DRILL_COMPLETE_GAIN,
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
 const ownedPlayers = new Set<AudioPlayer>();
+const playerBaseGains = new Map<AudioPlayer, number>();
 type RapidManagementSfxKey = 'ui-click' | 'stat-step';
 const RAPID_SFX_KEYS: readonly RapidManagementSfxKey[] = [
   'ui-click',
@@ -148,7 +159,7 @@ let lastRecoveryAt = 0;
  * revived, so recovery releases the whole catalog and rebuilds it through the
  * normal init — same cue order, same pool sizes, so every player index stays
  * where the tests pin it. The cooldown keeps a device whose audio is genuinely
- * broken fail-soft instead of rebuilding 32 players on every tap.
+ * broken fail-soft instead of rebuilding the whole catalog on every tap.
  */
 function tryRecoverManagementSfx(): boolean {
   const now = Date.now();
@@ -164,6 +175,7 @@ function tryRecoverManagementSfx(): boolean {
   }
   players.clear();
   ownedPlayers.clear();
+  playerBaseGains.clear();
   rapidPlayers.clear();
   rapidPlayerCursor.clear();
   initAttempted = false;
@@ -195,10 +207,12 @@ function initManagementSfx(): void {
         // A button must not reopen the native audio session on every tap.
         keepAudioSessionActive: true,
       });
-      player.volume = masterVolume;
+      const baseGain = MANAGEMENT_SFX_BASE_GAIN[key] ?? 1;
+      player.volume = baseGain * masterVolume;
       player.muted = masterVolume === 0;
       players.set(key, player);
       ownedPlayers.add(player);
+      playerBaseGains.set(player, baseGain);
     } catch (error) {
       warnOnce(
         `${key} failed to load; that cue is silent for this session`,
@@ -224,6 +238,7 @@ function initManagementSfx(): void {
         player.muted = masterVolume === 0;
         pool.push(player);
         ownedPlayers.add(player);
+        playerBaseGains.set(player, 1);
       } catch (error) {
         warnOnce(
           `${key} rapid player failed to load; repeated taps may be delayed`,
@@ -243,7 +258,7 @@ export function setManagementSfxMasterVolume(volume: number): void {
   // take the render with it — every other module in this folder guards its own.
   for (const player of ownedPlayers) {
     try {
-      player.volume = masterVolume;
+      player.volume = (playerBaseGains.get(player) ?? 1) * masterVolume;
       player.muted = masterVolume === 0;
     } catch (error) {
       warnOnce('volume apply failed', error);
@@ -279,6 +294,11 @@ export function playDrillResultSfx(streak: number): void {
     .catch((error: unknown) =>
       warnOnce('training-ding playback failed', error),
     );
+}
+
+/** Supplied heavy finish cue, once for every resolved ordinary or SUPER drill. */
+export function playDrillCompleteSfx(): void {
+  playManagementSfx('drill-complete');
 }
 
 /** Big celebratory hit for a SUPER training session. */
@@ -526,6 +546,7 @@ export function teardownManagementSfx(): void {
   }
   players.clear();
   ownedPlayers.clear();
+  playerBaseGains.clear();
   rapidPlayers.clear();
   rapidPlayerCursor.clear();
   initAttempted = false;

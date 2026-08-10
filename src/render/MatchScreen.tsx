@@ -85,6 +85,7 @@ import {
 } from './WorkletMatchOverlays';
 import {
   BALL_AIRBORNE_THRESHOLD_CM,
+  ballFlightWhooshStarted,
   ballVisualOffset,
 } from './ball-flight-visuals';
 import {
@@ -201,6 +202,7 @@ import { useCopy } from '../i18n';
 import {
   type MatchAudioProfile,
   initAudio,
+  playBallFlightWhoosh,
   playForEvent,
   startFireAmbience,
   startTheme,
@@ -1436,6 +1438,15 @@ export function MatchScreen({
                 ...ballFlightTrailRef.current,
               ].slice(0, BALL_FLIGHT_TRAIL_LEN)
             : [];
+
+        if (
+          ballFlightWhooshStarted(
+            prevRef.current!.ballHeight,
+            nextRef.current!.ballHeight,
+          )
+        ) {
+          playBallFlightWhoosh();
+        }
 
         acc -= TICK_MS;
       }

@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   BALL_AIRBORNE_THRESHOLD_CM,
+  ballFlightWhooshStarted,
   ballHeightScale,
   ballShadowOpacity,
   ballShadowRadius,
@@ -24,5 +27,22 @@ describe('airborne ball presentation', () => {
     expect(0).toBeLessThan(BALL_AIRBORNE_THRESHOLD_CM);
     expect(10).toBeGreaterThan(BALL_AIRBORNE_THRESHOLD_CM);
     expect(ballVisualOffset(0, 0.05)).toBe(0);
+  });
+
+  it('starts one whoosh when a flight crosses into the visible-shadow state', () => {
+    expect(ballFlightWhooshStarted(0, 1)).toBe(false);
+    expect(ballFlightWhooshStarted(0, BALL_AIRBORNE_THRESHOLD_CM)).toBe(true);
+    expect(ballFlightWhooshStarted(2, 80)).toBe(false);
+    expect(ballFlightWhooshStarted(80, 2)).toBe(false);
+    expect(ballFlightWhooshStarted(2, 0)).toBe(false);
+
+    const screen = readFileSync(
+      join(process.cwd(), 'src/render/MatchScreen.tsx'),
+      'utf8',
+    );
+    expect(screen.match(/playBallFlightWhoosh\(\)/g)).toHaveLength(1);
+    expect(screen).toContainSource(
+      'ballFlightWhooshStarted(\n            prevRef.current!.ballHeight,\n            nextRef.current!.ballHeight,\n          )',
+    );
   });
 });

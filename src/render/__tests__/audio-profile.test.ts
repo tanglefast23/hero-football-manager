@@ -5,6 +5,7 @@ describe('match audio profiles', () => {
     const showcase = audioKeysForProfile('showcase', 'SUPER_STRENGTH');
     expect(showcase).toContain('super-strength-boom');
     expect(showcase).toContain('kick-pass');
+    expect(showcase).toContain('ball-flight-whoosh');
     expect(showcase).not.toContain('blink-teleport');
     expect(showcase.length).toBeLessThan(audioKeysForProfile('full').length);
   });
