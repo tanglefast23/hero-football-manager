@@ -8,6 +8,7 @@ import {
   DrillSceneOverlay,
   drillActivityId,
 } from '../render/DrillSceneOverlay';
+import { drillPresentationMs } from '../render/drill-presentation-timing';
 import { BertFullBody } from './BertFullBody';
 import { energyBand } from '../render/match-energy-ui';
 import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
@@ -99,7 +100,7 @@ interface DrillBatch {
 
 const REPEAT_PICKER_CELL_WIDTH = 48;
 /** How long the drill list ignores presses after a presentation closes under it. */
-const PRESENTATION_SETTLE_MS = 350;
+const PRESENTATION_SETTLE_MS = drillPresentationMs(350);
 
 /**
  * The whole training loop lives here: tap a stat, the drill resolves instantly,

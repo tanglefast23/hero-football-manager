@@ -184,7 +184,7 @@ describe('opening sentinel', () => {
     //
     // Updated deliberately, 2026-08-08, for the named superheroes: the opening
     // fixture is always against the division's strongest rival, and that club
-    // now fields Barry Allan. The three scattered draws this digest used to
+    // now fields Larry Alan. The three scattered draws this digest used to
     // carry — one for smart-concentration, two for joe-observed-no-coach — are
     // gone, so every arm loses the opener on all eight seeds.
     //

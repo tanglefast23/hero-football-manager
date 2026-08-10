@@ -37,7 +37,7 @@ export const SPECIAL_HERO_ROSTER: readonly SpecialHero[] = [
   {
     id: 'special-f171',
     lookId: 'f171',
-    name: 'Barry Allan',
+    name: 'Larry Alan',
     role: 'FWD',
     power: 'SUPER_SPEED',
     placement: 5,

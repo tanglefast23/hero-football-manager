@@ -502,6 +502,7 @@
     "clubFinances.borrowed": "Prestado",
     "clubFinances.bringingInRevenue": "Lo que da dinero",
     "clubFinances.buildCost": "Coste de obra",
+    "clubFinances.buildHere": "Construir aquí",
     "clubFinances.buildHereColumnRow": "Construir aquí · columna {column}, fila {row}",
     "clubFinances.buildHint": "Elige un edificio del {menu} de abajo. Cada casilla libre muestra un +.",
     "clubFinances.buildMenu": "Menú de obra",

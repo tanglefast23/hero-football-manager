@@ -59,6 +59,10 @@ import {
 } from '../concierge-targets';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { ScreenTabs, type ScreenTab } from '../components/ScreenTabs';
+import {
+  GuidanceDoubleFlash,
+  type GuidanceNudgeTarget,
+} from '../GuidanceDoubleFlash';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useCopy, type CopyFn } from '../../i18n';
@@ -66,6 +70,8 @@ import { useCopy, type CopyFn } from '../../i18n';
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;
 const FACILITY_PLACEMENT_PLUS_THICKNESS = 4;
+const FACILITY_PLACEMENT_HOVER_TIP_WIDTH = 176;
+const FACILITY_PLACEMENT_HOVER_TIP_MARGIN = 8;
 
 /** Scrolls the ScrollView so the given target (a rendered View) is margin px
  * below the viewport top. Works regardless of column nesting because both
@@ -158,6 +164,12 @@ export interface ClubFinancesScreenProps {
   onOpenLedgerLine?: (ledgerLineId: string) => void;
   onBuildTrainingGround: () => void;
   onBuildFacility?: (type: FacilityTypeViewModel, x: number, y: number) => void;
+  /** The only new facility this week's required desk job permits. */
+  requiredBuildType?: FacilityTypeViewModel;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
+  /** Explains a refused catalog choice through Bert instead of a silent disabled card. */
+  onRequiredBuildTypeBlocked?: (required: FacilityTypeViewModel) => void;
   onUpgradeFacility?: (buildingId: string) => void;
   onRelocateFacility?: (buildingId: string, x: number, y: number) => void;
   onCloseFacility?: (buildingId: string) => void;
@@ -181,6 +193,10 @@ export function ClubFinancesScreen({
   onOpenLedgerLine,
   onBuildTrainingGround,
   onBuildFacility,
+  requiredBuildType,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  onRequiredBuildTypeBlocked,
   onUpgradeFacility,
   onRelocateFacility,
   onCloseFacility,
@@ -691,6 +707,9 @@ export function ClubFinancesScreen({
    */
   const revealFacilityPlacement = useCallback(() => {
     setFacilityPlacementHelperVisible(true);
+    // The opening lesson already owns the viewport and accessibility focus,
+    // but it uses the same immediate BUILD HERE marker as every later build.
+    if (guidedFirstFacility) return;
     if (layoutMode !== 'single' || facilityPlacementTargetRef.current === null)
       return;
     if (facilityPlacementScrollFrameRef.current !== null) {
@@ -708,7 +727,7 @@ export function ClubFinancesScreen({
       );
       focusGuideTarget(facilityPlacementFocusRef.current);
     });
-  }, [layoutMode, reduceMotion]);
+  }, [guidedFirstFacility, layoutMode, reduceMotion]);
 
   const financeSections: FlowSection[] = [
     {
@@ -853,6 +872,11 @@ export function ClubFinancesScreen({
           setRelocatingBuildingId={setRelocatingBuildingId}
           buildMenuReminder={buildMenuReminder}
           setBuildMenuReminder={setBuildMenuReminder}
+          requiredBuildType={requiredBuildType}
+          guidanceNudgeTarget={guidanceNudgeTarget}
+          guidanceNudgeToken={guidanceNudgeToken}
+          reduceMotion={reduceMotion}
+          onRequiredBuildTypeBlocked={onRequiredBuildTypeBlocked}
           facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
           coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
@@ -906,9 +930,7 @@ export function ClubFinancesScreen({
           facilityPlacementTargetRef={facilityPlacementTargetRef}
           facilityPlacementFocusRef={facilityPlacementFocusRef}
           showBuildPlacementHelper={
-            selectedBuildType !== null &&
-            !guidedFirstFacility &&
-            facilityPlacementHelperVisible
+            selectedBuildType !== null && facilityPlacementHelperVisible
           }
           dismissFacilityPlacementHelper={dismissFacilityPlacementHelper}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
@@ -994,6 +1016,15 @@ export function ClubFinancesScreen({
                 tabs={CLUB_OFFICE_TABS(t)}
                 activeId={activeTab}
                 onSelect={onSelectTab}
+                flashTabId={
+                  (guidanceNudgeTarget === 'coaching-office' ||
+                    guidanceNudgeTarget === 'training-ground-facility') &&
+                  activeTab !== 'facility'
+                    ? 'facility'
+                    : undefined
+                }
+                flashToken={guidanceNudgeToken}
+                reduceMotion={reduceMotion}
               />
               {/* The Staff board is a row of peer coach cards — one per column on a
             wide window — so its label belongs to the board, not to the card
@@ -2168,6 +2199,41 @@ function GroundsSection({
 }: GroundsSectionProps) {
   const t = useCopy();
   const facilities = viewModel.facilities;
+  const [hoveredCell, setHoveredCell] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const hoveredCellSize = facilityGridWidth / facilities.width;
+  const hoveredTipWidth = Math.min(
+    FACILITY_PLACEMENT_HOVER_TIP_WIDTH,
+    Math.max(0, facilityGridWidth - FACILITY_PLACEMENT_HOVER_TIP_MARGIN * 2),
+  );
+  const hoveredTipLeft =
+    hoveredCell === null
+      ? FACILITY_PLACEMENT_HOVER_TIP_MARGIN
+      : Math.min(
+          Math.max(
+            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+            (hoveredCell.x + 0.5) * hoveredCellSize - hoveredTipWidth / 2,
+          ),
+          Math.max(
+            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+            facilityGridWidth -
+              hoveredTipWidth -
+              FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+          ),
+        );
+  const hoveredCellBuildable =
+    hoveredCell !== null &&
+    placementActive &&
+    (!guidedFirstFacility ||
+      guidedFirstFacilityAllowsPlacement(
+        selectedBuildType,
+        hoveredCell.x,
+        hoveredCell.y,
+      )) &&
+    !cellIsOccupied(hoveredCell.x, hoveredCell.y) &&
+    canPlaceAt(hoveredCell.x, hoveredCell.y);
   return (
     <View
       ref={groundsRef}
@@ -2260,7 +2326,8 @@ function GroundsSection({
             ref={facilityGuideGridTargetRef}
             collapsable={false}
             className={
-              guidedFirstFacility && guidedFacilityPhase === 'grid'
+              placementActive ||
+              (guidedFirstFacility && guidedFacilityPhase === 'grid')
                 ? 'relative overflow-visible border-2 border-ink bg-pitch-light'
                 : 'relative overflow-hidden border-2 border-ink bg-pitch-light'
             }
@@ -2274,26 +2341,24 @@ function GroundsSection({
             onTouchStart={dismissFacilityPlacementHelper}
           >
             {showBuildPlacementHelper ? (
-              <View
-                ref={facilityPlacementFocusRef}
-                collapsable={false}
-                accessible
-                accessibilityRole="header"
-                accessibilityLabel={t('clubFinances.tapHereToPlace')}
-                pointerEvents="none"
-                {...guideHeadingProps()}
-                className="border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
-                style={[
-                  styles.guidedFacilityGlow,
-                  styles.facilityPlacementHelper,
-                ]}
-              >
-                <PixelText
-                  accessibilityLiveRegion="polite"
-                  className="text-center text-sm uppercase text-ink"
+              <View pointerEvents="none" style={styles.facilityPlacementHelper}>
+                <View
+                  ref={facilityPlacementFocusRef}
+                  collapsable={false}
+                  accessible
+                  accessibilityRole="header"
+                  accessibilityLabel={t('clubFinances.buildHere')}
+                  {...guideHeadingProps()}
+                  className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
+                  style={styles.guidedFacilityGlow}
                 >
-                  {t('clubFinances.tapHereToPlace')}
-                </PixelText>
+                  <PixelText
+                    accessibilityLiveRegion="polite"
+                    className="text-center text-sm uppercase text-ink"
+                  >
+                    {t('clubFinances.buildHere')}
+                  </PixelText>
+                </View>
               </View>
             ) : null}
             {guidedFirstFacility &&
@@ -2369,6 +2434,7 @@ function GroundsSection({
                           // the click that means the tap landed.
                           pressSfx={buildable ? 'click' : 'warning'}
                           onPress={() => {
+                            setHoveredCell(null);
                             dismissFacilityPlacementHelper();
                             handleGridCell(x, y);
                           }}
@@ -2377,18 +2443,14 @@ function GroundsSection({
                           // A mouse has a hover phase, so the fits/blocked footprint
                           // tracks the cursor instead of forcing a click-and-hold on
                           // every square to discover whether the building fits.
-                          onHoverIn={() => setPreviewCell({ x, y })}
-                          onHoverOut={() => setPreviewCell(null)}
-                          tip={
-                            placementActive
-                              ? buildable
-                                ? t('clubFinances.buildHereColumnRow', {
-                                    column: x + 1,
-                                    row: y + 1,
-                                  })
-                                : t('clubFinances.blockedFootprintDoesNotFit')
-                              : undefined
-                          }
+                          onHoverIn={() => {
+                            setHoveredCell({ x, y });
+                            setPreviewCell({ x, y });
+                          }}
+                          onHoverOut={() => {
+                            setHoveredCell(null);
+                            setPreviewCell(null);
+                          }}
                           style={{
                             flex: 1,
                             backgroundColor: occupied
@@ -2589,6 +2651,41 @@ function GroundsSection({
                   zIndex: 4,
                 }}
               />
+            ) : null}
+
+            {placementActive && hoveredCell && hoveredTipWidth > 0 ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.facilityPlacementHoverTip,
+                  {
+                    left: hoveredTipLeft,
+                    width: hoveredTipWidth,
+                    ...(hoveredCell.y === 0
+                      ? {
+                          top:
+                            hoveredCellSize +
+                            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+                        }
+                      : {
+                          bottom:
+                            facilityGridWidth *
+                              (facilities.height / facilities.width) -
+                            hoveredCell.y * hoveredCellSize +
+                            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+                        }),
+                  },
+                ]}
+              >
+                <Text className="font-mono text-[10px] leading-4 text-paper">
+                  {hoveredCellBuildable
+                    ? t('clubFinances.buildHereColumnRow', {
+                        column: hoveredCell.x + 1,
+                        row: hoveredCell.y + 1,
+                      })
+                    : t('clubFinances.blockedFootprintDoesNotFit')}
+                </Text>
+              </View>
             ) : null}
           </View>
         </View>
@@ -2942,6 +3039,11 @@ interface BuildMenuSectionProps {
   setRelocatingBuildingId: Dispatch<SetStateAction<string | null>>;
   buildMenuReminder: string | null;
   setBuildMenuReminder: Dispatch<SetStateAction<string | null>>;
+  requiredBuildType?: FacilityTypeViewModel;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
+  reduceMotion: boolean;
+  onRequiredBuildTypeBlocked?: (required: FacilityTypeViewModel) => void;
   facilityGuideBuildTargetRef: RefObject<View | null>;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
   coachingOfficeBuildTargetRef: RefObject<View | null>;
@@ -2969,6 +3071,11 @@ function BuildMenuSection({
   setRelocatingBuildingId,
   buildMenuReminder,
   setBuildMenuReminder,
+  requiredBuildType,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion,
+  onRequiredBuildTypeBlocked,
   facilityGuideBuildTargetRef,
   scrollFacilityGuideTargetIntoView,
   coachingOfficeBuildTargetRef,
@@ -3024,10 +3131,18 @@ function BuildMenuSection({
             const guideAllowsType =
               !guidedFirstFacility ||
               guidedFirstFacilityAllowsBuildType(entry.type);
+            const requiredBuildChoiceBlocked =
+              requiredBuildType !== undefined &&
+              entry.type !== requiredBuildType;
             const entryEnabled =
-              entry.available && entry.affordable && guideAllowsType;
+              entry.available &&
+              entry.affordable &&
+              guideAllowsType &&
+              !requiredBuildChoiceBlocked;
             const openingPitchChoiceBlocked =
               entry.blockedByOpeningTrainingPitch || !guideAllowsType;
+            const blockedChoiceCanExplain =
+              openingPitchChoiceBlocked || requiredBuildChoiceBlocked;
             const guidedIncome =
               guideIncomeFacilities && isIncomeFacilityType(entry.type);
             // Sentence per catalog key, joined with a space — the same shape
@@ -3151,8 +3266,16 @@ function BuildMenuSection({
                     accessibilityRole="button"
                     accessibilityLabel={cardAccessibilityLabel}
                     accessibilityState={{ disabled: !entryEnabled, selected }}
-                    disabled={!entryEnabled && !openingPitchChoiceBlocked}
+                    disabled={!entryEnabled && !blockedChoiceCanExplain}
                     onPress={() => {
+                      if (requiredBuildChoiceBlocked) {
+                        setSelectedBuildType(null);
+                        setSelectedBuildingId(null);
+                        setRelocatingBuildingId(null);
+                        setBuildMenuReminder(null);
+                        onRequiredBuildTypeBlocked?.(requiredBuildType);
+                        return;
+                      }
                       if (openingPitchChoiceBlocked) {
                         setBuildMenuReminder(
                           t('clubFinances.buildTrainingPitchFirstReminder'),
@@ -3164,23 +3287,22 @@ function BuildMenuSection({
                       setSelectedBuildType(nextBuildType);
                       setSelectedBuildingId(null);
                       setRelocatingBuildingId(null);
-                      // The opening lesson owns its more specific scroll
-                      // target. Every ordinary build shows the grid helper;
-                      // narrow layouts also scroll the grid into view.
-                      if (nextBuildType !== null && !guidedFirstFacility) {
+                      // Every build selection shows the same immediate grid
+                      // marker. The opening lesson keeps its own scroll target.
+                      if (nextBuildType !== null) {
                         revealFacilityPlacement();
                       }
                     }}
                     className={
                       selected
-                        ? 'min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
+                        ? 'relative min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
                         : (guideFocus === 'coaching-office' &&
                               entry.type === 'coaching-office') ||
                             guidedIncome
-                          ? 'min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
+                          ? 'relative min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
                           : entryEnabled
-                            ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
-                            : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'
+                            ? 'relative min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
+                            : 'relative min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'
                     }
                     // Lit even when the club cannot afford it yet: the point
                     // of the highlight is which buildings earn, and a shop
@@ -3193,6 +3315,17 @@ function BuildMenuSection({
                         : undefined
                     }
                   >
+                    <GuidanceDoubleFlash
+                      trigger={
+                        (guidanceNudgeTarget === 'coaching-office' &&
+                          entry.type === 'coaching-office') ||
+                        (guidanceNudgeTarget === 'training-ground-facility' &&
+                          entry.type === 'training-pitch')
+                          ? guidanceNudgeToken
+                          : undefined
+                      }
+                      reduceMotion={reduceMotion}
+                    />
                     <View className="mb-2 flex-row items-start gap-2">
                       <View style={{ opacity: entryEnabled ? 1 : 0.35 }}>
                         <FacilitySprite
@@ -3485,18 +3618,27 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
   return '#f7d7ba';
 }
 
-/**
- * The same gold the Train button wears during the first-training guide. Gold is
- * the tutorial voice here, not a hero accent — it is only ever on screen while
- * Bert is asking for a specific tap.
- */
+/** The temporary gold placement instruction and its grid-level hover label. */
 const styles = StyleSheet.create({
   facilityPlacementHelper: {
     position: 'absolute',
-    top: 12,
-    left: 12,
-    right: 12,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 30,
+  },
+  facilityPlacementHoverTip: {
+    position: 'absolute',
+    zIndex: 100,
+    elevation: 30,
+    borderWidth: 2,
+    borderColor: '#241f2e',
+    backgroundColor: '#241f2e',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   guidedFacilityGlow: {
     boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',

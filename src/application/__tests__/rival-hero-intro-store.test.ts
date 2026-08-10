@@ -71,7 +71,7 @@ describe('rival hero intro store flow', () => {
     expect(fixture.opponentHeroes).toEqual([
       {
         id: 'special-f171',
-        name: 'Barry Allan',
+        name: 'Larry Alan',
         role: 'FWD',
         lookId: 'f171',
       },

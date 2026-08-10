@@ -487,6 +487,8 @@ interface M1Store {
   completeCupGiantKillingCelebration: () => void;
   /** Sends Bert away after he has refused an Advance Week. */
   dismissInboxDutyReminder: () => void;
+  /** Brings Bert back when a manager tries an action that conflicts with a required desk job. */
+  remindInboxDuty: (duty: AssistantInboxGuideSequenceId) => void;
   dismissMatchDayBanner: () => void;
   completeFaceOff: () => void;
   /** Removes a product card after its current-week conversation is complete. */
@@ -1039,6 +1041,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // Nothing to persist: the refusal lives and dies with the press that caused
     // it, and the duties themselves are already recorded on the career.
     set({ inboxDutyReminder: null });
+  },
+
+  remindInboxDuty(duty) {
+    // Like an Advance Week refusal, this is a response to the current press.
+    // The desk itself remains the durable source of whether the job is due.
+    set({ inboxDutyReminder: [duty], error: null });
   },
 
   dismissMatchDayBanner() {
@@ -2213,6 +2221,20 @@ export const useM1Store = create<M1Store>((set, get) => ({
   buildClubFacility(type, position) {
     guarded(set, () => {
       const career = requireCareer(get());
+      if (
+        type !== 'coaching-office' &&
+        outstandingInboxDuties(career).includes('coaching-office')
+      ) {
+        // Keep this guard below the UI as well. A stale confirmation, keyboard
+        // action, or direct store call must not spend money on the wrong build
+        // while the Coaching Office is this week's required desk job.
+        set({
+          inboxDutyReminder: ['coaching-office'],
+          error: null,
+          notice: null,
+        });
+        return;
+      }
       if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
         set({
           error: null,

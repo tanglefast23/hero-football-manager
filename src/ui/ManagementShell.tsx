@@ -26,6 +26,10 @@ import { useCountUpNumber } from './use-count-up-number';
 import { IdleAttract } from './components/IdleAttract';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
 import { useCopy, type CopyFn } from '../i18n';
+import {
+  GuidanceDoubleFlash,
+  type GuidanceNudgeTarget,
+} from './GuidanceDoubleFlash';
 
 const TABS: ReadonlyArray<{
   id: ManagementTab;
@@ -305,6 +309,10 @@ export interface ManagementShellProps {
   onOpenSettings?: () => void;
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
+  /** A tutorial job blocks progress but keeps the button pressable as a nudge. */
+  advanceWeekGuidanceBlocked?: boolean;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
   /** Resource figures land on their new value instead of rolling to it. */
   reduceMotion?: boolean;
   /**
@@ -358,6 +366,9 @@ export function ManagementShell({
   reduceMotion = false,
   advanceWeekLabel,
   advanceWeekDisabled = false,
+  advanceWeekGuidanceBlocked = false,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
   keyboardShortcutsEnabled = true,
   guideFocus,
   guideObjective,
@@ -601,11 +612,17 @@ export function ManagementShell({
                   objective: guideObjective,
                 })}
                 onPress={onGuideObjectivePress}
-                className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+                className="relative mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.72 : undefined,
                 })}
               >
+                <GuidanceDoubleFlash
+                  trigger={
+                    advanceWeekGuidanceBlocked ? guidanceNudgeToken : undefined
+                  }
+                  reduceMotion={reduceMotion}
+                />
                 <Text className="font-mono text-xs font-bold uppercase text-blue-dark">
                   {t('managementShell.bertsJob')}
                 </Text>
@@ -620,8 +637,14 @@ export function ManagementShell({
                 accessibilityLabel={t('managementShell.a11y.bertsCurrentJob', {
                   objective: guideObjective,
                 })}
-                className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+                className="relative mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
               >
+                <GuidanceDoubleFlash
+                  trigger={
+                    advanceWeekGuidanceBlocked ? guidanceNudgeToken : undefined
+                  }
+                  reduceMotion={reduceMotion}
+                />
                 <Text className="font-mono text-xs font-bold uppercase text-blue-dark">
                   {t('managementShell.bertsJob')}
                 </Text>
@@ -637,6 +660,12 @@ export function ManagementShell({
                 ? 'relative border-2 border-blue-dark bg-blue-light p-1'
                 : 'relative'
             }
+            onPointerUp={(event) => {
+              if (advanceWeekGuidanceBlocked) event.stopPropagation();
+            }}
+            onTouchEnd={(event) => {
+              if (advanceWeekGuidanceBlocked) event.stopPropagation();
+            }}
           >
             {guideTarget === 'advance-week' ? (
               <TutorialTapCue
@@ -651,6 +680,7 @@ export function ManagementShell({
             <IdleAttract
               active={
                 !advanceWeekDisabled &&
+                !advanceWeekGuidanceBlocked &&
                 !reduceMotion &&
                 guideTarget !== 'advance-week'
               }
@@ -659,7 +689,7 @@ export function ManagementShell({
               <ActionButton
                 label={advanceWeek}
                 accessibilityLabel={
-                  guideTarget === 'advance-week'
+                  guideTarget === 'advance-week' || advanceWeekGuidanceBlocked
                     ? // Strip either arrow glyph: App still passes labels with '▸'.
                       t('managementShell.a11y.bertSaysReadTheDesk', {
                         action: advanceWeek.replace(/[▸›]/g, '').trim(),
@@ -668,6 +698,8 @@ export function ManagementShell({
                 }
                 onPress={onAdvanceWeek}
                 disabled={advanceWeekDisabled}
+                visuallyDisabled={advanceWeekGuidanceBlocked}
+                pressSfx={advanceWeekGuidanceBlocked ? 'click' : undefined}
                 compact
               />
             </IdleAttract>
@@ -692,6 +724,29 @@ export function ManagementShell({
                     ? 'squad'
                     : undefined;
               const guided = guideTab === tab.id;
+              const nudgeTab =
+                guidanceNudgeTarget === 'home-tab'
+                  ? 'home'
+                  : guidanceNudgeTarget === 'squad-tab'
+                    ? 'squad'
+                    : guidanceNudgeTarget === 'training-plan' &&
+                        activeTab !== 'squad'
+                      ? 'squad'
+                      : guidanceNudgeTarget === 'training-ground-alert' &&
+                          activeTab !== 'home'
+                        ? 'home'
+                        : guidanceNudgeTarget === 'training-ground-facility' &&
+                            activeTab !== 'club'
+                          ? 'club'
+                          : guidanceNudgeTarget === 'coaching-office' &&
+                              activeTab !== 'home' &&
+                              activeTab !== 'club'
+                            ? 'club'
+                            : guidanceNudgeTarget === 'youth-intake' &&
+                                activeTab !== 'home' &&
+                                activeTab !== 'market'
+                              ? 'market'
+                              : undefined;
               const tabLabel = t(tab.labelKey);
               return (
                 <Pressable
@@ -734,6 +789,12 @@ export function ManagementShell({
                     opacity: !tab.available ? 0.35 : pressed ? 0.7 : undefined,
                   })}
                 >
+                  <GuidanceDoubleFlash
+                    trigger={
+                      nudgeTab === tab.id ? guidanceNudgeToken : undefined
+                    }
+                    reduceMotion={reduceMotion}
+                  />
                   {guided ? (
                     <TutorialTapCue
                       detail={

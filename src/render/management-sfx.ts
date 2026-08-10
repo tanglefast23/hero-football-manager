@@ -45,7 +45,9 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // Player and coach signings intentionally share this confirmation sound.
   'transaction-confirm': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
-  'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
+  // The supplied work-order cue. It starts only after the build transaction
+  // succeeds, so "Approve & Start Work" and the sound have one owner.
+  'facility-start': require('../../assets/audio/sfx/facility-start-work.wav'),
   'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
   // A gamble that paid off announces itself. This was the match crowd-cheer
   // wash, which read as stadium ambience rather than a result — a brass fanfare

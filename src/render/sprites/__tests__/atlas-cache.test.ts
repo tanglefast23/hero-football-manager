@@ -1,4 +1,5 @@
 import {
+  atlasPixelColor,
   buildSpriteAtlas,
   clearSpriteAtlasCache,
   type SkiaApi,
@@ -91,6 +92,21 @@ describe('sprite atlas build cost', () => {
     const recoloured = buildSpriteAtlas(skia.api, LOOKS, { R: '#ffffff' });
 
     expect(recoloured).not.toBe(plain);
+  });
+
+  it('recolours only the home jersey and preserves every special head', () => {
+    const palette = loadSpriteSheet(['r:f171']).palette;
+    const colourSafe = { o: '#6a4326', r: '#ba7517', R: '#edb54a' };
+
+    expect(atlasPixelColor('r:f171:run0', 2, 'o', palette, colourSafe)).toBe(
+      '#7a2731',
+    );
+    expect(atlasPixelColor('r:f171:run0', 16, 'R', palette, colourSafe)).toBe(
+      '#edb54a',
+    );
+    expect(atlasPixelColor('u:f171:run0', 16, 'R', palette, colourSafe)).toBe(
+      '#e8433f',
+    );
   });
 
   it('rebuilds after the cache is cleared', () => {

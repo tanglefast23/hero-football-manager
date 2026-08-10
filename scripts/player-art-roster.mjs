@@ -845,7 +845,7 @@ export const SUPERHERO_HOMAGE_IDENTITIES = [
   },
   {
     id: 'f171',
-    name: 'Barry Allan',
+    name: 'Larry Alan',
     reference: 'The Flash / Barry Allen',
     power: 'SUPER_SPEED',
     cue: 'WINGED BOLT HOOD',

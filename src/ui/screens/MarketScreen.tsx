@@ -51,6 +51,10 @@ import {
   offerQuoteKey,
 } from '../../application/market-view-model';
 import { useCopy } from '../../i18n';
+import {
+  GuidanceDoubleFlash,
+  type GuidanceNudgeTarget,
+} from '../GuidanceDoubleFlash';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -73,6 +77,9 @@ export interface MarketScreenProps {
   readonly guideFocus?: AssistantGuideFocus;
   readonly requestedSection?: MarketSectionId;
   readonly requestedSectionToken?: number;
+  readonly guidanceNudgeTarget?: GuidanceNudgeTarget;
+  readonly guidanceNudgeToken?: number;
+  readonly reduceMotion?: boolean;
 }
 
 const MIN_GUIDE_SCROLL_DISTANCE = 24;
@@ -107,6 +114,9 @@ export function MarketScreen({
   guideFocus,
   requestedSection,
   requestedSectionToken,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion = false,
 }: MarketScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -301,7 +311,18 @@ export function MarketScreen({
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
-      <ScreenTabs tabs={docketTabs} activeId={section} onSelect={setSection} />
+      <ScreenTabs
+        tabs={docketTabs}
+        activeId={section}
+        onSelect={setSection}
+        flashTabId={
+          guidanceNudgeTarget === 'youth-intake' && section !== 'YOUTH'
+            ? 'YOUTH'
+            : undefined
+        }
+        flashToken={guidanceNudgeToken}
+        reduceMotion={reduceMotion}
+      />
     </View>
   );
 
@@ -311,6 +332,9 @@ export function MarketScreen({
       onSignYouth={onSignYouth}
       onDeclineYouth={onDeclineYouth}
       guideFocus={visibleGuideFocus}
+      guidanceNudgeTarget={guidanceNudgeTarget}
+      guidanceNudgeToken={guidanceNudgeToken}
+      reduceMotion={reduceMotion}
     />
   ) : null;
   const scoutDesk = scoutSectionVisible ? (
@@ -451,15 +475,32 @@ function YouthDesk({
   onSignYouth,
   onDeclineYouth,
   guideFocus,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion,
 }: Pick<
   MarketScreenProps,
-  'viewModel' | 'onSignYouth' | 'onDeclineYouth' | 'guideFocus'
+  | 'viewModel'
+  | 'onSignYouth'
+  | 'onDeclineYouth'
+  | 'guideFocus'
+  | 'guidanceNudgeTarget'
+  | 'guidanceNudgeToken'
+  | 'reduceMotion'
 >) {
   const t = useCopy();
   const intake = viewModel.youth;
   if (intake === undefined) return null;
   return (
     <View className="relative overflow-hidden border-[3px] border-ink bg-pitch-ink p-4">
+      <GuidanceDoubleFlash
+        trigger={
+          guidanceNudgeTarget === 'youth-intake'
+            ? guidanceNudgeToken
+            : undefined
+        }
+        reduceMotion={reduceMotion}
+      />
       {/* The academy gets its own chalkboard stage inside the market desk. */}
       <View
         pointerEvents="none"

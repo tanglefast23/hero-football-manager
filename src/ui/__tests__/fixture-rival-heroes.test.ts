@@ -13,5 +13,9 @@ describe('match-day rival hero report', () => {
     expect(source).toContainSource('role={hero.role}');
     expect(source).toContainSource('lookId={hero.lookId}');
     expect(source).toContainSource('{hero.name}');
+    expect(source).toContainSource("{t('rivalHeroIntro.divisionRival')}");
+    expect(source).toContainSource(
+      'border-2 border-b-4 border-gold-dark bg-gold-light',
+    );
   });
 });
