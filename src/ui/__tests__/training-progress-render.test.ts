@@ -73,6 +73,8 @@ describe('training stat option rendering', () => {
     expect(source).toContainSource(
       "{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}",
     );
+    expect(source).toContainSource("{t('trainingDrill.bonus')}{' '}");
+    expect(loadCatalog('en').strings['trainingDrill.bonus']).toBe('Bonus:');
     // Whole scores stay equal to the match engine. A separate one-decimal bank
     // shows the saved fraction, floored so 0.97 never promises a paid-out 1.0.
     expect(source).toContainSource('Math.floor(bank.hundredths / 10) / 10');
@@ -80,7 +82,7 @@ describe('training stat option rendering', () => {
     expect(
       loadCatalog('en').strings['trainingDrill.fractionalGainsSaved'],
     ).toBe(
-      'Fractional gains are saved. Each full 1.0 adds +1 to a later drill.',
+      'Fractional gains from bonuses are saved. Each full 1.0 adds +1 to a later drill.',
     );
     // Only the modifier that costs wears a colour. Marking the bonuses green as
     // well emphasised every word — which emphasises nothing — and forced a

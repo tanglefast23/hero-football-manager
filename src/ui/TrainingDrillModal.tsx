@@ -892,10 +892,7 @@ export function TrainingDrillModal({
                         change set exists to stop.
 
                         The modifier names stay because they are the useful part
-                        — they say *why* this player differs from the row above.
-                        What is gone is the word "bonus": calling a net drag a
-                        bonus would only move the dishonesty from the number into
-                        the label. */}
+                        — they say *why* this player differs from the row above. */}
                     {/* The net difference this player's own modifiers make to
                         the line above — a number to add, not a total to read in
                         its place. Two boxes both showing a result made "+4" then
@@ -926,6 +923,7 @@ export function TrainingDrillModal({
                           numberOfLines={2}
                           adjustsFontSizeToFit
                         >
+                          {t('trainingDrill.bonus')}{' '}
                           {/* Only the modifier that costs is coloured. Marking
                               the three that pay as well left every word
                               emphasised, which emphasises nothing, and forced a

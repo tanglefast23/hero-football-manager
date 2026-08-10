@@ -79,6 +79,24 @@ describe('overlay dismissal', () => {
     expect(event).not.toContain('className="absolute inset-0"');
   });
 
+  it('removes the match-day banner after any management-screen tap', () => {
+    const app = source('App.tsx');
+    const dismissVisibleTips = app.slice(
+      app.indexOf('const dismissVisibleTips'),
+      app.indexOf('const hideCoachHiringCues'),
+    );
+    const shell = source('src/ui/ManagementShell.tsx');
+
+    expect(dismissVisibleTips).toContain(
+      'if (store.matchDayBanner !== null) store.dismissMatchDayBanner();',
+    );
+    // This runs after the pressed control completes, so dismissal does not eat
+    // navigation, Advance Week or another management action underneath it.
+    expect(shell).toContain('onPointerUp={dismissGuidanceAfterPress}');
+    expect(shell).toContain('onTouchEnd={dismissGuidanceAfterPress}');
+    expect(shell).toContain('dismissFrameRef.current = requestAnimationFrame');
+  });
+
   /**
    * Bert's briefing used to advance only on its own button, so that an outside
    * tap could not skip an instruction the next objective depended on. The

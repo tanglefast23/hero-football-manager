@@ -359,10 +359,18 @@ describe('assistant guide application flow', () => {
         state.market!.coachCandidates[0].id,
       ),
     };
-    expect(currentAssistantObjective(state, 'home')).toEqual({
-      text: 'INBOX CLEAR. ADVANCE WEEK.',
-      target: 'advance-week',
-    });
+    for (const activeTab of [
+      'home',
+      'squad',
+      'club',
+      'market',
+      'league',
+    ] as const) {
+      expect(currentAssistantObjective(state, activeTab)).toEqual({
+        text: 'INBOX CLEAR. ADVANCE WEEK.',
+        target: 'advance-week',
+      });
+    }
     state = completeAssistantGuideMilestone(state, 'first-week-advanced');
     expect(currentAssistantObjective(state, 'home')).toBeNull();
   });
@@ -380,7 +388,7 @@ describe('assistant guide application flow', () => {
     expect(currentAssistantObjective(staleLaterSeasonSave, 'home')).toBeNull();
   });
 
-  test('treats a started Training Ground as progress and points to Advance Week', () => {
+  test('points every page to Advance Week once the first-week jobs are clear', () => {
     let state = createCareer(createLaunchCareerSetup(934));
     state = completeAssistantGuideSequence(state, 'management-intro');
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
@@ -396,10 +404,18 @@ describe('assistant guide application flow', () => {
 
     expect(state.facilities.trainingGroundBuilt).toBe(false);
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
-    expect(currentAssistantObjective(state, 'home')).toEqual({
-      text: 'INBOX CLEAR. ADVANCE WEEK.',
-      target: 'advance-week',
-    });
+    for (const activeTab of [
+      'home',
+      'squad',
+      'club',
+      'market',
+      'league',
+    ] as const) {
+      expect(currentAssistantObjective(state, activeTab)).toEqual({
+        text: 'INBOX CLEAR. ADVANCE WEEK.',
+        target: 'advance-week',
+      });
+    }
   });
 
   test('lets a save with the wrong opening project finish it before asking for the pitch again', () => {

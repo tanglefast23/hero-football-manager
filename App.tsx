@@ -2066,6 +2066,9 @@ function GameApp() {
     [store.setActiveTab],
   );
   const dismissVisibleTips = useCallback(() => {
+    // The match-day card does not eat the press. Let the control under it finish,
+    // then remove the card with the same delayed shell-tap path as helper cues.
+    if (store.matchDayBanner !== null) store.dismissMatchDayBanner();
     if (skipNextGuidanceDismissRef.current) {
       skipNextGuidanceDismissRef.current = false;
       return;
@@ -2084,6 +2087,8 @@ function GameApp() {
     squadSortHintVisible,
     store.activeTab,
     store.completeGuideMilestone,
+    store.dismissMatchDayBanner,
+    store.matchDayBanner,
   ]);
   const hideCoachHiringCues =
     store.activeTab === 'market' &&
