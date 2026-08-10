@@ -210,6 +210,12 @@ describe('m2LeagueViewModel', () => {
     expect(view.cup.currentRoundFixtures[0].homeClubName).not.toMatch(
       /^d\d-club/,
     );
+    const cup = career.nationalCups[0];
+    const firstFixture = cup.rounds.at(-1)!.fixtures[0];
+    expect(view.cup.currentRoundFixtures[0]).toMatchObject({
+      homeDivision: cup.seedDivisionByClubId![firstFixture.homeClubId],
+      awayDivision: cup.seedDivisionByClubId![firstFixture.awayClubId],
+    });
     expect(view.cup.history[0]).toMatchObject({
       label: 'Play-in',
       matchCount: 18,

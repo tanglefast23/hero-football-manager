@@ -5,11 +5,10 @@ import { instantTrainingPreview, trainPlayerInstantly } from '../training';
 import type { CareerPlayer, GameState } from '../types';
 
 /**
- * Keeper Drills award exactly half the outfield ladder at every tier for the
- * same TP, which is what keeps keeper training's 6.61x leverage from being
- * worse (see docs/superpowers/plans/2026-08-04-keeper-drill-display-parity.md).
+ * Keeper Drills award less than the outfield ladder at every tier for the same
+ * TP (see docs/superpowers/plans/2026-08-04-keeper-drill-display-parity.md).
  * These tests cover the presentation-only bonus that lets the keeper's card read
- * as though the ladder were never halved, while the stored stat — the one the
+ * as though the ladders matched, while the stored stat — the one the
  * sim, the scout, the wage and the transfer fee all use — stays untouched.
  */
 function careerState(seed = 0): GameState {
@@ -38,7 +37,7 @@ function outfielder(state: GameState): CareerPlayer {
  *
  * The remainders matter here. A goalkeeper always earns +5% on Reflexes
  * (`POSITION_TRAINING_ATTRIBUTES.GK`), banked as hundredths, and the shadow call
- * earns double that from the same starting balance — so a keeper who happens to
+ * earns more from the same starting balance — so a keeper who happens to
  * be carrying a nearly-full remainder sees the shadow cross 100 on a tap where
  * the real gain does not. That is the approximate channel §3 of the plan
  * describes, and it has its own test below. These age-band tests zero the ledger
@@ -61,11 +60,11 @@ function aged(state: GameState, playerId: string, age: number): GameState {
 }
 
 describe('keeperDisplayLadderMultiplier', () => {
-  it('reads the halving out of the content rather than hardcoding two', () => {
+  it('reads the current tier ratio out of content', () => {
     const state = careerState();
     // The whole point of deriving it: a content re-tune of the keeper ladder
-    // carries the display with it instead of silently making a literal 2 wrong.
-    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills')).toBe(2);
+    // carries the display with it instead of silently making a fixed ratio wrong.
+    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills')).toBe(3);
   });
 
   it('is one for every outfield path, so nothing but the keeper is touched', () => {
@@ -85,9 +84,8 @@ describe('keeperDisplayLadderMultiplier', () => {
 
 /**
  * The resolve used to read the multiplier off the TIER-1 drill id while the
- * preview read it off the owned tier's. Every shipped keeper tier is exactly
- * half its outfield reference, so both came out at 2 and the split was
- * invisible — until a ladder whose halving is not exact made them disagree.
+ * preview read it off the owned tier's. The injected uneven tier below makes
+ * those two lookups disagree if the resolve reaches for tier 1.
  *
  * This pins them together on a deliberately non-exact-half tier, injected here
  * rather than taken from content so the guard survives any future retune.
@@ -118,9 +116,9 @@ describe('preview and resolve read the same tier', () => {
     expect(keeperDisplayLadderMultiplier(state, 'keeper-drills-ii')).toBe(
       7 / 4,
     );
-    // The tier-1 id still reports 2 — which is exactly what the resolve used to
+    // The tier-1 id reports 3 — which is what the resolve used to
     // use, and why the two paths could disagree.
-    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills')).toBe(2);
+    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills')).toBe(3);
 
     const preview = instantTrainingPreview(state, gk.id, 'keeper-drills');
     const res = trainPlayerInstantly(state, gk.id, 'keeper-drills');
@@ -144,28 +142,20 @@ describe('trainPlayerInstantly display bonus', () => {
     );
     const trained = res.state.players.find((p) => p.id === gk.id)!;
 
-    // Stored is the real halved gain and stays the sim's number.
+    // Stored is the lower keeper gain and stays the sim's number.
     expect(res.after).toBe(trained.attrs.ref);
     expect(res.after - res.before).toBe(1);
     // Displayed is what an outfield ladder would have awarded.
-    expect(res.displayedAfter - res.displayedBefore).toBe(2);
-    expect(trained.refDisplayBonus).toBe(1);
-    expect(res.displayedAfter).toBe(trained.attrs.ref + 1);
+    expect(res.displayedAfter - res.displayedBefore).toBe(3);
+    expect(trained.refDisplayBonus).toBe(2);
+    expect(res.displayedAfter).toBe(trained.attrs.ref + 2);
   });
 
   /**
    * Age-band characterisation.
    *
-   * Note what these do *not* prove. While Keeper Drills award exactly half the
-   * outfield ladder, shadowing the doubled base and simply doubling the realised
-   * gain agree almost everywhere — the plan's claim that a flat x2 would "print
-   * +6 where an outfielder gets +5" does not survive contact with the keeper's
-   * own +5% position bonus on Reflexes, which lifts the shadow to 6 as well.
-   *
-   * The shadow earns its keep elsewhere: it stays correct when the ladder stops
-   * being exactly half, which `keeper-drill-gain-probe` exists to make happen.
    * These tests pin the realised gains per band and the displayed steps that go
-   * with them, so a change to either is a deliberate one.
+   * with them, so a change to either is deliberate.
    */
   it('steps the stored and displayed gains together through the young age band', () => {
     const state = careerState();
@@ -176,10 +166,10 @@ describe('trainPlayerInstantly display bonus', () => {
       'keeper-drills',
     );
 
-    // The new base is 1 stored against 2 displayed. The 1.1 youth multiplier
+    // The base is 1 stored against 3 displayed. The 1.1 youth multiplier
     // does not create a whole extra point at this tier.
     expect(res.after - res.before).toBe(1);
-    expect(res.displayedAfter - res.displayedBefore).toBe(2);
+    expect(res.displayedAfter - res.displayedBefore).toBe(3);
   });
 
   it('steps the stored and displayed gains together through the veteran age band', () => {
@@ -191,9 +181,9 @@ describe('trainPlayerInstantly display bonus', () => {
       'keeper-drills',
     );
 
-    // Both paths round to the one-point floor at this base and age.
+    // The keeper path floors to one point; the displayed path resolves to two.
     expect(res.after - res.before).toBe(1);
-    expect(res.displayedAfter - res.displayedBefore).toBe(1);
+    expect(res.displayedAfter - res.displayedBefore).toBe(2);
   });
 
   it('accumulates across taps and never moves the stored stat', () => {
@@ -211,9 +201,9 @@ describe('trainPlayerInstantly display bonus', () => {
 
     expect(storedGain).toBeGreaterThan(0);
     // The bonus is the shortfall against the outfield ladder, so displayed runs
-    // at roughly double the stored gain — this is the drift §6 rails.
+    // at roughly triple the stored gain — this is the drift §6 rail.
     expect(trained.refDisplayBonus).toBeGreaterThan(0);
-    expect(trained.refDisplayBonus).toBeLessThanOrEqual(storedGain + 1);
+    expect(trained.refDisplayBonus).toBeLessThanOrEqual(storedGain * 2 + 1);
   });
 
   it('leaves an outfield player without a bonus at all', () => {

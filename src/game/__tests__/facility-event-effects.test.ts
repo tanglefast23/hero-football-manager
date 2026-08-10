@@ -185,8 +185,29 @@ describe('the training multiplier scales the bonus, not the whole thing', () => 
       ...state,
       ownedTrainingTiers: { ...state.ownedTrainingTiers, sprints: 5 },
     });
-    const none = topTier(careerWith([]));
-    const gym = topTier(careerWith([building('facility-1', 'gym', 3, 0)]));
+    const neutralPacPlayer = (state: GameState): GameState => {
+      const playerId = state.players.find(
+        (player) => player.clubId === state.userClubId,
+      )!.id;
+      return {
+        ...state,
+        players: state.players.map((player) =>
+          player.id === playerId
+            ? {
+                ...player,
+                age: 25,
+                role: 'MID' as const,
+                archetype: 'Sniper' as const,
+                trainingBonusRemainders: {},
+              }
+            : player,
+        ),
+      };
+    };
+    const none = neutralPacPlayer(topTier(careerWith([])));
+    const gym = neutralPacPlayer(
+      topTier(careerWith([building('facility-1', 'gym', 3, 0)])),
+    );
     const worse = applyFacilityEventEffect(
       gym,
       'facility-1',
@@ -200,14 +221,16 @@ describe('the training multiplier scales the bonus, not the whole thing', () => 
       20,
     );
 
-    expect(trainingResultFor(none)).toBe(48);
-    expect(trainingResultFor(gym)).toBe(51);
-    expect(trainingResultFor(worse)).toBe(51);
-    expect(trainingResultFor(better)).toBe(52);
-    expect(trainingResultFor(better)).toBeGreaterThan(trainingResultFor(gym));
+    const noneResult = trainingResultFor(none);
+    const gymResult = trainingResultFor(gym);
+    const worseResult = trainingResultFor(worse);
+    const betterResult = trainingResultFor(better);
+    expect(gymResult).toBe(noneResult + 2);
+    expect(worseResult).toBe(gymResult);
+    expect(betterResult).toBe(gymResult + 1);
     // Whatever the boost, a building never leaves the club worse off than
     // having no building at all.
-    expect(trainingResultFor(worse)).toBeGreaterThan(trainingResultFor(none));
+    expect(worseResult).toBeGreaterThan(noneResult);
   });
 });
 

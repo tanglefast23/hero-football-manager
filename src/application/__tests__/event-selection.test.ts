@@ -153,6 +153,9 @@ describe('M4 event selection', () => {
     const mountainCamp = content.events.find(
       (event) => event.id === 'the-specialist-camp',
     )!;
+    const homesick = content.events.find(
+      (event) => event.id === 'homesick-family-move',
+    )!;
     const spendingChoice = mountainCamp.choices.find((choice) => choice.risky)!;
 
     const noProfessional = {
@@ -196,6 +199,27 @@ describe('M4 event selection', () => {
         spendingChoice,
       ),
     ).toBe('Requires $700 cash');
+
+    const homesickWeek = {
+      ...initial,
+      season: 1,
+      week: 10,
+      clubs: initial.clubs.map((club) =>
+        club.id === initial.userClubId ? { ...club, cash: 299 } : club,
+      ),
+    };
+    expect(eventIsEligible(homesickWeek, homesick)).toBe(false);
+    expect(
+      eventIsEligible(
+        {
+          ...homesickWeek,
+          clubs: homesickWeek.clubs.map((club) =>
+            club.id === homesickWeek.userClubId ? { ...club, cash: 300 } : club,
+          ),
+        },
+        homesick,
+      ),
+    ).toBe(true);
   });
 
   /**

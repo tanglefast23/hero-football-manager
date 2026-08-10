@@ -1,6 +1,7 @@
 import type {
   M2CupFixtureViewModel,
   M2CupRoundViewModel,
+  M2DivisionLevelViewModel,
 } from './m2-league-models';
 
 /**
@@ -26,7 +27,9 @@ export interface BracketTie {
   readonly centreY: number;
   readonly top: number;
   readonly homeName: string;
+  readonly homeDivision?: M2DivisionLevelViewModel;
   readonly awayName: string;
+  readonly awayDivision?: M2DivisionLevelViewModel;
   readonly scoreLabel: string;
   readonly played: boolean;
   readonly winnerName?: string;
@@ -75,7 +78,9 @@ function tieFrom(
     centreY,
     top: centreY - TIE_HEIGHT / 2,
     homeName: fixture.homeClubName,
+    homeDivision: fixture.homeDivision,
     awayName: fixture.awayClubName,
+    awayDivision: fixture.awayDivision,
     scoreLabel: fixture.scoreLabel,
     played: fixture.status === 'PLAYED',
     ...(fixture.winnerName === undefined

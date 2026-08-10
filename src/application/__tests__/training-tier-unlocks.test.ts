@@ -38,23 +38,23 @@ describe('training drill tier purchases', () => {
     // the tier it bought.
     expect(optionAt(5)).toMatchObject({
       drillName: 'Sprints 1',
-      gain: 2,
-      tpCost: 8,
+      gain: 3,
+      tpCost: 7,
     });
     expect(optionAt(4)).toMatchObject({
       drillName: 'Sprints 1',
-      gain: 2,
-      tpCost: 8,
+      gain: 3,
+      tpCost: 7,
     });
     expect(optionAt(2)).toMatchObject({
       drillName: 'Sprints 1',
-      gain: 2,
-      tpCost: 8,
+      gain: 3,
+      tpCost: 7,
     });
     expect(optionAt(2, 4)).toMatchObject({
       drillName: 'Sprints 4',
-      gain: 9,
-      tpCost: 26,
+      gain: 6,
+      tpCost: 25,
     });
   });
 

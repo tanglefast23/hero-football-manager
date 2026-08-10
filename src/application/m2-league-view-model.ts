@@ -96,6 +96,11 @@ export function m2LeagueViewModel(
       division.clubs.map((club) => [club.id, club.name] as const),
     ),
   );
+  const clubDivisions = new Map(
+    source.career.pyramid.divisions.flatMap((division) =>
+      division.clubs.map((club) => [club.id, division.level] as const),
+    ),
+  );
   const divisions = source.career.pyramid.divisions
     .slice()
     .sort((left, right) => left.level - right.level)
@@ -131,7 +136,7 @@ export function m2LeagueViewModel(
       rows,
     },
     leagueFixtures: leagueFixtureHistory(source, clubNames, t),
-    cup: cupViewModel(source, clubNames, t),
+    cup: cupViewModel(source, clubNames, clubDivisions, t),
     availableTabs: availableSubTabs(source),
     leaders: divisionLeadersViewModel(
       {
@@ -297,6 +302,7 @@ function activeTableRows(
 function cupViewModel(
   source: M2LeagueViewModelSource,
   clubNames: ReadonlyMap<string, string>,
+  currentClubDivisions: ReadonlyMap<string, DivisionLevel>,
   t: CopyFn,
 ): M2NationalCupViewModel {
   // Only cups that still hold a bracket can be drawn on this tab. Seasons past
@@ -318,6 +324,9 @@ function cupViewModel(
     };
   }
   const selectedCup = selectCup(cups, source.selectedCupSeason);
+  const divisionForClub = (clubId: string): DivisionLevel =>
+    selectedCup.seedDivisionByClubId?.[clubId] ??
+    requireClubDivision(currentClubDivisions, clubId);
   const currentRound = selectedCup.rounds[selectedCup.rounds.length - 1];
   if (currentRound === undefined)
     throw new Error(`Season ${selectedCup.season} cup has no rounds`);
@@ -335,6 +344,7 @@ function cupViewModel(
     selectedCup,
     source.career.userClubId,
     clubNames,
+    divisionForClub,
     currentRound.number,
     roundIsPlayable,
     t,
@@ -366,6 +376,7 @@ function cupViewModel(
         currentRound,
         source.career.userClubId,
         clubNames,
+        divisionForClub,
         roundIsPlayable,
         t,
       ),
@@ -489,6 +500,7 @@ function cupFixture(
   round: NationalCupRound,
   userClubId: string,
   clubNames: ReadonlyMap<string, string>,
+  divisionForClub: (clubId: string) => DivisionLevel,
   roundIsPlayable: boolean,
   t: CopyFn,
 ): M2CupFixtureViewModel {
@@ -503,7 +515,9 @@ function cupFixture(
     id: fixture.id,
     roundLabel: cupRoundLabel(round.label, t),
     homeClubName: requireClubName(clubNames, fixture.homeClubId),
+    homeDivision: divisionForClub(fixture.homeClubId),
     awayClubName: requireClubName(clubNames, fixture.awayClubId),
+    awayDivision: divisionForClub(fixture.awayClubId),
     scoreLabel:
       fixture.score === undefined
         ? 'VS'
@@ -582,6 +596,7 @@ function cupRoundViewModel(
   cup: NationalCup,
   userClubId: string,
   clubNames: ReadonlyMap<string, string>,
+  divisionForClub: (clubId: string) => DivisionLevel,
   roundIsPlayable: boolean,
   t: CopyFn,
 ): M2CupRoundViewModel {
@@ -590,7 +605,15 @@ function cupRoundViewModel(
     drawn: true,
     active: round.fixtures.some((fixture) => fixture.status === 'scheduled'),
     fixtures: round.fixtures.map((fixture) =>
-      cupFixture(fixture, round, userClubId, clubNames, roundIsPlayable, t),
+      cupFixture(
+        fixture,
+        round,
+        userClubId,
+        clubNames,
+        divisionForClub,
+        roundIsPlayable,
+        t,
+      ),
     ),
     byes: round.byeClubIds.map((clubId) => ({
       clubName: requireClubName(clubNames, clubId),
@@ -621,6 +644,7 @@ function cupRoadToFinal(
   cup: NationalCup,
   userClubId: string,
   clubNames: ReadonlyMap<string, string>,
+  divisionForClub: (clubId: string) => DivisionLevel,
   currentRoundNumber: number,
   roundIsPlayable: boolean,
   t: CopyFn,
@@ -635,6 +659,7 @@ function cupRoadToFinal(
         cup,
         userClubId,
         clubNames,
+        divisionForClub,
         round.number === currentRoundNumber && roundIsPlayable,
         t,
       );
@@ -684,6 +709,16 @@ function requireClubName(
   const name = names.get(clubId);
   if (name === undefined) throw new Error(`unknown pyramid club ${clubId}`);
   return name;
+}
+
+function requireClubDivision(
+  divisions: ReadonlyMap<string, DivisionLevel>,
+  clubId: string,
+): DivisionLevel {
+  const division = divisions.get(clubId);
+  if (division === undefined)
+    throw new Error(`unknown pyramid club division ${clubId}`);
+  return division;
 }
 
 function validateSeason(season: number): void {

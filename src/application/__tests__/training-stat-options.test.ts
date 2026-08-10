@@ -90,15 +90,15 @@ describe('training stat options', () => {
 
     expect(finishing).toMatchObject({
       currentValue: 73,
-      gain: 2,
-      baseValueAfter: 75,
-      trainingAdjustment: 0,
+      gain: 3,
+      baseValueAfter: 76,
+      trainingAdjustment: 1,
       trainingModifiers: [
         { label: 'Youth', helps: true },
         { label: 'FWD', helps: true },
         { label: 'All-Rounder', helps: true },
       ],
-      fractionalBonusBanks: [{ label: 'Training bonus bank', hundredths: 97 }],
+      fractionalBonusBanks: [{ label: 'Training bonus bank', hundredths: 8 }],
     });
   });
 });

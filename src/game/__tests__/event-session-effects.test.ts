@@ -11,8 +11,8 @@ import type { GameState } from '../types';
 /**
  * An attribute reward is worth what N training sessions would give *this* club.
  *
- * A flat number cannot hold its meaning: one drill session runs +2 at tier 1
- * and +10 at tier 5, so a fixed +2 is a different share of training by tier and
+ * A flat number cannot hold its meaning: one drill session runs +3 at tier 1
+ * and +7 at tier 5, so a fixed +2 is a different share of training by tier and
  * 0.1% late — it decays into noise exactly as the club grows into the content.
  */
 
@@ -26,38 +26,38 @@ describe('training-session attribute effects', () => {
     const tier1 = careerAtTier({});
     const tier5 = careerAtTier({ sprints: 5 });
 
-    expect(trainingSessionPoints(tier1, 'pac', 1)).toBe(2);
-    expect(trainingSessionPoints(tier5, 'pac', 1)).toBe(10);
-    expect(trainingSessionPoints(tier1, 'pac', 3)).toBe(6);
-    expect(trainingSessionPoints(tier5, 'pac', 3)).toBe(30);
+    expect(trainingSessionPoints(tier1, 'pac', 1)).toBe(3);
+    expect(trainingSessionPoints(tier5, 'pac', 1)).toBe(7);
+    expect(trainingSessionPoints(tier1, 'pac', 3)).toBe(9);
+    expect(trainingSessionPoints(tier5, 'pac', 3)).toBe(21);
   });
 
   /**
    * The test that catches a hardcoded ladder.
    *
-   * `keeper-drills` is deliberately about half the outfield ladder — 1/2/3/5/5
-   * against 2/4/6/9/10 — because REF is contested on every opposing shot and
+   * `keeper-drills` is deliberately below the outfield ladder — 1/2/3/3/4
+   * against 3/4/5/6/7 — because REF is contested on every opposing shot and
    * a uniform ladder priced it at roughly fourteen times the value per TP of
    * any other drill. A resolver that reached for the outfield numbers would
    * double every keeper reward and reopen exactly that hole.
    */
-  it('pays a keeper half, because the keeper ladder is half', () => {
+  it('pays the lower keeper ladder instead of the outfield ladder', () => {
     const tier1 = careerAtTier({});
     const tier5 = careerAtTier({ 'keeper-drills': 5 });
 
     expect(trainingSessionPoints(tier1, 'ref', 3)).toBe(3);
-    expect(trainingSessionPoints(tier5, 'ref', 3)).toBe(15);
-    // Half of what the same authored sessions pay an outfielder.
+    expect(trainingSessionPoints(tier5, 'ref', 3)).toBe(12);
+    // Less than what the same authored sessions pay an outfielder.
     expect(trainingSessionPoints(careerAtTier({ sprints: 5 }), 'pac', 3)).toBe(
-      30,
+      21,
     );
   });
 
   it('treats an unbought path as tier 1 rather than as nothing', () => {
     const state = careerAtTier({ finishing: 4 });
     expect(state.ownedTrainingTiers?.sprints).toBeUndefined();
-    expect(trainingSessionPoints(state, 'pac', 1)).toBe(2);
-    expect(trainingSessionPoints(state, 'sho', 1)).toBe(9);
+    expect(trainingSessionPoints(state, 'pac', 1)).toBe(3);
+    expect(trainingSessionPoints(state, 'sho', 1)).toBe(6);
   });
 
   it('resolves each attribute against its own path, not its facility group', () => {
@@ -65,8 +65,8 @@ describe('training-session attribute effects', () => {
     // paths — resolving through the facility grouping would pay STA at the
     // sprint tier.
     const state = careerAtTier({ sprints: 5 });
-    expect(trainingSessionPoints(state, 'pac', 1)).toBe(10);
-    expect(trainingSessionPoints(state, 'sta', 1)).toBe(2);
+    expect(trainingSessionPoints(state, 'pac', 1)).toBe(7);
+    expect(trainingSessionPoints(state, 'sta', 1)).toBe(3);
   });
 });
 
@@ -76,7 +76,7 @@ describe('the losing branch cannot gut a young player', () => {
   });
 
   it('takes the whole session from a player who can afford it', () => {
-    // Tier 5: the session is 10 and a quarter of 88 is 22, so the floor is moot.
+    // Tier 5: the session is 7 and a quarter of 88 is 22, so the floor is moot.
     expect(
       sessionAttributeDelta(
         careerAtTier({ sprints: 5 }),
@@ -84,25 +84,25 @@ describe('the losing branch cannot gut a young player', () => {
         'pac',
         -1,
       ),
-    ).toBe(-10);
+    ).toBe(-7);
   });
 
   it('takes only a quarter from a youth who cannot', () => {
-    // Same authored loss, same club: 10 points against a quarter of 35, which is 8.
+    // Same authored loss, same club: 7 points against a quarter of 20, which is 5.
     expect(
       sessionAttributeDelta(
         careerAtTier({ sprints: 5 }),
-        withPac(35),
+        withPac(20),
         'pac',
         -1,
       ),
-    ).toBe(-8);
+    ).toBe(-5);
   });
 
   it('never binds at tier 1, where a session is small anyway', () => {
     expect(
       sessionAttributeDelta(careerAtTier({}), withPac(88), 'pac', -1),
-    ).toBe(-2);
+    ).toBe(-3);
   });
 
   it('leaves a gain untouched — the floor is for losses only', () => {
@@ -113,7 +113,7 @@ describe('the losing branch cannot gut a young player', () => {
         'pac',
         3,
       ),
-    ).toBe(30);
+    ).toBe(21);
   });
 });
 

@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { MOTION_MS } from '../motion';
 
@@ -113,16 +119,17 @@ export function ScreenTransition({
     pass: 0,
   }));
 
-  if (state.key !== screenKey) {
+  useLayoutEffect(() => {
+    if (state.key === screenKey) return;
     const dissolves = screenChangeDissolves(
       committed.current.side,
       { key: screenKey, animated },
       reduceMotion,
     );
     const active = dissolves ? otherSlot(state.active) : state.active;
-    // The only Animated write outside an effect, and it only ever writes a slot
-    // UP to full. A render React throws away can therefore leave a slot visible,
-    // never blank — the failure direction that costs polish, not the screen.
+    // This layout effect runs before paint and only ever writes a slot UP to
+    // full. The incoming screen cannot flash through the old slot, and React is
+    // never asked to update this component while another render is in progress.
     if (dissolves) opacities[active].setValue(1);
     setState({
       key: screenKey,
@@ -130,9 +137,17 @@ export function ScreenTransition({
       outgoing: dissolves ? committed.current.node : null,
       pass: state.pass + 1,
     });
-  }
+  }, [
+    animated,
+    opacities,
+    reduceMotion,
+    screenKey,
+    state.active,
+    state.key,
+    state.pass,
+  ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     committed.current = { side: { key: screenKey, animated }, node: children };
   });
 

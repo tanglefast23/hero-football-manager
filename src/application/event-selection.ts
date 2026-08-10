@@ -180,7 +180,12 @@ export function eventIsEligible(
     (trigger.minDivision === undefined || division >= trigger.minDivision) &&
     (trigger.maxDivision === undefined || division <= trigger.maxDivision) &&
     careerEventHasLegalTarget(state, event) &&
-    requirementsMet(state, trigger)
+    requirementsMet(state, trigger) &&
+    event.choices.some(
+      (choice) =>
+        choice.requires === undefined ||
+        requirementsMet(state, choice.requires),
+    )
   );
 }
 

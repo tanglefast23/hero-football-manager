@@ -487,9 +487,8 @@ const DrillGainsSchema = z
  * on Keeper Drills worth roughly 14x a TP spent on Finishing, and seven keeper
  * taps alone moved the opening match from 88% losses to 34%.
  *
- * Pricing the ladder by exposure rather than uniformly brings the two within
- * 1.6x once the comparison is normalised per contest. The pin stays exact so
- * content still cannot drift; it is now per path rather than global.
+ * The lower keeper ladder preserves that exposure-based distinction. The pin
+ * stays exact so content cannot drift; it is per path rather than global.
  */
 const FOCUS_DRILL_PATHS = [
   { id: 'sprints', name: 'Sprints', attribute: 'pac' },
@@ -502,25 +501,20 @@ const FOCUS_DRILL_PATHS = [
     id: 'keeper-drills',
     name: 'Keeper Drills',
     attribute: 'ref',
-    gains: [1, 2, 3, 5, 5],
+    gains: [1, 2, 3, 3, 4],
   },
 ] as const;
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
-// The outfield ladder is intentionally flatter at the top. Higher-division
-// facilities and player modifiers compound every base point, so tier 5 must not
-// preserve the old late-career acceleration.
-/**
- * Tier 5 is a small power increase, not a throughput upgrade. Its 10-point gain
- * is deliberate: late-career clubs also have the strongest facility and player
- * multipliers, and the old top rung made the 999 ceiling arrive too quickly.
- */
+// The outfield ladder rises by one point per tier. Higher-division facilities
+// and player modifiers compound every base point, so the late tiers stay close
+// to the opening tier instead of recreating the old late-career acceleration.
 const FOCUS_DRILL_TIERS = [
-  { suffix: '', label: '1', gain: 2 },
+  { suffix: '', label: '1', gain: 3 },
   { suffix: '-ii', label: '2', gain: 4 },
-  { suffix: '-iii', label: '3', gain: 6 },
-  { suffix: '-iv', label: '4', gain: 9 },
-  { suffix: '-v', label: '5', gain: 10 },
+  { suffix: '-iii', label: '3', gain: 5 },
+  { suffix: '-iv', label: '4', gain: 6 },
+  { suffix: '-v', label: '5', gain: 7 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap((path) =>
   FOCUS_DRILL_TIERS.map((tier, tierIndex) => ({
