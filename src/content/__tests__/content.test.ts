@@ -143,19 +143,16 @@ describe('validated M1 launch content', () => {
     // contested on every opposing shot, so a uniform ladder priced it at roughly
     // 14x the value per TP of every other drill. See
     // docs/superpowers/reports/2026-07-30-real-player-balance-findings.md.
-    // Each rung is strictly cheaper per point than the one below: 2.50, 2.14,
-    // 1.91, 1.75, 1.64 TP per point against 10/15/21/28/36 TP. Tier II used to
-    // match tier I exactly, so the $3,000 upgrade bought no extra throughput.
+    // Tier 5 is deliberately flatter because late-career facilities and player
+    // modifiers compound every base point.
     expect(Object.fromEntries(drillPaths)).toEqual({
-      sprints: [4, 7, 11, 16, 22],
-      finishing: [4, 7, 11, 16, 22],
-      rondo: [4, 7, 11, 16, 22],
-      duels: [4, 7, 11, 16, 22],
-      'first-touch': [4, 7, 11, 16, 22],
-      circuit: [4, 7, 11, 16, 22],
-      // No longer exactly half at every rung — 7 and 11 do not halve — so the
-      // display multiplier is 2, 1.75, 1.833, 2, 2 rather than a flat 2.
-      'keeper-drills': [2, 4, 6, 8, 11],
+      sprints: [2, 4, 6, 9, 10],
+      finishing: [2, 4, 6, 9, 10],
+      rondo: [2, 4, 6, 9, 10],
+      duels: [2, 4, 6, 9, 10],
+      'first-touch': [2, 4, 6, 9, 10],
+      circuit: [2, 4, 6, 9, 10],
+      'keeper-drills': [1, 2, 3, 5, 5],
     });
     expect(content.events.events).toHaveLength(54);
     // 'medical' has no events since the flu-wave and physio cards were cut:
@@ -469,15 +466,15 @@ describe('validated M1 launch content', () => {
     );
 
     const wrongAttribute = cloneContent(loadLaunchContent());
-    wrongAttribute.training.focusDrills[0].gains = { sho: 4 };
+    wrongAttribute.training.focusDrills[0].gains = { sho: 2 };
     expect(() => parseLaunchContent(wrongAttribute)).toThrow(
-      /must grant exactly \+4 PAC/,
+      /must grant exactly \+2 PAC/,
     );
 
     const wrongTierAmount = cloneContent(loadLaunchContent());
     wrongTierAmount.training.focusDrills[1].gains.pac = 10;
     expect(() => parseLaunchContent(wrongTierAmount)).toThrow(
-      /must grant exactly \+7 PAC/,
+      /must grant exactly \+4 PAC/,
     );
 
     const unknownTier = cloneContent(loadLaunchContent());
@@ -575,7 +572,7 @@ describe('validated M1 launch content', () => {
       expect.objectContaining({
         id: 'circuit',
         name: 'Circuit 1',
-        gains: { sta: 4 },
+        gains: { sta: 2 },
       }),
     );
     expect(content.events.tuning).toEqual({

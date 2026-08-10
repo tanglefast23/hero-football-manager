@@ -108,18 +108,18 @@ describe('opening sentinel', () => {
     expect(
       byArm
         .get('ordinary')!
-        .every((run) => run.tapCount === 8 && run.tpBanked === 4),
+        .every((run) => run.tapCount === 4 && run.tpBanked === 2),
     ).toBe(true);
     expect(
       byArm
         .get('smart-breadth')!
-        .every((run) => run.tapCount === 8 && run.tpBanked === 4),
+        .every((run) => run.tapCount === 4 && run.tpBanked === 2),
     ).toBe(true);
     expect(
-      byArm.get('smart-extra-fwd')!.every((run) => run.tapCount === 8),
+      byArm.get('smart-extra-fwd')!.every((run) => run.tapCount === 4),
     ).toBe(true);
     expect(
-      byArm.get('joe-observed-no-coach')!.every((run) => run.tapCount === 6),
+      byArm.get('joe-observed-no-coach')!.every((run) => run.tapCount === 3),
     ).toBe(true);
     expect(
       byArm
@@ -198,13 +198,21 @@ describe('opening sentinel', () => {
     // a manager who trains and builds still promote in season 2 — needs
     // real-player-opening-probe, which is opt-in and slow, and has not been run
     // for this change.
+    //
+    // Updated 2026-08-10 for the owner-approved progression reduction: the TP
+    // scale moves from 80% to 40%, the Tier 1 drill gain from 4 to 2, the youth
+    // multiplier from 1.3 to 1.1, and facility gains from x1.25 to x1.10. The
+    // coached opening falls from eight taps to four and the uncoached opening
+    // from six to three. One uncoached seed changes from a loss to a draw due to
+    // the different training allocation, while all other recorded outcomes stay
+    // losses.
     expect(digests).toEqual({
       ordinary: 'LLLLLLLL',
       'smart-breadth': 'LLLLLLLL',
       'smart-extra-fwd': 'LLLLLLLL',
       'smart-concentration': 'LLLLLLLL',
       'joe-observed-coach': 'LLLLLLLL',
-      'joe-observed-no-coach': 'LLLLLLLL',
+      'joe-observed-no-coach': 'LLLLLLDL',
       'no-training': 'LLLLLLLL',
     });
   });

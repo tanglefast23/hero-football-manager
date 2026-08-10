@@ -256,7 +256,7 @@ export function trainPlayerInstantly(
    * Computed by running this player's own modifiers a second time over the
    * outfield-ladder base rather than doubling the realised gain, because a flat
    * x2 would print +6 for a 22-year-old whose outfield equivalent gets +5 —
-   * `round(2 x 1.3) x 2` is not `round(4 x 1.3)`.
+   * `round(1 x 1.1) x 2` is not guaranteed to match `round(2 x 1.1)`.
    *
    * **Only `growth`'s remainders are persisted; the shadow's are discarded.**
    * That is the invariant the whole trick rests on: `applyInstantGrowthModifiers`
@@ -520,7 +520,7 @@ const GROWTH_SUPER_WEIGHT = 0.25;
  * outruns them degrades to a boundary grade rather than an index crash.
  */
 const GROWTH_MULTIPLIER_FLOOR = 0.6;
-const GROWTH_MULTIPLIER_CEILING = 1.3 * 1.25;
+const GROWTH_MULTIPLIER_CEILING = 1.1 * 1.25;
 const GROWTH_SUPER_FLOOR = 5;
 const GROWTH_SUPER_CEILING = 33;
 
@@ -674,13 +674,11 @@ function validateCoachTrainingRemainder(
 
 /**
  * Indexed by facility level; index 0 means the club owns no such building.
- * An explicit table replaces the old `1 + (level - 1) / 2`, which made level 1
- * worth exactly x1.0 — so the first Gym, Tech Center, Shooting Range or Keeper
- * Court a club ever built changed nothing, at the only level a D5 club can
- * afford. Level 2 and 3 keep their previous x1.5 and x2.0.
+ * These bonuses stay useful without doubling late-career drill gains. Level 1
+ * still changes a drill, while Levels 2 and 3 now add 20% and 30%.
  */
 export const FACILITY_TRAINING_MULTIPLIER: readonly number[] = [
-  1, 1.25, 1.5, 2,
+  1, 1.1, 1.2, 1.3,
 ];
 
 function facilityTrainingMultiplier(

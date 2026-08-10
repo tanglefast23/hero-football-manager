@@ -12,7 +12,8 @@ balance harnesses should be retired:
    important stat after each drill: FWD SHO/PAC/TEC/STA; MID and DEF
    PAS/DEF/PAC/STA; GK REF/PAS/PAC/STA.
 4. Build Training Pitch L1, Coaching Office L1, three Fan Shops and three
-   Stadium Stands, then Pitch upgrades, support facilities, and drill upgrades.
+   Stadium Stands, then Level 1 support facilities, Pitch upgrades, and drill
+   upgrades.
 5. Hire the cheapest legal head coach in Week 1 and the cheapest legal
    assistant at the first legal opportunity.
 6. Use production age, role, archetype, facility, coach, SUPER, pity, condition,
@@ -33,7 +34,8 @@ balance harnesses should be retired:
 - The first-hire player is the created 18-year-old FWD: potential tier 4,
   All-Rounder, and production age/role bonuses. No later transfer recruitment
   is added because it was not defined in this policy.
-- Sample size is one deterministic seed on Cozy and the same seed on Chairman.
+- Sample size is one deterministic seed on Cozy and the same seed on Chairman,
+  run through separate difficulty-filtered invocations.
   This is enough to audit accounting and order-of-magnitude growth. It is not a
   promotion-rate estimate.
 - Two production-path blockers were found while running the pilot. Risky story
@@ -41,7 +43,7 @@ balance harnesses should be retired:
   harness. The game also overfilled a D2 special-hero host beyond the field
   license cap; excess generated powers are now removed for that host season.
 
-## Production constants exercised
+## Pre-cut production constants exercised
 
 - Starting TP: 24.
 - Base weekly TP: 20 after the current global 80% scale.
@@ -60,63 +62,67 @@ Every season reconciled exactly:
 
 `TP start + ambient income + direct story delta - drill spend = TP end`
 
-The unexplained TP delta was 0 in all 22 measured seasons.
+The unexplained in-season TP delta was 0 in all 21 measured seasons. The two
+difficulties were run as separate filtered invocations, so both used seed
+`1835101793`.
 
 ### Cozy
 
-| Season | Division | Place | XI strength | Important-stat median | Created FWD highest important stat | Ambient TP | TP spent |
-|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | D5 | 2 | 54.82 | 53.5 | 134 | 1,978 | 1,920 |
-| 2 | D4 | 7 | 67.64 | 55.0 | 202 | 2,430 | 2,430 |
-| 3 | D4 | 2 | 82.45 | 58.0 | 284 | 2,520 | 2,520 |
-| 4 | D3 | 9 | 91.55 | 58.5 | 348 | 2,520 | 2,520 |
-| 5 | D4 | 2 | 125.18 | 74.0 | 427 | 2,580 | 2,580 |
-| 6 | D3 | 9 | 131.00 | 81.5 | 502 | 2,580 | 2,580 |
-| 7 | D4 | 1 | 166.00 | 179.5 | 557 | 2,670 | 2,660 |
-| 8 | D3 | 1 | 165.73 | 202.5 | 613 | 2,670 | 2,670 |
-| 9 | D2 | 2 | 180.36 | 260.0 | 678 | 3,321 | 3,300 |
-| 10 | D1 | 1 | 216.09 | 352.0 | 738 | 3,390 | 3,390 |
+| Season | Division | Place | XI strength | Created peak | Created drills | Created SUPER | Ambient TP | TP spent |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | D5 | 2 | 55.00 | 157 | 52 | 16 | 1,679 | 1,640 |
+| 2 | D4 | 2 | 72.36 | 293 | 60 | 18 | 2,200 | 2,190 |
+| 3 | D3 | 9 | 92.91 | 436 | 60 | 23 | 2,502 | 2,520 |
+| 4 | D4 | 2 | 112.73 | 573 | 60 | 16 | 2,490 | 2,490 |
+| 5 | D3 | 10 | 127.55 | 706 | 60 | 12 | 2,550 | 2,540 |
+| 6 | D4 | 2 | 174.36 | 846 | 60 | 17 | 2,550 | 2,550 |
+| 7 | D3 | 1 | 225.55 | 953 | 60 | 17 | 2,640 | 2,640 |
+| 8 | D2 | 1 | 250.45 | **999** | 31 | 7 | 3,261 | 3,240 |
+| 9 | D1 | 1 | 279.00 | **999** | 0 | 0 | 3,360 | 3,355 |
 
-Created FWD important stats at the end of Season 10 were SHO 738, PAC 735,
-TEC 736, STA 732.
+The created FWD ended Season 8 at SHO/PAC/TEC/STA 999/999/999/999. It
+received no further drills because all four policy stats were capped.
 
 ### Chairman
 
-| Season | Division | Place | XI strength | Important-stat median | Created FWD highest important stat | Ambient TP | TP spent |
-|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | D5 | 2 | 53.55 | 52.0 | 138 | 1,794 | 1,740 |
-| 2 | D4 | 5 | 66.45 | 52.0 | 210 | 2,430 | 2,430 |
-| 3 | D4 | 2 | 81.18 | 55.0 | 292 | 2,520 | 2,520 |
-| 4 | D3 | 8 | 93.27 | 57.0 | 358 | 2,520 | 2,520 |
-| 5 | D3 | 10 | 112.91 | 62.5 | 441 | 2,580 | 2,580 |
-| 6 | D4 | 4 | 129.91 | 172.5 | 508 | 2,580 | 2,580 |
-| 7 | D4 | 2 | 149.27 | 172.5 | 571 | 2,670 | 2,670 |
-| 8 | D3 | 3 | 158.18 | 196.0 | 627 | 2,670 | 2,670 |
-| 9 | D3 | 9 | 164.64 | 270.0 | 687 | 2,700 | 2,700 |
-| 10 | D4 | 3 | 179.45 | 330.5 | 745 | 2,700 | 2,700 |
-| 11 | D4 | 3 | 161.36 | 164.0 | 809 | 2,700 | 2,700 |
-| 12 | D4 | 1 | 181.64 | 200.5 | 865 | 2,700 | 2,700 |
+| Season | Division | Place | XI strength | Created peak | Created drills | Created SUPER | Ambient TP | TP spent |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | D5 | 2 | 53.18 | 138 | 48 | 15 | 1,679 | 1,640 |
+| 2 | D4 | 4 | 67.27 | 270 | 60 | 17 | 1,901 | 1,880 |
+| 3 | D4 | 2 | 86.73 | 399 | 60 | 10 | 2,520 | 2,520 |
+| 4 | D3 | 8 | 106.09 | 532 | 60 | 11 | 2,520 | 2,530 |
+| 5 | D3 | 10 | 141.18 | 669 | 60 | 11 | 2,580 | 2,580 |
+| 6 | D4 | 4 | 155.36 | 798 | 60 | 9 | 2,580 | 2,580 |
+| 7 | D4 | 2 | 171.91 | 901 | 60 | 12 | 2,670 | 2,660 |
+| 8 | D3 | 7 | 180.36 | **999** | 59 | 17 | 2,670 | 2,670 |
+| 9 | D3 | 6 | 189.09 | **999** | 0 | 0 | 2,700 | 2,700 |
+| 10 | D3 | 1 | 211.73 | **999** | 0 | 0 | 2,700 | 2,700 |
+| 11 | D2 | 9 | 187.73 | **999** | 0 | 0 | 2,700 | 2,700 |
+| 12 | D3 | 3 | 187.64 | **999** | 0 | 0 | 2,700 | 2,700 |
 
-Created FWD important stats at the end of Season 12 were SHO 863, PAC 865,
-TEC 860, STA 862. The run was censored before D1 because the economy and forced
-sales caused repeated D3/D4 movement, not because the created player lacked
-growth.
+The Chairman created FWD also reached SHO/PAC/TEC/STA 999/999/999/999 in
+Season 8. The run was censored before D1 because its economy and forced sales
+caused repeated relegation, not because its created player lacked growth.
 
 ## Facilities, stories, and economy
 
-- Season 1 capital spend was $69,500 in each difficulty. This exactly covers
-  Pitch L1, Office L1, three Fan Shops, three Stadium Stands, and Pitch L2.
-- Cozy reached Pitch L3 in Season 9. Chairman remained at Pitch L2.
-- Neither run bought a drill tier upgrade or built a stat-training facility.
-  Therefore the 738/865 result does not depend on high drill tiers or Gym,
-  Tech Center, Shooting Range, Keeper Court, or Dorm bonuses.
-- Direct story TP was small: Cozy +4 total; Chairman +12 total. Risky stories
-  can matter in individual careers, but story TP did not drive this result.
-- The Cozy run used one emergency loan, 12 forced sales, and 99 board rescues.
-  The Chairman run used one emergency loan, 32 forced sales, and 185 rescues.
+- Cozy spent $96,500 in Season 1: Pitch L1, Office L1, three Fan Shops, three
+  Stands, and Gym/Dorm/Tech/Shooting/Keeper L1. It added the remaining support
+  facilities and Pitch L2 in Season 2. Chairman completed the same L1 set and
+  Pitch L2 by the end of Season 2.
+- Cozy reached Pitch L3 and began drill upgrades only in Season 8, after the
+  created player was almost capped. Chairman never reached Pitch L3 or bought a
+  drill upgrade. The cap result therefore does not depend on higher drill tiers.
+- The created player's SHO/PAC/TEC/STA did use Level 1 Shooting Range, Gym, and
+  Tech Center bonuses as those facilities became operational.
+- Direct story TP remained small: Cozy +28 total; Chairman +12 total. Risky
+  stories did not drive the cap result.
+- The Cozy run used one emergency loan, 5 forced sales, and 43 board rescues.
+  The Chairman run used one emergency loan, 35 forced sales, and 208 rescues.
   The commercial-build policy did not create a stable late-career economy.
-- Squad SUPER counts were 27–61 per season. The created player's tier-4
-  potential and age bonuses are included in its measured growth.
+- The created player consumed 480–600 TP per full season. Total ambient income
+  was 1,679–3,360 TP, so this player's curve was limited by the two-drill weekly
+  rule, not by total TP after the opening weeks.
 
 ## Current opponent ladder
 
@@ -128,15 +134,57 @@ growth.
 | D2 | 80–90 | 77 | 159 | 135 |
 | D1 | 107–120 | 103 | 212 | 180 |
 
-The Cozy policy won D1 with XI strength 216 and a created-player peak of 738.
-The current D1 field is therefore far below this policy's output.
+The Cozy policy won D1 with XI strength 279 and a capped created player. That is
+strong evidence of an outlier-progression problem. It is not enough evidence to
+replace the ladder: opponent teams also receive per-season growth, and one seed
+does not establish promotion rates.
 
 ## Questions for independent review
 
-1. Does the evidence support keeping 999, raising it, or reducing growth first?
-2. Which TP and training-gain sources actually caused the created-player curve?
-3. Are provisional no-change opponent bands around D5 45–60, D4 65–85,
-   D3 95–125, D2 145–185, and D1 200–250 defensible from this pilot?
-4. Which claims are not justified because there are only two runs?
-5. Identify any policy-fidelity, accounting, or production-path defect that
-   would materially invalidate the conclusion.
+1. Keep 999. Both runs reached it; raising the cap would hide the curve.
+2. The created-player curve is caused primarily by 48–60 drills per season,
+   Tier 1 gain, age/role/archetype modifiers, SUPER, and Level 1 stat facilities.
+   Total TP is not binding for that highest-priority player after the opener.
+3. Lowering TP is still relevant to whole-squad growth, but it cannot slow the
+   created player unless weekly TP falls below the price of two drills. Per-drill
+   gain and training multipliers must also be reviewed.
+4. Do not ship opponent-band changes from two runs. Preserve the ladder's
+   measured ratio steps and use a new policy run after progression is reduced.
+5. Treat the old “balanced best team” harness as non-authoritative for design.
+   Retain deterministic accounting, replay, invariant, and trajectory probes.
+
+## Post-cut rerun — 2026-08-10
+
+The approved progression cut changed all four binding levers:
+
+- Outfield gains: `4/7/11/16/22` → `2/4/6/9/10`.
+- Keeper gains: `2/4/6/8/11` → `1/2/3/5/5`.
+- Facility multipliers: `1.25/1.50/2.00` → `1.10/1.20/1.30`.
+- Youth multiplier: `1.30` → `1.10`.
+- All positive TP grants: 80% → 40%, including event rewards.
+
+The same seed and policy were rerun once per difficulty. Both accounting rails
+reconciled and both probe invocations passed.
+
+| Difficulty | Season 1 | First D4 season | Best division | Season 8 created peak | Season 12 created peak | Reached 999? |
+|---|---|---|---|---:|---:|---|
+| Cozy | D5, 7th | Season 4, 9th | D4 | 385 | 553 | No |
+| Chairman | D5, 7th | Season 4, 9th | D4 | 293 | 413 | No |
+
+The cap problem is removed through Season 12. It is not a small pacing change:
+
+- Both runs took three seasons to first leave D5.
+- Neither run reached D3 in 12 seasons. Both moved repeatedly between D5 and D4.
+- Cozy still gave the created player 60 drills and 600 TP in most full seasons.
+  Lower gain per drill, not TP scarcity, slowed that player.
+- Mature whole-club TP income settled at about 1,020 per season. Concentrating
+  440–600 TP on the created player left too little growth for the rest of the XI.
+- Cozy ended with 38 forced sales and 256 board rescues. Chairman ended with 55
+  forced sales and 281 rescues. The facility-first commercial policy still did
+  not produce a stable economy.
+
+Verdict: the new values stop an optimized created player from reaching 999 too
+quickly, but the full package is much harsher than one extra season per
+division. Do not lower opponent bands from this one seed. If the desired result
+is one additional season rather than a D5/D4 loop, keep the drill, youth, and
+facility cuts and retest a 50–60% TP scale before changing the division ladder.

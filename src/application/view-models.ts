@@ -1567,9 +1567,9 @@ function facilityEffectLabel(
 
 /** Mirrors FACILITY_TRAINING_MULTIPLIER in src/game/training.ts, as a percentage. */
 const TRAINING_BONUS_PERCENT: Readonly<Record<FacilityLevel, number>> = {
-  1: 25,
-  2: 50,
-  3: 100,
+  1: 10,
+  2: 20,
+  3: 30,
 };
 
 function facilityNextLevelEffectLabel(

@@ -79,10 +79,9 @@ function userStarters(state: GameState) {
 describe('training capacity has no weekly cap', () => {
   it('lets four distinct players train in the same week when TP permits', () => {
     let state = freshCareer();
-    // The launch grant alone cannot fund four Tier I drills, so let the club
-    // earn the TP by simply advancing — no direct TP writes.
-    state = advanceWeek(advanceWeek(state));
-    expect(state.trainingPoints).toBeGreaterThanOrEqual(40);
+    // Capacity is independent from the opening economy, which is pinned below.
+    // Supply four drill costs directly so this test remains a cap test.
+    state = { ...state, trainingPoints: 40 };
 
     const outfielders = userStarters(state)
       .filter((player) => player.role !== 'GK')
@@ -98,7 +97,7 @@ describe('training capacity has no weekly cap', () => {
 
   it('lets the same player train repeatedly in one week, paying condition each time', () => {
     let state = freshCareer();
-    state = advanceWeek(advanceWeek(state));
+    state = { ...state, trainingPoints: 40 };
     const target = userStarters(state).find((player) => player.role === 'FWD')!;
     const startingCondition = target.condition ?? 100;
 
@@ -168,15 +167,19 @@ describe('opening TP timeline', () => {
     let state = freshCareer();
     const candidate = state.market!.coachCandidates[0];
     expect(candidate.level).toBe(1);
-    expect(coachWeeklyTrainingPoints(1, 'HEAD')).toBe(10);
+    expect(coachWeeklyTrainingPoints(1, 'HEAD')).toBe(5);
     state = {
       ...state,
       market: hireCareerCoach(state, state.market!, candidate.id),
     };
     state = advanceWeek(state);
-    expect(state.trainingPoints).toBe(LAUNCH_TP + 20 + 10);
+    expect(state.trainingPoints).toBe(
+      LAUNCH_TP + BASE_WEEKLY_TRAINING_POINTS + 5,
+    );
     state = advanceWeek(state);
-    expect(state.trainingPoints).toBe(LAUNCH_TP + (20 + 10) * 2);
+    expect(state.trainingPoints).toBe(
+      LAUNCH_TP + (BASE_WEEKLY_TRAINING_POINTS + 5) * 2,
+    );
   });
 
   it('spends the opening bank as each arm intends', () => {
@@ -187,9 +190,9 @@ describe('opening TP timeline', () => {
       creation: CREATION,
       content,
     });
-    expect(ordinary.tapCount).toBe(8);
-    expect(ordinary.tpSpent).toBe(80);
-    expect(ordinary.tpBanked).toBe(4);
+    expect(ordinary.tapCount).toBe(4);
+    expect(ordinary.tpSpent).toBe(40);
+    expect(ordinary.tpBanked).toBe(2);
     reconcileTrainingPoints(ordinary, LAUNCH_TP);
 
     const smart = runOpening({
@@ -199,9 +202,9 @@ describe('opening TP timeline', () => {
       creation: CREATION,
       content,
     });
-    expect(smart.tapCount).toBe(8);
-    expect(smart.tpSpent).toBe(80);
-    expect(smart.tpBanked).toBe(4);
+    expect(smart.tapCount).toBe(4);
+    expect(smart.tpSpent).toBe(40);
+    expect(smart.tpBanked).toBe(2);
     reconcileTrainingPoints(smart, LAUNCH_TP);
   });
 });
@@ -229,9 +232,10 @@ describe('Training Pitch timing', () => {
     expect(state.trainingPoints).toBe(
       LAUNCH_TP + BASE_WEEKLY_TRAINING_POINTS * 2,
     );
-    expect(TRAINING_PITCH_TP_PER_LEVEL).toBe(23);
+    expect(TRAINING_PITCH_TP_PER_LEVEL).toBe(12);
 
-    // The operational Pitch is the DEF drill multiplier: 1.25x at level 1.
+    // The operational Pitch applies x1.10. At a +2 Tier 1 drill, whole-point
+    // rounding keeps the immediate result equal to the bare club.
     const defender = userStarters(state).find(
       (player) => player.role === 'DEF',
     )!;
@@ -241,7 +245,7 @@ describe('Training Pitch timing', () => {
       defender.id,
       'duels',
     );
-    expect(withPitch.after - defender.attrs.def).toBeGreaterThan(
+    expect(withPitch.after - defender.attrs.def).toBe(
       bare.after - defender.attrs.def,
     );
   });

@@ -357,7 +357,7 @@ describe('Hero Cup', () => {
 describe('aging, retirement, and legacy', () => {
   it('uses the documented growth bands and declines only 30+ PAC/STA by one to three', () => {
     expect([16, 23, 24, 29, 30, 40].map(trainingMultiplierForAge)).toEqual([
-      1.3, 1.3, 1, 1, 0.6, 0.6,
+      1.1, 1.1, 1, 1, 0.6, 0.6,
     ]);
     const young = lifecyclePlayer({ id: 'young', age: 23 });
     const prime = lifecyclePlayer({ id: 'prime', age: 29 });
