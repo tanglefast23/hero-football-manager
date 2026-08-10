@@ -115,6 +115,11 @@ interface InstantTrainingPreview {
   adjustment: number;
   /** Every modifier participating in the result, each with its own direction. */
   modifiers: readonly TrainingModifier[];
+  /** Fractional bonus ledgers after this drill, kept as exact hundredths. */
+  fractionalBonusBanks: readonly {
+    kind: 'TRAINING' | 'STAMINA';
+    hundredths: number;
+  }[];
 }
 
 /**
@@ -156,18 +161,36 @@ export function instantTrainingPreview(
     MAX_PLAYER_ATTRIBUTE,
     checkedAdd(displayedCurrent, baseGain, 'base training attribute'),
   );
-  const adjustedGain =
-    applyInstantGrowthModifiers(state, player, attribute, baseGain).value -
-    currentValue;
+  const adjusted = applyInstantGrowthModifiers(
+    state,
+    player,
+    attribute,
+    baseGain,
+  );
+  const adjustedGain = adjusted.value - currentValue;
   const adjustedAfter = Math.min(
     MAX_PLAYER_ATTRIBUTE,
     displayedCurrent + adjustedGain,
   );
+  const trainingHundredths = adjusted.trainingBonusRemainders?.[attribute];
   return {
     baseAfter,
     adjustedAfter,
     adjustment: adjustedAfter - baseAfter,
     modifiers: instantGrowthModifierLabels(state, player, attribute),
+    fractionalBonusBanks: [
+      ...(trainingHundredths === undefined
+        ? []
+        : [{ kind: 'TRAINING' as const, hundredths: trainingHundredths }]),
+      ...(adjusted.facilityStaBonusRemainder === undefined
+        ? []
+        : [
+            {
+              kind: 'STAMINA' as const,
+              hundredths: adjusted.facilityStaBonusRemainder,
+            },
+          ]),
+    ],
   };
 }
 
