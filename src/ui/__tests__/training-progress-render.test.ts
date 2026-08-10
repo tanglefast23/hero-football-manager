@@ -3,6 +3,21 @@ import { join } from 'path';
 import { loadCatalog } from '../../i18n';
 
 describe('training stat option rendering', () => {
+  it('keeps the drill modal out of the normal first-load bundle', () => {
+    const screen = readFileSync(
+      join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
+      'utf8',
+    );
+
+    expect(screen).toContainSource(
+      "const module = await import('../TrainingDrillModal');",
+    );
+    expect(screen).toContainSource('<Suspense fallback={null}>');
+    expect(screen).not.toContainSource(
+      "import { TrainingDrillModal } from '../TrainingDrillModal';",
+    );
+  });
+
   it('greys out unusable drills and shows the live gamble state', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/TrainingDrillModal.tsx'),

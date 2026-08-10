@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import {
   ScrollView,
@@ -31,7 +39,6 @@ import {
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
-import { TrainingDrillModal } from '../TrainingDrillModal';
 import {
   nextSquadSort,
   sortSquadPlayers,
@@ -74,6 +81,11 @@ import {
   type GuidanceNudgeTarget,
 } from '../GuidanceDoubleFlash';
 import { copyOrEnglish } from '../../application/copy-fallback';
+
+const TrainingDrillModal = lazy(async () => {
+  const module = await import('../TrainingDrillModal');
+  return { default: module.TrainingDrillModal };
+});
 
 /**
  * The roster reads condition on the same three bands as the drill popup and
@@ -626,30 +638,32 @@ export function SquadTrainingScreen({
       {drillPickerOpen &&
       selectedPlayer &&
       viewModel.selectedPlayerStatOptions ? (
-        <TrainingDrillModal
-          playerId={selectedPlayer.id}
-          playerName={selectedPlayer.name}
-          playerRole={selectedPlayer.role}
-          playerLookId={selectedPlayer.lookId}
-          options={viewModel.selectedPlayerStatOptions}
-          superChancePercent={selectedPlayer.superChancePercent}
-          injuryRiskPercent={selectedPlayer.injuryRiskPercent}
-          condition={selectedPlayer.condition}
-          injuryWeeks={selectedPlayer.injuryWeeks}
-          trainingPoints={trainingPoints}
-          lastDrillResult={lastDrillResult}
-          promiseGate={viewModel.trainingPromiseGate}
-          onSwitchToPromised={onSelectPlayer}
-          onTrainDrill={onTrainDrill}
-          onTrainDrillBatch={onTrainDrillBatch}
-          onDismiss={() => setDrillPickerOpen(false)}
-          reduceMotion={reduceMotion}
-          saveWarning={saveWarning}
-          quickTrainPathId={quickTrainPathId}
-          onQuickTrainConsumed={forgetQuickTrainRequest}
-          conditionWarningSeen={conditionWarningSeen}
-          onConditionWarningShown={onConditionWarningShown}
-        />
+        <Suspense fallback={null}>
+          <TrainingDrillModal
+            playerId={selectedPlayer.id}
+            playerName={selectedPlayer.name}
+            playerRole={selectedPlayer.role}
+            playerLookId={selectedPlayer.lookId}
+            options={viewModel.selectedPlayerStatOptions}
+            superChancePercent={selectedPlayer.superChancePercent}
+            injuryRiskPercent={selectedPlayer.injuryRiskPercent}
+            condition={selectedPlayer.condition}
+            injuryWeeks={selectedPlayer.injuryWeeks}
+            trainingPoints={trainingPoints}
+            lastDrillResult={lastDrillResult}
+            promiseGate={viewModel.trainingPromiseGate}
+            onSwitchToPromised={onSelectPlayer}
+            onTrainDrill={onTrainDrill}
+            onTrainDrillBatch={onTrainDrillBatch}
+            onDismiss={() => setDrillPickerOpen(false)}
+            reduceMotion={reduceMotion}
+            saveWarning={saveWarning}
+            quickTrainPathId={quickTrainPathId}
+            onQuickTrainConsumed={forgetQuickTrainRequest}
+            conditionWarningSeen={conditionWarningSeen}
+            onConditionWarningShown={onConditionWarningShown}
+          />
+        </Suspense>
       ) : null}
     </View>
   );
