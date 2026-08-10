@@ -109,21 +109,31 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // The 40% scale funds one 8-TP tap a week before the Pitch opens. The bank
-    // can fund both players once the Pitch becomes operational.
-    const oneTapNet = BASE_WEEKLY_TRAINING_POINTS - 8;
-    const pitchAndTwoTapNet =
-      BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL - 16;
+    // The 40% scale funds one 7-TP tap in the first build week, then two in the
+    // second. Once the Pitch opens, the larger income funds both players.
+    const tierOneCost = resolveTrainingDrillForPath(state, 'sprints').tpCost;
+    const firstBuildWeekNet = BASE_WEEKLY_TRAINING_POINTS - tierOneCost;
+    const secondBuildWeekNet = BASE_WEEKLY_TRAINING_POINTS - tierOneCost * 2;
+    const firstPitchWeekNet =
+      BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL - tierOneCost;
+    const fullPitchWeekNet =
+      BASE_WEEKLY_TRAINING_POINTS +
+      TRAINING_PITCH_TP_PER_LEVEL -
+      tierOneCost * 2;
     // The opening balance is the career's launch grant. Taken from the first
     // recorded balance rather than retyped, so retuning the grant retunes this
     // expectation with it — the shape of the climb is what this test owns.
     const launch = balances[0];
     expect(balances).toEqual([
       launch,
-      launch + oneTapNet,
-      launch + oneTapNet * 2,
-      launch + oneTapNet * 2 + pitchAndTwoTapNet,
-      launch + oneTapNet * 2 + pitchAndTwoTapNet * 2,
+      launch + firstBuildWeekNet,
+      launch + firstBuildWeekNet + secondBuildWeekNet,
+      launch + firstBuildWeekNet + secondBuildWeekNet + firstPitchWeekNet,
+      launch +
+        firstBuildWeekNet +
+        secondBuildWeekNet +
+        firstPitchWeekNet +
+        fullPitchWeekNet,
     ]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
@@ -273,19 +283,17 @@ describe('facility weekly integration', () => {
       state = tapIfAffordable(state, playerId, 'circuit');
       state = advanceWeek(state);
     }
-    // A Level 1 Gym is x1.10 and Circuit 1 gives +2. Whole-point rounding keeps
-    // the base at 2, while the adjacency's 10% releases one extra point every
-    // five taps.
+    // A Level 1 Gym is x1.10 and Circuit 1 gives +3. The adjacency's 10%
+    // continues to bank across taps.
     const afterNine = state.players.find((player) => player.id === playerId);
-    expect(afterNine?.attrs.sta).toBe(startingSta + 19);
+    expect(afterNine?.attrs.sta).toBe(startingSta + 30);
     expect(afterNine?.facilityStaBonusRemainder).toBe(80);
 
-    // The tenth tap releases both the player's position remainder and the
-    // adjacency remainder, so it pays four points.
+    // The tenth tap releases the adjacency remainder, so it pays four points.
     state = tapIfAffordable(state, playerId, 'circuit');
     state = advanceWeek(state);
     const afterTen = state.players.find((player) => player.id === playerId);
-    expect(afterTen?.attrs.sta).toBe(startingSta + 23);
+    expect(afterTen?.attrs.sta).toBe(startingSta + 34);
     expect(afterTen?.facilityStaBonusRemainder).toBe(10);
   });
 
@@ -404,13 +412,12 @@ describe('facility weekly integration', () => {
       );
     };
 
-    // Sprints 1 gives +2 PAC at age 25. Levels 1 and 2 bank no structural
-    // remainder, so whole-point rounding makes their small bonus invisible on
-    // this lowest drill. Level 3 crosses the next point.
-    expect(atGymLevel(0)).toBe(2);
-    expect(atGymLevel(1)).toBe(2);
-    expect(atGymLevel(2)).toBe(2);
-    expect(atGymLevel(3)).toBe(3);
+    // Sprints 1 gives +3 PAC at age 25. Level 1 still rounds to +3; levels 2
+    // and 3 round to +4.
+    expect(atGymLevel(0)).toBe(3);
+    expect(atGymLevel(1)).toBe(3);
+    expect(atGymLevel(2)).toBe(4);
+    expect(atGymLevel(3)).toBe(4);
   });
 
   test('keeps M1 ambient TP behavior and charges no upkeep when the grid is absent', () => {

@@ -89,18 +89,13 @@ describe('default two-season career journey', () => {
     // MONEY charge, which is always 0 now — the ledger line can never fire, so
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
-    // Down to 439 from 570 with the drill ladder cut to four fifths; 570 was
-    // itself back from 655, when juniors received a 1.5x age bonus not 1.3x. The earlier drop from 812 was because drill tiers
-    // are BOUGHT now, and this journey never buys one. Reaching D4 only puts
-    // Sprints 2 up for sale, so an automated plan that spends TP and nothing
-    // else trains on Sprints 1 (+4, cut from +5 on 2026-08-02) for all sixty weeks.
-    // Cap-free training keeps raising the raw PAC value; Sprints trains only
-    // PAC, so STA stays at the creation value.
+    // With Tier 1 at +3 for 7 TP, this deterministic 60-week plan ends at PAC
+    // 304. Sprints affects only PAC, so STA stays at the creation value.
     expect(
       first.players.find(
         (player) => player.id === 'bramble-rovers-created-player',
       )?.attrs,
-    ).toMatchObject({ pac: 200, sta: 50 });
+    ).toMatchObject({ pac: 304, sta: 50 });
   });
 });
 

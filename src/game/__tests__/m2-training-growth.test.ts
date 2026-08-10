@@ -52,10 +52,10 @@ describe('M2 player-specific instant training growth', () => {
     const young = trainWithoutSuper(prepare(20), playerId, 'circuit');
     const prime = trainWithoutSuper(prepare(25), playerId, 'circuit');
 
-    // Circuit 3 gives +6 STA. Age 20 scales it by 1.1 to 7 after rounding;
-    // age 25 keeps it at 6.
-    expect(young.after).toBe(57);
-    expect(prime.after).toBe(56);
+    // Circuit 3 gives +5 STA. Age 20 scales it by 1.1 to 6 after rounding;
+    // age 25 keeps it at 5.
+    expect(young.after).toBe(56);
+    expect(prime.after).toBe(55);
   });
 
   test('uses the matching facility level without a high-stat growth wall', () => {
@@ -99,13 +99,13 @@ describe('M2 player-specific instant training growth', () => {
 
     const result = trainWithoutSuper(state, playerId, 'circuit');
 
-    // Circuit 1's +2 STA becomes +3 under the Lv3 Gym. Engine's 15% bonus
-    // banks 39 hundredths from the unrounded 2.6 gain. No growth wall applies.
-    expect(result.after).toBe(93);
+    // Circuit 1's +3 STA becomes +4 under the Lv3 Gym. Engine's 15% bonus
+    // banks 59 hundredths from the unrounded 3.9 gain. No growth wall applies.
+    expect(result.after).toBe(94);
     expect(
       result.state.players.find((p) => p.id === playerId)
         ?.trainingBonusRemainders?.sta,
-    ).toBe(39);
+    ).toBe(59);
   });
 
   test('banks fractional archetype bonuses until repeat drills earn a whole point', () => {
@@ -114,7 +114,7 @@ describe('M2 player-specific instant training growth', () => {
       (player) => player.clubId === initial.userClubId,
     )!.id;
     // Anchor gives +15% DEF; a FWD earns no position bonus on DEF, and there is
-    // no coach, so each +2 Duels 1 drill banks exactly 30 hundredths.
+    // no coach, so each +3 Duels 1 drill banks exactly 45 hundredths.
     let state: GameState = {
       ...initial,
       trainingPoints: 100,
@@ -145,11 +145,11 @@ describe('M2 player-specific instant training growth', () => {
       };
     }
 
-    expect(gains).toEqual([2, 2, 2]);
+    expect(gains).toEqual([3, 3, 4]);
     expect(
       state.players.find((p) => p.id === playerId)?.trainingBonusRemainders
         ?.def,
-    ).toBe(90);
+    ).toBe(35);
   });
 
   test('allows gains through 99 and stops only at the universal 999 ceiling', () => {

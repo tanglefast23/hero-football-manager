@@ -169,6 +169,15 @@ describe('marketViewModel', () => {
     });
   });
 
+  it('keeps an unaffordable transfer pressable so the desk can explain the refusal', () => {
+    const listing = marketViewModel({ ...baseSource(), cash: 0 }).transfers[0];
+
+    expect(listing).toMatchObject({
+      available: true,
+      blockedReason: 'Transfer fee exceeds current cash.',
+    });
+  });
+
   it('presents coach specialties, gates, and retired-legend loyalty', () => {
     const source = baseSource();
     const coachCandidates = generateCoachMarket({

@@ -307,7 +307,7 @@ describe('career squad integration', () => {
     ).toBe(50);
 
     // A new Division 5 career owns tier I, so each path resolves to its
-    // 8 TP tap for +2. A SUPER roll would disturb these exact values,
+    // 7 TP tap for +3. A SUPER roll would disturb these exact values,
     // so probe nonces to keep both taps ordinary.
     let trained = initial;
     for (const tap of [
@@ -326,10 +326,10 @@ describe('career squad integration', () => {
         }
       }
     }
-    expect(trained.trainingPoints).toBe(84);
+    expect(trained.trainingPoints).toBe(86);
     expect(
       trained.players.find((player) => player.id.endsWith('-p9'))?.attrs.pac,
-    ).toBe(52);
+    ).toBe(53);
     expect(
       trained.players.find((player) => player.id.endsWith('-p9'))?.attrs.def,
     ).toBe(50);
@@ -340,7 +340,7 @@ describe('career squad integration', () => {
     expect(
       trained.players.find((player) => player.id === `${CLUB_IDS[0]}-p1`)?.attrs
         .def,
-    ).toBe(52);
+    ).toBe(53);
     expect(
       trained.players.find((player) => player.id === `${CLUB_IDS[0]}-p2`)?.attrs
         .def,
@@ -412,7 +412,7 @@ describe('career squad integration', () => {
 
     expect(() =>
       trainPlayerInstantly(broke, `${CLUB_IDS[0]}-p9`, 'sprints'),
-    ).toThrow(/needs 8 TP/);
+    ).toThrow(/needs 7 TP/);
 
     const settled = advanceWeek(broke);
     expect(settled.week).toBe(2);

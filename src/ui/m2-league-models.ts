@@ -65,7 +65,9 @@ export interface M2CupFixtureViewModel {
   readonly id: string;
   readonly roundLabel: string;
   readonly homeClubName: string;
+  readonly homeDivision: M2DivisionLevelViewModel;
   readonly awayClubName: string;
+  readonly awayDivision: M2DivisionLevelViewModel;
   readonly scoreLabel: string;
   readonly status: 'SCHEDULED' | 'PLAYED';
   readonly winnerName?: string;

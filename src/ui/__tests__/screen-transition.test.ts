@@ -87,6 +87,16 @@ describe('screen transition', () => {
     expect(file).toContain('accessibilityElementsHidden={active !== 0}');
     expect(file).toContain('accessibilityElementsHidden={active !== 1}');
   });
+
+  it('never updates transition state while React is rendering', () => {
+    const file = source(TRANSITION);
+    const renderBody = file.slice(
+      file.indexOf('export function ScreenTransition'),
+      file.indexOf('useLayoutEffect(() => {'),
+    );
+    expect(renderBody).not.toContain('setState(');
+    expect(file).toContain('if (state.key === screenKey) return;');
+  });
 });
 
 describe('App screen routing', () => {

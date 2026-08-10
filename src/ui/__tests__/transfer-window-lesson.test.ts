@@ -31,6 +31,7 @@ describe('the shut-window lesson', () => {
 
   it('names both windows so the manager can plan around them', () => {
     expect(app).toContainSource('Weeks 1 to 4, then Weeks 17 and 18');
+    expect(app).not.toContainSource('That report is yours to keep');
   });
 
   it('banks itself silently in Advisor mode', () => {

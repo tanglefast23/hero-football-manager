@@ -161,19 +161,21 @@ describe('briefing beats', () => {
     expect(beats.every((beat) => beat.focus === 'national-cup')).toBe(true);
   });
 
-  it('clears the scout-report lesson after Bert talks without a tap cue', () => {
+  it('finishes the first report lesson with one Deals cue', () => {
     const market = readFileSync(
       join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
       'utf8',
     );
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const beats = briefingBeats(guide, 'scout-report');
 
-    expect(market).not.toContainSource(
-      "guideFocus === 'scout-report' && index === 0",
-    );
-    expect(app).toContainSource(
-      "assistantSequenceId === 'scout-report'\n          ? null",
-    );
+    expect(beats.map((beat) => beat.text)).toEqual([
+      "Reports show estimated stat ranges; better Scout Offices narrow them. If you're interested in any of these players, tap the Deals button.",
+    ]);
+    expect(market).toContainSource("guideFocus === 'scout-report'");
+    expect(app).toContainSource('scoutDealsGuideVisible');
+    expect(app).toContainSource("label={t('market.tapMe')}");
+    expect(app).not.toContainSource('That report is yours to keep');
     expect(app).toContainSource(
       'store.completeAssistantGuide(assistantSequenceId)',
     );

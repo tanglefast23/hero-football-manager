@@ -4907,7 +4907,9 @@ function careerDivisionLabel(
   return divisionTierLabelWith(careerDivision(state), t);
 }
 
-function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
+function recentForm(
+  state: GameState,
+): Array<{ result: 'W' | 'D' | 'L'; week: number }> {
   return (
     state.fixtures
       .filter(
@@ -4932,11 +4934,11 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
         const goalsAgainst = isHome
           ? fixture.score!.awayGoals
           : fixture.score!.homeGoals;
-        return goalsFor > goalsAgainst
-          ? 'W'
-          : goalsFor < goalsAgainst
-            ? 'L'
-            : 'D';
+        return {
+          result:
+            goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D',
+          week: fixture.week,
+        };
       })
   );
 }

@@ -272,14 +272,13 @@ export function trainPlayerInstantly(
   );
 
   /**
-   * Keeper Drills award half the outfield ladder for the same TP, so a keeper's
-   * card reads `+2` beside three `+4`s and looks short-changed when the truth is
-   * the opposite. Bank the shortfall for display only.
+   * Keeper Drills award less than the outfield ladder for the same TP, so a
+   * keeper's card would look short-changed when the truth is the opposite. Bank
+   * the shortfall for display only.
    *
    * Computed by running this player's own modifiers a second time over the
-   * outfield-ladder base rather than doubling the realised gain, because a flat
-   * x2 would print +6 for a 22-year-old whose outfield equivalent gets +5 —
-   * `round(1 x 1.1) x 2` is not guaranteed to match `round(2 x 1.1)`.
+   * outfield-ladder base instead of multiplying the realised gain by a fixed
+   * ratio. Rounding age and facility modifiers can make those paths differ.
    *
    * **Only `growth`'s remainders are persisted; the shadow's are discarded.**
    * That is the invariant the whole trick rests on: `applyInstantGrowthModifiers`
@@ -299,10 +298,9 @@ export function trainPlayerInstantly(
    */
   // `drill.id`, not `pathId`. `pathId` is the TIER-1 drill id, so the resolve was
   // banking the display bonus at tier 1's ratio however far the path had been
-  // upgraded, while the preview a few lines up used the owned tier's. Every
-  // keeper tier being exactly half its outfield reference made both come out at
-  // 2 and hid it; the first ladder where the halving is not exact would have
-  // promised +7 on the card and banked +8.
+  // upgraded, while the preview a few lines up used the owned tier's. The
+  // keeper-to-outfield ratio differs by tier, so both paths must use the same
+  // resolved drill.
   const displayMultiplier = keeperDisplayLadderMultiplier(state, drill.id);
   const displayBonusBefore =
     attribute === 'ref' ? (player.refDisplayBonus ?? 0) : 0;

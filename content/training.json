@@ -5,16 +5,16 @@
       "id": "sprints",
       "name": "Sprints 1",
       "moneyCost": 0,
-      "tpCost": 8,
+      "tpCost": 7,
       "gains": {
-        "pac": 2
+        "pac": 3
       }
     },
     {
       "id": "sprints-ii",
       "name": "Sprints 2",
       "moneyCost": 0,
-      "tpCost": 13,
+      "tpCost": 12,
       "gains": {
         "pac": 4
       }
@@ -23,43 +23,43 @@
       "id": "sprints-iii",
       "name": "Sprints 3",
       "moneyCost": 0,
-      "tpCost": 19,
+      "tpCost": 18,
       "gains": {
-        "pac": 6
+        "pac": 5
       }
     },
     {
       "id": "sprints-iv",
       "name": "Sprints 4",
       "moneyCost": 0,
-      "tpCost": 26,
+      "tpCost": 25,
       "gains": {
-        "pac": 9
+        "pac": 6
       }
     },
     {
       "id": "sprints-v",
       "name": "Sprints 5",
       "moneyCost": 0,
-      "tpCost": 36,
+      "tpCost": 35,
       "gains": {
-        "pac": 10
+        "pac": 7
       }
     },
     {
       "id": "finishing",
       "name": "Finishing 1",
       "moneyCost": 0,
-      "tpCost": 8,
+      "tpCost": 7,
       "gains": {
-        "sho": 2
+        "sho": 3
       }
     },
     {
       "id": "finishing-ii",
       "name": "Finishing 2",
       "moneyCost": 0,
-      "tpCost": 13,
+      "tpCost": 12,
       "gains": {
         "sho": 4
       }
@@ -68,43 +68,43 @@
       "id": "finishing-iii",
       "name": "Finishing 3",
       "moneyCost": 0,
-      "tpCost": 19,
+      "tpCost": 18,
       "gains": {
-        "sho": 6
+        "sho": 5
       }
     },
     {
       "id": "finishing-iv",
       "name": "Finishing 4",
       "moneyCost": 0,
-      "tpCost": 26,
+      "tpCost": 25,
       "gains": {
-        "sho": 9
+        "sho": 6
       }
     },
     {
       "id": "finishing-v",
       "name": "Finishing 5",
       "moneyCost": 0,
-      "tpCost": 36,
+      "tpCost": 35,
       "gains": {
-        "sho": 10
+        "sho": 7
       }
     },
     {
       "id": "rondo",
       "name": "Rondo 1",
       "moneyCost": 0,
-      "tpCost": 8,
+      "tpCost": 7,
       "gains": {
-        "pas": 2
+        "pas": 3
       }
     },
     {
       "id": "rondo-ii",
       "name": "Rondo 2",
       "moneyCost": 0,
-      "tpCost": 13,
+      "tpCost": 12,
       "gains": {
         "pas": 4
       }
@@ -113,43 +113,43 @@
       "id": "rondo-iii",
       "name": "Rondo 3",
       "moneyCost": 0,
-      "tpCost": 19,
+      "tpCost": 18,
       "gains": {
-        "pas": 6
+        "pas": 5
       }
     },
     {
       "id": "rondo-iv",
       "name": "Rondo 4",
       "moneyCost": 0,
-      "tpCost": 26,
+      "tpCost": 25,
       "gains": {
-        "pas": 9
+        "pas": 6
       }
     },
     {
       "id": "rondo-v",
       "name": "Rondo 5",
       "moneyCost": 0,
-      "tpCost": 36,
+      "tpCost": 35,
       "gains": {
-        "pas": 10
+        "pas": 7
       }
     },
     {
       "id": "duels",
       "name": "Duels 1",
       "moneyCost": 0,
-      "tpCost": 8,
+      "tpCost": 7,
       "gains": {
-        "def": 2
+        "def": 3
       }
     },
     {
       "id": "duels-ii",
       "name": "Duels 2",
       "moneyCost": 0,
-      "tpCost": 13,
+      "tpCost": 12,
       "gains": {
         "def": 4
       }
@@ -158,43 +158,43 @@
       "id": "duels-iii",
       "name": "Duels 3",
       "moneyCost": 0,
-      "tpCost": 19,
+      "tpCost": 18,
       "gains": {
-        "def": 6
+        "def": 5
       }
     },
     {
       "id": "duels-iv",
       "name": "Duels 4",
       "moneyCost": 0,
-      "tpCost": 26,
+      "tpCost": 25,
       "gains": {
-        "def": 9
+        "def": 6
       }
     },
     {
       "id": "duels-v",
       "name": "Duels 5",
       "moneyCost": 0,
-      "tpCost": 36,
+      "tpCost": 35,
       "gains": {
-        "def": 10
+        "def": 7
       }
     },
     {
       "id": "first-touch",
       "name": "First Touch 1",
       "moneyCost": 0,
-      "tpCost": 8,
+      "tpCost": 7,
       "gains": {
-        "tec": 2
+        "tec": 3
       }
     },
     {
       "id": "first-touch-ii",
       "name": "First Touch 2",
       "moneyCost": 0,
-      "tpCost": 13,
+      "tpCost": 12,
       "gains": {
         "tec": 4
       }
@@ -203,43 +203,43 @@
       "id": "first-touch-iii",
       "name": "First Touch 3",
       "moneyCost": 0,
-      "tpCost": 19,
+      "tpCost": 18,
       "gains": {
-        "tec": 6
+        "tec": 5
       }
     },
     {
       "id": "first-touch-iv",
       "name": "First Touch 4",
       "moneyCost": 0,
-      "tpCost": 26,
+      "tpCost": 25,
       "gains": {
-        "tec": 9
+        "tec": 6
       }
     },
     {
       "id": "first-touch-v",
       "name": "First Touch 5",
       "moneyCost": 0,
-      "tpCost": 36,
+      "tpCost": 35,
       "gains": {
-        "tec": 10
+        "tec": 7
       }
     },
     {
       "id": "circuit",
       "name": "Circuit 1",
       "moneyCost": 0,
-      "tpCost": 8,
+      "tpCost": 7,
       "gains": {
-        "sta": 2
+        "sta": 3
       }
     },
     {
       "id": "circuit-ii",
       "name": "Circuit 2",
       "moneyCost": 0,
-      "tpCost": 13,
+      "tpCost": 12,
       "gains": {
         "sta": 4
       }
@@ -248,34 +248,34 @@
       "id": "circuit-iii",
       "name": "Circuit 3",
       "moneyCost": 0,
-      "tpCost": 19,
+      "tpCost": 18,
       "gains": {
-        "sta": 6
+        "sta": 5
       }
     },
     {
       "id": "circuit-iv",
       "name": "Circuit 4",
       "moneyCost": 0,
-      "tpCost": 26,
+      "tpCost": 25,
       "gains": {
-        "sta": 9
+        "sta": 6
       }
     },
     {
       "id": "circuit-v",
       "name": "Circuit 5",
       "moneyCost": 0,
-      "tpCost": 36,
+      "tpCost": 35,
       "gains": {
-        "sta": 10
+        "sta": 7
       }
     },
     {
       "id": "keeper-drills",
       "name": "Keeper Drills 1",
       "moneyCost": 0,
-      "tpCost": 8,
+      "tpCost": 7,
       "gains": {
         "ref": 1
       }
@@ -284,7 +284,7 @@
       "id": "keeper-drills-ii",
       "name": "Keeper Drills 2",
       "moneyCost": 0,
-      "tpCost": 13,
+      "tpCost": 12,
       "gains": {
         "ref": 2
       }
@@ -293,7 +293,7 @@
       "id": "keeper-drills-iii",
       "name": "Keeper Drills 3",
       "moneyCost": 0,
-      "tpCost": 19,
+      "tpCost": 18,
       "gains": {
         "ref": 3
       }
@@ -302,18 +302,18 @@
       "id": "keeper-drills-iv",
       "name": "Keeper Drills 4",
       "moneyCost": 0,
-      "tpCost": 26,
+      "tpCost": 25,
       "gains": {
-        "ref": 5
+        "ref": 3
       }
     },
     {
       "id": "keeper-drills-v",
       "name": "Keeper Drills 5",
       "moneyCost": 0,
-      "tpCost": 36,
+      "tpCost": 35,
       "gains": {
-        "ref": 5
+        "ref": 4
       }
     }
   ]

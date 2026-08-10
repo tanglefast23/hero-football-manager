@@ -38,6 +38,7 @@ import {
   TUTORIAL_TAP_CUE_ABOVE_OFFSET,
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
+  type TutorialAnchorLayout,
 } from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { ScreenTabs, type ScreenTab } from '../components/ScreenTabs';
@@ -46,10 +47,8 @@ import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import { useTapGuard } from '../use-tap-guard';
 import { AgentFinalDemandGate } from '../AgentFinalDemandGate';
-import {
-  contractDraftPerk,
-  offerQuoteKey,
-} from '../../application/market-view-model';
+import { useGuideAnchor } from '../use-guide-anchor';
+import { contractDraftPerk } from '../../application/market-view-model';
 import { useCopy } from '../../i18n';
 import {
   GuidanceDoubleFlash,
@@ -74,6 +73,9 @@ export interface MarketScreenProps {
   ) => void;
   readonly onCloseNegotiation: () => void;
   readonly onDismissGuideFocus?: () => void;
+  readonly onDealsGuideAnchorChange?: (
+    anchor: TutorialAnchorLayout | null,
+  ) => void;
   readonly guideFocus?: AssistantGuideFocus;
   readonly requestedSection?: MarketSectionId;
   readonly requestedSectionToken?: number;
@@ -113,6 +115,7 @@ export function MarketScreen({
   onSubmitContractOffer,
   onCloseNegotiation,
   onDismissGuideFocus,
+  onDealsGuideAnchorChange,
   guideFocus,
   requestedSection,
   requestedSectionToken,
@@ -144,6 +147,14 @@ export function MarketScreen({
   const coachSectionVisible = viewModel.sections.includes('COACHES');
   const lockedSectionVisible =
     lockedSection !== undefined && viewModel.sections.includes(lockedSection);
+  const guideDealsTab =
+    guideFocus === 'scout-report' &&
+    section === 'SCOUT' &&
+    transferSectionVisible;
+  const {
+    anchorRef: dealsGuideAnchorRef,
+    scheduleMeasurement: scheduleDealsGuideMeasurement,
+  } = useGuideAnchor(guideDealsTab, onDealsGuideAnchorChange);
 
   const dismissScrollGuide = (focus: AssistantGuideFocus) => {
     setScrollDismissedGuideFocus(focus);
@@ -333,6 +344,15 @@ export function MarketScreen({
       <ScreenTabs
         tabs={docketTabs}
         activeId={section}
+        anchor={
+          guideDealsTab
+            ? {
+                id: 'TRANSFERS',
+                ref: dealsGuideAnchorRef,
+                onLayout: scheduleDealsGuideMeasurement,
+              }
+            : undefined
+        }
         onSelect={(nextSection) => {
           if (lockedSection !== undefined && nextSection !== lockedSection) {
             onBlockedSectionChange?.();
@@ -1401,19 +1421,6 @@ export function NegotiationPanel({
   /** The offer on the table is below what the agent will hear out. */
   const walksOut = weeklyWage < viewModel.walkOutWeeklyWage;
   const finalDemand = viewModel.finalDemand;
-  /**
-   * The lowest wage that signs him with the draft exactly as it stands.
-   *
-   * Looked up rather than computed: the engine owns this number and the panel
-   * would otherwise be a second opinion on the one figure it is promising the
-   * manager will work. `undefined` only if a term or promise somehow falls
-   * outside the quoted set, in which case the readout shows a dash rather than
-   * inventing a wage.
-   */
-  const requiredWage =
-    viewModel.requiredWeeklyWageByOffer[
-      offerQuoteKey(termSeasons, perk, pitchCard)
-    ];
   const selectedPerk = viewModel.perks.find((option) => option.id === perk);
   const selectedPerkBlocked = selectedPerk?.available === false;
   const moodClass =
@@ -1546,26 +1553,6 @@ export function NegotiationPanel({
         </View>
       ) : open ? (
         <>
-          {/* The number the whole panel exists to show, above the stepper that
-              sets it. Every control below moves this one value, which is what
-              makes the term buttons and the promises legible as the discounts
-              they are rather than four unexplained percentages. */}
-          <View className="mt-4 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2">
-            <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink/60">
-              {t('market.wageNeeded')}
-            </PixelText>
-            <Text
-              className={
-                requiredWage !== undefined && weeklyWage >= requiredWage
-                  ? 'font-mono text-xl text-pitch-ink'
-                  : 'font-mono text-xl text-stamp'
-              }
-            >
-              {requiredWage === undefined
-                ? '—'
-                : formatCurrency(t, requiredWage)}
-            </Text>
-          </View>
           <View className="mt-4">
             <Text className="font-pixel text-sm uppercase text-stamp">
               {t('market.1WeeklyWage')}

@@ -143,16 +143,16 @@ describe('validated M1 launch content', () => {
     // contested on every opposing shot, so a uniform ladder priced it at roughly
     // 14x the value per TP of every other drill. See
     // docs/superpowers/reports/2026-07-30-real-player-balance-findings.md.
-    // Tier 5 is deliberately flatter because late-career facilities and player
+    // The ladder rises slowly because late-career facilities and player
     // modifiers compound every base point.
     expect(Object.fromEntries(drillPaths)).toEqual({
-      sprints: [2, 4, 6, 9, 10],
-      finishing: [2, 4, 6, 9, 10],
-      rondo: [2, 4, 6, 9, 10],
-      duels: [2, 4, 6, 9, 10],
-      'first-touch': [2, 4, 6, 9, 10],
-      circuit: [2, 4, 6, 9, 10],
-      'keeper-drills': [1, 2, 3, 5, 5],
+      sprints: [3, 4, 5, 6, 7],
+      finishing: [3, 4, 5, 6, 7],
+      rondo: [3, 4, 5, 6, 7],
+      duels: [3, 4, 5, 6, 7],
+      'first-touch': [3, 4, 5, 6, 7],
+      circuit: [3, 4, 5, 6, 7],
+      'keeper-drills': [1, 2, 3, 3, 4],
     });
     expect(content.events.events).toHaveLength(53);
     // 'medical' has no events since the flu-wave and physio cards were cut:
@@ -466,9 +466,9 @@ describe('validated M1 launch content', () => {
     );
 
     const wrongAttribute = cloneContent(loadLaunchContent());
-    wrongAttribute.training.focusDrills[0].gains = { sho: 2 };
+    wrongAttribute.training.focusDrills[0].gains = { sho: 3 };
     expect(() => parseLaunchContent(wrongAttribute)).toThrow(
-      /must grant exactly \+2 PAC/,
+      /must grant exactly \+3 PAC/,
     );
 
     const wrongTierAmount = cloneContent(loadLaunchContent());
@@ -572,7 +572,7 @@ describe('validated M1 launch content', () => {
       expect.objectContaining({
         id: 'circuit',
         name: 'Circuit 1',
-        gains: { sta: 2 },
+        gains: { sta: 3 },
       }),
     );
     expect(content.events.tuning).toEqual({

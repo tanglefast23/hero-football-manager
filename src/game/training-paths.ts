@@ -144,10 +144,8 @@ const REFERENCE_OUTFIELD_PATH_ID = 'sprints';
  * How far short of the ordinary ladder a given drill falls.
  *
  * **This number feeds a deliberate lie.** It is what lets a keeper's card show
- * the outfield gain while only the halved one is stored, so lowering the keeper
- * ladder in `content/training.json` does not break this function — it silently
- * makes the lie roughly twice as large (measured: 412 points of drift over a
- * long career today, 776 at a halved ladder). Read the tripwire at the top of
+ * the outfield gain while only the lower keeper gain is stored. Read the
+ * tripwire at the top of
  * `src/audit/__tests__/keeper-display-drift-rail.test.ts` before changing those
  * gains; that rail will fail and is the decision point, not an obstacle.
  *
@@ -155,14 +153,11 @@ const REFERENCE_OUTFIELD_PATH_ID = 'sprints';
  * the club has not bought yet, and a path's owned tier is the wrong answer for
  * those rows.
  *
- * Keeper Drills award roughly half the outfield gain at every tier for the same
- * TP — deliberately, because Reflexes is contested on every shot faced and
- * `training-leverage-rails` prices keeper training at 6.61x a striker's.
+ * Keeper Drills award less than the outfield gain at every tier for the same
+ * TP because Reflexes is contested on every shot faced.
  *
- * Derived from the content rather than written as a literal 2 on purpose. The
- * keeper ladder is under active balance review and `keeper-drill-gain-probe`
- * only ever sweeps it *downward*; a hardcoded 2 would quietly stop meaning
- * "undo the halving" the first time those numbers move.
+ * Derived from the content instead of a fixed ratio because the gap differs by
+ * tier and can change during balance work.
  */
 export function keeperDisplayLadderMultiplier(
   state: GameState,
@@ -207,8 +202,8 @@ export function trainingPathForAttribute(attribute: keyof Attrs): string {
  * Read from the drill the club has actually bought rather than a ladder copied
  * into the caller, for two reasons. The obvious one: a frozen table goes stale
  * the day `content/training.json` moves. The one that would have shipped a bug:
- * the keeper ladder is deliberately about half the outfield one (1/2/3/5/5
- * against 2/4/6/9/10), because REF is the most leveraged attribute in the game — so a
+ * the keeper ladder is deliberately below the outfield one (1/2/3/3/4
+ * against 3/4/5/6/7), because REF is the most leveraged attribute in the game — so a
  * hardcoded outfield table would have doubled every keeper reward and re-opened
  * exactly the leverage that ladder exists to price out.
  *

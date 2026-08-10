@@ -25,7 +25,9 @@ function fixture(
     id: `${home}-${away}`,
     roundLabel: 'Round of 32',
     homeClubName: home,
+    homeDivision: 5,
     awayClubName: away,
+    awayDivision: 4,
     scoreLabel: played ? '2-1' : '',
     status: played ? 'PLAYED' : 'SCHEDULED',
     ...(played ? { winnerName: home } : {}),
@@ -121,6 +123,8 @@ describe('cup bracket layout', () => {
       played: true,
       scoreLabel: '2-1',
       winnerName: 'A',
+      homeDivision: 5,
+      awayDivision: 4,
     });
     expect(column.ties[1].played).toBe(false);
   });
@@ -227,6 +231,13 @@ describe('cup bracket rendering', () => {
   it('scrolls sideways rather than shrinking names to nothing', () => {
     expect(bracket).toContainSource('horizontal');
     expect(bracket).toContainSource('showsHorizontalScrollIndicator={false}');
+  });
+
+  it('keeps each Cup draw division visible beside the club name', () => {
+    expect(bracket).toContainSource('{` (D${division})`}');
+    expect(bracket).toContainSource('styles.sideName');
+    expect(bracket).toContainSource('sideName: { flex: 1, minWidth: 0 }');
+    expect(bracket).toContainSource('sideDivision: { flexShrink: 0 }');
   });
 });
 

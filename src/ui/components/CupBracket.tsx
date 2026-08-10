@@ -10,7 +10,10 @@ import {
   type BracketTie,
 } from '../cup-bracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
-import type { M2CupRoundViewModel } from '../m2-league-models';
+import type {
+  M2CupRoundViewModel,
+  M2DivisionLevelViewModel,
+} from '../m2-league-models';
 import { PixelText } from './PixelText';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
@@ -239,15 +242,17 @@ function TieCard({
 }) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
+  const homeLabel = cupClubLabel(tie.homeName, tie.homeDivision);
+  const awayLabel = cupClubLabel(tie.awayName, tie.awayDivision);
   const tie_ = tie.placeholder
     ? t('cupBracket.winnerToBeDecided')
     : tie.played
       ? t('cupBracket.a11y.tiePlayed', {
-          home: tie.homeName,
-          away: tie.awayName,
+          home: homeLabel,
+          away: awayLabel,
           score: tie.scoreLabel,
         })
-      : t('cupBracket.a11y.tie', { home: tie.homeName, away: tie.awayName });
+      : t('cupBracket.a11y.tie', { home: homeLabel, away: awayLabel });
   // Colour and weight are the sighted half of "this one is yours"; a screen
   // reader gets the same fact said out loud, ahead of the names.
   const label = tie.involvesUserClub
@@ -269,6 +274,7 @@ function TieCard({
     >
       <TieSide
         name={tie.homeName}
+        division={tie.homeDivision}
         placeholder={tie.placeholder}
         beaten={
           tie.played &&
@@ -280,6 +286,7 @@ function TieCard({
       <View style={styles.tieDivider} />
       <TieSide
         name={tie.awayName}
+        division={tie.awayDivision}
         placeholder={tie.placeholder}
         beaten={
           tie.played &&
@@ -300,11 +307,13 @@ function TieCard({
 /** The loser greys out, so a finished tie reads at a glance without a score. */
 function TieSide({
   name,
+  division,
   placeholder,
   beaten,
   mine,
 }: {
   name: string;
+  division?: M2DivisionLevelViewModel;
   placeholder: boolean;
   beaten: boolean;
   /** Your club, weighted so the eye finds it before it reads the tie. */
@@ -312,18 +321,42 @@ function TieSide({
 }) {
   const styles = usePixelStyles(makeStyles);
   return (
-    <Text
-      numberOfLines={1}
-      style={[
-        styles.side,
-        placeholder ? styles.sidePlaceholder : null,
-        beaten ? styles.sideBeaten : null,
-        mine ? styles.sideMine : null,
-      ]}
-    >
-      {name}
-    </Text>
+    <View style={styles.sideRow}>
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.side,
+          styles.sideName,
+          placeholder ? styles.sidePlaceholder : null,
+          beaten ? styles.sideBeaten : null,
+          mine ? styles.sideMine : null,
+        ]}
+      >
+        {name}
+      </Text>
+      {division === undefined ? null : (
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.side,
+            styles.sideDivision,
+            placeholder ? styles.sidePlaceholder : null,
+            beaten ? styles.sideBeaten : null,
+            mine ? styles.sideMine : null,
+          ]}
+        >
+          {` (D${division})`}
+        </Text>
+      )}
+    </View>
   );
+}
+
+function cupClubLabel(
+  name: string,
+  division: M2DivisionLevelViewModel | undefined,
+): string {
+  return division === undefined ? name : `${name} (D${division})`;
 }
 
 const makeStyles = (faces: LocaleFaces) =>
@@ -366,7 +399,10 @@ const makeStyles = (faces: LocaleFaces) =>
     /** Still running: gold, and the only gold fill in the tree. */
     tieUserLive: { borderColor: '#c8862a', backgroundColor: '#f7d894' },
     tieDivider: { height: 1, backgroundColor: '#241f2e22', marginVertical: 2 },
+    sideRow: { flexDirection: 'row', minWidth: 0 },
     side: { color: INK, fontSize: 12, lineHeight: 16 },
+    sideName: { flex: 1, minWidth: 0 },
+    sideDivision: { flexShrink: 0 },
     sidePlaceholder: { color: '#9a95a4' },
     sideBeaten: { color: '#9a95a4', textDecorationLine: 'line-through' },
     // Last, so your own name keeps its weight in the tie you went out in — the

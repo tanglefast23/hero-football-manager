@@ -2,20 +2,20 @@
 
 ## Player anatomy
 
-- **Identity**: procedurally generated name + look (skin tone, hair, facial hair, glasses/accessories, body type: slim/normal/heavy/muscular, height: short/normal/tall). Looks are cosmetic *flavor* except body type nudging awakening weights (doc 04).
+- **Identity**: procedurally generated name + look (skin tone, hair, facial hair, glasses/accessories, body type: slim/normal/heavy/muscular, height: short/normal/tall). Looks are cosmetic _flavor_ except body type nudging awakening weights (doc 04).
 - **Stats**: PAC / SHO (REF for GKs) / PAS / DEF / TEC / STA. Career ratings run from **1–999** with no player-specific cap. Contests compare the displayed ratings as a log-ratio, so 400 vs 434 means the same advantage as 40 vs 43.4 and no post-99 compression makes the numbers dishonest. PAC uses a separate strictly increasing fixed-point movement table whose ordinary full-condition spread is capped at 2×; STA uses committed endurance/drain tables. The only training hard stop is the universal 999 safety maximum; temporary superpower effects are exceptions and may exceed ordinary match limits.
 - **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy. Archetypes change how quickly favored stats train; they never prevent an unfavored stat from growing.
 
-| Archetype | Exact training bonus |
-|---|---|
-| Speedster | +15% PAC |
-| Sniper | +15% SHO |
-| Playmaker | +15% PAS and TEC |
-| Anchor | +15% DEF and STA |
-| Wall | +15% REF and DEF |
-| Engine | +15% STA and PAC |
-| All-Rounder | +5% all stats |
-| Prodigy | +20% all stats |
+| Archetype   | Exact training bonus |
+| ----------- | -------------------- |
+| Speedster   | +15% PAC             |
+| Sniper      | +15% SHO             |
+| Playmaker   | +15% PAS and TEC     |
+| Anchor      | +15% DEF and STA     |
+| Wall        | +15% REF and DEF     |
+| Engine      | +15% STA and PAC     |
+| All-Rounder | +5% all stats        |
+| Prodigy     | +20% all stats       |
 
 - **Natural position** (visible): adds another **+5%** to three role skills. GK: REF/PAS/STA; DEF: DEF/STA/PAS; MID: PAS/TEC/STA; FWD: SHO/PAC/TEC. The keeper's bonus used to name DEF, which the engine never reads for them — it now names PAS, the one thing a keeper does with the ball.
 - **Current rating**: the rounded average of the six attributes the role can use. Outfield players use SHO and ignore REF; goalkeepers use REF and ignore SHO.
@@ -28,12 +28,12 @@
 ### Generated division ratings
 
 | Division | Club strength band | Support | Specialist focus | GK REF | Typical PAC |
-|---|---:|---:|---:|---:|---:|
-| D5 | 40–50 | 40 | 94 | 80 | 72 |
-| D4 | 90–102 | 88 | 180 | 153 | 90 |
-| D3 | 135–151 | 130 | 268 | 228 | 132 |
-| D2 | 178–203 | 175 | 356 | 303 | 176 |
-| D1 | 223–248 | 214 | 442 | 376 | 216 |
+| -------- | -----------------: | ------: | ---------------: | -----: | ----------: |
+| D5       |              40–50 |      40 |               94 |     80 |          72 |
+| D4       |             90–102 |      88 |              180 |    153 |          90 |
+| D3       |            135–151 |     130 |              268 |    228 |         132 |
+| D2       |            178–203 |     175 |              356 |    303 |         176 |
+| D1       |            223–248 |     214 |              442 |    376 |         216 |
 
 Generated clubs preserve these authored support/specialist/keeper values while
 their displayed `squadStrength` is always recomputed from the actual squad.
@@ -62,7 +62,7 @@ Instant, tap-to-train — drills resolve the moment they are picked:
 - **SUPER sessions**: each tap rolls the player's Potential-grade chance (5%–33%, pity within 12 drills) for a **1.5× gain** with fireworks, confetti, screen shake, and haptics. This is the dopamine core of the loop.
 - **Training-priority promise**: agreeing the TRAINING_PRIORITY contract perk creates a **five-drill debt** — the promised player owns your next 5 drills. Their badge shows the countdown, other players' drills are blocked with an in-popup reminder (“Boss! You promised me the next 3 drills.”), and an injury pauses the debt rather than deadlocking training.
 - **999 ceiling**: a maxed stat's drill option is greyed out and disabled; drill options show only the current stat value, never a cap. Nothing blocks Advance Week — there is no plan to waste TP on.
-- **TP income**: match results award no TP. A fresh career starts with 12 TP and an empty grounds grid, plus enough extra cash to build the $8,000 Level 1 Training Pitch as its guided first project. Every weekly settlement pays a **10 TP** baseline whether or not a pitch exists, and the pitch itself pays nothing until it opens; from then on each settlement adds **+12 TP per completed facility level**. Employed coaches add more: a head coach pays **5/6/7/8/8** by level and an assistant **3/3/4/4/4**. **Every** positive TP grant — those three weekly rates, the launch grant, and the one-off rewards authored into events — is its original figure cut to **40%, rounded up** (`TRAINING_POINT_SCALE_PERCENT`). Nothing that pays TP is exempt. A Level 1 pitch therefore takes the week from 10 TP to 22 — one basic 10-TP drill to two. Losing never slows training income, while hiring and upgrading staff or grounds creates a visible development budget.
+- **TP income**: match results award no TP. A fresh career starts with 12 TP and an empty grounds grid, plus enough extra cash to build the $8,000 Level 1 Training Pitch as its guided first project. Every weekly settlement pays a **10 TP** baseline whether or not a pitch exists, and the pitch itself pays nothing until it opens; from then on each settlement adds **+12 TP per completed facility level**. Employed coaches add more: a head coach pays **5/6/7/8/8** by level and an assistant **3/3/4/4/4**. **Every** positive TP grant — those three weekly rates, the launch grant, and the one-off rewards authored into events — is its original figure cut to **40%, rounded up** (`TRAINING_POINT_SCALE_PERCENT`). Nothing that pays TP is exempt. A Level 1 pitch therefore takes the week from 10 TP to 22 — one basic 7-TP drill to three. Losing never slows training income, while hiring and upgrading staff or grounds creates a visible development budget.
 - **Gain formula**: age and the relevant facility multiply the base drill gain (1.5× on a SUPER). Facility levels use ×1.10 / ×1.20 / ×1.30. Archetype + natural position + coach percentages then add together as a bonus on that adjusted gain; Potential no longer adds a percentage — its whole job is the SUPER roll. Fractional bonuses bank per player/stat until they become a whole visible point. There is **no high-stat training slowdown** and no personal ceiling.
 - **Stamina price**: every drill costs 8 condition (weekly settlement restores +12). A drill that **starts below 30%** condition is an honest injury gamble — the exact percentage (10% + 2% per point under 30, reduced by Medical adjacency) rolls at drill time, and a hit means 2–6 weeks out (the drill's gain still lands first). A selected batch containing any such run gets a second safety gate that names the risky-run count and offers **Continue anyway**, **Continue with max safe** (automatically reduces to and starts the largest non-risky batch), or **Cancel** back to the number picker. The Medical Bay shortens recoveries.
 - **Chemistry trios** (Pocket League Story 2's standout mechanic, adapted): specific 3-archetype combinations training together grant +15% to +60% gains for the whole trio (e.g. Speedster + Sniper + Playmaker = +40% attack drills). Combos are discoverable in-game and collectible in a Chemistry Codex. One combo bonus per week.

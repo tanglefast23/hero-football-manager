@@ -108,15 +108,15 @@ describe('opening sentinel', () => {
     expect(
       byArm
         .get('ordinary')!
-        .every((run) => run.tapCount === 5 && run.tpBanked === 2),
+        .every((run) => run.tapCount === 6 && run.tpBanked === 0),
     ).toBe(true);
     expect(
       byArm
         .get('smart-breadth')!
-        .every((run) => run.tapCount === 5 && run.tpBanked === 2),
+        .every((run) => run.tapCount === 6 && run.tpBanked === 0),
     ).toBe(true);
     expect(
-      byArm.get('smart-extra-fwd')!.every((run) => run.tapCount === 5),
+      byArm.get('smart-extra-fwd')!.every((run) => run.tapCount === 6),
     ).toBe(true);
     expect(
       byArm.get('joe-observed-no-coach')!.every((run) => run.tapCount === 4),
@@ -199,20 +199,16 @@ describe('opening sentinel', () => {
     // real-player-opening-probe, which is opt-in and slow, and has not been run
     // for this change.
     //
-    // Updated 2026-08-10 for the owner-approved progression reduction: the TP
-    // scale moves from 80% to 40%, the Tier 1 drill gain from 4 to 2, the youth
-    // multiplier from 1.3 to 1.1, and facility gains from x1.25 to x1.10. The
-    // coached opening falls from eight taps to four and the uncoached opening
-    // from six to three. One uncoached seed changes from a loss to a draw due to
-    // the different training allocation, while all other recorded outcomes stay
-    // losses.
+    // Updated 2026-08-10 for the approved 7 TP and +3 Tier 1 drill. The coached
+    // 42 TP opening bank now buys six taps, while the uncoached 32 TP bank buys
+    // four. The previous uncoached draw returns to a loss.
     expect(digests).toEqual({
       ordinary: 'LLLLLLLL',
       'smart-breadth': 'LLLLLLLL',
       'smart-extra-fwd': 'LLLLLLLL',
       'smart-concentration': 'LLLLLLLL',
       'joe-observed-coach': 'LLLLLLLL',
-      'joe-observed-no-coach': 'LLLLLLDL',
+      'joe-observed-no-coach': 'LLLLLLLL',
       'no-training': 'LLLLLLLL',
     });
   });

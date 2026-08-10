@@ -190,9 +190,9 @@ describe('opening TP timeline', () => {
       creation: CREATION,
       content,
     });
-    expect(ordinary.tapCount).toBe(5);
-    expect(ordinary.tpSpent).toBe(40);
-    expect(ordinary.tpBanked).toBe(2);
+    expect(ordinary.tapCount).toBe(6);
+    expect(ordinary.tpSpent).toBe(42);
+    expect(ordinary.tpBanked).toBe(0);
     reconcileTrainingPoints(ordinary, LAUNCH_TP);
 
     const smart = runOpening({
@@ -202,9 +202,9 @@ describe('opening TP timeline', () => {
       creation: CREATION,
       content,
     });
-    expect(smart.tapCount).toBe(5);
-    expect(smart.tpSpent).toBe(40);
-    expect(smart.tpBanked).toBe(2);
+    expect(smart.tapCount).toBe(6);
+    expect(smart.tpSpent).toBe(42);
+    expect(smart.tpBanked).toBe(0);
     reconcileTrainingPoints(smart, LAUNCH_TP);
   });
 });
@@ -234,8 +234,8 @@ describe('Training Pitch timing', () => {
     );
     expect(TRAINING_PITCH_TP_PER_LEVEL).toBe(12);
 
-    // The operational Pitch applies x1.10. At a +2 Tier 1 drill, whole-point
-    // rounding keeps the immediate result equal to the bare club.
+    // The operational Pitch applies x1.10. At a +3 Tier 1 drill, whole-point
+    // rounding raises the immediate result to +4.
     const defender = userStarters(state).find(
       (player) => player.role === 'DEF',
     )!;
@@ -245,9 +245,8 @@ describe('Training Pitch timing', () => {
       defender.id,
       'duels',
     );
-    expect(withPitch.after - defender.attrs.def).toBe(
-      bare.after - defender.attrs.def,
-    );
+    expect(withPitch.after - defender.attrs.def).toBe(4);
+    expect(bare.after - defender.attrs.def).toBe(3);
   });
 });
 
