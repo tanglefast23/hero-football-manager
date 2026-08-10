@@ -14,12 +14,12 @@ export interface RivalHeroSceneComposition {
   readonly heroY: number;
 }
 
-/** Mobile gets a touch more presence while retaining almost the whole square. */
+/** Mobile centres the square stage so its top and bottom letterboxes match. */
 export const RIVAL_HERO_PORTRAIT_COMPOSITION: RivalHeroSceneComposition =
   Object.freeze({
     backdropZoom: 1.08,
     backdropAnchorX: 0.5,
-    backdropAnchorY: 1,
+    backdropAnchorY: 0.5,
     heroX: 0.5,
     heroY: 0.88,
   });

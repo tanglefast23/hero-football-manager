@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   playMatchStatementSfx,
@@ -10,6 +10,7 @@ import { SfxPressable as Pressable } from './components/SfxPressable';
 import type { PostMatchViewModel } from './models';
 import { ActionButton } from './components/Scorecard';
 import { FinancialReportBody } from './components/FinancialReportBody';
+import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { useCopy } from '../i18n';
 
 export interface PostMatchSummaryModalProps {
@@ -70,7 +71,7 @@ export function PostMatchSummaryModal({
       statusBarTranslucent
     >
       <SafeAreaView
-        className="flex-1"
+        style={styles.safeArea}
         edges={['top', 'left', 'right', 'bottom']}
       >
         <View className="flex-1 justify-end px-3 pb-3">
@@ -141,3 +142,7 @@ export function PostMatchSummaryModal({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
+});

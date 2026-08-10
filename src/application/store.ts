@@ -40,7 +40,6 @@ import {
   createCareer,
   currentUserDivision,
   declineYouthIntakeOffers,
-  deterministicPenaltyWinner,
   dismissAssistantInboxProductForCurrentWeek,
   dismissAssistantInboxProductPermanently,
   dismissCareerCoach,
@@ -374,8 +373,6 @@ export interface WatchedMatch {
   controlledTeam: 0 | 1;
   /** Present only for a Hero Cup tie; it opens the match on a title card. */
   cupRoundLabel?: NationalCupRoundLabel;
-  /** The deterministic shoot-out winner if this Cup match ends level. */
-  tiedWinnerTeam?: 0 | 1;
 }
 
 export type PostMatchOverlay = 'summary' | null;
@@ -1532,14 +1529,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       if (pendingRivalHeroIntro(career) !== undefined) return;
       assertLeagueCupCheckpointPersisted(get(), career);
-      const { kind, fixture, teams, cupRoundLabel } = currentMatchday(career);
+      const { fixture, teams, cupRoundLabel } = currentMatchday(career);
       const userIsFixtureHome = fixture.homeClubId === career.userClubId;
-      const tiedWinnerTeam =
-        kind === 'national-cup'
-          ? deterministicPenaltyWinner(career, fixture) === fixture.homeClubId
-            ? 0
-            : 1
-          : undefined;
       set({
         watchedMatch: {
           fixture,
@@ -1550,7 +1541,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
           // Only a cup matchday carries a round; a league week leaves this
           // undefined and the match opens with no title card.
           ...(cupRoundLabel === undefined ? {} : { cupRoundLabel }),
-          ...(tiedWinnerTeam === undefined ? {} : { tiedWinnerTeam }),
         },
         screen: 'watched',
         error: null,

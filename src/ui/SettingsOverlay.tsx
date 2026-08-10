@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Modal, PanResponder, ScrollView, Text, View } from 'react-native';
+import { PanResponder, ScrollView, Text, View } from 'react-native';
+import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { ActionButton } from './components/Scorecard';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import {

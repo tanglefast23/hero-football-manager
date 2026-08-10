@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef } from 'react';
 import {
   AccessibilityInfo,
   findNodeHandle,
-  Modal,
   Platform,
   Pressable,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CrossPlatformModal as Modal } from './CrossPlatformModal';
 import { ActionButton } from './Scorecard';
 import { useCopy } from '../../i18n';
 
@@ -35,8 +35,8 @@ export interface ConfirmationSheetProps {
 /**
  * The shared commit question for club decisions.
  *
- * A Modal supplies the native dialog boundary and React Native Web's focus
- * trap. This layer adds the pieces RN does not infer: heading focus, reduced
+ * CrossPlatformModal supplies the native dialog boundary and the PWA's fixed
+ * viewport layer. This sheet adds the web focus trap, heading focus, reduced
  * motion, safe Back/Escape cancellation, and a stable fallback after a Review
  * button is replaced by its signed contract.
  */
@@ -94,7 +94,7 @@ export function ConfirmationSheet({
     };
     headingFocusFrameRef.current = requestAnimationFrame(focusHeading);
     if (Platform.OS === 'web') {
-      // RN Web's fade can return focus to the body after the portal mounts.
+      // The web fade can return focus to the body after the layer mounts.
       // Reassert it once the fade is over; the frame path still covers reduced
       // motion and browsers that do not animate the Modal.
       headingFocusTimerRef.current = setTimeout(

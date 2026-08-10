@@ -337,11 +337,8 @@ describe('worklet Atlas continuity retargeting', () => {
     );
 
     expect(screen).toContainSource(
-      'winner === undefined ? reduceMotion ? 0 : FULLTIME_HOLD_MS',
+      'now + (reduceMotion ? 0 : FULLTIME_HOLD_MS)',
     );
-    expect(screen).toContainSource('FULLTIME_RIVAL_VICTORY_HOLD_MS');
-    expect(screen).toContainSource('FULLTIME_RIVAL_VICTORY_FADE_AT_MS');
-    expect(screen).toContainSource('duration: FULLTIME_RIVAL_VICTORY_FADE_MS');
     expect(screen).toContainSource(
       "snap || pauseAfterPublish || s.phase === 'fulltime'",
     );

@@ -146,6 +146,8 @@ export function SubstitutionBoard({
   const [dropTarget, setDropTarget] = useState<CardId | null>(null);
   const cardViews = useRef(new Map<CardId, View>()).current;
   const cardRects = useRef(new Map<CardId, Rect>()).current;
+  const boardScrollRef = useRef<ScrollView | null>(null);
+  const benchTopRef = useRef(0);
 
   const substitutionsRemaining = Math.max(
     0,
@@ -299,6 +301,20 @@ export function SubstitutionBoard({
     [guideCardId, onGuideFieldPlayerAction],
   );
 
+  const pickCard = useCallback(
+    (source: DragSource) => {
+      playUiClickSfx();
+      setPicked(source);
+      if (!wide && source.kind === 'field') {
+        boardScrollRef.current?.scrollTo({
+          y: benchTopRef.current,
+          animated: true,
+        });
+      }
+    },
+    [wide],
+  );
+
   /**
    * Tap once to pick, tap the partner to trade. Tapping the picked card again
    * puts it back; tapping any other card moves the pick there, so a mis-tap
@@ -317,8 +333,7 @@ export function SubstitutionBoard({
       consumeGuide(source);
       const current = pickedRef.current;
       if (current === null) {
-        playUiClickSfx();
-        setPicked(source);
+        pickCard(source);
         return;
       }
       if (current.id === source.id) {
@@ -331,10 +346,9 @@ export function SubstitutionBoard({
         setPicked(null);
         return;
       }
-      playUiClickSfx();
-      setPicked(source);
+      pickCard(source);
     },
-    [consumeGuide, isEligible, resolveDrop],
+    [consumeGuide, isEligible, pickCard, resolveDrop],
   );
 
   // The button is disabled with nothing staged, so a player never reaches the
@@ -455,6 +469,7 @@ export function SubstitutionBoard({
 
         <ScrollView
           bounces={false}
+          ref={boardScrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           style={styles.scroll}
@@ -614,6 +629,9 @@ export function SubstitutionBoard({
             </View>
 
             <View
+              onLayout={(event) => {
+                benchTopRef.current = event.nativeEvent.layout.y;
+              }}
               style={[
                 styles.column,
                 drag !== null && drag.kind !== 'field'

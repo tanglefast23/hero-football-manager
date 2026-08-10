@@ -289,7 +289,7 @@
     "clubFinances.borrowed": "Borrowed",
     "clubFinances.bringingInRevenue": "Bringing in revenue",
     "clubFinances.buildCost": "Build cost",
-    "clubFinances.buildHere": "Build here",
+    "clubFinances.buildHere": "Tap Any + grid",
     "clubFinances.buildHereColumnRow": "Build here · column {column}, row {row}",
     "clubFinances.buildHint": "Pick a building from the {menu} below to start. Every available starting square shows a +.",
     "clubFinances.buildMenu": "Build menu",

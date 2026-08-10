@@ -507,7 +507,7 @@
     "clubFinances.borrowed": "Emprunté",
     "clubFinances.bringingInRevenue": "Ce qui rapporte",
     "clubFinances.buildCost": "Coût des travaux",
-    "clubFinances.buildHere": "Bâtir ici",
+    "clubFinances.buildHere": "Touche un +",
     "clubFinances.buildHereColumnRow": "Bâtir ici · colonne {column}, ligne {row}",
     "clubFinances.buildHint": "Choisis un bâtiment dans le {menu} en dessous. Chaque case libre montre un +.",
     "clubFinances.buildMenu": "Menu travaux",

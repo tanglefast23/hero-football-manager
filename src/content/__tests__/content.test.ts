@@ -154,7 +154,7 @@ describe('validated M1 launch content', () => {
       circuit: [3, 4, 5, 6, 7],
       'keeper-drills': [1, 2, 3, 3, 4],
     });
-    expect(content.events.events).toHaveLength(53);
+    expect(content.events.events).toHaveLength(52);
     // 'medical' has no events since the flu-wave and physio cards were cut:
     // both paid in TP and morale for a story about illness, and neither ever
     // touched condition. The category stays in the schema for future content.
@@ -188,13 +188,13 @@ describe('validated M1 launch content', () => {
           headline: choice.outcomes[0].successHeadline,
         })),
     );
-    expect(successHeadlines).toHaveLength(53);
+    expect(successHeadlines).toHaveLength(52);
     for (const { event, headline } of successHeadlines) {
       expect(headline).toEqual(expect.any(String));
       expect(headline).not.toContain(event);
     }
     expect(new Set(successHeadlines.map((entry) => entry.headline)).size).toBe(
-      53,
+      52,
     );
     expect(
       content.events.events.some((event) => event.trigger.requiresPlayer),
@@ -324,13 +324,12 @@ describe('validated M1 launch content', () => {
       (event) => event.trigger.requiredFlag?.startsWith('milestone:') === true,
     );
 
-    // Four of the original seven were cut and three authored to replace them:
-    // a hat-trick, a hammering, and the first time the shop sold out.
+    // The heavy-defeat interruption is retired; the other recognition stories
+    // still cover every milestone the engine records.
     expect(milestoneStories.map((event) => event.id).sort()).toEqual([
       'milestone-crowd-thousand',
       'milestone-first-cup-win',
       'milestone-hat-trick',
-      'milestone-heavy-defeat',
       'milestone-merch-surge',
       'milestone-unbeaten-run',
     ]);

@@ -507,7 +507,7 @@
     "clubFinances.borrowed": "Dipinjam",
     "clubFinances.bringingInRevenue": "Mendatangkan uang",
     "clubFinances.buildCost": "Biaya bangun",
-    "clubFinances.buildHere": "Bangun di sini",
+    "clubFinances.buildHere": "Ketuk + di grid",
     "clubFinances.buildHereColumnRow": "Bangun di sini · kolom {column}, baris {row}",
     "clubFinances.buildHint": "Pilih bangunan di {menu} bawah. Tiap kotak kosong ada tanda +.",
     "clubFinances.buildMenu": "Menu bangun",

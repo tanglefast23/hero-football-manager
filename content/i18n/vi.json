@@ -507,7 +507,7 @@
     "clubFinances.borrowed": "Đã vay",
     "clubFinances.bringingInRevenue": "Đang ra tiền",
     "clubFinances.buildCost": "Phí xây",
-    "clubFinances.buildHere": "Xây đây",
+    "clubFinances.buildHere": "Chạm dấu + trên lưới",
     "clubFinances.buildHereColumnRow": "Xây đây · cột {column}, hàng {row}",
     "clubFinances.buildHint": "Chọn công trình ở {menu} bên dưới. Ô trống nào cũng có dấu +.",
     "clubFinances.buildMenu": "Menu xây",

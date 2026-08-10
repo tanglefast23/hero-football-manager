@@ -2520,7 +2520,6 @@ function GameApp() {
           isFirstOnboardingFixture(store.career, store.watchedMatch.fixture.id)
         }
         cupRoundLabel={store.watchedMatch.cupRoundLabel}
-        tiedWinnerTeam={store.watchedMatch.tiedWinnerTeam}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
@@ -3362,7 +3361,9 @@ function GameApp() {
     store.saveWarning !== null &&
     store.saveBlocked;
   const backgroundInteractionBlocked =
-    pendingConfirmation !== null || blockingSaveWarningVisible;
+    pendingConfirmation !== null ||
+    blockingSaveWarningVisible ||
+    postMatchSummaryVisible;
 
   return (
     <LocaleProvider value={preferences.language}>
@@ -3913,14 +3914,14 @@ function GameApp() {
                 }}
               />
             ) : null}
-            {postMatchSummaryVisible && store.postMatch !== null ? (
-              <PostMatchSummaryModal
-                viewModel={store.postMatch}
-                reduceMotion={reduceMotion}
-                onDismiss={store.dismissPostMatchSummary}
-              />
-            ) : null}
           </View>
+          {postMatchSummaryVisible && store.postMatch !== null ? (
+            <PostMatchSummaryModal
+              viewModel={store.postMatch}
+              reduceMotion={reduceMotion}
+              onDismiss={store.dismissPostMatchSummary}
+            />
+          ) : null}
           {blockingSaveWarningVisible && store.saveWarning !== null && (
             <SaveWarningBanner
               message={store.saveWarning}

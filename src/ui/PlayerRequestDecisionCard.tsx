@@ -1,4 +1,5 @@
-import { Modal, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { ActionButton, PaperPanel } from './components/Scorecard';
 import { EventPixelScene } from './components/EventPixelScene';
 import { PixelText } from './components/PixelText';

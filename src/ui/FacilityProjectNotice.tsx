@@ -1,5 +1,6 @@
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import type { FacilityTypeViewModel } from './models';
 import { ActionButton, PaperPanel, StatusChip } from './components/Scorecard';
 import { ManagementSprite } from './components/ManagementSprite';

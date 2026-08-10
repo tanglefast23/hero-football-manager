@@ -92,6 +92,22 @@ describe('substitution board layout', () => {
     );
   });
 
+  it('jumps a stacked phone board to the bench after a field player is picked', () => {
+    const source = board();
+
+    expect(source).toContainSource(
+      'const boardScrollRef = useRef<ScrollView | null>(null);',
+    );
+    expect(source).toContainSource('ref={boardScrollRef}');
+    expect(source).toContainSource(
+      'benchTopRef.current = event.nativeEvent.layout.y;',
+    );
+    expect(source).toContainSource("if (!wide && source.kind === 'field') {");
+    expect(source).toContainSource('boardScrollRef.current?.scrollTo({');
+    expect(source).toContainSource('y: benchTopRef.current,');
+    expect(source).toContainSource('animated: true,');
+  });
+
   it('reads its handlers from a ref so a second swap cannot erase the first', () => {
     const source = board();
 

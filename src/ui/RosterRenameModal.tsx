@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { ActionButton } from './components/Scorecard';
 import { PixelText } from './components/PixelText';

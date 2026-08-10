@@ -67,6 +67,13 @@ describe('first facility placement guidance', () => {
     expect(source).toContainSource('styles.facilityPlacementHelperAnchor');
     expect(source).toContainSource('styles.facilityPlacementHelper');
     expect(source).toMatchSource(
+      /facilityPlacementHelper: \{[\s\S]*?width: 144,[\s\S]*?opacity: 0\.5,/,
+    );
+    const english = JSON.parse(
+      readFileSync(join(process.cwd(), 'content/i18n/en.json'), 'utf8'),
+    ) as { strings: Record<string, string> };
+    expect(english.strings['clubFinances.buildHere']).toBe('Tap Any + grid');
+    expect(source).toMatchSource(
       /facilityPlacementHelperAnchor: \{[\s\S]*?top: 0,[\s\S]*?right: 0,[\s\S]*?bottom: 0,[\s\S]*?left: 0,[\s\S]*?alignItems: 'center',[\s\S]*?justifyContent: 'center',/,
     );
     expect(source).toContainSource('rounded-full');

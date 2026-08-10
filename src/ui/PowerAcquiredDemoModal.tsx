@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { LazyMatchScreen as MatchScreen } from '../render/LazyMatchScreen';
 import type { PowerMatchQaConfig } from '../render/MatchScreen';
 import {

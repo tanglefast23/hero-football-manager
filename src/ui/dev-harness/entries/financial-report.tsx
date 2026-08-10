@@ -6,6 +6,7 @@ import type {
   PostMatchLedgerLineViewModel,
   PostMatchViewModel,
 } from '../../models';
+import { PostMatchSummaryModal } from '../../PostMatchSummaryModal';
 import { FinancialReportBody } from '../../components/FinancialReportBody';
 import { SfxPressable as Pressable } from '../../components/SfxPressable';
 import type { DevHarnessEntry } from '../registry';
@@ -211,9 +212,18 @@ interface HarnessCase {
   note?: string;
   build: () => PostMatchViewModel;
   reduceMotion?: boolean;
+  productionLayer?: boolean;
 }
 
 const CASES: readonly HarnessCase[] = [
+  {
+    id: 'production-layer',
+    label: 'Production layer',
+    note: 'The shipped full-screen layer over a tappable desk stand-in.',
+    productionLayer: true,
+    build: () =>
+      reportCase([gateLine(1968), ...CONSTANT_TAIL.map((make) => make())]),
+  },
   {
     id: 'baseline',
     label: 'Baseline home win',
@@ -344,7 +354,50 @@ const CASES: readonly HarnessCase[] = [
 
 function FinancialReportCase({ caseId }: { caseId: string }) {
   const [replayKey, setReplayKey] = useState(0);
+  const [layerVisible, setLayerVisible] = useState(true);
+  const [backgroundPressed, setBackgroundPressed] = useState(false);
   const entry = CASES.find((candidate) => candidate.id === caseId) ?? CASES[0];
+  if (entry.productionLayer === true) {
+    return (
+      <View className="flex-1 items-center justify-center gap-4 bg-paper-dark p-6">
+        <Text className="font-pixel text-base uppercase text-ink">
+          Desk behind the report
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Background desk control"
+          onPress={() => setBackgroundPressed(true)}
+          className="min-h-11 border-2 border-b-4 border-ink bg-red-light px-4 py-3"
+        >
+          <Text className="font-pixel text-sm uppercase text-ink">
+            {backgroundPressed
+              ? 'Background was pressed'
+              : 'Background control'}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reopen the Financial Report"
+          onPress={() => {
+            setBackgroundPressed(false);
+            setLayerVisible(true);
+          }}
+          className="min-h-11 border-2 border-b-4 border-ink bg-blue-light px-4 py-3"
+        >
+          <Text className="font-pixel text-sm uppercase text-ink">
+            Reopen report
+          </Text>
+        </Pressable>
+        {layerVisible ? (
+          <PostMatchSummaryModal
+            viewModel={entry.build()}
+            reduceMotion={false}
+            onDismiss={() => setLayerVisible(false)}
+          />
+        ) : null}
+      </View>
+    );
+  }
   return (
     <ScrollView
       className="flex-1 bg-paper"

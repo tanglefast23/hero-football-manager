@@ -1,5 +1,6 @@
-import { Modal, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { ActionButton, PaperPanel } from './components/Scorecard';
 import { PixelText } from './components/PixelText';
 import { localeMeta, useCopy, type Locale } from '../i18n';

@@ -3656,6 +3656,7 @@ const styles = StyleSheet.create({
   },
   facilityPlacementHelper: {
     width: 144,
+    opacity: 0.5,
   },
   facilityPlacementHoverTip: {
     position: 'absolute',

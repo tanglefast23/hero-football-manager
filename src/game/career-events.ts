@@ -162,17 +162,14 @@ const CAREER_MILESTONE_FLAG_PREFIX = 'milestone:';
 
 export const CAREER_MILESTONE_UNBEATEN_RUN = 4;
 export const CAREER_MILESTONE_CROWD = 1000;
-/** A defeat this size is the most memorable thing that happens to a small club. */
-export const CAREER_MILESTONE_HEAVY_DEFEAT_MARGIN = 6;
-
 /**
  * Recognition order when a week earns more than one at once.
  *
  * Four of the original seven were cut (owner, 2026-08-07): winning a game is
  * Saturday, not an achievement, and "first hero goal", "three goals clear" and
  * "eight wins" were the same congratulation three more times. What replaced
- * them are beats a manager would actually retell — a hat-trick, a hammering,
- * and the first time the shop sold out.
+ * them are beats a manager would actually retell — a hat-trick and the first
+ * time the shop sold out. The heavy-defeat interruption was retired later.
  */
 export const CAREER_MILESTONES: readonly CareerMilestone[] = [
   {
@@ -196,11 +193,6 @@ export const CAREER_MILESTONES: readonly CareerMilestone[] = [
     eventId: 'milestone-crowd-thousand',
   },
   {
-    id: 'heavy-defeat',
-    flag: 'milestone:heavy-defeat',
-    eventId: 'milestone-heavy-defeat',
-  },
-  {
     id: 'merch-surge',
     flag: 'milestone:merch-surge',
     eventId: 'milestone-merch-surge',
@@ -221,10 +213,8 @@ export function earnedCareerMilestoneFlags(state: GameState): string[] {
   );
   let unbeatenRun = 0;
   let longestUnbeatenRun = 0;
-  let worstMargin = 0;
   for (const result of results) {
     const margin = result.goalsFor - result.goalsAgainst;
-    if (margin < worstMargin) worstMargin = margin;
     unbeatenRun = margin >= 0 ? unbeatenRun + 1 : 0;
     if (unbeatenRun > longestUnbeatenRun) longestUnbeatenRun = unbeatenRun;
   }
@@ -233,8 +223,6 @@ export function earnedCareerMilestoneFlags(state: GameState): string[] {
     earned.add('unbeaten-four');
   if (hasWonCupTie(state)) earned.add('first-cup-win');
   if ((club?.fans ?? 0) >= CAREER_MILESTONE_CROWD) earned.add('crowd-thousand');
-  if (worstMargin <= -CAREER_MILESTONE_HEAVY_DEFEAT_MARGIN)
-    earned.add('heavy-defeat');
   if (hasMerchSurged(state)) earned.add('merch-surge');
   // The hat-trick is banked by settlement, not recomputed: a fixture keeps only
   // its score, so the scorer list is gone by the time this runs.

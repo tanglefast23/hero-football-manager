@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { CrossPlatformModal as Modal } from '../ui/components/CrossPlatformModal';
 import { PixelPortrait } from '../ui/components/PixelPortrait';
 import type { PortraitRole } from '../ui/pixel-portrait-model';
 import { ENERGY_FILL_COLORS, energyBand } from './match-energy-ui';

@@ -139,7 +139,7 @@ describe('rival hero intro sequence', () => {
     expect(RIVAL_HERO_PORTRAIT_COMPOSITION).toEqual({
       backdropZoom: 1.08,
       backdropAnchorX: 0.5,
-      backdropAnchorY: 1,
+      backdropAnchorY: 0.5,
       heroX: 0.5,
       heroY: 0.88,
     });

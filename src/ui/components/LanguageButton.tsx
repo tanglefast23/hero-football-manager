@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import {
-  Modal,
   Pressable,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { CrossPlatformModal as Modal } from './CrossPlatformModal';
 import { languagePanelRows } from '../language-panel-rows';
 import { useCopy, localeMeta, type Locale } from '../../i18n';
 import { TYPE_SIZE } from '../ui-tokens';
