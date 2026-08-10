@@ -432,7 +432,7 @@ describe('M1 app store integration', () => {
     const started = useM1Store.getState().career!;
     // The shipped opening bank now funds one tier-one drill. This test needs
     // two taps to verify popup sequencing, so fund that exact test contract.
-    useM1Store.setState({ career: { ...started, trainingPoints: 20 } });
+    useM1Store.setState({ career: { ...started, trainingPoints: 16 } });
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
     const unassignedPlayerId = 'bramble-rovers-p14';
@@ -447,19 +447,19 @@ describe('M1 app store integration', () => {
 
     const trained = useM1Store.getState().career!;
     const result = useM1Store.getState().lastDrillResult!;
-    // A new Division 5 club owns Sprints 1: 10 TP.
+    // A new Division 5 club owns Sprints 1: 8 TP.
     expect(result).toMatchObject({
       playerId,
       attribute: 'pac',
       before: beforePac,
-      tpSpent: 10,
+      tpSpent: 8,
       sequence: 1,
     });
     expect(result.after).toBeGreaterThan(result.before);
     expect(
       trained.players.find((player) => player.id === playerId)?.attrs.pac,
     ).toBe(result.after);
-    expect(trained.trainingPoints).toBe(before.trainingPoints - 10);
+    expect(trained.trainingPoints).toBe(before.trainingPoints - 8);
     expect(
       trained.players.find((player) => player.id === unassignedPlayerId)?.attrs
         .sta,
@@ -472,7 +472,7 @@ describe('M1 app store integration', () => {
       sequence: 2,
     });
     expect(useM1Store.getState().career?.trainingPoints).toBe(
-      before.trainingPoints - 20,
+      before.trainingPoints - 16,
     );
 
     finishOpeningInboxJobs();
@@ -562,11 +562,9 @@ describe('M1 app store integration', () => {
    */
   it('runs the drills queued behind a skipped presentation', () => {
     startCreatedCareer(789);
-    // The 24 TP launch grant buys two drills, and this case is about the runs
-    // queued behind a skipped presentation, so top the bank up to three rather
-    // than shrink the batch under test.
+    // The 24 TP launch grant buys the three drills exercised by this case.
     useM1Store.setState({
-      career: { ...useM1Store.getState().career!, trainingPoints: 30 },
+      career: { ...useM1Store.getState().career!, trainingPoints: 24 },
     });
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
@@ -580,7 +578,7 @@ describe('M1 app store integration', () => {
     const finished = useM1Store.getState().career!;
     expect(useM1Store.getState().error).toBeNull();
     // All three counted: the TP, the tally, and the stat itself.
-    expect(finished.trainingPoints).toBe(before.trainingPoints - 30);
+    expect(finished.trainingPoints).toBe(before.trainingPoints - 24);
     expect(finished.totalInstantDrills).toBe(3);
     expect(useM1Store.getState().lastDrillResult).toMatchObject({
       sequence: 3,
@@ -825,7 +823,7 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().trainPlayer(playerId, 'sprints');
 
-    expect(useM1Store.getState().error).toContain('needs 10 TP');
+    expect(useM1Store.getState().error).toContain('needs 8 TP');
     expect(useM1Store.getState().lastDrillResult).toBeNull();
     expect(
       useM1Store
