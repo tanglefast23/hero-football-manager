@@ -1,10 +1,22 @@
 import { sellingTransferQuote, type ValuationPlayer } from './market';
 import { currentUserDivision } from './m2-career';
 import { clearCareerContractPromise } from './contract-promises';
+import {
+  activeFacilityAdjacencies,
+  createFacilityGrid,
+  FACILITY_CATALOG,
+  facilityBuildLimit,
+  validateFacilityGrid,
+  type FacilityGridState,
+  type FacilityPosition,
+  type FacilityType,
+  type PlacedFacility,
+} from './facilities';
 import { isAvailableForSelection } from './lineup';
 import { compareIds } from './ordering';
 import { createEmergencyYouthReplacement } from './youth-intake';
 import type {
+  BoardCommercialFacilityPlacement,
   BoardSaleCandidate,
   BoardUltimatumResolution,
   BoardUltimatumState,
@@ -21,6 +33,20 @@ export type BoardForcedSaleResolution = Extract<
   { kind: 'FORCED_SALE' }
 >;
 
+export type BoardFacilityConversionResolution = Extract<
+  BoardUltimatumResolution,
+  { kind: 'FACILITY_CONVERSION' }
+>;
+
+const BOARD_PROTECTED_FACILITY_TYPES: ReadonlySet<FacilityType> = new Set([
+  'training-pitch',
+  'coaching-office',
+]);
+const BOARD_COMMERCIAL_FACILITY_TYPES: ReadonlySet<FacilityType> = new Set([
+  'fan-shop',
+  'stadium-stand',
+]);
+
 /**
  * Creates the exact player list shown to the manager. The board never sells
  * anyone outside this persisted list, and all ordering is deterministic.
@@ -36,8 +62,31 @@ export function createBoardUltimatum(
     issuedWeek: state.week,
     weeksRemaining: BOARD_ULTIMATUM_WEEKS,
     targetCash: 0,
+    consequence: 'FORCED_SALE',
     candidates: candidates.slice(0, candidates.length >= 4 ? 4 : 3),
   };
+}
+
+/** The board's first missed round restructures facilities, never the squad. */
+export function createBoardFacilityUltimatum(
+  state: GameState,
+): BoardUltimatumState {
+  return {
+    id: `board-facility-ultimatum-s${state.season}-w${state.week}`,
+    issuedSeason: state.season,
+    issuedWeek: state.week,
+    weeksRemaining: BOARD_ULTIMATUM_WEEKS,
+    targetCash: 0,
+    consequence: 'FACILITY_CONVERSION',
+    candidates: [],
+  };
+}
+
+/** Missing means the original pre-conversion save format: a player-sale round. */
+export function boardUltimatumConsequence(
+  ultimatum: BoardUltimatumState,
+): NonNullable<BoardUltimatumState['consequence']> {
+  return ultimatum.consequence ?? 'FORCED_SALE';
 }
 
 /**
@@ -48,6 +97,9 @@ export function reconcileBoardUltimatumCandidates(state: GameState): GameState {
   const safety = state.financialSafety;
   const ultimatum = safety?.boardUltimatum;
   if (safety === undefined || ultimatum === undefined) return state;
+  if (boardUltimatumConsequence(ultimatum) === 'FACILITY_CONVERSION') {
+    return state;
+  }
 
   const eligible = eligibleBoardSaleCandidates(state);
   if (eligible.length < 3) {
@@ -136,6 +188,9 @@ export function protectBoardUltimatumPlayer(
   if (safety === undefined || ultimatum === undefined) {
     throw new Error('there is no active board ultimatum');
   }
+  if (boardUltimatumConsequence(ultimatum) !== 'FORCED_SALE') {
+    throw new Error('the active board ultimatum does not threaten a player');
+  }
   if (
     !ultimatum.candidates.some((candidate) => candidate.playerId === playerId)
   ) {
@@ -149,6 +204,156 @@ export function protectBoardUltimatumPlayer(
       ...safety,
       boardUltimatum: { ...ultimatum, protectedPlayerId: playerId },
     },
+  };
+}
+
+/**
+ * Plans the board's one facility conversion without spending club cash or
+ * touching the normal works crew. The persisted result contains every chosen
+ * square, so applying it after settlement cannot make a second placement
+ * decision from changed state.
+ */
+export function boardFacilityConversionAtDeadline(
+  state: GameState,
+  ultimatum: BoardUltimatumState,
+): BoardFacilityConversionResolution {
+  const grid = state.facilities.grid ?? createFacilityGrid();
+  validateFacilityGrid(grid);
+  const base = {
+    id: ultimatum.id,
+    kind: 'FACILITY_CONVERSION' as const,
+    resolvedSeason: state.season,
+    resolvedWeek: state.week,
+    targetCash: ultimatum.targetCash,
+  };
+  const standCount = countFacilities(grid, 'stadium-stand');
+  const shopCount = countFacilities(grid, 'fan-shop');
+  if (
+    standCount >= facilityBuildLimit('stadium-stand') &&
+    shopCount >= facilityBuildLimit('fan-shop')
+  ) {
+    return {
+      ...base,
+      addedFacilities: [],
+      failureReason: 'COMMERCIAL_LIMITS_REACHED',
+    };
+  }
+
+  const replaceable = replaceableBoardFacilities(grid);
+  const removed = replaceable[0];
+  const cleared =
+    removed === undefined ? grid : gridWithoutBuilding(grid, removed.id);
+  if (standCount < facilityBuildLimit('stadium-stand')) {
+    const position = firstFacilityPosition(cleared, 'stadium-stand');
+    if (position !== undefined) {
+      return {
+        ...base,
+        ...(removed === undefined
+          ? {}
+          : {
+              removedFacilityId: removed.id,
+              removedFacilityType: removed.type,
+            }),
+        addedFacilities: commercialPlacements(
+          cleared,
+          'stadium-stand',
+          1,
+          position,
+        ),
+      };
+    }
+  }
+
+  if (shopCount < facilityBuildLimit('fan-shop')) {
+    const additions = fillFanShopPlacements(
+      cleared,
+      facilityBuildLimit('fan-shop') - shopCount,
+    );
+    if (additions.length > 0) {
+      return {
+        ...base,
+        ...(removed === undefined
+          ? {}
+          : {
+              removedFacilityId: removed.id,
+              removedFacilityType: removed.type,
+            }),
+        addedFacilities: additions,
+      };
+    }
+  }
+
+  return {
+    ...base,
+    addedFacilities: [],
+    failureReason:
+      replaceable.length === 0 ? 'NO_REPLACEABLE_BUILDING' : 'NO_SPACE',
+  };
+}
+
+/** Applies only the exact removal and placements persisted in the resolution. */
+export function applyBoardFacilityConversionConsequences(
+  state: GameState,
+  resolution: BoardFacilityConversionResolution,
+): GameState {
+  let grid = state.facilities.grid ?? createFacilityGrid();
+  validateFacilityGrid(grid);
+  if (resolution.removedFacilityId !== undefined) {
+    const removed = grid.buildings.find(
+      (building) => building.id === resolution.removedFacilityId,
+    );
+    if (
+      removed === undefined ||
+      removed.type !== resolution.removedFacilityType ||
+      BOARD_PROTECTED_FACILITY_TYPES.has(removed.type) ||
+      BOARD_COMMERCIAL_FACILITY_TYPES.has(removed.type) ||
+      grid.construction?.buildingId === removed.id
+    ) {
+      throw new Error('the board facility removal no longer matches the save');
+    }
+    grid = gridWithoutBuilding(grid, removed.id);
+  }
+
+  for (const addition of resolution.addedFacilities) {
+    const expectedId = `facility-${grid.nextBuildingId}`;
+    if (addition.buildingId !== expectedId) {
+      throw new Error('the board facility addition ID does not match the grid');
+    }
+    const building: PlacedFacility = {
+      id: addition.buildingId,
+      type: addition.type,
+      level: 1,
+      capitalInvested: 0,
+      x: addition.x,
+      y: addition.y,
+    };
+    grid = {
+      ...grid,
+      nextBuildingId: checkedAdd(
+        grid.nextBuildingId,
+        1,
+        'next board facility ID',
+      ),
+      buildings: [...grid.buildings, building],
+    };
+    validateFacilityGrid(grid);
+  }
+
+  if (resolution.addedFacilities.length > 0) {
+    grid = {
+      ...grid,
+      discoveredAdjacencies: [
+        ...new Set([
+          ...grid.discoveredAdjacencies,
+          ...activeFacilityAdjacencies(grid),
+        ]),
+      ],
+    };
+  }
+  validateFacilityGrid(grid);
+  return {
+    ...state,
+    facilities: { ...state.facilities, grid },
   };
 }
 
@@ -337,6 +542,119 @@ export function targetMetResolution(
     resolvedWeek: state.week,
     targetCash: ultimatum.targetCash,
   };
+}
+
+function countFacilities(grid: FacilityGridState, type: FacilityType): number {
+  return grid.buildings.filter((building) => building.type === type).length;
+}
+
+function replaceableBoardFacilities(grid: FacilityGridState): PlacedFacility[] {
+  return grid.buildings
+    .filter(
+      (building) =>
+        !BOARD_PROTECTED_FACILITY_TYPES.has(building.type) &&
+        !BOARD_COMMERCIAL_FACILITY_TYPES.has(building.type) &&
+        grid.construction?.buildingId !== building.id,
+    )
+    .slice()
+    .sort((left, right) => {
+      const leftDefinition = FACILITY_CATALOG[left.type];
+      const rightDefinition = FACILITY_CATALOG[right.type];
+      const leftArea =
+        leftDefinition.footprint.width * leftDefinition.footprint.height;
+      const rightArea =
+        rightDefinition.footprint.width * rightDefinition.footprint.height;
+      const leftUpkeep = leftDefinition.weeklyUpkeep[left.level - 1];
+      const rightUpkeep = rightDefinition.weeklyUpkeep[right.level - 1];
+      return (
+        rightArea - leftArea ||
+        rightUpkeep - leftUpkeep ||
+        compareIds(left.id, right.id)
+      );
+    });
+}
+
+function gridWithoutBuilding(
+  grid: FacilityGridState,
+  buildingId: string,
+): FacilityGridState {
+  return {
+    ...grid,
+    buildings: grid.buildings.filter((building) => building.id !== buildingId),
+  };
+}
+
+function firstFacilityPosition(
+  grid: FacilityGridState,
+  type: FacilityType,
+): FacilityPosition | undefined {
+  const footprint = FACILITY_CATALOG[type].footprint;
+  for (let y = 0; y <= grid.height - footprint.height; y += 1) {
+    for (let x = 0; x <= grid.width - footprint.width; x += 1) {
+      const overlaps = grid.buildings.some((building) => {
+        const other = FACILITY_CATALOG[building.type].footprint;
+        return (
+          x < building.x + other.width &&
+          building.x < x + footprint.width &&
+          y < building.y + other.height &&
+          building.y < y + footprint.height
+        );
+      });
+      if (!overlaps) return { x, y };
+    }
+  }
+  return undefined;
+}
+
+function commercialPlacements(
+  grid: FacilityGridState,
+  type: BoardCommercialFacilityPlacement['type'],
+  count: number,
+  firstPosition?: FacilityPosition,
+): BoardCommercialFacilityPlacement[] {
+  let simulated = grid;
+  const placements: BoardCommercialFacilityPlacement[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const position =
+      index === 0 && firstPosition !== undefined
+        ? firstPosition
+        : firstFacilityPosition(simulated, type);
+    if (position === undefined) break;
+    const placement: BoardCommercialFacilityPlacement = {
+      buildingId: `facility-${simulated.nextBuildingId}`,
+      type,
+      x: position.x,
+      y: position.y,
+    };
+    placements.push(placement);
+    simulated = {
+      ...simulated,
+      nextBuildingId: checkedAdd(
+        simulated.nextBuildingId,
+        1,
+        'planned board facility ID',
+      ),
+      buildings: [
+        ...simulated.buildings,
+        {
+          id: placement.buildingId,
+          type,
+          level: 1,
+          capitalInvested: 0,
+          x: placement.x,
+          y: placement.y,
+        },
+      ],
+    };
+  }
+  return placements;
+}
+
+function fillFanShopPlacements(
+  grid: FacilityGridState,
+  count: number,
+): BoardCommercialFacilityPlacement[] {
+  return commercialPlacements(grid, 'fan-shop', count);
 }
 
 function candidateForPlayer(

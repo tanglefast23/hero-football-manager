@@ -21,9 +21,9 @@ const THUNK_SOURCE: AudioSource = require('../../assets/audio/sfx/ledger-thunk.w
 const FLAME_UP_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-up.wav');
 const CRACKLE_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-loop.m4a');
 
-// Per-cue gain under the shared master volume: the spin bed sits low so the
-// thunk and flame reads land above it.
-const SPIN_GAIN = 0.6;
+// Per-cue gain under the shared master volume. The slot-spin bed is 2 dB above
+// its original 0.6 gain, while it still sits below the thunk and flame reads.
+const SPIN_GAIN = 0.6 * 10 ** (2 / 20);
 const THUNK_GAIN = 1.0;
 const FLAME_UP_GAIN = 0.9;
 const CRACKLE_GAIN = 0.5;

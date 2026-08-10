@@ -14,18 +14,18 @@ import {
 } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
-const WEEKLY_CONDITION_RECOVERY = 12;
+const WEEKLY_CONDITION_RECOVERY = 10;
 export const OVERTRAINING_CONDITION_THRESHOLD = 30;
 
 /**
  * Each Dorm level speeds weekly condition recovery, the way each Medical Bay
  * level shortens an injury. An instant drill costs 8 condition, so bare
- * recovery of 12 sustains 1.5 taps per player per week; a Dorm lifts that to
- * 2.0 / 2.5 / 3.0 taps and keeps players clear of the condition-30 floor where
- * overtraining injury rolls start. Before this the Dorm had no effect site at
- * all beyond the Gym adjacency.
+ * recovery of 10 sustains 1.25 taps per player per week; a Dorm lifts that to
+ * 1.625 / 2.0 / 2.375 taps and keeps players clear of the condition-30 floor
+ * where overtraining injury rolls start. Before this the Dorm had no effect
+ * site at all beyond the Gym adjacency.
  */
-export const DORM_CONDITION_RECOVERY_PER_LEVEL = 4;
+export const DORM_CONDITION_RECOVERY_PER_LEVEL = 3;
 
 interface WeeklyPlayerWellbeingContext {
   /** Results played outside the league fixture list, such as a Cup tie. */

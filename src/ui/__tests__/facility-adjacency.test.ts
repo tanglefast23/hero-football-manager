@@ -6,6 +6,8 @@ import {
   facilityAdjacencyLabel,
   facilityAdjacencyPresentation,
 } from '../facility-adjacency';
+import { beatMoment } from '../bert-beat-moments';
+import { copyFor } from '../../i18n';
 
 describe('facility adjacency guidance', () => {
   it('gives every shipped pairing an exact effect and a real-world rationale', () => {
@@ -43,5 +45,29 @@ describe('facility adjacency guidance', () => {
       'fan-shop-stadium',
       'medical-training-pitch',
     ]);
+  });
+
+  it('announces the unlocked combo and points at it', () => {
+    const presentation = facilityAdjacencyPresentation('fan-shop-stadium')!;
+    expect(
+      copyFor('en')('clubFinances.secretCombo', {
+        pair: presentation.pairLabel,
+      }),
+    ).toBe('Facility combo unlocked · Fan Shop + Stadium Stand');
+    expect(presentation.discoveryCopy).toContain('this combo gives');
+    expect(
+      beatMoment(
+        'facility-adjacency',
+        [
+          {
+            text: presentation.discoveryCopy,
+            focus: 'facility-adjacency',
+            kind: 'body',
+            pageIndex: 0,
+          },
+        ],
+        0,
+      ),
+    ).toBe('pointing-out');
   });
 });

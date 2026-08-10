@@ -14,8 +14,12 @@ import {
 } from '../../../game/assistant-guide';
 import {
   BOARD_ULTIMATUM_WEEKS,
+  applyBoardFacilityConversionConsequences,
   applyBoardForcedSaleConsequences,
+  boardFacilityConversionAtDeadline,
   boardForcedSaleAtDeadline,
+  boardUltimatumConsequence,
+  createBoardFacilityUltimatum,
   createBoardUltimatum,
   protectBoardUltimatumPlayer,
   targetMetResolution,
@@ -39,14 +43,13 @@ import type { DevHarnessEntry } from '../registry';
  * Reaching any of this in play means nearly bankrupting a club over several
  * seasons, so the escalation nobody has watched is the one that exists to stop
  * a career ending badly: a warning while the balance is red, then the one
- * emergency loan, then a four-week ultimatum with four named players on the
- * block, then a forced sale at the deadline — and a cash floor underneath all
- * of it that the board tops the balance back up to, for ever.
+ * emergency loan, then a four-week facility deadline, four more weeks with
+ * visible players on the block, then a forced sale at the second deadline.
  *
  * Every state here is built by the SHIPPED engine functions from a real seeded
- * career: `createBoardUltimatum` picks the candidates, `boardForcedSaleAtDeadline`
- * picks the victim and the buyer, `applyBoardForcedSaleConsequences` moves him,
- * `targetMetResolution` closes the intervention. The only thing fabricated is
+ * career: the facility planner chooses the conversion, `createBoardUltimatum`
+ * picks the candidates, and `boardForcedSaleAtDeadline` picks the victim and
+ * buyer. The only thing fabricated is
  * the club's cash and the negative-week counter — the two numbers a real career
  * would have arrived at by losing money, which is the part that takes seasons.
  * The screen is the real `ClubHomeScreen` fed by the real `homeViewModel`, and
@@ -55,7 +58,7 @@ import type { DevHarnessEntry } from '../registry';
  */
 
 export type BoardUltimatumCaseId =
-  'warning' | 'loan' | 'ultimatum' | 'survived' | 'forced-sale';
+  'warning' | 'loan' | 'ultimatum' | 'player-sale' | 'survived' | 'forced-sale';
 
 export interface BoardUltimatumOptions {
   /** Weeks left on the deadline. Only an active ultimatum reads it. */
@@ -150,6 +153,11 @@ function issuedUltimatum(state: GameState): BoardUltimatumState {
   return ultimatum;
 }
 
+/** The first deadline carries no player candidates because buildings go first. */
+function issuedFacilityUltimatum(state: GameState): BoardUltimatumState {
+  return createBoardFacilityUltimatum(state);
+}
+
 /** One state of the escalation, built by the engine that owns it. */
 export function boardUltimatumCareer(
   caseId: BoardUltimatumCaseId,
@@ -191,8 +199,35 @@ export function boardUltimatumCareer(
         emergencyLoanUsed: true,
         loan: outstandingLoan(base, 24),
         boardUltimatum: {
-          ...issuedUltimatum(broke),
+          ...issuedFacilityUltimatum(broke),
           weeksRemaining: options.weeksRemaining,
+        },
+      },
+    };
+  }
+
+  if (caseId === 'player-sale') {
+    const facilityUltimatum = issuedFacilityUltimatum(broke);
+    const facilityResolution = boardFacilityConversionAtDeadline(
+      broke,
+      facilityUltimatum,
+    );
+    const converted = applyBoardFacilityConversionConsequences(
+      broke,
+      facilityResolution,
+    );
+    return {
+      ...converted,
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        facilityConversionUsed: true,
+        loan: outstandingLoan(base, 24),
+        latestBoardResolution: facilityResolution,
+        boardUltimatum: {
+          ...issuedUltimatum(converted),
+          weeksRemaining: options.weeksRemaining,
+          waitingForFacilityHomeGate: true,
         },
       },
     };
@@ -210,7 +245,7 @@ export function boardUltimatumCareer(
         loan: outstandingLoan(base, 24),
         latestBoardResolution: targetMetResolution(
           base,
-          issuedUltimatum(broke),
+          issuedFacilityUltimatum(broke),
         ),
       },
     };
@@ -222,6 +257,7 @@ export function boardUltimatumCareer(
     financialSafety: {
       consecutiveNegativeWeeks: rules.negativeWeeksBeforeIntervention,
       emergencyLoanUsed: true,
+      facilityConversionUsed: true,
       loan: outstandingLoan(base, 24),
       boardUltimatum: ultimatum,
     },
@@ -269,10 +305,12 @@ export function boardUltimatumNote(state: GameState): string {
       : `loan owes ${safety.loan.remainingBalance}`,
     ultimatum === undefined
       ? 'no deadline'
-      : `target ${ultimatum.targetCash} · ${ultimatum.candidates.length} on the block` +
-        (ultimatum.protectedPlayerId === undefined
-          ? ' · none protected'
-          : ' · one protected'),
+      : boardUltimatumConsequence(ultimatum) === 'FACILITY_CONVERSION'
+        ? `target ${ultimatum.targetCash} · facility conversion threatened`
+        : `target ${ultimatum.targetCash} · ${ultimatum.candidates.length} on the block` +
+          (ultimatum.protectedPlayerId === undefined
+            ? ' · none protected'
+            : ' · one protected'),
     // The measurement the reel exists to take. It read 0/n on every busy desk.
     // The three time-critical rows must now read n/n whatever else the week is
     // carrying; the loan row may queue, because the balance it used to be the
@@ -521,8 +559,13 @@ const CASES: readonly {
   },
   {
     id: 'ultimatum',
-    label: 'Deadline',
-    note: 'Four names on the block, one protectable · tap a row to protect',
+    label: 'Facilities',
+    note: 'First four-week round · a non-essential building will be replaced',
+  },
+  {
+    id: 'player-sale',
+    label: 'Players',
+    note: 'Facility round ended · four fresh weeks, one player protectable',
   },
   {
     id: 'survived',
@@ -537,7 +580,7 @@ const CASES: readonly {
 ]);
 
 /**
- * The cases are the five states of the escalation, because each one is a
+ * The cases are the six states of the escalation, because each one is a
  * different set of inputs to the same desk and each is worth a bookmark. The
  * countdown, the desk noise and Bert's cue are dials inside one of them, so
  * they stay local: all of them are one tap away from any case.
@@ -547,7 +590,7 @@ export const boardUltimatumEntry: DevHarnessEntry = Object.freeze({
   group: 'Season',
   title: 'Board ultimatum',
   summary:
-    'Fail-soft economy: warning, one loan, a four-week deadline, then a forced sale.',
+    'Fail-soft economy: warning, one loan, facility conversion, then a fresh player-sale deadline.',
   cases: Object.freeze(
     CASES.map((entry) =>
       Object.freeze({

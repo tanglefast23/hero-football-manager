@@ -1,5 +1,5 @@
 import type { Attrs, PowerId, Role } from '../sim/types';
-import type { FacilityGridState } from './facilities';
+import type { FacilityGridState, FacilityType } from './facilities';
 import type { CareerMarketState } from './market-career';
 import type { DeskTipState } from './desk-tips';
 import type { M2CareerState } from './m2-career';
@@ -491,6 +491,8 @@ export interface DivisionAwardPrize {
 export interface FinancialSafetyState {
   consecutiveNegativeWeeks: number;
   emergencyLoanUsed: boolean;
+  /** The board gets one facility rescue before later missed rounds sell players. */
+  facilityConversionUsed?: boolean;
   loan?: {
     originalAmount: number;
     remainingBalance: number;
@@ -531,8 +533,23 @@ export interface BoardUltimatumState {
   issuedWeek: number;
   weeksRemaining: number;
   targetCash: number;
+  /** Missing on older saves, whose original consequence was a forced sale. */
+  consequence?: 'FACILITY_CONVERSION' | 'FORCED_SALE';
+  /**
+   * Set only on the sale round created by a facility conversion. If the first
+   * four settlements contain no home gate, Week 1 waits until the new income
+   * building has earned from one home match before the board can sell.
+   */
+  waitingForFacilityHomeGate?: boolean;
   candidates: BoardSaleCandidate[];
   protectedPlayerId?: string;
+}
+
+export interface BoardCommercialFacilityPlacement {
+  buildingId: string;
+  type: 'fan-shop' | 'stadium-stand';
+  x: number;
+  y: number;
 }
 
 export type BoardUltimatumResolution =
@@ -542,6 +559,19 @@ export type BoardUltimatumResolution =
       resolvedSeason: number;
       resolvedWeek: number;
       targetCash: number;
+    }
+  | {
+      id: string;
+      kind: 'FACILITY_CONVERSION';
+      resolvedSeason: number;
+      resolvedWeek: number;
+      targetCash: number;
+      /** Absent when the board could add income without demolishing anything. */
+      removedFacilityId?: string;
+      removedFacilityType?: FacilityType;
+      addedFacilities: BoardCommercialFacilityPlacement[];
+      failureReason?:
+        'COMMERCIAL_LIMITS_REACHED' | 'NO_REPLACEABLE_BUILDING' | 'NO_SPACE';
     }
   | {
       id: string;

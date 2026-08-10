@@ -3,7 +3,7 @@ import {
   reconcilePendingClubLegends,
   resolveNextClubLegendLegacy,
 } from '../legacy-career';
-import type { CoachCandidate } from '../market';
+import { COACH_WAGE_PER_LEVEL, type CoachCandidate } from '../market';
 import type { CareerMarketState } from '../market-career';
 import type { CareerPlayer, GameState } from '../types';
 import { createClubBusinessState } from '../club-business';
@@ -149,7 +149,7 @@ describe('career club-legend transactions', () => {
       name: 'Ari Flint',
       specialties: ['ATTACK', 'TECHNIQUE'],
       level: 2,
-      weeklyWage: 640,
+      weeklyWage: COACH_WAGE_PER_LEVEL * 2 * 0.8,
       personality: 'LOYAL',
       requiredDivision: 4,
       requiredFame: 100,

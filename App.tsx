@@ -236,6 +236,7 @@ import {
 import {
   DESK_STORY_ALERT_ID,
   awakeningCutsceneViewModel,
+  boardFacilityConversionBriefing,
   boardFinanceBriefing,
   clubLegacyViewModel,
   clubFinancesViewModel,
@@ -526,6 +527,8 @@ function GameApp() {
   const [moneyGuideAnchor, setMoneyGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
   const [loanGuideAnchor, setLoanGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
+  const [facilityAdjacencyGuideAnchor, setFacilityAdjacencyGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
@@ -1775,6 +1778,15 @@ function GameApp() {
                 presentation.milestone,
               ),
           );
+  const facilityComboRevealVisible =
+    facilityComboReveal !== undefined &&
+    store.activeTab === 'club' &&
+    clubOfficeTab === 'facility';
+  useEffect(() => {
+    if (facilityComboReveal === undefined) return;
+    setClubOfficeTab('facility');
+    if (store.activeTab !== 'club') store.setActiveTab('club');
+  }, [facilityComboReveal?.id, store.activeTab, store.setActiveTab]);
   /**
    * Bert's one consolation for going out of the Cup.
    *
@@ -1850,6 +1862,9 @@ function GameApp() {
     store.activeTab === 'market' &&
     store.career !== null &&
     (store.career.market?.scoutReports.length ?? 0) > 0 &&
+    // Finish the report lesson's action first. Otherwise this second lesson
+    // lays its scrim over the lit Deals tab before the manager can press it.
+    visibleConciergeFocus !== 'scout-report' &&
     !isTransferWindowOpen(store.career.week) &&
     !hasAssistantGuideMilestone(store.career, 'transfer-window-seen');
   /**
@@ -1885,6 +1900,10 @@ function GameApp() {
           ...boardFinanceMessage,
           body: boardFinanceMessage.body.slice(boardFinanceMessageStartIndex),
         };
+  const boardConversionBriefing =
+    store.career === null
+      ? undefined
+      : boardFacilityConversionBriefing(store.career, t);
   const facilityErrorBertVisible =
     careerTeaches &&
     store.screen === 'management' &&
@@ -1970,7 +1989,7 @@ function GameApp() {
       cupExitConsolationVisible ||
       firstCupRoundOf32BriefingVisible ||
       facilityErrorBertVisible ||
-      facilityComboReveal !== undefined ||
+      facilityComboRevealVisible ||
       transferWindowLessonVisible ||
       fansLessonVisible ||
       fansLedgerTourVisible ||
@@ -2804,7 +2823,13 @@ function GameApp() {
         setBoardFinanceMessageStartIndex(0);
         setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);
       } else if (alertId === 'board-ultimatum') {
-        store.notify(t('app.boardUltimatumProtectPlayer'));
+        store.notify(
+          t(
+            home.boardUltimatum?.consequence === 'FACILITY_CONVERSION'
+              ? 'app.boardUltimatumFacilityPlan'
+              : 'app.boardUltimatumProtectPlayer',
+          ),
+        );
       } else if (alertId.startsWith('board-resolution')) {
         store.notify(t('app.boardInterventionResult'));
       } else if (alertId.startsWith('retirement-announcement-')) {
@@ -3081,6 +3106,9 @@ function GameApp() {
             }
             guideFocus={activeGuideFocus ?? visibleConciergeFocus ?? undefined}
             onLoanGuideAnchorChange={setLoanGuideAnchor}
+            onFacilityAdjacencyGuideAnchorChange={
+              setFacilityAdjacencyGuideAnchor
+            }
             reduceMotion={reduceMotion}
             focusSponsorSummaryToken={sponsorSummaryFocusToken}
           />
@@ -3638,6 +3666,15 @@ function GameApp() {
               <BertBriefingWalkOn
                 content={content.assistantGuide}
                 sequenceId={assistantSequenceId}
+                customMessage={
+                  assistantSequenceId === 'board-protection' &&
+                  boardConversionBriefing !== undefined
+                    ? {
+                        ...boardConversionBriefing,
+                        focus: 'board-protection',
+                      }
+                    : undefined
+                }
                 moneyAnchor={moneyGuideAnchor}
                 loanAnchor={loanGuideAnchor}
                 navigationAnchor={navigationGuideAnchor}
@@ -3646,31 +3683,38 @@ function GameApp() {
                 onFocusChange={setActiveGuideFocus}
                 onDone={completeAssistantGuideSequence}
               />
-            ) : guideOverlayVisible && facilityComboReveal !== undefined ? (
+            ) : guideOverlayVisible &&
+              facilityComboRevealVisible &&
+              facilityComboReveal !== undefined ? (
               <BertBriefingWalkOn
                 key={facilityComboReveal.id}
                 content={content.assistantGuide}
+                sequenceId="facility-adjacency"
                 customMessage={{
                   title: t('clubFinances.secretCombo', {
                     pair: facilityComboReveal.pairLabel,
                   }),
                   body: facilityComboReveal.discoveryCopy,
+                  focus: 'facility-adjacency',
                 }}
+                facilityAdjacencyAnchor={facilityAdjacencyGuideAnchor}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
-                onDone={() =>
-                  store.completeGuideMilestone(facilityComboReveal.milestone)
-                }
+                onFocusChange={setActiveGuideFocus}
+                onDone={() => {
+                  setActiveGuideFocus(undefined);
+                  store.completeGuideMilestone(facilityComboReveal.milestone);
+                }}
               />
             ) : guideOverlayVisible && transferWindowLessonVisible ? (
               <BertBriefingWalkOn
                 key="transfer-window"
                 content={content.assistantGuide}
                 customMessage={{
-                  title: 'The desk is shut',
+                  title: t('market.transferWindowLessonTitle'),
                   body: [
-                    'Registrations only happen inside a transfer window: Weeks 1 to 4, then Weeks 17 and 18. Outside them the desk refuses every deal, however much you offer.',
-                    'So scout now and decide now. Walk in on the first day of the window with the name already chosen and the money already put aside.',
+                    t('bert.custom.transferWindow.body1'),
+                    t('bert.custom.transferWindow.body2'),
                   ],
                 }}
                 navigationAnchor={navigationGuideAnchor}

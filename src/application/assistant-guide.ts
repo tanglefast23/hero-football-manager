@@ -1,5 +1,6 @@
 import {
   assistantTeaches,
+  boardUltimatumConsequence,
   hasAssistantGuideSequenceCompleted,
   hasAssistantGuideMilestone,
   highestDivisionReached,
@@ -242,7 +243,10 @@ export function dueAssistantInboxGuideSequences(
 
   if (state.financialSafety?.boardUltimatum !== undefined) {
     due.push(
-      completed('board-ultimatum') ? 'board-protection' : 'board-ultimatum',
+      boardUltimatumConsequence(state.financialSafety.boardUltimatum) ===
+        'FACILITY_CONVERSION'
+        ? 'board-ultimatum'
+        : 'board-protection',
     );
   }
 

@@ -12,7 +12,11 @@ import {
   createCareerMarketState,
   refreshCareerMarketForNewSeason,
 } from './market-career';
-import { CAREER_CLUB_FAME_CEILING, generatedPlayerWeeklyWage } from './market';
+import {
+  CAREER_CLUB_FAME_CEILING,
+  generatedPlayerWeeklyWage,
+  reducedPlayerWeeklyWage,
+} from './market';
 import { compareIds } from './ordering';
 import {
   applyM2PromotionAndRelegation,
@@ -1133,7 +1137,7 @@ function academyPlayer(
     role,
     attrs,
     licensed: false,
-    weeklyWage: 120 + potential * 30,
+    weeklyWage: reducedPlayerWeeklyWage(120 + potential * 30),
     onHeroWage: false,
     contractSeasonsRemaining: 3,
     morale: 60,

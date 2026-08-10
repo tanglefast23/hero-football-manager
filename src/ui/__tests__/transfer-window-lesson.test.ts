@@ -24,13 +24,17 @@ describe('the shut-window lesson', () => {
     expect(app).toContainSource(
       "!hasAssistantGuideMilestone(store.career, 'transfer-window-seen')",
     );
+    expect(app).toContainSource("visibleConciergeFocus !== 'scout-report'");
     expect(app).toContainSource(
       "store.completeGuideMilestone('transfer-window-seen')",
     );
   });
 
   it('names both windows so the manager can plan around them', () => {
-    expect(app).toContainSource('Weeks 1 to 4, then Weeks 17 and 18');
+    expect(app).toContainSource("t('bert.custom.transferWindow.body1')");
+    expect(
+      loadCatalog('en').strings['bert.custom.transferWindow.body1'],
+    ).toContain('Weeks 1 to 4, then Weeks 17 and 18');
     expect(app).not.toContainSource('That report is yours to keep');
   });
 

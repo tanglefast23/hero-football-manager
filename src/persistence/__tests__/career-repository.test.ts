@@ -1,5 +1,6 @@
 import { createCareer } from '../../game/career';
 import {
+  CREATED_PLAYER_ROOKIE_WAGE,
   DEFAULT_CREATION_RATINGS,
   addCreatedPlayer,
   beginStoryOnboarding,
@@ -126,7 +127,7 @@ describe('career repository', () => {
       ),
     ).toMatchObject({
       name: 'Jo Rook',
-      weeklyWage: 180,
+      weeklyWage: CREATED_PLAYER_ROOKIE_WAGE,
       contractSeasonsRemaining: 1,
       onHeroWage: false,
     });

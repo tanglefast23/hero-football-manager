@@ -345,8 +345,12 @@ function resolveSharedManagementDecisions(): void {
   if (career === null) throw new Error('managed decision pass has no career');
 
   const ultimatum = career.financialSafety?.boardUltimatum;
-  if (ultimatum !== undefined && ultimatum.protectedPlayerId === undefined) {
-    current.protectBoardCandidate(ultimatum.candidates[0].playerId);
+  const protectionCandidate = ultimatum?.candidates[0];
+  if (
+    ultimatum?.protectedPlayerId === undefined &&
+    protectionCandidate !== undefined
+  ) {
+    current.protectBoardCandidate(protectionCandidate.playerId);
     current = useM1Store.getState();
     career = current.career!;
   }

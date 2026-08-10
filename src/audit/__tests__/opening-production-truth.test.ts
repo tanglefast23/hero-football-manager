@@ -127,11 +127,11 @@ describe('condition, recovery, and overtraining', () => {
     expect(resolution.conditionAfter).toBe((target.condition ?? 100) - 8);
   });
 
-  it('recovers 12 a week, plus 4 per completed Dorm level', () => {
-    expect(weeklyConditionRecovery(0)).toBe(12);
-    expect(DORM_CONDITION_RECOVERY_PER_LEVEL).toBe(4);
-    expect(weeklyConditionRecovery(1)).toBe(16);
-    expect(weeklyConditionRecovery(3)).toBe(24);
+  it('recovers 10 a week, plus 3 per completed Dorm level', () => {
+    expect(weeklyConditionRecovery(0)).toBe(10);
+    expect(DORM_CONDITION_RECOVERY_PER_LEVEL).toBe(3);
+    expect(weeklyConditionRecovery(1)).toBe(13);
+    expect(weeklyConditionRecovery(3)).toBe(19);
   });
 
   it('rolls for injury only when a drill starts below condition 30', () => {

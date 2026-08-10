@@ -19,6 +19,7 @@ import {
   careerHeroLimit,
   completeAssistantGuideMilestone,
   createCareer,
+  CREATED_PLAYER_ROOKIE_WAGE,
   currentUserDivision,
   DEFAULT_CREATION_RATINGS,
   leagueStandings,
@@ -142,7 +143,7 @@ describe('M1 app store integration', () => {
     expect(userHeroes()).toHaveLength(1);
     expect(userHeroes()[0]).toMatchObject({
       name: 'Jo Rook',
-      weeklyWage: 180,
+      weeklyWage: CREATED_PLAYER_ROOKIE_WAGE,
       onHeroWage: false,
       licensed: true,
     });

@@ -2,12 +2,17 @@ import { loadLaunchContent } from '../../content';
 import {
   buildCareerFacility,
   createCareer,
+  createBoardUltimatum,
   dismissAssistantInboxProductForCurrentWeek,
   dismissAssistantInboxProductPermanently,
   type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
-import { boardFinanceBriefing, homeViewModel } from '../view-models';
+import {
+  boardFacilityConversionBriefing,
+  boardFinanceBriefing,
+  homeViewModel,
+} from '../view-models';
 
 /**
  * The desk row is clipped to two lines, so the board's warning has never been
@@ -65,8 +70,8 @@ describe('the board finance briefing', () => {
       );
     });
 
-    /** A club that has spent its one rescue is warned about the real next step. */
-    it('promises sales rather than a loan once the rescue is spent', () => {
+    /** A club that has spent its one rescue is warned about the first ultimatum. */
+    it('promises a building conversion before the board threatens players', () => {
       const briefing = boardFinanceBriefing(
         career(20260903, -8000, {
           consecutiveNegativeWeeks: 3,
@@ -76,8 +81,22 @@ describe('the board finance briefing', () => {
       );
 
       expect(briefing?.body[1]).toContain('1 more week in the red');
-      expect(briefing?.body[1]).toContain('selling players');
+      expect(briefing?.body[1]).toContain('replaces a non-essential building');
       expect(briefing?.body[1]).not.toContain('emergency loan');
+    });
+
+    it('promises player sales after the one facility conversion was used', () => {
+      const briefing = boardFinanceBriefing(
+        career(20260917, -8000, {
+          consecutiveNegativeWeeks: 3,
+          emergencyLoanUsed: true,
+          facilityConversionUsed: true,
+        }),
+        'financial-warning',
+      );
+
+      expect(briefing?.body[1]).toContain('selling players');
+      expect(briefing?.body[1]).not.toContain('replaces a non-essential');
     });
 
     it('stops counting down once the grace weeks are gone', () => {
@@ -164,6 +183,54 @@ describe('the board finance briefing', () => {
 
       expect(boardFinanceBriefing(state, 'financial-warning')).toBeUndefined();
     });
+  });
+
+  describe('the facility-to-sale handoff', () => {
+    it.each([
+      ['COMMERCIAL_LIMITS_REACHED', 'already has three Stadium Stands'],
+      [
+        'NO_REPLACEABLE_BUILDING',
+        'Training Pitch and Coaching Office were protected',
+      ],
+      ['NO_SPACE', 'no legal space'],
+    ] as const)(
+      'explains %s before it threatens a player sale',
+      (reason, copy) => {
+        const base = career(20260920, -8000, undefined);
+        const saleUltimatum = createBoardUltimatum(base);
+        if (saleUltimatum === undefined) {
+          throw new Error(
+            'the briefing test career has too few sale candidates',
+          );
+        }
+        const state: GameState = {
+          ...base,
+          financialSafety: {
+            consecutiveNegativeWeeks: 0,
+            emergencyLoanUsed: true,
+            facilityConversionUsed: true,
+            latestBoardResolution: {
+              id: 'board-facility-ultimatum-test',
+              kind: 'FACILITY_CONVERSION',
+              resolvedSeason: base.season,
+              resolvedWeek: base.week,
+              targetCash: 0,
+              addedFacilities: [],
+              failureReason: reason,
+            },
+            boardUltimatum: saleUltimatum,
+          },
+        };
+
+        const briefing = boardFacilityConversionBriefing(state);
+        expect(briefing?.title).toBe('Facility plan blocked');
+        expect(briefing?.body[0]).toContain(copy);
+        expect(briefing?.body[1]).toContain('4 weeks remain');
+        expect(briefing?.body[1]).toContain(
+          'the board will sell one visible player',
+        );
+      },
+    );
   });
 
   describe('the emergency loan', () => {

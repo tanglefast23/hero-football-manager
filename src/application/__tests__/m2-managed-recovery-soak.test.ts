@@ -1,6 +1,7 @@
 import {
   activeCareerMatchday,
   advanceWeek,
+  boardUltimatumConsequence,
   buildCareerTeamDef,
   completeMatchday,
   createCareer,
@@ -75,6 +76,7 @@ function runStrugglingManagerCareer(seed: number): {
       const ultimatum = state.financialSafety?.boardUltimatum;
       if (
         ultimatum !== undefined &&
+        boardUltimatumConsequence(ultimatum) === 'FORCED_SALE' &&
         ultimatum.protectedPlayerId === undefined
       ) {
         const hero = ultimatum.candidates.find(

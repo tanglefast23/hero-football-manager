@@ -1,19 +1,143 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import {
+  applyBoardFacilityConversionConsequences,
   applyBoardForcedSaleConsequences,
+  boardFacilityConversionAtDeadline,
   boardForcedSaleAtDeadline,
   clearMetBoardUltimatum,
+  createBoardFacilityUltimatum,
   createBoardUltimatum,
   protectBoardUltimatumPlayer,
 } from '../board-ultimatum';
 import { createCareer } from '../career';
 import { buildCareerTeamDef } from '../squad';
+import type { FacilityGridState, PlacedFacility } from '../facilities';
 
 function career(seed: number) {
   return createCareer(createLaunchCareerSetup(seed));
 }
 
+function withFacilityGrid(
+  state: ReturnType<typeof career>,
+  buildings: readonly PlacedFacility[],
+): ReturnType<typeof career> {
+  const largestId = buildings.reduce(
+    (largest, building) =>
+      Math.max(largest, Number(building.id.replace('facility-', '')) || 0),
+    0,
+  );
+  const grid: FacilityGridState = {
+    width: 8,
+    height: 6,
+    nextBuildingId: largestId + 1,
+    buildings,
+    discoveredAdjacencies: [],
+  };
+  return {
+    ...state,
+    facilities: { ...state.facilities, trainingGroundBuilt: true, grid },
+  };
+}
+
+const facility = (
+  id: number,
+  type: PlacedFacility['type'],
+  x: number,
+  y: number,
+  level: PlacedFacility['level'] = 1,
+): PlacedFacility => ({
+  id: `facility-${id}`,
+  type,
+  level,
+  capitalInvested: 10_000,
+  x,
+  y,
+});
+
 describe('board ultimatum domain', () => {
+  test('converts the largest eligible building into a Stadium Stand without touching protected facilities', () => {
+    const state = withFacilityGrid(career(9491), [
+      facility(1, 'training-pitch', 0, 0),
+      facility(2, 'coaching-office', 2, 0),
+      facility(3, 'gym', 2, 1),
+      facility(4, 'youth-field', 3, 0),
+    ]);
+    const ultimatum = createBoardFacilityUltimatum(state);
+
+    const first = boardFacilityConversionAtDeadline(state, ultimatum);
+    const second = boardFacilityConversionAtDeadline(
+      JSON.parse(JSON.stringify(state)) as typeof state,
+      ultimatum,
+    );
+
+    expect(first).toEqual(second);
+    expect(first).toMatchObject({
+      kind: 'FACILITY_CONVERSION',
+      removedFacilityId: 'facility-4',
+      removedFacilityType: 'youth-field',
+      addedFacilities: [{ type: 'stadium-stand' }],
+    });
+    const applied = applyBoardFacilityConversionConsequences(state, first);
+    const buildings = applied.facilities.grid!.buildings;
+    expect(buildings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'facility-1', type: 'training-pitch' }),
+        expect.objectContaining({ id: 'facility-2', type: 'coaching-office' }),
+        expect.objectContaining({ type: 'stadium-stand', capitalInvested: 0 }),
+      ]),
+    );
+    expect(buildings.map((building) => building.id)).not.toContain(
+      'facility-4',
+    );
+  });
+
+  test('fills the Fan Shop cap after three Stadium Stands already exist', () => {
+    const state = withFacilityGrid(career(9492), [
+      facility(1, 'training-pitch', 0, 0),
+      facility(2, 'coaching-office', 2, 0),
+      facility(3, 'youth-field', 3, 0),
+      facility(4, 'stadium-stand', 5, 0),
+      facility(5, 'stadium-stand', 0, 2),
+      facility(6, 'stadium-stand', 2, 2),
+    ]);
+
+    const resolution = boardFacilityConversionAtDeadline(
+      state,
+      createBoardFacilityUltimatum(state),
+    );
+
+    expect(resolution.removedFacilityId).toBe('facility-3');
+    expect(resolution.addedFacilities).toHaveLength(3);
+    expect(
+      resolution.addedFacilities.every(
+        (building) => building.type === 'fan-shop',
+      ),
+    ).toBe(true);
+  });
+
+  test('records why the facility plan cannot continue at both commercial caps', () => {
+    const state = withFacilityGrid(career(9493), [
+      facility(1, 'training-pitch', 0, 0),
+      facility(2, 'coaching-office', 2, 0),
+      facility(3, 'stadium-stand', 3, 0),
+      facility(4, 'stadium-stand', 5, 0),
+      facility(5, 'stadium-stand', 0, 2),
+      facility(6, 'fan-shop', 2, 2),
+      facility(7, 'fan-shop', 3, 2),
+      facility(8, 'fan-shop', 4, 2),
+    ]);
+
+    expect(
+      boardFacilityConversionAtDeadline(
+        state,
+        createBoardFacilityUltimatum(state),
+      ),
+    ).toMatchObject({
+      addedFacilities: [],
+      failureReason: 'COMMERCIAL_LIMITS_REACHED',
+    });
+  });
+
   test('creates a byte-identical visible list of four discounted safe candidates', () => {
     const state = career(9501);
     const first = createBoardUltimatum(state)!;

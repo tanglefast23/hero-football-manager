@@ -77,6 +77,7 @@ describe('the board ultimatum reel', () => {
       'warning',
       'loan',
       'ultimatum',
+      'player-sale',
       'survived',
       'forced-sale',
     ]);
@@ -124,8 +125,18 @@ describe('the board ultimatum reel', () => {
    * The candidates are the point of the panel, and they come from the engine:
    * a hand-written list would prove only that the reel can draw four rows.
    */
-  it('puts the engine’s own sale candidates on the block', () => {
-    const state = career('ultimatum');
+  it('makes the first deadline a facility round with no player candidates', () => {
+    const panel = homeViewModel(career('ultimatum')).boardUltimatum;
+
+    expect(panel).toMatchObject({
+      consequence: 'FACILITY_CONVERSION',
+      weeksRemaining: OPTIONS.weeksRemaining,
+      candidates: [],
+    });
+  });
+
+  it('puts the engine’s own sale candidates on the block in the second round', () => {
+    const state = career('player-sale');
     const panel = homeViewModel(state).boardUltimatum;
     const rosterIds = new Set(
       state.players
@@ -147,11 +158,11 @@ describe('the board ultimatum reel', () => {
   });
 
   it('lets the deadline be shortened without changing who is on the block', () => {
-    const issued = boardUltimatumCareer('ultimatum', {
+    const issued = boardUltimatumCareer('player-sale', {
       ...OPTIONS,
       weeksRemaining: 4,
     });
-    const lastWeek = boardUltimatumCareer('ultimatum', {
+    const lastWeek = boardUltimatumCareer('player-sale', {
       ...OPTIONS,
       weeksRemaining: 1,
     });
@@ -165,7 +176,7 @@ describe('the board ultimatum reel', () => {
 
   /** The reel's Protect tap is the shipped reducer, not a local copy of it. */
   it('protects a candidate through the real reducer', () => {
-    const state = career('ultimatum');
+    const state = career('player-sale');
     const target = state.financialSafety?.boardUltimatum?.candidates[1];
     if (target === undefined)
       throw new Error('the ultimatum has no second candidate');
@@ -176,6 +187,30 @@ describe('the board ultimatum reel', () => {
       homeViewModel(protectedState).boardUltimatum?.protectedPlayerId,
     ).toBe(target.playerId);
     expect(() => protectBoardUltimatumPlayer(state, 'someone-else')).toThrow();
+    expect(() =>
+      protectBoardUltimatumPlayer(career('ultimatum'), target.playerId),
+    ).toThrow('does not threaten a player');
+  });
+
+  it('shows the completed facility action beside a fresh four-week sale round', () => {
+    const state = boardUltimatumCareer('player-sale', {
+      ...OPTIONS,
+      weeksRemaining: 4,
+    });
+
+    expect(state.financialSafety).toMatchObject({
+      consecutiveNegativeWeeks: 0,
+      facilityConversionUsed: true,
+      latestBoardResolution: { kind: 'FACILITY_CONVERSION' },
+      boardUltimatum: {
+        consequence: 'FORCED_SALE',
+        weeksRemaining: 4,
+        waitingForFacilityHomeGate: true,
+      },
+    });
+    expect(homeViewModel(state).boardResolution?.kind).toBe(
+      'FACILITY_CONVERSION',
+    );
   });
 
   it('closes the intervention when the target was met', () => {
@@ -223,7 +258,10 @@ describe('the board ultimatum reel', () => {
    */
   it('reports how many of the board’s own rows reached the desk', () => {
     expect(boardUltimatumNote(career('ultimatum'))).toContain('board rows');
-    expect(boardUltimatumNote(career('ultimatum'))).toContain('on the block');
+    expect(boardUltimatumNote(career('ultimatum'))).toContain(
+      'facility conversion threatened',
+    );
+    expect(boardUltimatumNote(career('player-sale'))).toContain('on the block');
   });
 
   /**
@@ -249,7 +287,12 @@ describe('the board ultimatum reel', () => {
         .map((alert) => alert.id)
         .sort();
 
-    for (const caseId of ['warning', 'ultimatum', 'forced-sale'] as const) {
+    for (const caseId of [
+      'warning',
+      'ultimatum',
+      'player-sale',
+      'forced-sale',
+    ] as const) {
       const busy = boardUltimatumCareer(caseId, {
         ...OPTIONS,
         quietDesk: false,
@@ -307,6 +350,7 @@ describe('the board ultimatum reel', () => {
     for (const caseId of [
       'loan',
       'ultimatum',
+      'player-sale',
       'survived',
       'forced-sale',
     ] as const) {
@@ -354,6 +398,7 @@ describe('the board ultimatum reel', () => {
     expect(source).not.toContain('<Pressable');
     expect(source).not.toContain('style={({');
     expect(source).toContain('DevHarnessButton');
+    expect(source).toContain('waitingForFacilityHomeGate: true');
     // No audio cue: the management SFX table is index-addressed by eight tests.
     expect(source).not.toContain('Sfx');
   });

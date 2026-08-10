@@ -364,6 +364,16 @@ export function isTransferWindowOpen(week: number): boolean {
   return week <= 4 || (week >= 17 && week <= 18);
 }
 
+/** Whole weekly advances until registration next opens; zero while it is open. */
+export function weeksUntilTransferWindowOpen(week: number): number {
+  if (!Number.isSafeInteger(week) || week < 1 || week > 30) {
+    throw new Error('week must be a safe integer from 1 to 30');
+  }
+  if (isTransferWindowOpen(week)) return 0;
+  if (week < 17) return 17 - week;
+  return 31 - week;
+}
+
 export interface ValuationPlayer {
   readonly id: string;
   readonly role: Role;
@@ -453,6 +463,19 @@ export function playerValuation(
  */
 const GLOBAL_WAGE_SCALE = 0.96;
 
+/** Player-only relief applied after every existing wage rule. Coach wages are separate. */
+export const PLAYER_WAGE_REDUCTION_PERCENT = 10;
+
+export function reducedPlayerWeeklyWage(currentWeeklyWage: number): number {
+  if (!Number.isSafeInteger(currentWeeklyWage) || currentWeeklyWage < 0) {
+    throw new Error('player weekly wage must be a non-negative safe integer');
+  }
+  return checkedRound(
+    (currentWeeklyWage * (100 - PLAYER_WAGE_REDUCTION_PERCENT)) / 100,
+    'reduced player weekly wage',
+  );
+}
+
 /**
  * Rebased generated-player wage curve. Seven-stat average is compared with the
  * division's support rating, so rival growth and star premiums remain visible
@@ -488,7 +511,7 @@ export function generatedPlayerWeeklyWage(
       (DIVISION_SUPPORT_STRENGTHS[division] * ATTR_NAMES.length),
     'division-anchored weekly wage',
   );
-  return Math.max(150, wage);
+  return reducedPlayerWeeklyWage(Math.max(150, wage));
 }
 
 /** Asking club quote: 105-125% of deterministic market value. */
@@ -1276,21 +1299,18 @@ export const COACH_FAME_GATES = [0, 0, 100, 250, 500, 900] as const;
  * scales from.
  *
  * Every coach price in the game is this times the coach's level, so the ladder
- * runs $400 / $800 / $1,200 / $1,600 / $2,000 a week from level 1 to 5, and an
+ * runs $300 / $600 / $900 / $1,200 / $1,500 a week from level 1 to 5, and an
  * assistant costs half of the same figure (`ASSISTANT_COACH_WAGE_PERCENT`) —
- * $200 for a level 1. Loyalty discounts come off the top of that.
+ * $150 for a level 1. Loyalty discounts come off the top of that.
  *
- * It was 500, which put the level 1 head coach the manager is told to hire in
- * their first weeks at $500/week against $45,000 of starting cash, before any
- * player wages. Lowering it to 400 keeps the entire ladder in proportion while
- * making that first hire, and the assistant that follows the Coaching Office,
- * affordable earlier.
+ * The $300 base keeps the first guided hire and the assistant that follows the
+ * Coaching Office affordable while preserving the same linear level ladder.
  *
  * Exported because four call sites price coaches — the market, both retired
  * legend paths, and the yearly re-price on season rollover — and four copies of
  * the same literal is exactly the kind of thing that drifts.
  */
-export const COACH_WAGE_PER_LEVEL = 400;
+export const COACH_WAGE_PER_LEVEL = 300;
 
 /**
  * The guard on the summed club total, raised with the player ceiling.

@@ -3,6 +3,9 @@ import { createCareer } from '../../game/career';
 import { buildCareerFacility } from '../../game/management';
 import { listCareerPlayer } from '../../game/market-career';
 import {
+  applyBoardFacilityConversionConsequences,
+  boardFacilityConversionAtDeadline,
+  createBoardFacilityUltimatum,
   createBoardUltimatum,
   protectBoardUltimatumPlayer,
 } from '../../game/board-ultimatum';
@@ -122,6 +125,78 @@ describe('M2 game-state codec', () => {
     expect(() => serializeGameState(invalid)).toThrow(InvalidGameStateError);
     expect(() => parseStoredGameState(JSON.stringify(invalid))).toThrow(
       CorruptCareerSaveError,
+    );
+  });
+
+  test('round-trips a facility conversion followed by a fresh player-sale round', () => {
+    const initial = createCareer(createLaunchCareerSetup(446));
+    const facilityUltimatum = createBoardFacilityUltimatum(initial);
+    const facilityResolution = boardFacilityConversionAtDeadline(
+      initial,
+      facilityUltimatum,
+    );
+    const converted = applyBoardFacilityConversionConsequences(
+      initial,
+      facilityResolution,
+    );
+    const saleUltimatum = createBoardUltimatum(converted);
+    if (saleUltimatum === undefined) {
+      throw new Error('the codec test career has too few sale candidates');
+    }
+    const state = {
+      ...converted,
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        facilityConversionUsed: true,
+        latestBoardResolution: facilityResolution,
+        boardUltimatum: {
+          ...saleUltimatum,
+          waitingForFacilityHomeGate: true,
+        },
+      },
+    };
+
+    expect(parseStoredGameState(serializeGameState(state))).toEqual(state);
+
+    const invalidFacilityRound = {
+      ...state,
+      financialSafety: {
+        ...state.financialSafety,
+        boardUltimatum: {
+          ...facilityUltimatum,
+          candidates: saleUltimatum.candidates,
+        },
+      },
+    };
+    expect(() => serializeGameState(invalidFacilityRound)).toThrow(
+      InvalidGameStateError,
+    );
+
+    const invalidProtectedRemoval = {
+      ...state,
+      financialSafety: {
+        ...state.financialSafety,
+        latestBoardResolution: {
+          ...facilityResolution,
+          removedFacilityId: 'facility-protected',
+          removedFacilityType: 'training-pitch' as const,
+        },
+      },
+    };
+    expect(() => serializeGameState(invalidProtectedRemoval)).toThrow(
+      InvalidGameStateError,
+    );
+
+    const invalidSecondFacilityRound = {
+      ...state,
+      financialSafety: {
+        ...state.financialSafety,
+        boardUltimatum: facilityUltimatum,
+      },
+    };
+    expect(() => serializeGameState(invalidSecondFacilityRound)).toThrow(
+      InvalidGameStateError,
     );
   });
 

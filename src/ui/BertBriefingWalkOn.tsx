@@ -54,10 +54,14 @@ export interface BertBriefingWalkOnProps {
     /** Omitted when the beat is plain talk rather than a headlined moment. */
     readonly title?: string;
     readonly body: string | readonly string[];
+    /** Keeps one-off copy attached to the screen element it explains. */
+    readonly focus?: AssistantGuideFocus;
   };
   moneyAnchor?: TutorialAnchorLayout | null;
   /** The Board Loan card, left lit while Bert explains the one rescue. */
   loanAnchor?: TutorialAnchorLayout | null;
+  /** The discovered facility-pair card, left lit while Bert explains it. */
+  facilityAdjacencyAnchor?: TutorialAnchorLayout | null;
   navigationAnchor?: TutorialAnchorLayout | null;
   /** The League sub-tab the beat is about, so the scrim lifts off it. */
   subTabAnchor?: TutorialAnchorLayout | null;
@@ -89,6 +93,7 @@ export function BertBriefingWalkOn({
   customMessage,
   moneyAnchor,
   loanAnchor,
+  facilityAdjacencyAnchor,
   navigationAnchor,
   subTabAnchor,
   reduceMotion = false,
@@ -109,7 +114,7 @@ export function BertBriefingWalkOn({
             : customMessage.body
           ).map((text, pageIndex) => ({
             text,
-            focus: 'assistant' as const,
+            focus: customMessage.focus ?? ('assistant' as const),
             kind: 'body' as const,
             pageIndex,
           })),
@@ -121,6 +126,16 @@ export function BertBriefingWalkOn({
   useEffect(() => {
     onFocusChange?.(focus);
   }, [focus, onFocusChange]);
+
+  // A one-line custom lesson can disappear because its milestone completes,
+  // not because another beat replaces it. Clear its focus on every unmount so
+  // the screen underneath cannot stay in tutorial mode after Bert has left.
+  useEffect(
+    () => () => {
+      onFocusChange?.(undefined);
+    },
+    [onFocusChange],
+  );
 
   // He ticks his way through each bubble for as long as its copy takes to say,
   // and stops the moment the player taps on — a tick still running under the
@@ -142,14 +157,16 @@ export function BertBriefingWalkOn({
       ? moneyAnchor
       : focus === 'emergency-loan'
         ? loanAnchor
-        : focus === 'navigation'
-          ? navigationAnchor
-          : // The board beats point at a sub-tab rather than a chip or the rail, and
-            // a tab talked about under the scrim reads as one he is not talking
-            // about.
-            focus === 'division-leaders' || focus === 'national-cup'
-            ? subTabAnchor
-            : null;
+        : focus === 'facility-adjacency'
+          ? facilityAdjacencyAnchor
+          : focus === 'navigation'
+            ? navigationAnchor
+            : // The board beats point at a sub-tab rather than a chip or the rail, and
+              // a tab talked about under the scrim reads as one he is not talking
+              // about.
+              focus === 'division-leaders' || focus === 'national-cup'
+              ? subTabAnchor
+              : null;
   const moneyCuePosition =
     focus === 'money' && moneyAnchor
       ? tutorialCuePosition(moneyAnchor, viewportWidth)

@@ -8,6 +8,10 @@ import { buildTrainingGround } from '../../game/squad';
 import { buildCareerFacility } from '../../game/management';
 import { hireCareerCoach } from '../../game/market-career';
 import {
+  createBoardFacilityUltimatum,
+  createBoardUltimatum,
+} from '../../game/board-ultimatum';
+import {
   declineYouthIntakeOffers,
   reconcileStoryYouthIntake,
   signYouthIntakeOffer,
@@ -933,6 +937,44 @@ describe('assistant guide application flow', () => {
         guideSequenceId: 'division-leaders',
         destination: 'league-leaders',
       }),
+    );
+  });
+
+  test('uses separate Bert guides for the facility and player-sale rounds', () => {
+    const base = createCareer(createLaunchCareerSetup(552));
+    const facilityRound: GameState = {
+      ...base,
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: createBoardFacilityUltimatum(base),
+      },
+    };
+    const saleUltimatum = createBoardUltimatum(base);
+    if (saleUltimatum === undefined) {
+      throw new Error('the guide test career has too few sale candidates');
+    }
+    const saleRound: GameState = {
+      ...base,
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        facilityConversionUsed: true,
+        boardUltimatum: saleUltimatum,
+      },
+    };
+
+    expect(dueAssistantInboxGuideSequences(facilityRound)).toContain(
+      'board-ultimatum',
+    );
+    expect(dueAssistantInboxGuideSequences(facilityRound)).not.toContain(
+      'board-protection',
+    );
+    expect(dueAssistantInboxGuideSequences(saleRound)).toContain(
+      'board-protection',
+    );
+    expect(dueAssistantInboxGuideSequences(saleRound)).not.toContain(
+      'board-ultimatum',
     );
   });
 });

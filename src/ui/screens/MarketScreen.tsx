@@ -490,37 +490,66 @@ interface RegistrationDeskProps {
 
 function RegistrationDesk({ viewModel, flush = false }: RegistrationDeskProps) {
   const t = useCopy();
+  const closed = !viewModel.window.open;
+  const countdownLabel = t('market.openInWeeks', {
+    n: viewModel.window.weeksUntilOpen,
+    count: viewModel.window.weeksUntilOpen,
+  });
   return (
-    <PaperPanel
-      kicker={t('market.registrationDesk')}
-      title={t('market.buildTheNextGreat')}
-      stamp={
-        viewModel.window.open
-          ? t('market.windowOpenStamp')
-          : t('market.windowShutStamp')
-      }
-      className={flush ? undefined : 'mt-5'}
-    >
-      <View className="flex-row gap-2">
-        <Metric
-          label={t('market.cash')}
-          value={formatCurrency(t, viewModel.cash)}
-        />
-        <Metric label={t('market.level')} value={viewModel.divisionLabel} />
-        <Metric
-          label={t('market.window')}
-          value={
-            viewModel.window.open
-              ? t('market.windowOpenValue')
-              : t('market.windowClosedValue')
+    <View className={flush ? undefined : 'mt-5'}>
+      <PaperPanel
+        kicker={t('market.registrationDesk')}
+        title={t('market.buildTheNextGreat')}
+        stamp={
+          viewModel.window.open
+            ? t('market.windowOpenStamp')
+            : t('market.windowShutStamp')
+        }
+        tone={closed ? 'muted' : 'default'}
+      >
+        <View className="flex-row gap-2">
+          <Metric
+            label={t('market.cash')}
+            value={formatCurrency(t, viewModel.cash)}
+            muted={closed}
+          />
+          <Metric
+            label={t('market.level')}
+            value={viewModel.divisionLabel}
+            muted={closed}
+          />
+          <Metric
+            label={t('market.window')}
+            value={
+              viewModel.window.open
+                ? t('market.windowOpenValue')
+                : t('market.windowClosedValue')
+            }
+            tone={viewModel.window.open ? 'positive' : 'normal'}
+            muted={closed}
+          />
+        </View>
+        <Text
+          className={
+            closed
+              ? 'mt-3 text-sm leading-5 text-grey-dark'
+              : 'mt-3 text-sm leading-5 text-ink/60'
           }
-          tone={viewModel.window.open ? 'positive' : 'negative'}
-        />
-      </View>
-      <Text className="mt-3 text-sm leading-5 text-ink/60">
-        {viewModel.window.detail}
-      </Text>
-    </PaperPanel>
+        >
+          {viewModel.window.detail}
+        </Text>
+      </PaperPanel>
+      {closed ? (
+        <View className="mt-2">
+          <ActionButton
+            label={countdownLabel}
+            accessibilityLabel={countdownLabel}
+            disabled
+            onPress={() => undefined}
+          />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
