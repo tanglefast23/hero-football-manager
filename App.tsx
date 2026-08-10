@@ -528,6 +528,8 @@ function GameApp() {
     useState<TutorialAnchorLayout | null>(null);
   const [loanGuideAnchor, setLoanGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
+  const [facilityAdjacencyGuideAnchor, setFacilityAdjacencyGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
   const [coachOverlay, setCoachOverlay] = useState<{
@@ -3104,6 +3106,9 @@ function GameApp() {
             }
             guideFocus={activeGuideFocus ?? visibleConciergeFocus ?? undefined}
             onLoanGuideAnchorChange={setLoanGuideAnchor}
+            onFacilityAdjacencyGuideAnchorChange={
+              setFacilityAdjacencyGuideAnchor
+            }
             reduceMotion={reduceMotion}
             focusSponsorSummaryToken={sponsorSummaryFocusToken}
           />
@@ -3666,6 +3671,7 @@ function GameApp() {
                   boardConversionBriefing !== undefined
                     ? {
                         ...boardConversionBriefing,
+                        focus: 'board-protection',
                       }
                     : undefined
                 }
@@ -3691,12 +3697,14 @@ function GameApp() {
                   body: facilityComboReveal.discoveryCopy,
                   focus: 'facility-adjacency',
                 }}
+                facilityAdjacencyAnchor={facilityAdjacencyGuideAnchor}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
                 onFocusChange={setActiveGuideFocus}
-                onDone={() =>
-                  store.completeGuideMilestone(facilityComboReveal.milestone)
-                }
+                onDone={() => {
+                  setActiveGuideFocus(undefined);
+                  store.completeGuideMilestone(facilityComboReveal.milestone);
+                }}
               />
             ) : guideOverlayVisible && transferWindowLessonVisible ? (
               <BertBriefingWalkOn

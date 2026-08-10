@@ -184,6 +184,9 @@ export interface ClubFinancesScreenProps {
   guideTrainingGround?: boolean;
   guideFocus?: AssistantGuideFocus;
   onLoanGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
+  onFacilityAdjacencyGuideAnchorChange?: (
+    anchor: TutorialAnchorLayout | null,
+  ) => void;
   reduceMotion?: boolean;
   /** Bumped after the signing modal is gone so the replacement desk receives focus. */
   focusSponsorSummaryToken?: number;
@@ -209,6 +212,7 @@ export function ClubFinancesScreen({
   guideTrainingGround = false,
   guideFocus,
   onLoanGuideAnchorChange,
+  onFacilityAdjacencyGuideAnchorChange,
   reduceMotion = false,
   focusSponsorSummaryToken,
 }: ClubFinancesScreenProps) {
@@ -235,6 +239,13 @@ export function ClubFinancesScreen({
     anchorRef: loanGuideAnchorRef,
     scheduleMeasurement: scheduleLoanGuideAnchorMeasurement,
   } = useGuideAnchor(guideFocus === 'emergency-loan', onLoanGuideAnchorChange);
+  const {
+    anchorRef: facilityAdjacencyGuideAnchorRef,
+    scheduleMeasurement: scheduleFacilityAdjacencyGuideAnchorMeasurement,
+  } = useGuideAnchor(
+    guideFocus === 'facility-adjacency',
+    onFacilityAdjacencyGuideAnchorChange,
+  );
   const facilityGuideScrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrolledPhaseRef = useRef<GuidedFirstFacilityPhase | null>(
     null,
@@ -287,8 +298,7 @@ export function ClubFinancesScreen({
   const guideGrounds =
     guideFocus === 'coaching-office' ||
     guideFocus === 'facility-grid' ||
-    guideFocus === 'facility-upgrade' ||
-    guideFocus === 'facility-adjacency';
+    guideFocus === 'facility-upgrade';
   const guidedFirstFacility = guideFocus === 'facility-grid';
   const guidedFacilityPhase = guidedFirstFacilityPhase(selectedBuildType);
   const activeFootprint = relocatingBuilding
@@ -593,6 +603,27 @@ export function ClubFinancesScreen({
   );
 
   useEffect(() => {
+    if (guideFocus !== 'facility-adjacency') return;
+    setSelectedBuildingId(null);
+    setSelectedBuildType(null);
+    if (facilityGuideScrollFrameRef.current !== null) {
+      cancelAnimationFrame(facilityGuideScrollFrameRef.current);
+    }
+    facilityGuideScrollFrameRef.current = requestAnimationFrame(() => {
+      facilityGuideScrollFrameRef.current = null;
+      scrollToTarget(
+        scrollRef,
+        scrollViewportRef,
+        facilityAdjacencyGuideAnchorRef,
+        latestScrollOffsetRef.current,
+        12,
+        !reduceMotion,
+      );
+      focusGuideTarget(facilityAdjacencyGuideAnchorRef.current);
+    });
+  }, [guideFocus, reduceMotion]);
+
+  useEffect(() => {
     if (!guideGrounds) return;
     if (guideFocus === 'coaching-office') {
       setSelectedBuildingId(null);
@@ -608,25 +639,6 @@ export function ClubFinancesScreen({
         firstGuidedFacilityUpgradeId(facilities.buildings) ?? null,
       );
       setSelectedBuildType(null);
-    } else if (guideFocus === 'facility-adjacency') {
-      setSelectedBuildingId(null);
-      setSelectedBuildType(null);
-      if (facilityGuideScrollFrameRef.current !== null) {
-        cancelAnimationFrame(facilityGuideScrollFrameRef.current);
-      }
-      facilityGuideScrollFrameRef.current = requestAnimationFrame(() => {
-        facilityGuideScrollFrameRef.current = null;
-        scrollToTarget(
-          scrollRef,
-          scrollViewportRef,
-          facilityGuideGridTargetRef,
-          latestScrollOffsetRef.current,
-          12,
-          !reduceMotion,
-        );
-        focusGuideTarget(facilityGuideGridTargetRef.current);
-      });
-      return;
     }
     scrollToTarget(
       scrollRef,
@@ -983,7 +995,13 @@ export function ClubFinancesScreen({
     {
       key: 'facility-pair-bonuses',
       weight: 3 + 3 * viewModel.facilities.discoveredAdjacencies.length,
-      node: <FacilityPairBonusesSection facilities={viewModel.facilities} />,
+      node: (
+        <FacilityPairBonusesSection
+          facilities={viewModel.facilities}
+          guideAnchorRef={facilityAdjacencyGuideAnchorRef}
+          onGuideAnchorLayout={scheduleFacilityAdjacencyGuideAnchorMeasurement}
+        />
+      ),
     },
     ...(viewModel.facilities.buildings.length === 0
       ? []
@@ -1030,6 +1048,9 @@ export function ClubFinancesScreen({
           latestScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
           if (guideFocus === 'emergency-loan') {
             scheduleLoanGuideAnchorMeasurement();
+          }
+          if (guideFocus === 'facility-adjacency') {
+            scheduleFacilityAdjacencyGuideAnchorMeasurement();
           }
         }}
         scrollEventThrottle={16}
@@ -3411,12 +3432,20 @@ function BuildMenuSection({
  */
 function FacilityPairBonusesSection({
   facilities,
+  guideAnchorRef,
+  onGuideAnchorLayout,
 }: {
   readonly facilities: ClubFacilityGridViewModel;
+  readonly guideAnchorRef: RefObject<View | null>;
+  readonly onGuideAnchorLayout: () => void;
 }) {
   const t = useCopy();
   return (
-    <View>
+    <View
+      ref={guideAnchorRef}
+      collapsable={false}
+      onLayout={onGuideAnchorLayout}
+    >
       <SectionLabel
         eyebrow={t('clubFinances.knownCombo')}
         title={t('clubFinances.facilityPairBonuses')}

@@ -956,7 +956,7 @@
     "fixtureMatchDay.condition.belowPeak": "Below peak",
     "fixtureMatchDay.condition.exhausted": "Exhausted",
     "fixtureMatchDay.condition.fatigued": "Fatigued",
-    "fixtureMatchDay.conditionWarning": "Boss, {player} is below peak. The lower a player's COND stat, they more tired they start the game.",
+    "fixtureMatchDay.conditionWarning": "Boss, {player} is below peak. The lower a player's COND, the more tired they start the game.",
     "fixtureMatchDay.elevenRegularPlayersNo": "Eleven regular players. No powers. Remember how this feels.",
     "fixtureMatchDay.gkOnly": "GK only",
     "fixtureMatchDay.heroCupRound": "Hero Cup · {round}",

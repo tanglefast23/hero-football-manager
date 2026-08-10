@@ -1008,6 +1008,19 @@ describe('career market integration', () => {
     ).toThrow('expired with their transfer window');
   });
 
+  test('scales head coaches from 300 and assistants from 150 per level', () => {
+    expect(COACH_WAGE_PER_LEVEL).toBe(300);
+    for (let level = 1; level <= 5; level += 1) {
+      const headWeeklyWage = COACH_WAGE_PER_LEVEL * level;
+      expect(
+        coachWeeklyWageForRole({ weeklyWage: headWeeklyWage }, 'HEAD'),
+      ).toBe(300 * level);
+      expect(
+        coachWeeklyWageForRole({ weeklyWage: headWeeklyWage }, 'ASSISTANT'),
+      ).toBe(150 * level);
+    }
+  });
+
   test('hires one deterministic preseason coach candidate', () => {
     const state = createCareer(createLaunchCareerSetup(81));
     const market = createCareerMarketState(state);

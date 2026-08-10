@@ -29,20 +29,51 @@ describe('facility combo lesson flow', () => {
     expect(overlay).toContainSource('sequenceId="facility-adjacency"');
     expect(overlay).toContainSource("focus: 'facility-adjacency'");
     expect(overlay).toContainSource('onFocusChange={setActiveGuideFocus}');
+    expect(overlay).toContainSource(
+      'facilityAdjacencyAnchor={facilityAdjacencyGuideAnchor}',
+    );
+    expect(overlay).toContainSource('setActiveGuideFocus(undefined)');
     expect(walkOn).toContainSource(
       "focus: customMessage.focus ?? ('assistant' as const)",
     );
+    expect(walkOn).toMatchSource(
+      /focus === 'facility-adjacency'\s*\n\s*\? facilityAdjacencyAnchor/,
+    );
+    expect(walkOn).toContainSource('onFocusChange?.(undefined)');
   });
 
-  it('scrolls the viewport to the facility grid', () => {
+  it('scrolls to and measures the facility-pair bonuses card', () => {
     const focus = finances.slice(
       finances.indexOf("guideFocus === 'facility-adjacency'"),
       finances.indexOf('const slots = viewModel.sponsorship?.slots'),
     );
-    expect(focus).toContainSource('facilityGuideGridTargetRef');
+    expect(focus).toContainSource('facilityAdjacencyGuideAnchorRef');
     expect(focus).toContainSource('scrollToTarget(');
     expect(focus).toContainSource(
-      'focusGuideTarget(facilityGuideGridTargetRef.current)',
+      'focusGuideTarget(facilityAdjacencyGuideAnchorRef.current)',
     );
+    expect(finances).toContainSource('ref={guideAnchorRef}');
+    expect(finances).toContainSource('onLayout={onGuideAnchorLayout}');
+    expect(finances).toContainSource(
+      'scheduleFacilityAdjacencyGuideAnchorMeasurement();',
+    );
+  });
+
+  it('does not leave the grounds tutorial active or clear later build choices', () => {
+    const groundsFocus = finances.slice(
+      finances.indexOf('const guideGrounds ='),
+      finances.indexOf('const guidedFirstFacility ='),
+    );
+    expect(groundsFocus).not.toContain('facility-adjacency');
+
+    const comboFocus = finances.slice(
+      finances.indexOf("if (guideFocus !== 'facility-adjacency') return;"),
+      finances.indexOf('if (!guideGrounds) return;'),
+    );
+    expect(comboFocus).toContainSource('setSelectedBuildType(null)');
+    expect(comboFocus).toContainSource(
+      'focusGuideTarget(facilityAdjacencyGuideAnchorRef.current)',
+    );
+    expect(comboFocus).not.toContain('facilities.buildings');
   });
 });

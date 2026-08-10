@@ -20,6 +20,12 @@ import { countUpValue } from '../count-up';
 import { PixelText } from '../components/PixelText';
 import { LedgerRowIcons } from '../components/LedgerRowIcons';
 import { useCopy } from '../../i18n';
+import {
+  playLedgerSpin,
+  stopLedgerSpin,
+} from '../../render/financial-report-sfx';
+
+const WEEKLY_MONEY_COUNT_MS = 1_050;
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
@@ -51,6 +57,29 @@ export function WeeklyReviewScreen({
     const timeout = setTimeout(() => setBalanceAnimationsComplete(true), 2800);
     return () => clearTimeout(timeout);
   }, [balanceAnimationsStarted, balanceComplete]);
+
+  // The three money figures move together, so this screen owns one shared
+  // slot-spin cue. It stops with the longest count and also stops if the player
+  // leaves early. A no-change week and reduced motion remain silent.
+  useEffect(() => {
+    if (
+      !balanceAnimationsStarted ||
+      balanceComplete ||
+      viewModel.cashBefore === viewModel.cashAfter
+    )
+      return undefined;
+    playLedgerSpin();
+    const timeout = setTimeout(stopLedgerSpin, WEEKLY_MONEY_COUNT_MS);
+    return () => {
+      clearTimeout(timeout);
+      stopLedgerSpin();
+    };
+  }, [
+    balanceAnimationsStarted,
+    balanceComplete,
+    viewModel.cashAfter,
+    viewModel.cashBefore,
+  ]);
 
   const moneyCard = (
     <WeeklyBalanceCard
@@ -327,7 +356,7 @@ function AnimatedBalanceAmount({
     to,
     started,
     complete,
-    1050,
+    WEEKLY_MONEY_COUNT_MS,
   );
   const movementClass =
     to < from ? 'text-stamp' : to > from ? 'text-pitch-ink' : 'text-ink';

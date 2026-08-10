@@ -2065,7 +2065,7 @@
     "fixtureMatchDay.condition.belowPeak": "Bajo de forma",
     "fixtureMatchDay.condition.exhausted": "Agotado",
     "fixtureMatchDay.condition.fatigued": "Cansado",
-    "fixtureMatchDay.conditionWarning": "Jefe, {player} está bajo de forma. Cuanto más bajo sea el atributo COND de un jugador, más cansado empieza el partido.",
+    "fixtureMatchDay.conditionWarning": "Jefe, {player} no está a tope. Cuanto menor sea su COND, más cansado empieza el partido.",
     "fixtureMatchDay.elevenRegularPlayersNo": "Once jugadores normales. Sin poderes. Recuerda esta sensación.",
     "fixtureMatchDay.gkOnly": "Solo GK",
     "fixtureMatchDay.heroCupRound": "Copa · {round}",

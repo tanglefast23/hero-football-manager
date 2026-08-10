@@ -52,6 +52,12 @@ describe('countUpValue', () => {
     );
 
     expect(review).toContain('countUpValue(to - from, progress)');
+    expect(review.match(/playLedgerSpin\(\)/g) ?? []).toHaveLength(1);
+    expect(review).toContain(
+      'setTimeout(stopLedgerSpin, WEEKLY_MONEY_COUNT_MS)',
+    );
+    expect(review).toContain('viewModel.cashBefore === viewModel.cashAfter');
+    expect(review).toContain('stopLedgerSpin();');
     // Development left the weekly review: gains animate in the drill scene now.
     expect(review).not.toContain('PlayerDevelopmentSpotlight');
     // The popup delegates the result beat to the sprite scene, then the SUPER

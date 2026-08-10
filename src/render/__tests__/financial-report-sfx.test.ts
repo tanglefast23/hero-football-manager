@@ -200,7 +200,7 @@ describe('financial report audio controller', () => {
     for (const player of mockPlayers) {
       expect(player.muted).toBe(false);
     }
-    expect(spin().volume).toBeCloseTo(0.6 * 0.8);
+    expect(spin().volume).toBeCloseTo(0.6 * 10 ** (2 / 20) * 0.8);
   });
 
   it('recovers a dead player with one bounded recreate-and-retry', async () => {
