@@ -70,6 +70,10 @@
         flex: 1;
         justify-content: center;
       }
+      .startup-indicator {
+        animation: startup-reveal 1ms steps(1, end) 500ms forwards;
+        opacity: 0;
+      }
       .startup-mark {
         border: 4px solid #f4ead0;
         box-shadow: 6px 6px 0 #17131e;
@@ -126,6 +130,11 @@
           opacity: 0.28;
         }
       }
+      @keyframes startup-reveal {
+        to {
+          opacity: 1;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         .startup-progress > span {
           animation: none;
@@ -146,7 +155,7 @@
         aria-label="Hero Football Manager"
         aria-busy="true"
       >
-        <div aria-hidden="true">
+        <div class="startup-indicator" aria-hidden="true">
           <div class="startup-mark"></div>
           <div class="startup-progress">
             <span></span><span></span><span></span>

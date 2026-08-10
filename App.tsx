@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 import {
+  Animated,
   AppState,
   Linking,
   LogBox,
@@ -3839,21 +3840,80 @@ function GameApp() {
 
 function LoadingScreen() {
   const t = useCopy();
+  const reduceMotion = useReducedMotion(false);
+  const [showIndicator, setShowIndicator] = useState(false);
+  const ballTravel = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const revealTimer = setTimeout(
+      () => setShowIndicator(true),
+      LOADING_INDICATOR_DELAY_MS,
+    );
+    return () => clearTimeout(revealTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!showIndicator || reduceMotion) return undefined;
+    ballTravel.setValue(0);
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ballTravel, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ballTravel, {
+          toValue: 0,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [ballTravel, reduceMotion, showIndicator]);
+
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-ink">
-      <View
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel={t('app.a11y.openingClubFiles')}
-        className="-rotate-2 border-2 border-signal px-5 py-4"
-      >
-        <Text className="font-pixel text-lg uppercase tracking-widest text-signal">
-          {t('app.openingClubFiles')}
-        </Text>
-      </View>
+      {showIndicator ? (
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('app.a11y.openingClubFiles')}
+          className="items-center"
+        >
+          <View className="relative h-[72px] w-[120px] overflow-hidden border-4 border-paper bg-pitch-dark">
+            <View className="absolute left-[56px] top-0 h-full w-1 bg-paper" />
+            <View className="absolute left-[42px] top-[18px] h-7 w-7 rounded-full border-[3px] border-paper" />
+            <Animated.View
+              className="absolute left-3 top-[26px] h-4 w-4 items-center justify-center rounded-full border-2 border-ink bg-paper"
+              style={{
+                transform: [
+                  {
+                    translateX: reduceMotion
+                      ? 40
+                      : ballTravel.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 80],
+                        }),
+                  },
+                ],
+              }}
+            >
+              <View className="h-1.5 w-1.5 bg-ink" />
+            </Animated.View>
+          </View>
+          <Text className="mt-5 font-pixel text-lg uppercase tracking-widest text-signal">
+            {t('app.openingClubFiles')}
+          </Text>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
+
+/** Short work stays visually instant. Only a genuine wait earns a loader. */
+const LOADING_INDICATOR_DELAY_MS = 500;
 
 /**
  * Every button here uses a local `pressed` state with a plain-array `style`.

@@ -46,9 +46,7 @@
         {
           "kicker": "The bottom rail",
           "title": "Know your doors",
-          "body": [
-            "Navigate round the facilities here."
-          ],
+          "body": ["Navigate round the facilities here."],
           "focus": "navigation",
           "buttonLabel": "Got it!",
           "navItems": [
@@ -542,7 +540,7 @@
           "kicker": "The very last piggy bank",
           "title": "A bridge, not a lifestyle",
           "body": [
-            "This is the club's only automatic emergency loan. Repayments begin next season. Fan Shops and Stadium Stands make money, and you can build up to three of each. Every other facility is limited to one."
+            "This is the club's only automatic emergency loan. Repayments begin next season."
           ],
           "focus": "emergency-loan",
           "objective": "REVIEW THE LOAN AND WEEKLY COSTS.",

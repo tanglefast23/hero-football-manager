@@ -42,6 +42,18 @@ describe('first landing startup', () => {
     );
   });
 
+  test('waits 500ms before showing the football loading indicator', () => {
+    expect(html).toContain('class="startup-indicator"');
+    expect(html).toContain(
+      'animation: startup-reveal 1ms steps(1, end) 500ms forwards;',
+    );
+    expect(app).toContain('const LOADING_INDICATOR_DELAY_MS = 500;');
+    expect(app).toContain('() => setShowIndicator(true)');
+    expect(app).toContain('LOADING_INDICATOR_DELAY_MS');
+    expect(app).toContain('{showIndicator ? (');
+    expect(app).toContain('outputRange: [0, 80]');
+  });
+
   test('warms native management audio only after a healthy committed title', () => {
     expect(app).toContain("Platform.OS === 'web'");
     expect(app).toContain('bootError !== null');
