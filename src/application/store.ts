@@ -2641,6 +2641,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
           playerId,
           currentCareerDivision(career),
         );
+        const cash = career.clubs.find(
+          (club) => club.id === career.userClubId,
+        )!.cash;
+        assertTransferCashAvailable(
+          cash,
+          nextMarket.transferTalks!.transferQuote.fee,
+        );
         const next = { ...career, market: nextMarket };
         set({ career: next, error: null });
         queueCareerSave(get, set, next);
@@ -3590,6 +3597,10 @@ export function transferTransactionErrorCopy(error: unknown): string {
   return raw === 'transfer fee exceeds current cash'
     ? t('market.notEnoughCash')
     : raw;
+}
+
+export function assertTransferCashAvailable(cash: number, fee: number): void {
+  if (cash < fee) throw new Error('transfer fee exceeds current cash');
 }
 
 function guardedTransfer(

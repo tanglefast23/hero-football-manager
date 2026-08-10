@@ -43,7 +43,7 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     );
 
     expect(appSource).toContainSource(
-      'bertBriefingBackgroundProps(bertBriefingVisible)',
+      'bertBriefingBackgroundProps(bertBriefingVisible || scoutDealsGuideVisible)',
     );
     expect(appSource).toContainSource(
       'guideOverlayVisible || store.inboxDutyReminder !== null',

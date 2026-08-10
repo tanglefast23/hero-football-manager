@@ -288,20 +288,6 @@ describe('career market integration', () => {
     expect(talksWithWrongFallback.transferTalks!.transferQuote).toEqual(
       talksWithActualDivision.transferTalks!.transferQuote,
     );
-    const withoutTransferCash = {
-      ...withRosterSpace,
-      clubs: withRosterSpace.clubs.map((club) =>
-        club.id === withRosterSpace.userClubId ? { ...club, cash: 0 } : club,
-      ),
-    };
-    expect(() =>
-      beginCareerTransferTalks(
-        withoutTransferCash,
-        market,
-        target.id,
-        sourceDivision.level,
-      ),
-    ).toThrow('transfer fee exceeds current cash');
     const savedTalks = parseStoredGameState(
       serializeGameState({
         ...withRosterSpace,

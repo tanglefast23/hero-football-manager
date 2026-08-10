@@ -1,4 +1,5 @@
 import {
+  assertTransferCashAvailable,
   SAVE_FAILURE_BLOCK_LIMIT,
   setStoreCopy,
   transferTransactionErrorCopy,
@@ -49,6 +50,9 @@ describe('M1 app store integration', () => {
   });
 
   it('gives an unaffordable transfer tap the requested cash message', () => {
+    expect(() => assertTransferCashAvailable(100, 101)).toThrow(
+      'transfer fee exceeds current cash',
+    );
     expect(
       transferTransactionErrorCopy(
         new Error('transfer fee exceeds current cash'),

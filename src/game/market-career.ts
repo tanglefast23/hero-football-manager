@@ -458,9 +458,6 @@ export function beginCareerTransferTalks(
     week: state.week,
     sellingClubDivision: target.sellingClubDivision,
   });
-  if (userClub(state).cash < quote.fee) {
-    throw new Error('transfer fee exceeds current cash');
-  }
   const weeklyAsk = Math.max(
     1,
     Math.round(player.weeklyWage * (player.power ? 3.5 : 1.2)),
