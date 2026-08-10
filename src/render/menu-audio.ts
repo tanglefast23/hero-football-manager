@@ -80,6 +80,8 @@ const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
 };
 
 const MUSIC_VOLUME = 0.5;
+/** +2 dB for the special-rival introduction, relative to every other menu bed. */
+const RIVAL_MUSIC_VOLUME = MUSIC_VOLUME * 10 ** (2 / 20);
 const LOOP_WATCHDOG_MS = 500;
 const IS_WEB = typeof document !== 'undefined';
 
@@ -110,7 +112,8 @@ function applyMasterVolume(): void {
   const muted = masterVolume === 0;
   for (const [theme, player] of players) {
     try {
-      player.volume = MUSIC_VOLUME * masterVolume;
+      player.volume =
+        (theme === 'rival' ? RIVAL_MUSIC_VOLUME : MUSIC_VOLUME) * masterVolume;
       player.muted = muted;
     } catch (error) {
       warnOnce(`${theme} volume failed`, error);

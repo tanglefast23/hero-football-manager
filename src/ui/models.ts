@@ -539,6 +539,13 @@ export interface TrainingModifierLabel {
   readonly helps: boolean;
 }
 
+/** One exact fractional-growth ledger shown on the drill confirmation card. */
+export interface TrainingFractionBankLabel {
+  readonly label: string;
+  /** Integer hundredths in the inclusive range 0-99. */
+  readonly hundredths: number;
+}
+
 export interface TrainingSlotStatOption {
   pathId: string;
   /** Display label for the stat, e.g. "Defense". */
@@ -566,6 +573,8 @@ export interface TrainingSlotStatOption {
    * handed rather than knowing which bonuses exist.
    */
   trainingModifiers: readonly TrainingModifierLabel[];
+  /** Decimal progress saved until this ledger reaches one whole stat point. */
+  fractionalBonusBanks: readonly TrainingFractionBankLabel[];
   /** True at the invisible 999 safety ceiling; never shown as a number. */
   atSafetyCeiling: boolean;
   /** False when the TP bank cannot cover this drill right now. */

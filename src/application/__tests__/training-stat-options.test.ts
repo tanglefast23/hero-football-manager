@@ -98,6 +98,7 @@ describe('training stat options', () => {
         { label: 'FWD', helps: true },
         { label: 'All-Rounder', helps: true },
       ],
+      fractionalBonusBanks: [{ label: 'Training bonus bank', hundredths: 97 }],
     });
   });
 });
