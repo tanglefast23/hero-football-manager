@@ -611,16 +611,16 @@
     {
       "id": "board-ultimatum",
       "inbox": {
-        "title": "Urgent: board cash ultimatum",
-        "detail": "Reach the cash target within four weeks or the board will force a sale."
+        "title": "Urgent: facility ultimatum",
+        "detail": "Reach the cash target within four weeks or the board will replace a non-essential building."
       },
       "destination": "club-finances",
       "pages": [
         {
           "kicker": "The red folder",
-          "title": "Four weeks to recover",
+          "title": "The buildings go first",
           "body": [
-            "Reach the board's cash target within four weeks or it will sell one visible candidate at a discount."
+            "Get the club in the green within four weeks or the board tears down one non-essential building for a Stadium Stand or Fan Shops. The Training Pitch and Coaching Office are safe."
           ],
           "focus": "board-ultimatum",
           "objective": "REVIEW THE CASH TARGET.",
@@ -631,16 +631,16 @@
     {
       "id": "board-protection",
       "inbox": {
-        "title": "Protect one player",
-        "detail": "Mark one visible board candidate as untouchable before the deadline."
+        "title": "Final warning: protect one player",
+        "detail": "The facility round is over. Reach the target in four weeks or the board sells one visible candidate."
       },
       "destination": "club-finances",
       "pages": [
         {
           "kicker": "Your one shield",
-          "title": "Choose who cannot be sold",
+          "title": "Four final weeks",
           "body": [
-            "Protect one player from the board's visible candidate list. You can change the choice while the ultimatum is active."
+            "The facility round is over. Home matches get four more weeks to put the club in the green. If it stays red, the board sells one visible candidate at a discount. Protect one player."
           ],
           "focus": "board-protection",
           "objective": "PROTECT ONE PLAYER.",

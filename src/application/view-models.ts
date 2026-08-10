@@ -32,6 +32,7 @@ import {
   activeCareerMatchday,
   activeFacilityAdjacencies,
   assistantTeaches,
+  boardUltimatumConsequence,
   attributeAffectsPlay,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
@@ -1450,7 +1451,7 @@ function facilityGridViewModel(
             }),
       };
     }),
-    catalog: Object.values(FACILITY_CATALOG)
+    catalog: FACILITY_BUILD_MENU_ORDER.map((type) => FACILITY_CATALOG[type])
       .filter((definition) => definition.available)
       .map((definition) => {
         const builtCount = grid.buildings.filter(
@@ -1533,6 +1534,22 @@ function facilityGridViewModel(
   };
 }
 
+/** Card order is a presentation choice; the simulation catalog keeps its own stable order. */
+const FACILITY_BUILD_MENU_ORDER = [
+  'training-pitch',
+  'coaching-office',
+  'fan-shop',
+  'stadium-stand',
+  'keeper-court',
+  'medical-bay',
+  'dorm',
+  'scout-office',
+  'gym',
+  'youth-field',
+  'tech-center',
+  'shooting-range',
+] as const satisfies readonly FacilityType[];
+
 /** Every line states a real effect site in src/game — no facility says "nothing". */
 function facilityEffectLabel(
   type: FacilityType,
@@ -1573,8 +1590,7 @@ function facilityEffectLabel(
   if (type === 'youth-field') {
     return t('clubFinances.facilityYouthEffect', { amount: level * 5 });
   }
-  if (type === 'fan-shop')
-    return t('clubFinances.facilityShopEffect', { level });
+  if (type === 'fan-shop') return t('clubFinances.facilityShopEffect');
   if (type === 'stadium-stand')
     return t('clubFinances.facilityStandEffect', { percent: level * 50 });
   throw new Error(`missing facility effect copy for ${type}`);
@@ -2589,9 +2605,13 @@ export function homeProductAlerts(
               n: boardUltimatum.weeksRemaining,
               count: boardUltimatum.weeksRemaining,
             }),
-            detail: t('clubHome.boardDeadlineDetail', {
-              target: boardTargetLabel(boardUltimatum.targetCash, t),
-            }),
+            detail: t(
+              boardUltimatumConsequence(boardUltimatum) ===
+                'FACILITY_CONVERSION'
+                ? 'clubHome.boardFacilityDeadlineDetail'
+                : 'clubHome.boardDeadlineDetail',
+              { target: boardTargetLabel(boardUltimatum.targetCash, t) },
+            ),
             tone: 'urgent' as const,
           },
         ]),
@@ -2603,19 +2623,27 @@ export function homeProductAlerts(
             title:
               latestBoardResolution.kind === 'TARGET_MET'
                 ? t('clubHome.boardTargetMetTitle')
-                : t('clubHome.boardSaleCompletedTitle'),
+                : latestBoardResolution.kind === 'FACILITY_CONVERSION'
+                  ? t(
+                      latestBoardResolution.addedFacilities.length === 0
+                        ? 'clubHome.facilityPlanBlocked'
+                        : 'clubHome.facilityPlanComplete',
+                    )
+                  : t('clubHome.boardSaleCompletedTitle'),
             detail:
               latestBoardResolution.kind === 'TARGET_MET'
                 ? t('clubHome.boardTargetMetDetail')
-                : t('clubHome.boardSaleCompletedDetail', {
-                    player:
-                      state.players.find(
-                        (player) =>
-                          player.id === latestBoardResolution.playerId,
-                      )?.name ?? t('clubHome.aPlayer'),
-                    club: clubName(state, latestBoardResolution.buyerClubId),
-                    fee: formatMoneyForCopy(t, latestBoardResolution.fee),
-                  }),
+                : latestBoardResolution.kind === 'FACILITY_CONVERSION'
+                  ? boardFacilityConversionSummary(latestBoardResolution, t)
+                  : t('clubHome.boardSaleCompletedDetail', {
+                      player:
+                        state.players.find(
+                          (player) =>
+                            player.id === latestBoardResolution.playerId,
+                        )?.name ?? t('clubHome.aPlayer'),
+                      club: clubName(state, latestBoardResolution.buyerClubId),
+                      fee: formatMoneyForCopy(t, latestBoardResolution.fee),
+                    }),
             tone:
               latestBoardResolution.kind === 'TARGET_MET'
                 ? ('info' as const)
@@ -2865,7 +2893,9 @@ export function boardFinanceBriefing(
       difficultyRules(state).negativeWeeksBeforeIntervention - weeks;
     const consequence =
       safety?.emergencyLoanUsed === true
-        ? t('clubHome.briefingConsequenceSells')
+        ? safety.facilityConversionUsed === true
+          ? t('clubHome.briefingConsequenceSells')
+          : t('clubHome.briefingConsequenceConverts')
         : t('clubHome.briefingConsequenceLoan');
     return {
       title: t('clubHome.financialWarningTitle'),
@@ -2918,6 +2948,76 @@ export function boardFinanceBriefing(
     };
   }
   return undefined;
+}
+
+export interface BoardFacilityConversionBriefingViewModel {
+  readonly title: string;
+  readonly body: readonly string[];
+}
+
+/**
+ * Bert's handoff from the one facility round to the final player-sale round.
+ * The first line is exact saved truth; the second explains why four home-match
+ * weeks remain before the board touches the squad.
+ */
+export function boardFacilityConversionBriefing(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): BoardFacilityConversionBriefingViewModel | undefined {
+  const resolution = state.financialSafety?.latestBoardResolution;
+  const ultimatum = state.financialSafety?.boardUltimatum;
+  if (
+    resolution?.kind !== 'FACILITY_CONVERSION' ||
+    ultimatum === undefined ||
+    boardUltimatumConsequence(ultimatum) !== 'FORCED_SALE'
+  ) {
+    return undefined;
+  }
+  return {
+    title:
+      resolution.addedFacilities.length === 0
+        ? t('clubHome.facilityPlanBlocked')
+        : t('clubHome.facilityPlanComplete'),
+    body: [
+      boardFacilityConversionSummary(resolution, t),
+      t('clubHome.facilityPlanPlayerSaleNext', {
+        n: ultimatum.weeksRemaining,
+        count: ultimatum.weeksRemaining,
+      }),
+    ],
+  };
+}
+
+function boardFacilityConversionSummary(
+  resolution: Extract<
+    NonNullable<GameState['financialSafety']>['latestBoardResolution'],
+    { kind: 'FACILITY_CONVERSION' }
+  >,
+  t: CopyFn,
+): string {
+  if (resolution.addedFacilities.length === 0) {
+    if (resolution.failureReason === 'COMMERCIAL_LIMITS_REACHED') {
+      return t('clubHome.facilityPlanLimitsReached');
+    }
+    if (resolution.failureReason === 'NO_REPLACEABLE_BUILDING') {
+      return t('clubHome.facilityPlanNoReplaceableBuilding');
+    }
+    return t('clubHome.facilityPlanNoSpace');
+  }
+  const first = resolution.addedFacilities[0];
+  const added =
+    first.type === 'stadium-stand'
+      ? t('clubHome.boardAddedStadiumStand')
+      : t('clubHome.boardAddedFanShops', {
+          n: resolution.addedFacilities.length,
+          count: resolution.addedFacilities.length,
+        });
+  return resolution.removedFacilityType === undefined
+    ? t('clubHome.facilityPlanAdded', { added })
+    : t('clubHome.facilityPlanReplaced', {
+        removed: facilityName(t, resolution.removedFacilityType),
+        added,
+      });
 }
 
 /**
@@ -3511,6 +3611,7 @@ export function homeViewModel(
       : {
           boardUltimatum: {
             id: boardUltimatum.id,
+            consequence: boardUltimatumConsequence(boardUltimatum),
             weeksRemaining: boardUltimatum.weeksRemaining,
             targetCash: boardUltimatum.targetCash,
             targetLabel: boardTargetLabel(boardUltimatum.targetCash, t),
@@ -3548,74 +3649,91 @@ export function homeViewModel(
                   headline: t('clubHome.cashTargetMetHeadline'),
                   detail: t('clubHome.cashTargetMetDetail'),
                 }
-              : (() => {
-                  const sold = state.players.find(
-                    (player) => player.id === latestBoardResolution.playerId,
-                  );
-                  const replacement = state.players.find(
-                    (player) =>
-                      player.id === latestBoardResolution.replacementPlayerId,
-                  );
-                  const buyerName = clubName(
-                    state,
-                    latestBoardResolution.buyerClubId,
-                  );
-                  // A Week-30 sale is first delivered on the next season's Home
-                  // screen. By then the opponent roster has been regenerated, so the
-                  // sold player can legitimately be absent even though the saved
-                  // verdict is valid. Keep the durable money/outcome facts visible
-                  // and enrich only the player sides that still exist.
-                  const saleDetail =
-                    sold === undefined
-                      ? t('clubHome.forcedSaleUnknownPlayer', {
-                          club: buyerName,
-                          fee: formatMoneyForCopy(t, latestBoardResolution.fee),
-                        })
-                      : t('clubHome.forcedSalePlayer', {
-                          player: sold.name,
-                          club: buyerName,
-                        });
-                  const replacementDetail =
-                    replacement === undefined
-                      ? t('clubHome.forcedSaleVacancyFilled')
-                      : t('clubHome.forcedSaleAcademyPromoted', {
-                          player: replacement.name,
-                        });
-                  return {
-                    kind: 'FORCED_SALE' as const,
-                    headline: t('clubHome.forcedSaleHeadline'),
-                    detail: t('clubHome.forcedSaleDetail', {
-                      sale: saleDetail,
-                      replacement: replacementDetail,
-                    }),
-                    ...(sold === undefined
-                      ? {}
-                      : {
-                          soldPlayer: {
-                            id: sold.id,
-                            name: sold.name,
-                            role: sold.role,
-                            lookId: sold.lookId,
-                            buyerName,
-                            fee: latestBoardResolution.fee,
-                          },
-                        }),
-                    ...(replacement === undefined
-                      ? {}
-                      : {
-                          replacementPlayer: {
-                            id: replacement.id,
-                            name: replacement.name,
-                            role: replacement.role,
-                            lookId: replacement.lookId,
-                            age: replacement.age ?? 17,
-                            weeklyWage: replacement.weeklyWage,
-                          },
-                        }),
-                    fansLost: latestBoardResolution.fansLost,
-                    moraleDelta: latestBoardResolution.moraleDelta,
-                  };
-                })(),
+              : latestBoardResolution.kind === 'FACILITY_CONVERSION'
+                ? {
+                    kind: 'FACILITY_CONVERSION' as const,
+                    headline: t(
+                      latestBoardResolution.addedFacilities.length === 0
+                        ? 'clubHome.facilityPlanBlocked'
+                        : 'clubHome.facilityPlanComplete',
+                    ),
+                    detail:
+                      boardFacilityConversionBriefing(state, t)?.body.join(
+                        ' ',
+                      ) ??
+                      boardFacilityConversionSummary(latestBoardResolution, t),
+                  }
+                : (() => {
+                    const sold = state.players.find(
+                      (player) => player.id === latestBoardResolution.playerId,
+                    );
+                    const replacement = state.players.find(
+                      (player) =>
+                        player.id === latestBoardResolution.replacementPlayerId,
+                    );
+                    const buyerName = clubName(
+                      state,
+                      latestBoardResolution.buyerClubId,
+                    );
+                    // A Week-30 sale is first delivered on the next season's Home
+                    // screen. By then the opponent roster has been regenerated, so the
+                    // sold player can legitimately be absent even though the saved
+                    // verdict is valid. Keep the durable money/outcome facts visible
+                    // and enrich only the player sides that still exist.
+                    const saleDetail =
+                      sold === undefined
+                        ? t('clubHome.forcedSaleUnknownPlayer', {
+                            club: buyerName,
+                            fee: formatMoneyForCopy(
+                              t,
+                              latestBoardResolution.fee,
+                            ),
+                          })
+                        : t('clubHome.forcedSalePlayer', {
+                            player: sold.name,
+                            club: buyerName,
+                          });
+                    const replacementDetail =
+                      replacement === undefined
+                        ? t('clubHome.forcedSaleVacancyFilled')
+                        : t('clubHome.forcedSaleAcademyPromoted', {
+                            player: replacement.name,
+                          });
+                    return {
+                      kind: 'FORCED_SALE' as const,
+                      headline: t('clubHome.forcedSaleHeadline'),
+                      detail: t('clubHome.forcedSaleDetail', {
+                        sale: saleDetail,
+                        replacement: replacementDetail,
+                      }),
+                      ...(sold === undefined
+                        ? {}
+                        : {
+                            soldPlayer: {
+                              id: sold.id,
+                              name: sold.name,
+                              role: sold.role,
+                              lookId: sold.lookId,
+                              buyerName,
+                              fee: latestBoardResolution.fee,
+                            },
+                          }),
+                      ...(replacement === undefined
+                        ? {}
+                        : {
+                            replacementPlayer: {
+                              id: replacement.id,
+                              name: replacement.name,
+                              role: replacement.role,
+                              lookId: replacement.lookId,
+                              age: replacement.age ?? 17,
+                              weeklyWage: replacement.weeklyWage,
+                            },
+                          }),
+                      fansLost: latestBoardResolution.fansLost,
+                      moraleDelta: latestBoardResolution.moraleDelta,
+                    };
+                  })(),
         }),
     table: standings.slice(tableStart, tableStart + 5),
   };

@@ -143,6 +143,7 @@ export interface HomeViewModel {
   notes: readonly ManagerNoteViewModel[];
   boardUltimatum?: {
     id: string;
+    consequence: 'FACILITY_CONVERSION' | 'FORCED_SALE';
     weeksRemaining: number;
     targetCash: number;
     /**
@@ -166,7 +167,7 @@ export interface HomeViewModel {
     }[];
   };
   boardResolution?: {
-    kind: 'TARGET_MET' | 'FORCED_SALE';
+    kind: 'TARGET_MET' | 'FACILITY_CONVERSION' | 'FORCED_SALE';
     headline: string;
     detail: string;
     soldPlayer?: {

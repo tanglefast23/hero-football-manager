@@ -236,6 +236,7 @@ import {
 import {
   DESK_STORY_ALERT_ID,
   awakeningCutsceneViewModel,
+  boardFacilityConversionBriefing,
   boardFinanceBriefing,
   clubLegacyViewModel,
   clubFinancesViewModel,
@@ -1885,6 +1886,10 @@ function GameApp() {
           ...boardFinanceMessage,
           body: boardFinanceMessage.body.slice(boardFinanceMessageStartIndex),
         };
+  const boardConversionBriefing =
+    store.career === null
+      ? undefined
+      : boardFacilityConversionBriefing(store.career, t);
   const facilityErrorBertVisible =
     careerTeaches &&
     store.screen === 'management' &&
@@ -2804,7 +2809,13 @@ function GameApp() {
         setBoardFinanceMessageStartIndex(0);
         setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);
       } else if (alertId === 'board-ultimatum') {
-        store.notify(t('app.boardUltimatumProtectPlayer'));
+        store.notify(
+          t(
+            home.boardUltimatum?.consequence === 'FACILITY_CONVERSION'
+              ? 'app.boardUltimatumFacilityPlan'
+              : 'app.boardUltimatumProtectPlayer',
+          ),
+        );
       } else if (alertId.startsWith('board-resolution')) {
         store.notify(t('app.boardInterventionResult'));
       } else if (alertId.startsWith('retirement-announcement-')) {
@@ -3638,6 +3649,14 @@ function GameApp() {
               <BertBriefingWalkOn
                 content={content.assistantGuide}
                 sequenceId={assistantSequenceId}
+                customMessage={
+                  assistantSequenceId === 'board-protection' &&
+                  boardConversionBriefing !== undefined
+                    ? {
+                        ...boardConversionBriefing,
+                      }
+                    : undefined
+                }
                 moneyAnchor={moneyGuideAnchor}
                 loanAnchor={loanGuideAnchor}
                 navigationAnchor={navigationGuideAnchor}
