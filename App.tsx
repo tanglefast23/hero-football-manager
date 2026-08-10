@@ -74,7 +74,7 @@ import {
   type DeveloperSaveSummary,
   type PreferencesRepository,
 } from './src/persistence';
-import { MatchScreen } from './src/render/MatchScreen';
+import { LazyMatchScreen as MatchScreen } from './src/render/LazyMatchScreen';
 import { isMatchPerformanceLimitActive } from './src/render/match-performance';
 import { QuickResultFaceOff } from './src/render/QuickResultFaceOff';
 import { setMasterVolume } from './src/render/audio';
@@ -3362,7 +3362,7 @@ function GameApp() {
                 reduceMotion={reduceMotion}
                 animated={!screenRequiresHardCut}
               >
-                {screen}
+                <Suspense fallback={<LoadingScreen />}>{screen}</Suspense>
               </ScreenTransition>
               {/* The match week announces itself the moment the desk appears, the
             same way the Financial Report announces a surge. Held back until

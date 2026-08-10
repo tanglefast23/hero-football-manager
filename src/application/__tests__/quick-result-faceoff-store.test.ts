@@ -149,10 +149,12 @@ describe('ephemeral screen state is never inherited across careers', () => {
    *
    * Source-level rather than behavioural, because these paths are async and
    * persistence-bound. The invariant is structural: every reset that nulls
-   * `postMatch` must null the other ephemeral screen fields in the same
-   * object literal.
+   * `postMatch` must null the face-off fields in the same object literal.
+   * Match-day banners normally follow the same rule, except when the manager
+   * closes the financial report: that path must preserve the banner for the
+   * week the settled match just opened.
    */
-  it('pairs every postMatch reset with the face-off and match-day banner', () => {
+  it('pairs every postMatch reset with face-off state and handles the match-day banner', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/application/store.ts'),
       'utf8',
@@ -170,15 +172,21 @@ describe('ephemeral screen state is never inherited across careers', () => {
       // without running into the next one.
       const where = `store.ts:${reset.index + 1}`;
       const block = lines.slice(reset.index, reset.index + 24).join('\n');
+      const surroundingFunction = lines
+        .slice(Math.max(0, reset.index - 8), reset.index + 24)
+        .join('\n');
       expect(`${where} ${block.includes('faceOff: null,')}`).toBe(
         `${where} true`,
       );
       expect(
         `${where} ${block.includes('pendingPostFaceOffScreen: null,')}`,
       ).toBe(`${where} true`);
-      expect(`${where} ${block.includes('matchDayBanner: null,')}`).toBe(
-        `${where} true`,
+      const preservesArrivedMatchDayBanner = surroundingFunction.includes(
+        'dismissPostMatchSummary()',
       );
+      expect(
+        `${where} ${preservesArrivedMatchDayBanner || block.includes('matchDayBanner: null,')}`,
+      ).toBe(`${where} true`);
     }
   });
 });

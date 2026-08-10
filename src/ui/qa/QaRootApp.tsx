@@ -5,7 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { loadLaunchContent } from '../../content';
 import { useCopy } from '../../i18n';
-import { MatchScreen, type PowerCutInQaEntry } from '../../render/MatchScreen';
+import { LazyMatchScreen as MatchScreen } from '../../render/LazyMatchScreen';
+import type { PowerCutInQaEntry } from '../../render/MatchScreen';
 import { PowerEffectPreview } from '../../render/PowerEffectPreview';
 import {
   powerMatchShowcaseAway,
