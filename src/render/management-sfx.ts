@@ -66,7 +66,9 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // The supplied negative cue. This is the "you cannot do that" sound the UI
   // plays at a blocked tap, and it used to be the referee's card whistle —
   // far too harsh for a menu, and it also made a denied drill sound like a
-  // booking. The whistle stays in `audio.ts`, where an actual card is shown.
+  // booking. It sits 2 LU below the other one-shots so it registers without
+  // dominating the result. The whistle stays in `audio.ts`, where an actual
+  // card is shown.
   warning: require('../../assets/audio/sfx/negative.m4a'),
   // Reusable celebratory cue for positive outcomes (e.g. signing a player).
   // Appended last so existing player indices stay stable.

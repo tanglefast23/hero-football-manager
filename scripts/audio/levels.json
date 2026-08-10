@@ -4,6 +4,9 @@
     "sfx": -16,
     "bed": -20
   },
+  "targetOverrides": {
+    "assets/audio/sfx/negative.m4a": -18
+  },
   "ceilingDbtp": -1,
   "generatedBy": "scripts/audio/normalize-levels.mjs",
   "assets": {
@@ -524,13 +527,13 @@
     },
     "assets/audio/sfx/negative.m4a": {
       "class": "sfx",
-      "before": -18.6,
-      "beforeTruePeak": -2.6,
-      "gainDb": 2.9,
-      "limited": true,
-      "after": -15.9,
-      "afterTruePeak": -1.2,
-      "bytes": 9400
+      "before": -15.9,
+      "beforeTruePeak": -1.2,
+      "gainDb": -2,
+      "limited": false,
+      "after": -17.9,
+      "afterTruePeak": -3.2,
+      "bytes": 8945
     },
     "assets/audio/sfx/phase-shift.wav": {
       "class": "sfx",
