@@ -170,19 +170,23 @@ describe('the boost reaches the number, not just the record', () => {
 
 describe('the training multiplier scales the bonus, not the whole thing', () => {
   /**
-   * A level-3 gym doubles the drill; the part it earned is the `+1.0` above the
-   * 1.0 every club gets for free. A −20% boost must take a fifth of *that*, not
+   * A level-3 gym adds 30% to the drill; that earned part sits above the 1.0
+   * every club gets for free. A −20% boost must take a fifth of *that*, not
    * a fifth of the whole multiplier — otherwise a bad building drags a club
    * toward the result of owning nothing, and at a big enough negative it would
    * go below it.
    *
-   * Pinned as exact results rather than a direction, because both formulas move
-   * the number the same way and only the arithmetic tells them apart: on this
-   * fixture bonus-part scaling gives 46, whole-multiplier scaling gives 44.
+   * This uses the top drill tier because the smaller tier-one gain can bank a
+   * fractional change without moving the first displayed integer. Exact results
+   * still distinguish bonus-part scaling from whole-multiplier scaling.
    */
   it('takes its cut of the bonus only', () => {
-    const none = careerWith([]);
-    const gym = careerWith([building('facility-1', 'gym', 3, 0)]);
+    const topTier = (state: GameState): GameState => ({
+      ...state,
+      ownedTrainingTiers: { ...state.ownedTrainingTiers, sprints: 5 },
+    });
+    const none = topTier(careerWith([]));
+    const gym = topTier(careerWith([building('facility-1', 'gym', 3, 0)]));
     const worse = applyFacilityEventEffect(
       gym,
       'facility-1',
@@ -196,10 +200,11 @@ describe('the training multiplier scales the bonus, not the whole thing', () => 
       20,
     );
 
-    expect(trainingResultFor(none)).toBe(42);
-    expect(trainingResultFor(gym)).toBe(47);
-    expect(trainingResultFor(worse)).toBe(46);
-    expect(trainingResultFor(better)).toBe(48);
+    expect(trainingResultFor(none)).toBe(48);
+    expect(trainingResultFor(gym)).toBe(51);
+    expect(trainingResultFor(worse)).toBe(51);
+    expect(trainingResultFor(better)).toBe(52);
+    expect(trainingResultFor(better)).toBeGreaterThan(trainingResultFor(gym));
     // Whatever the boost, a building never leaves the club worse off than
     // having no building at all.
     expect(trainingResultFor(worse)).toBeGreaterThan(trainingResultFor(none));

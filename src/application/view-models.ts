@@ -44,6 +44,7 @@ import {
   currentUserDivision,
   difficultyRules,
   isConsideringRetirement,
+  isRivalHeroIntroHeroId,
   maxRenewalTermSeasons,
   maxSigningTermSeasons,
   retirementCardCopy,
@@ -138,6 +139,7 @@ import type {
   MatchDayBannerViewModel,
   MatchDayViewModel,
   FulltimeReactionViewModel,
+  RivalMockeryViewModel,
   PostMatchViewModel,
   SeasonEndViewModel,
   StoryEventPlayerViewModel,
@@ -1565,9 +1567,9 @@ function facilityEffectLabel(
 
 /** Mirrors FACILITY_TRAINING_MULTIPLIER in src/game/training.ts, as a percentage. */
 const TRAINING_BONUS_PERCENT: Readonly<Record<FacilityLevel, number>> = {
-  1: 25,
-  2: 50,
-  3: 100,
+  1: 10,
+  2: 20,
+  3: 30,
 };
 
 function facilityNextLevelEffectLabel(
@@ -2376,6 +2378,7 @@ function deskStoryAlert(
     title: copyOrEnglish(t, `event.${event.id}.title`, event.title),
     detail: copyOrEnglish(t, `event.${event.id}.body`, event.body),
     tone: 'event',
+    isStory: true,
   };
 }
 
@@ -2857,15 +2860,16 @@ export function boardFinanceBriefing(
           count: weeks,
           amount: formatMoneyForCopy(t, cash),
         }),
-        graceWeeks > 0
-          ? t('clubHome.briefingLockedWithGrace', {
-              n: graceWeeks,
-              count: graceWeeks,
-              consequence,
-            })
-          : t('clubHome.briefingLockedOutOfPatience'),
+        safety?.emergencyLoanUsed !== true
+          ? t('clubHome.briefingLoanNextWeek')
+          : graceWeeks > 0
+            ? t('clubHome.briefingLockedWithGrace', {
+                n: graceWeeks,
+                count: graceWeeks,
+                consequence,
+              })
+            : t('clubHome.briefingLockedOutOfPatience'),
         t('clubHome.briefingBuildAdvice'),
-        t('clubHome.briefingHoldTight'),
       ],
     };
   }
@@ -3039,7 +3043,9 @@ export function settleWeeklyTip(state: GameState): GameState {
   };
   const unseen = unseenDeskTipIds(
     state,
-    LAUNCH_CONTENT.tips.tips.map((tip) => tip.id),
+    LAUNCH_CONTENT.tips.tips
+      .filter((tip) => isDeskTipEligible(state, tip.id))
+      .map((tip) => tip.id),
   );
   if (unseen.length === 0) return blank;
   if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT)
@@ -3077,6 +3083,9 @@ function deskTipNote(
 ): ManagerNoteViewModel | undefined {
   const tipId = currentDeskTipId(state);
   if (tipId === undefined) return undefined;
+  // Old saves can already hold a tip selected before eligibility was added.
+  // Do not keep presenting advice for a shop the club cannot use yet.
+  if (!isDeskTipEligible(state, tipId)) return undefined;
   const tip = LAUNCH_CONTENT.tips.tips.find(
     (candidate) => candidate.id === tipId,
   );
@@ -3090,6 +3099,14 @@ function deskTipNote(
     detail: copyOrEnglish(t, `tip.${tip.id}.body`, tip.body),
     ...(tip.destination === undefined ? {} : { destination: tip.destination }),
   };
+}
+
+/** A rule should enter the random tip pool only when it can help right now. */
+function isDeskTipEligible(state: GameState, tipId: string): boolean {
+  if (tipId === 'drill-tiers-are-permanent') {
+    return highestDivisionReached(state) <= 4;
+  }
+  return true;
 }
 
 function homeAssistantInboxPlan(state: GameState) {
@@ -4246,6 +4263,15 @@ export function postMatchViewModel(
     pool,
     t,
   );
+  const rivalMockery = rivalVictoryMockery(
+    before,
+    fixtureId,
+    opponentClubId,
+    isHome ? 'away' : 'home',
+    score,
+    outcomeLabel,
+    t,
+  );
   const buzz =
     buzzPowerFiredPlayerIds === undefined || before.season < 3
       ? undefined
@@ -4310,6 +4336,7 @@ export function postMatchViewModel(
       ? {}
       : { facilityCompletion: completedFacility }),
     ...(reaction === undefined ? {} : { reaction }),
+    ...(rivalMockery === undefined ? {} : { rivalMockery }),
   };
 }
 
@@ -4450,6 +4477,45 @@ function cupOpponentTiersAbove(
  * blame — pointing at an empty touchline is worse than crying.
  */
 const BLAME_ROLL_IN = 3;
+
+function rivalVictoryMockery(
+  state: GameState,
+  fixtureId: string,
+  opponentClubId: string,
+  matchSide: 'home' | 'away',
+  score: { homeGoals: number; awayGoals: number },
+  outcomeLabel: 'WIN' | 'DRAW' | 'LOSS',
+  t: CopyFn,
+): RivalMockeryViewModel | undefined {
+  if (outcomeLabel !== 'LOSS') return undefined;
+  const hero = state.players.find(
+    (player) =>
+      player.clubId === opponentClubId && isRivalHeroIntroHeroId(player.id),
+  );
+  if (hero === undefined || !isRivalHeroIntroHeroId(hero.id)) return undefined;
+  const authored = LAUNCH_CONTENT.rivalHeroIntros.intros.find(
+    (intro) => intro.heroId === hero.id,
+  );
+  if (authored === undefined || authored.victoryLines.length === 0)
+    return undefined;
+  const draw = `${state.careerSeed}:${fixtureId}:${score.homeGoals}-${score.awayGoals}:${hero.id}`;
+  const line =
+    authored.victoryLines[
+      hashString(`rival-victory-line:${draw}`) % authored.victoryLines.length
+    ]!;
+  return {
+    heroId: hero.id,
+    heroName: hero.name,
+    role: hero.role,
+    ...(hero.lookId === undefined ? {} : { lookId: hero.lookId }),
+    matchSide,
+    line: copyOrEnglish(
+      t,
+      `rivalHeroVictory.${hero.id}.${proseSlug(line)}`,
+      line,
+    ),
+  };
+}
 
 function fulltimeReaction(
   state: GameState,

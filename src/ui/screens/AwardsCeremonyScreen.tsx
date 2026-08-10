@@ -180,10 +180,10 @@ export function AwardsCeremonyScreen({
               is allocated here so the title can never arrive underneath them. */}
           <View style={styles.controlBand} />
           <View style={styles.header}>
-            <PixelText className="text-[10px] uppercase tracking-[3px] text-gold">
+            <PixelText className="text-[10px] uppercase tracking-[3px] text-gold-dark">
               {viewModel.seasonLabel}
             </PixelText>
-            <PixelText className="mt-1 text-base uppercase text-paper">
+            <PixelText className="mt-1 text-base uppercase text-ink">
               {t('awardsCeremony.divisionAwards')}
             </PixelText>
           </View>
@@ -196,7 +196,7 @@ export function AwardsCeremonyScreen({
         )}
 
         <View style={styles.footer}>
-          <PixelText className="text-[10px] uppercase tracking-[2px] text-paper/60">
+          <PixelText className="text-[10px] uppercase tracking-[2px] text-ink/60">
             {stage.kind === 'prize'
               ? t('awardsCeremony.tapToFinish')
               : t('awardsCeremony.tapToSkipAhead')}
@@ -560,6 +560,7 @@ const styles = StyleSheet.create({
   stage: {
     flex: 1,
     justifyContent: 'space-between',
+    backgroundColor: '#f4f1ea',
     paddingHorizontal: 16,
     paddingBottom: 8,
   },

@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
@@ -208,5 +209,24 @@ describe('quick train', () => {
     expect(screen).toContainSource('guideQuickTrain={guideQuickTrain}');
     // Doing the thing retires the lesson.
     expect(screen).toContainSource('onQuickTrainShown?.();');
+  });
+
+  it('calls the attribute cue an alternative drill route in every language', () => {
+    expect(
+      Object.fromEntries(
+        ENABLED_LOCALES.map((locale) => [
+          locale,
+          loadCatalog(locale).strings['squadTraining.chooseTheStatYou'],
+        ]),
+      ),
+    ).toEqual({
+      en: 'Alternative way to choose drills',
+      de: 'Andere Art, Übungen auszuwählen',
+      es: 'Otra forma de elegir ejercicios',
+      fr: 'Autre façon de choisir les exercices',
+      id: 'Cara lain memilih latihan',
+      'pt-BR': 'Outra forma de escolher treinos',
+      vi: 'Cách khác để chọn bài tập',
+    });
   });
 });

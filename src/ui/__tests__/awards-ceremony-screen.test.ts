@@ -412,6 +412,16 @@ describe('what the ceremony has to fit on a small phone', () => {
     'utf8',
   );
 
+  it('uses the cream character canvas so dark hair cannot dissolve into the stage', () => {
+    expect(screen).toContainSource("backgroundColor: '#f4f1ea'");
+    expect(screen).toContainSource(
+      'className="mt-1 text-base uppercase text-ink"',
+    );
+    expect(screen).toContainSource(
+      'className="text-[10px] uppercase tracking-[2px] text-ink/60"',
+    );
+  });
+
   /**
    * "Division Awards" in 16pt pixel type is about 188pt wide, centred on a
    * 375pt screen — wider than what is left beside a skip control, so the two

@@ -1802,11 +1802,10 @@ function resolveFinancialSafety(
       : 0;
   let emergencyLoanUsed = previous.emergencyLoanUsed;
   const rules = difficultyRules(state);
-  if (
-    balanceAfter < 0 &&
-    consecutiveNegativeWeeks >= rules.negativeWeeksBeforeIntervention &&
-    !emergencyLoanUsed
-  ) {
+  if (previous.consecutiveNegativeWeeks > 0 && !emergencyLoanUsed) {
+    // The first red week is the warning. Once it has been shown, the loan is a
+    // board decision already in motion: it lands at the next settlement even
+    // if prize money or other income has brought the balance above zero.
     // The rescue clears the hole AND leaves a Stadium Stand's worth of cash on
     // the table. A flat sum paid off the deficit and left whatever happened to
     // remain, which on a bad week was nothing — the one intervention the club
@@ -1816,7 +1815,7 @@ function resolveFinancialSafety(
     //
     // Never smaller than the difficulty's own figure, so this can only ever
     // raise a rescue, never shrink one.
-    const deficit = -balanceAfter;
+    const deficit = Math.max(0, -balanceAfter);
     const amount = Math.max(
       rules.emergencyLoanAmount,
       checkedAdd(deficit, EMERGENCY_LOAN_FLOOR, 'emergency loan floor'),
@@ -1994,9 +1993,12 @@ function nationalCupFixtureAsLeagueFixture(
   };
 }
 
-function deterministicPenaltyWinner(
-  state: GameState,
-  fixture: NationalCupFixture,
+export function deterministicPenaltyWinner(
+  state: Pick<GameState, 'careerSeed'>,
+  fixture: Pick<
+    NationalCupFixture,
+    'matchSeed' | 'round' | 'homeClubId' | 'awayClubId'
+  >,
 ): string {
   const homeWins =
     ((fixture.matchSeed ^

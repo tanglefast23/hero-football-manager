@@ -12,6 +12,11 @@ describe("manager's tip navigation", () => {
     expect(home).toContain('note.destination');
     expect(home).toContain("label={`${t('clubHome.takeMeThere')}  ▸`}");
     expect(home).toContain('onOpenManagerTipDestination(note.destination)');
+    expect(home).toContain(
+      'className="border-2 border-b-4 border-grey-dark bg-paper-dark p-3"',
+    );
+    expect(home).toContain('text-grey-dark');
+    expect(home).not.toContain("? 'border-gold-dark bg-gold-light'");
   });
 
   it('routes each actionable tip to a fresh squad guide request', () => {

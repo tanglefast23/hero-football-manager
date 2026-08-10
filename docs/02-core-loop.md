@@ -36,6 +36,8 @@ Promotion rewards are permanent: relegation changes the current opposition, not 
 | D2 · National League | Tier 4 drills on sale, Level 3 facilities, Elite Prospect scouting, Level 4 coach access |
 | D1 · Global League | Tier 5 drills on sale, fourth Hero License, Level 5 coach access |
 
+The first reach of each higher division also adds **500 fans** to the club's existing supporter total. It never replaces the total with a division floor, never removes fans after relegation, and does not pay the same division step twice after re-promotion.
+
 Level 2 facilities are **not** a promotion reward: they are available from D5, because gating the club's main training accelerator behind the promotion it was needed to earn measured 0 promotions across 6 careers × 10 seasons. A drill tier reaching the shelf is likewise not the same as owning it — each path is bought separately (doc 05).
 
 Opposing club strength scales with division and season count (slow, season-level scaling — never instant rubber-banding, and never "you won too big so they get stronger," which research showed players hate). At each season boundary every non-user rating grows by **3% on Cozy** or **4% on Chairman**, with deterministic per-player/per-stat stochastic rounding and difficulty caps (700/800). The same percentage applies to support players, specialists, and goalkeeper REF.

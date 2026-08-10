@@ -37,6 +37,8 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'facility-placement': ['explaining'],
   'facility-upgrade': ['listing'],
   'facility-adjacency': ['confiding'],
+  // A refused facility action is bad news from a person, not a red developer bar.
+  'facility-error': ['bad-news'],
   'scout-mission': ['explaining'],
   // A quiet favor, not another lesson about how the scouting desk works.
   'first-scout-favor': ['confiding'],
@@ -62,6 +64,9 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // on the wincing face would make it sound like he did not believe it, and
   // delivering the loss on the encouraging one would make him a salesman.
   'first-cup-exit': ['bad-news', 'encouraging'],
+  // The club's first Cup win: two openly delighted beats, with the repeated
+  // expression carried by different celebration poses through varyRepeats.
+  'first-cup-round-of-32': ['celebrating', 'celebrating'],
   // Dressing-room gossip, then he points at the tab that will carry it.
   'player-requests': ['confiding', 'pointing-out'],
 

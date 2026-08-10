@@ -12,6 +12,20 @@ import {
 } from '..';
 
 describe('career facility transactions', () => {
+  test('allows facility work before a match, including Hero Cup weeks', () => {
+    const matchday = {
+      ...createCareer(createLaunchCareerSetup(20260809)),
+      phase: 'matchday' as const,
+    };
+
+    const built = buildCareerFacility(matchday, 'gym', { x: 2, y: 0 });
+
+    expect(built.state.phase).toBe('matchday');
+    expect(built.state.facilities.grid?.buildings).toEqual([
+      expect.objectContaining({ type: 'gym', x: 2, y: 0 }),
+    ]);
+  });
+
   test('charges the user club and persists build, upgrade, and relocation state', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719));
     const built = buildCareerFacility(initial, 'gym', { x: 2, y: 0 });

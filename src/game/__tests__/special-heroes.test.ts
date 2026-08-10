@@ -1,7 +1,7 @@
 import { createCareer } from '../career';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { runHeadlessFullCareer } from '../headless';
-import { buildCareerMatchTeamDef } from '../squad';
+import { buildCareerMatchTeamDef, careerHeroLimit } from '../squad';
 import { roleOverall } from '../archetype-caps';
 import { isReservedFieldLook } from '../player-appearance';
 import {
@@ -157,6 +157,17 @@ describe('placement in a career', () => {
       .flatMap((division) => division.clubs.flatMap((club) => club.squad))
       .filter((player) => isSpecialHeroId(player.id));
     expect(leaked).toEqual([]);
+
+    for (const club of career.clubs) {
+      expect(() => buildCareerMatchTeamDef(career, club.id)).not.toThrow();
+      const lineup = career.lineups.find((row) => row.clubId === club.id)!;
+      const licensedStarters = career.players.filter(
+        (player) => lineup.playerIds.includes(player.id) && player.licensed,
+      );
+      expect(licensedStarters.length).toBeLessThanOrEqual(
+        careerHeroLimit(career),
+      );
+    }
   });
 
   it('keeps the user club out of placement', () => {

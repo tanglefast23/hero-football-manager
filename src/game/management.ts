@@ -421,9 +421,9 @@ function userCash(state: GameState): number {
 }
 
 function assertManagementPhase(state: GameState): void {
-  if (state.phase !== 'manage') {
+  if (state.phase !== 'manage' && state.phase !== 'matchday') {
     throw new Error(
-      'facility transactions can only happen during the manage phase',
+      'facility transactions can only happen during management or before a match',
     );
   }
 }

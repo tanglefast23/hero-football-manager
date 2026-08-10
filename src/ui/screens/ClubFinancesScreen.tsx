@@ -37,7 +37,11 @@ import type {
   TrainingPointIncomeViewModel,
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
-import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
+import {
+  TUTORIAL_TAP_CUE_WIDTH,
+  type TutorialAnchorLayout,
+} from '../tutorial-cue-position';
+import { useGuideAnchor } from '../use-guide-anchor';
 import { ManagementSprite } from '../components/ManagementSprite';
 import { facilityBenefit } from '../facility-benefit';
 import {
@@ -179,6 +183,7 @@ export interface ClubFinancesScreenProps {
   ) => void;
   guideTrainingGround?: boolean;
   guideFocus?: AssistantGuideFocus;
+  onLoanGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
   reduceMotion?: boolean;
   /** Bumped after the signing modal is gone so the replacement desk receives focus. */
   focusSponsorSummaryToken?: number;
@@ -203,6 +208,7 @@ export function ClubFinancesScreen({
   onReviewSponsorOffer,
   guideTrainingGround = false,
   guideFocus,
+  onLoanGuideAnchorChange,
   reduceMotion = false,
   focusSponsorSummaryToken,
 }: ClubFinancesScreenProps) {
@@ -225,6 +231,10 @@ export function ClubFinancesScreen({
   const sponsorBuzzAccessibilityRef = useRef<View>(null);
   const handledSponsorFocusTokenRef = useRef<number | undefined>(undefined);
   const sponsorGuideHandledRef = useRef<string | null>(null);
+  const {
+    anchorRef: loanGuideAnchorRef,
+    scheduleMeasurement: scheduleLoanGuideAnchorMeasurement,
+  } = useGuideAnchor(guideFocus === 'emergency-loan', onLoanGuideAnchorChange);
   const facilityGuideScrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrolledPhaseRef = useRef<GuidedFirstFacilityPhase | null>(
     null,
@@ -727,24 +737,34 @@ export function ClubFinancesScreen({
     });
   }, [guidedFirstFacility, layoutMode, reduceMotion]);
 
-  const financeSections: FlowSection[] = [
-    {
-      key: 'cash-position',
-      weight: 6,
-      node: (
-        <CashPositionSection viewModel={viewModel} guideFocus={guideFocus} />
-      ),
-    },
-    // Directly under the balance, because it is the balance with a claim on it.
-    ...(viewModel.loan === undefined
+  const loanSection: FlowSection[] =
+    viewModel.loan === undefined
       ? []
       : [
           {
             key: 'loan',
             weight: 5,
-            node: <EmergencyLoanSection loan={viewModel.loan} />,
+            node: (
+              <EmergencyLoanSection
+                loan={viewModel.loan}
+                guided={guideFocus === 'emergency-loan'}
+                guideAnchorRef={loanGuideAnchorRef}
+                onGuideAnchorLayout={scheduleLoanGuideAnchorMeasurement}
+              />
+            ),
           },
-        ]),
+        ];
+  const guideLoanFirst = guideFocus === 'emergency-loan';
+  const financeSections: FlowSection[] = [
+    // Keep the card visible for the joined loan talk. Its usual position remains
+    // directly below Cash Position whenever Bert is not explaining this loan.
+    ...(guideLoanFirst ? loanSection : []),
+    {
+      key: 'cash-position',
+      weight: 6,
+      node: <CashPositionSection viewModel={viewModel} />,
+    },
+    ...(!guideLoanFirst ? loanSection : []),
     ...(viewModel.sponsorship === undefined
       ? []
       : [
@@ -983,6 +1003,9 @@ export function ClubFinancesScreen({
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
         onScroll={(event) => {
           latestScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+          if (guideFocus === 'emergency-loan') {
+            scheduleLoanGuideAnchorMeasurement();
+          }
         }}
         scrollEventThrottle={16}
       >
@@ -1059,28 +1082,12 @@ export function ClubFinancesScreen({
 
 interface CashPositionSectionProps {
   viewModel: ClubFinancesViewModel;
-  guideFocus?: AssistantGuideFocus;
 }
 
-function CashPositionSection({
-  viewModel,
-  guideFocus,
-}: CashPositionSectionProps) {
+function CashPositionSection({ viewModel }: CashPositionSectionProps) {
   const t = useCopy();
   return (
-    // Lit, but never a stop. This panel used to carry a "Bert says · Review the
-    // loan" tap cue and 80pt of clearance for it, which broke his loan briefing
-    // in half: he explained the bailout, the tutorial waited for a tap, and only
-    // then reached the part about building something that earns. He talks
-    // straight through to the facility board now, and the highlight just says
-    // which panel he means.
-    <View
-      className={
-        guideFocus === 'emergency-loan'
-          ? 'relative border-2 border-blue-dark bg-blue-light p-1'
-          : 'relative'
-      }
-    >
+    <View className="relative">
       <PaperPanel
         kicker={t('clubFinances.cashPosition')}
         title={t('clubFinances.boardsBottomLine')}
@@ -1167,10 +1174,29 @@ function CashPositionSection({
  * life of the loan to stay reachable. A debt is a fact you look up, so it lives
  * with the accounts.
  */
-function EmergencyLoanSection({ loan }: { readonly loan: ClubLoanViewModel }) {
+function EmergencyLoanSection({
+  loan,
+  guided,
+  guideAnchorRef,
+  onGuideAnchorLayout,
+}: {
+  readonly loan: ClubLoanViewModel;
+  readonly guided: boolean;
+  readonly guideAnchorRef: RefObject<View | null>;
+  readonly onGuideAnchorLayout: () => void;
+}) {
   const t = useCopy();
   return (
-    <View>
+    <View
+      ref={guideAnchorRef}
+      collapsable={false}
+      onLayout={onGuideAnchorLayout}
+      className={
+        guided
+          ? 'relative border-2 border-blue-dark bg-blue-light p-1'
+          : 'relative'
+      }
+    >
       <PaperPanel
         kicker={t('clubFinances.boardLoan')}
         title={t('clubFinances.emergencyLoan')}
@@ -2305,25 +2331,30 @@ function GroundsSection({
           >
             {showBuildPlacementHelper ? (
               <View
-                ref={facilityPlacementFocusRef}
-                collapsable={false}
-                accessible
-                accessibilityRole="header"
-                accessibilityLabel={t('clubFinances.buildHere')}
                 pointerEvents="none"
-                {...guideHeadingProps()}
-                className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
-                style={[
-                  styles.guidedFacilityGlow,
-                  styles.facilityPlacementHelper,
-                ]}
+                style={styles.facilityPlacementHelperAnchor}
               >
-                <PixelText
-                  accessibilityLiveRegion="polite"
-                  className="text-center text-sm uppercase text-ink"
+                <View
+                  ref={facilityPlacementFocusRef}
+                  collapsable={false}
+                  accessible
+                  accessibilityRole="header"
+                  accessibilityLabel={t('clubFinances.buildHere')}
+                  pointerEvents="none"
+                  {...guideHeadingProps()}
+                  className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
+                  style={[
+                    styles.guidedFacilityGlow,
+                    styles.facilityPlacementHelper,
+                  ]}
                 >
-                  {t('clubFinances.buildHere')}
-                </PixelText>
+                  <PixelText
+                    accessibilityLiveRegion="polite"
+                    className="text-center text-sm uppercase text-ink"
+                  >
+                    {t('clubFinances.buildHere')}
+                  </PixelText>
+                </View>
               </View>
             ) : null}
             {guidedFirstFacility &&
@@ -3559,13 +3590,18 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
 
 /** The temporary gold placement instruction and its grid-level hover label. */
 const styles = StyleSheet.create({
-  facilityPlacementHelper: {
+  facilityPlacementHelperAnchor: {
     position: 'absolute',
-    top: 12,
-    left: '50%',
-    width: 144,
-    marginLeft: -72,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 30,
+  },
+  facilityPlacementHelper: {
+    width: 144,
   },
   facilityPlacementHoverTip: {
     position: 'absolute',

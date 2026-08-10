@@ -73,15 +73,13 @@ describe('displayedAttributeValue', () => {
 describe('displayedDrillGain', () => {
   it('prints the outfield ladder for every keeper drill tier', () => {
     const state = careerState();
-    // Authored keeper ladder is 2/4/6/8/11 against the outfield 4/7/11/16/22.
-    // Tiers II and III no longer halve exactly, so the card rounds up to the
-    // outfield step rather than doubling a half.
+    // Authored keeper ladder is 1/2/3/5/5 against the outfield 2/4/6/9/10.
     const expected: ReadonlyArray<[string, number, number]> = [
-      ['keeper-drills', 2, 4],
-      ['keeper-drills-ii', 4, 7],
-      ['keeper-drills-iii', 6, 11],
-      ['keeper-drills-iv', 8, 16],
-      ['keeper-drills-v', 11, 22],
+      ['keeper-drills', 1, 2],
+      ['keeper-drills-ii', 2, 4],
+      ['keeper-drills-iii', 3, 6],
+      ['keeper-drills-iv', 5, 9],
+      ['keeper-drills-v', 5, 10],
     ];
     for (const [drillId, authored, shown] of expected) {
       expect(displayedDrillGain(state, drillId, authored)).toBe(shown);

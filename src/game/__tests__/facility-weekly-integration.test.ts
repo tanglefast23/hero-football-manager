@@ -82,7 +82,7 @@ describe('facility weekly integration', () => {
       ),
     };
 
-    expect(state.trainingPoints).toBe(24);
+    expect(state.trainingPoints).toBe(12);
     expect(state.facilities).toMatchObject({
       trainingGroundBuilt: false,
       grid: {
@@ -109,27 +109,22 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // Sprints 2 is the best tier open in D5 and costs 10 TP per tap, so two
-    // trainees cost 20 a week. The club banks BASE_WEEKLY_TRAINING_POINTS every
-    // week whether or not a pitch exists, and the pitch adds its own
-    // TRAINING_PITCH_TP_PER_LEVEL once the two build weeks finish — weeks three
-    // and four here. The bank therefore climbs by 4 a week during construction
-    // and by 14 a week after it, which is the point of the baseline: a club with
-    // no pitch can still train, and the pitch makes it comfortable rather than
-    // being the only source of TP.
-    const spendPerWeek = 20;
-    const base = BASE_WEEKLY_TRAINING_POINTS - spendPerWeek;
-    const withPitch = base + TRAINING_PITCH_TP_PER_LEVEL;
+    // The 40% scale funds one 10-TP tap a week before the Pitch opens. Its first
+    // payment lifts the bank enough to fund both players on the next week.
+    const oneTapNet = BASE_WEEKLY_TRAINING_POINTS - 10;
+    const pitchAndOneTapNet = oneTapNet + TRAINING_PITCH_TP_PER_LEVEL;
+    const pitchAndTwoTapNet =
+      BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL - 20;
     // The opening balance is the career's launch grant. Taken from the first
     // recorded balance rather than retyped, so retuning the grant retunes this
     // expectation with it — the shape of the climb is what this test owns.
     const launch = balances[0];
     expect(balances).toEqual([
       launch,
-      launch + base,
-      launch + base * 2,
-      launch + base * 2 + withPitch,
-      launch + base * 2 + withPitch * 2,
+      launch + oneTapNet,
+      launch + oneTapNet * 2,
+      launch + oneTapNet * 2 + pitchAndOneTapNet,
+      launch + oneTapNet * 2 + pitchAndOneTapNet + pitchAndTwoTapNet,
     ]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
@@ -279,19 +274,20 @@ describe('facility weekly integration', () => {
       state = tapIfAffordable(state, playerId, 'circuit');
       state = advanceWeek(state);
     }
-    // A Level 1 Gym is now x1.25, and Circuit 2 (+4) is the open tier, so each
-    // tap lands 5 real STA and banks a fraction of the adjacency's 10% — enough
-    // to release a whole extra point on roughly every other tap.
+    // A Level 1 Gym is x1.10 and Circuit 1 gives +2. Whole-point rounding keeps
+    // the base at 2, while the adjacency's 10% releases one extra point every
+    // five taps.
     const afterNine = state.players.find((player) => player.id === playerId);
-    expect(afterNine?.attrs.sta).toBe(startingSta + 51);
-    expect(afterNine?.facilityStaBonusRemainder).toBe(70);
+    expect(afterNine?.attrs.sta).toBe(startingSta + 19);
+    expect(afterNine?.facilityStaBonusRemainder).toBe(80);
 
-    // The tenth tap is one of the paying ones: 5 real plus the banked point.
+    // The tenth tap releases both the player's position remainder and the
+    // adjacency remainder, so it pays four points.
     state = tapIfAffordable(state, playerId, 'circuit');
     state = advanceWeek(state);
     const afterTen = state.players.find((player) => player.id === playerId);
-    expect(afterTen?.attrs.sta).toBe(startingSta + 57);
-    expect(afterTen?.facilityStaBonusRemainder).toBe(20);
+    expect(afterTen?.attrs.sta).toBe(startingSta + 23);
+    expect(afterTen?.facilityStaBonusRemainder).toBe(10);
   });
 
   test('raises the home gate by 50% for every level across up to three Stadium Stands', () => {
@@ -361,7 +357,7 @@ describe('facility weekly integration', () => {
     expect(gateOf(withStands(1, 1, 1))).toBe(3_000);
   });
 
-  test('makes a level-1 training facility worth x1.25, not x1.0', () => {
+  test('uses the reduced x1.10/x1.20/x1.30 facility ladder', () => {
     const initial = createCareer(createLaunchCareerSetup(20260726));
     const playerId = initial.players.find(
       (player) => player.clubId === initial.userClubId,
@@ -409,12 +405,13 @@ describe('facility weekly integration', () => {
       );
     };
 
-    // Sprints 1 gives +4 PAC at age 25. The old formula made level 1 x1.0, so
-    // the first Gym a club ever built changed nothing at all.
-    expect(atGymLevel(0)).toBe(4);
-    expect(atGymLevel(1)).toBe(5); // round(4 x 1.25)
-    expect(atGymLevel(2)).toBe(6); // round(4 x 1.5)
-    expect(atGymLevel(3)).toBe(8);
+    // Sprints 1 gives +2 PAC at age 25. Levels 1 and 2 bank no structural
+    // remainder, so whole-point rounding makes their small bonus invisible on
+    // this lowest drill. Level 3 crosses the next point.
+    expect(atGymLevel(0)).toBe(2);
+    expect(atGymLevel(1)).toBe(2);
+    expect(atGymLevel(2)).toBe(2);
+    expect(atGymLevel(3)).toBe(3);
   });
 
   test('keeps M1 ambient TP behavior and charges no upkeep when the grid is absent', () => {

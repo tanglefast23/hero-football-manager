@@ -25,6 +25,7 @@ import type { BoardUltimatumState, GameState } from '../../../game/types';
 import { BertBriefingWalkOn } from '../../BertBriefingWalkOn';
 import { ClubFinancesScreen } from '../../screens/ClubFinancesScreen';
 import { ClubHomeScreen } from '../../screens/ClubHomeScreen';
+import type { TutorialAnchorLayout } from '../../tutorial-cue-position';
 import {
   DevHarnessButton,
   devHarnessControlStyles,
@@ -318,6 +319,9 @@ export function BoardUltimatumReel({
   const [openedBoardAlertId, setOpenedBoardAlertId] = useState<string | null>(
     null,
   );
+  const [loanIntroVisible, setLoanIntroVisible] = useState(false);
+  const [loanGuideAnchor, setLoanGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
   const [incomeFacilityTour, setIncomeFacilityTour] = useState(false);
   // Every tap the manager can make lands here, applied by the real reducer on
   // top of the built state. Cleared whenever an option rebuilds the career.
@@ -343,6 +347,8 @@ export function BoardUltimatumReel({
     setPlayed(undefined);
     setFailure(undefined);
     setOpenedBoardAlertId(null);
+    setLoanIntroVisible(false);
+    setLoanGuideAnchor(null);
     setIncomeFacilityTour(false);
     change();
   }, []);
@@ -369,18 +375,43 @@ export function BoardUltimatumReel({
           onBuildTrainingGround={() => {}}
           guideFocus="income-facilities"
         />
+      ) : loanIntroVisible || openedBoardAlertId === 'emergency-loan' ? (
+        <ClubFinancesScreen
+          viewModel={clubFinancesViewModel(state)}
+          activeTab="finances"
+          onSelectTab={() => {}}
+          onBuildTrainingGround={() => {}}
+          guideFocus={loanIntroVisible ? 'emergency-loan' : undefined}
+          onLoanGuideAnchorChange={setLoanGuideAnchor}
+        />
       ) : (
         <ClubHomeScreen
           viewModel={viewModel}
           onOpenFixture={() => {}}
-          onOpenAlert={setOpenedBoardAlertId}
+          onOpenAlert={(alertId) => {
+            if (alertId === 'emergency-loan') {
+              setLoanIntroVisible(true);
+              return;
+            }
+            setOpenedBoardAlertId(alertId);
+          }}
           onOpenLeague={() => {}}
           onProtectBoardCandidate={protectCandidate}
           guideBoard={guideBoard}
         />
       )}
 
-      {briefing === undefined || openedBoardAlertId === null ? null : (
+      {loanIntroVisible ? (
+        <BertBriefingWalkOn
+          content={guideContent}
+          sequenceId="first-emergency-loan"
+          loanAnchor={loanGuideAnchor}
+          onDone={() => {
+            setLoanIntroVisible(false);
+            setOpenedBoardAlertId('emergency-loan');
+          }}
+        />
+      ) : briefing === undefined || openedBoardAlertId === null ? null : (
         <BertBriefingWalkOn
           key={openedBoardAlertId}
           content={guideContent}
@@ -389,7 +420,11 @@ export function BoardUltimatumReel({
               ? 'board-emergency-loan'
               : 'board-financial-warning'
           }
-          customMessage={briefing}
+          customMessage={
+            openedBoardAlertId === 'emergency-loan'
+              ? { ...briefing, body: briefing.body.slice(2) }
+              : briefing
+          }
           onDone={() => {
             const wasLoan = openedBoardAlertId === 'emergency-loan';
             setOpenedBoardAlertId(null);

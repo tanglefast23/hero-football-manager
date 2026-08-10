@@ -9,6 +9,7 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
 const app = read('App.tsx');
 const club = read('src/ui/screens/ClubFinancesScreen.tsx');
+const walkOn = read('src/ui/BertBriefingWalkOn.tsx');
 
 const beats = (count: number): BriefingBeat[] =>
   Array.from({ length: count }, (_, pageIndex) => ({
@@ -31,7 +32,7 @@ describe('the board money rows', () => {
     expect(app).toContainSource(
       'setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);',
     );
-    expect(app).toContainSource('customMessage={boardFinanceMessage}');
+    expect(app).toContainSource('customMessage={displayedBoardFinanceMessage}');
   });
 
   it('keeps the alert and ledger but suppresses Bert for an Advisor career', () => {
@@ -68,6 +69,33 @@ describe('the board money rows', () => {
   it('takes a bailed-out club to the buildings that earn', () => {
     expect(app).toMatchSource(
       /wasLoan[\s\S]{0,200}setClubOfficeTab\('facility'\);\s*\n\s*setConciergeFocus\('income-facilities'\);/,
+    );
+  });
+
+  it('continues the first loan lesson at the commercial advice', () => {
+    expect(app).toMatchSource(
+      /assistantSequenceId === 'first-emergency-loan'[\s\S]{0,420}setBoardFinanceMessageStartIndex\(2\);[\s\S]{0,100}setOpenedBoardFinanceAlertId\('emergency-loan'\);/,
+    );
+    expect(app).toContainSource(
+      'body: boardFinanceMessage.body.slice(boardFinanceMessageStartIndex)',
+    );
+  });
+
+  it('lights the real Board Loan card during the first bubble', () => {
+    expect(app).toContainSource(
+      'guideFocus={activeGuideFocus ?? visibleConciergeFocus ?? undefined}',
+    );
+    expect(app).toContainSource('loanAnchor={loanGuideAnchor}');
+    expect(club).toContainSource(
+      "guideFocus === 'emergency-loan',\n    onLoanGuideAnchorChange",
+    );
+    expect(club).toContainSource('guideAnchorRef={loanGuideAnchorRef}');
+    expect(club).toContainSource(
+      "const guideLoanFirst = guideFocus === 'emergency-loan';",
+    );
+    expect(club).toContainSource('...(guideLoanFirst ? loanSection : [])');
+    expect(walkOn).toMatchSource(
+      /focus === 'emergency-loan'\s*\n\s*\? loanAnchor/,
     );
   });
 

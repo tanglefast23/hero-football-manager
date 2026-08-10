@@ -111,10 +111,12 @@ describe('active-manager economy rail', () => {
       // Re-centred a third time when matchday gate/merch income gained its
       // seeded weekly roll (+1.55% EV per eligible line): peaks moved
       // 939,220 -> 966,881, 939,680 -> 978,021 and 977,800 -> 1,004,522, so the
-      // 1.0M ceiling now sits under the worst sampled seed. 1.05M keeps the same
-      // few-percent headroom over the new 1,004,522 worst case.
+      // 1.0M ceiling now sits under the worst sampled seed. The permanent
+      // 500-fan first-reach reward raises weekly gate and merchandise income;
+      // measured peaks are now 1,129,549, 1,144,617, and 1,176,448. A 1.2M
+      // ceiling retains a narrow guardrail above the measured worst case.
       expect(Math.max(...balances)).toBeLessThanOrEqual(
-        /* CEILING */ 1_050_000,
+        /* CEILING */ 1_200_000,
       );
       expect(balances.every((b) => Number.isSafeInteger(b))).toBe(true);
       expect(state.trainingPoints).toBeGreaterThanOrEqual(0);

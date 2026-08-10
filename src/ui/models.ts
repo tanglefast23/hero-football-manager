@@ -6,6 +6,7 @@ import type {
   ManagerTipDestination,
 } from '../content';
 import type { PotentialGrade } from '../game/archetype-caps';
+import type { RivalHeroIntroHeroId } from '../game/rival-hero-intro';
 import type { AwardCategoryId, LedgerLineReveal } from '../game/types';
 import type { PowerId, Role } from '../sim/types';
 
@@ -60,7 +61,9 @@ export interface ClubAlertViewModel {
     | 'facility-placement'
     | 'head-coach-market'
     | 'youth-intake'
-    | 'coaching-office';
+    | 'coaching-office'
+    | 'assistant-coach-hire'
+    | 'national-cup';
   /** Set on player-scoped alerts (e.g. a player waiting on a request) so taps can deep-link to that player. */
   playerId?: string;
   /**
@@ -68,6 +71,8 @@ export interface ClubAlertViewModel {
    * A hero leaving is the loaded case and used to read like any other row.
    */
   isHero?: boolean;
+  /** A pending career event which interrupts the week until it is answered. */
+  isStory?: boolean;
 }
 
 /**
@@ -327,6 +332,16 @@ export interface FulltimeReactionViewModel {
   assistantName?: string;
 }
 
+/** The winning division-headline rival who mocks the manager after full time. */
+export interface RivalMockeryViewModel {
+  heroId: RivalHeroIntroHeroId;
+  heroName: string;
+  role: Role;
+  lookId?: string;
+  matchSide: 'home' | 'away';
+  line: string;
+}
+
 /**
  * One picture on a statement row: what the money was actually spent on.
  *
@@ -420,6 +435,8 @@ export interface PostMatchViewModel {
   facilityCompletion?: FacilityCompletionViewModel;
   /** Absent when the club has nobody on the touchline to react. */
   reaction?: FulltimeReactionViewModel;
+  /** Present only when a division-headline rival's club beat the manager. */
+  rivalMockery?: RivalMockeryViewModel;
 }
 
 export interface SquadPlayerViewModel {

@@ -40,7 +40,7 @@ describe('playerGrowthGrade', () => {
     const prime = playerGrowthGrade(player({ age: 26 }));
     const veteran = playerGrowthGrade(player({ age: 31 }));
 
-    // The age band is the dominant term: 1.3 / 1.0 / 0.6 is a 2.17x swing, and
+    // The age band is the dominant term: 1.1 / 1.0 / 0.6 is a 1.83x swing, and
     // it is the fact the old column hid completely.
     expect(rank(young)).toBeGreaterThan(rank(prime));
     expect(rank(prime)).toBeGreaterThan(rank(veteran));

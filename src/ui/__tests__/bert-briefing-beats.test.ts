@@ -109,7 +109,7 @@ describe('briefing beats', () => {
         `leagueGuideFocus === '${focus}'[\\s\\S]{0,120}?\\?\\s*\\(?['"]leaders['"]`,
       ),
     );
-    expect(app).toContainSource('guideSubTab={leagueGuideSubTab}');
+    expect(app).toContainSource(': leagueGuideSubTab');
   });
 
   it('lifts the briefing scrim off the sub-tab it is talking about', () => {
@@ -159,6 +159,24 @@ describe('briefing beats', () => {
     expect(beats).toHaveLength(2);
     expect(beats[1].text).toContainSource('scores come in live');
     expect(beats.every((beat) => beat.focus === 'national-cup')).toBe(true);
+  });
+
+  it('clears the scout-report lesson after Bert talks without a tap cue', () => {
+    const market = readFileSync(
+      join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
+      'utf8',
+    );
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    expect(market).not.toContainSource(
+      "guideFocus === 'scout-report' && index === 0",
+    );
+    expect(app).toContainSource(
+      "assistantSequenceId === 'scout-report'\n          ? null",
+    );
+    expect(app).toContainSource(
+      'store.completeAssistantGuide(assistantSequenceId)',
+    );
   });
 
   it('carries every paragraph of every page, in order', () => {

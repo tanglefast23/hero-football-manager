@@ -79,6 +79,7 @@ describe('stories on the desk', () => {
         title: story.title,
         detail: story.body,
         tone: 'event',
+        isStory: true,
       },
     ]);
   });

@@ -146,11 +146,11 @@ describe('trainPlayerInstantly display bonus', () => {
 
     // Stored is the real halved gain and stays the sim's number.
     expect(res.after).toBe(trained.attrs.ref);
-    expect(res.after - res.before).toBe(2);
+    expect(res.after - res.before).toBe(1);
     // Displayed is what an outfield ladder would have awarded.
-    expect(res.displayedAfter - res.displayedBefore).toBe(4);
-    expect(trained.refDisplayBonus).toBe(2);
-    expect(res.displayedAfter).toBe(trained.attrs.ref + 2);
+    expect(res.displayedAfter - res.displayedBefore).toBe(2);
+    expect(trained.refDisplayBonus).toBe(1);
+    expect(res.displayedAfter).toBe(trained.attrs.ref + 1);
   });
 
   /**
@@ -176,11 +176,10 @@ describe('trainPlayerInstantly display bonus', () => {
       'keeper-drills',
     );
 
-    // round(2 x 1.3) = 3 stored. Displayed runs the same modifiers over the
-    // outfield base: round(4 x 1.3) = 5, plus the percent channel's released
-    // point, which a comparable outfielder also receives.
-    expect(res.after - res.before).toBe(3);
-    expect(res.displayedAfter - res.displayedBefore).toBe(6);
+    // The new base is 1 stored against 2 displayed. The 1.1 youth multiplier
+    // does not create a whole extra point at this tier.
+    expect(res.after - res.before).toBe(1);
+    expect(res.displayedAfter - res.displayedBefore).toBe(2);
   });
 
   it('steps the stored and displayed gains together through the veteran age band', () => {
@@ -192,9 +191,9 @@ describe('trainPlayerInstantly display bonus', () => {
       'keeper-drills',
     );
 
-    // round(2 x 0.6) = 1 stored; round(4 x 0.6) = 2 displayed.
+    // Both paths round to the one-point floor at this base and age.
     expect(res.after - res.before).toBe(1);
-    expect(res.displayedAfter - res.displayedBefore).toBe(2);
+    expect(res.displayedAfter - res.displayedBefore).toBe(1);
   });
 
   it('accumulates across taps and never moves the stored stat', () => {

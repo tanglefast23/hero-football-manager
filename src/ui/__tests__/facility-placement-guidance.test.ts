@@ -64,7 +64,11 @@ describe('first facility placement guidance', () => {
     expect(source).toContainSource('accessibilityRole="header"');
     expect(source).toContainSource('{...guideHeadingProps()}');
     expect(source).toContainSource('pointerEvents="none"');
+    expect(source).toContainSource('styles.facilityPlacementHelperAnchor');
     expect(source).toContainSource('styles.facilityPlacementHelper');
+    expect(source).toMatchSource(
+      /facilityPlacementHelperAnchor: \{[\s\S]*?top: 0,[\s\S]*?right: 0,[\s\S]*?bottom: 0,[\s\S]*?left: 0,[\s\S]*?alignItems: 'center',[\s\S]*?justifyContent: 'center',/,
+    );
     expect(source).toContainSource('rounded-full');
     expect(source).toContainSource('styles.guidedFacilityGlow');
     expect(source).toContainSource('border-gold-dark bg-gold-light');
@@ -213,5 +217,34 @@ describe('first facility placement guidance', () => {
       "boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'",
     );
     expect(finances).toContainSource("'relative mt-20 w-[48%]'");
+  });
+
+  it('lets Bert deliver every facility refusal instead of a red error bar', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const store = readFileSync(
+      join(process.cwd(), 'src/application/store.ts'),
+      'utf8',
+    );
+
+    expect(app).toContainSource('const facilityErrorBertVisible =');
+    expect(app).toContainSource('store.error && !facilityErrorBertVisible');
+    expect(app).toContainSource('sequenceId="facility-error"');
+    expect(app).toContainSource('customMessage={{ body: store.error! }}');
+    expect(app).toContainSource('onDone={store.clearError}');
+    expect(store.match(/facilityTransactionErrorCopy,/g)).toHaveLength(5);
+
+    for (const locale of ['en', 'de', 'es', 'fr', 'id', 'pt-BR', 'vi']) {
+      const catalog = JSON.parse(
+        readFileSync(
+          join(process.cwd(), `content/i18n/${locale}.json`),
+          'utf8',
+        ),
+      ) as { strings: Record<string, string> };
+      expect(
+        Object.keys(catalog.strings).filter((key) =>
+          key.startsWith('facilityError.'),
+        ),
+      ).toHaveLength(15);
+    }
   });
 });

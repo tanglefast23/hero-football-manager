@@ -94,7 +94,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 20
+                  "amount": 10
                 },
                 {
                   "type": "flag",
@@ -128,7 +128,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 5
+                  "amount": 3
                 }
               ]
             }
@@ -166,7 +166,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 16
+                  "amount": 8
                 },
                 {
                   "type": "flag",
@@ -317,7 +317,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 7
+                  "amount": 4
                 },
                 {
                   "type": "flag",
@@ -420,7 +420,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 7
+                  "amount": 4
                 },
                 {
                   "type": "morale",
@@ -534,7 +534,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 24
+                  "amount": 12
                 },
                 {
                   "type": "squadMorale",
@@ -572,7 +572,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 2
                 }
               ]
             }
@@ -611,7 +611,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 4
                 },
                 {
                   "type": "flag",
@@ -627,7 +627,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 2
                 }
               ]
             }
@@ -718,7 +718,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 6
+                  "amount": 3
                 }
               ]
             }
@@ -866,7 +866,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 2
                 }
               ],
               "nextEventId": "rival-bid-deadline-day"
@@ -982,7 +982,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 21
+                  "amount": 11
                 },
                 {
                   "type": "flag",
@@ -1016,7 +1016,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 7
+                  "amount": 4
                 }
               ]
             }
@@ -1050,7 +1050,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 16
+                  "amount": 8
                 },
                 {
                   "type": "squadMorale",
@@ -1162,7 +1162,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 4
                 }
               ]
             }
@@ -3948,7 +3948,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 4
                 },
                 {
                   "type": "flag",

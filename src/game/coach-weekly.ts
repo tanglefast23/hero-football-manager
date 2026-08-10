@@ -51,13 +51,13 @@ export function cappedCoachBoost(
  * Stable weekly TP created by one employed coach.
  *
  * The full rates are 10 + 2×level for a head coach and 5 + level for an
- * assistant; `TRAINING_POINT_SCALE_PERCENT` then cuts both by 20%
+ * assistant; `TRAINING_POINT_SCALE_PERCENT` then keeps 40% of both
  * alongside the baseline and the Training Pitch, so hiring never becomes the
  * cheap way around a weekly income the rest of the game just lowered.
  *
  * A story's boost is added on top of the scaled figure, in
  * `coachWeeklyTrainingPointsWithBoosts` — it is a change to this coach, not
- * another lever on the club's weekly income, so the 20% cut does not apply
+ * another lever on the club's weekly income, so the global cut does not apply
  * to it twice.
  */
 export function coachWeeklyTrainingPoints(

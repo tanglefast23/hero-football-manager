@@ -15,7 +15,10 @@ import {
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { createEmergencyYouthReplacement } from './youth-intake';
 import { coachMotivatorBonusPercent } from './coach-weekly';
-import { highestDivisionReached } from './promotion-progression';
+import {
+  heroLicenseLimitForDivision,
+  highestDivisionReached,
+} from './promotion-progression';
 import type { CareerPlayer, GameState } from './types';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 
@@ -24,10 +27,7 @@ const TRAINING_GROUND_COST = 8000;
 /** Hero License field cap earned by climbing the national pyramid. */
 export function careerHeroLimit(state: GameState): number {
   if (state.m2 === undefined) return DEFAULT_HERO_LIMIT;
-  const division = highestDivisionReached(state);
-  if (division === 1) return 4;
-  if (division <= 3) return 3;
-  return DEFAULT_HERO_LIMIT;
+  return heroLicenseLimitForDivision(highestDivisionReached(state));
 }
 
 export function rosterForClub(

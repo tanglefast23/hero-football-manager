@@ -4,6 +4,9 @@ import { beatMoment } from '../bert-beat-moments';
 import type { BriefingBeat } from '../bert-briefing-beats';
 
 const app = () => readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+const english = JSON.parse(
+  readFileSync(join(process.cwd(), 'content/i18n/en.json'), 'utf8'),
+).strings as Record<string, string>;
 
 /** The two lines, as beats, so the pairing can be read the way he delivers it. */
 const BEATS: BriefingBeat[] = [
@@ -69,10 +72,12 @@ describe('Bert on the first cup exit', () => {
   it('carries the two lines the defeat was written for', () => {
     const source = app();
 
-    expect(source).toContainSource(
+    expect(source).toContainSource("t('firstCupExit.body1')");
+    expect(source).toContainSource("t('firstCupExit.body2')");
+    expect(english['firstCupExit.body1']).toBe(
       'The cup run is over. But that’s understandable.',
     );
-    expect(source).toContainSource(
+    expect(english['firstCupExit.body2']).toBe(
       'You’re playing against the very best teams and leagues. We can slay these giants in the future!',
     );
   });

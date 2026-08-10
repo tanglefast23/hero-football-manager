@@ -84,6 +84,9 @@ export function contentStrings(): Readonly<Record<string, string>> {
 
   for (const intro of content.rivalHeroIntros.intros) {
     put(`rivalHeroIntro.${intro.heroId}.taunt`, intro.taunt);
+    for (const line of intro.victoryLines) {
+      put(`rivalHeroVictory.${intro.heroId}.${proseSlug(line)}`, line);
+    }
   }
 
   for (const category of content.glossary.categories) {

@@ -75,10 +75,20 @@ describe("manager's tips", () => {
 
     expect(drillTiers).toMatchObject({ destination: 'drill-shop' });
 
-    const base = deskClearCareer(20261208);
-    const home = homeViewModel({
+    const base = createCareer(
+      createLaunchCareerSetup(20261208, undefined, content),
+    );
+    const promoted = {
       ...base,
-      deskTip: { season: base.season, week: base.week, tipId: drillTiers!.id },
+      m2: { ...base.m2!, highestDivisionReached: 4 as const },
+    };
+    const home = homeViewModel({
+      ...promoted,
+      deskTip: {
+        season: promoted.season,
+        week: promoted.week,
+        tipId: drillTiers!.id,
+      },
     });
     expect(home.notes).toContainEqual({
       id: `tip:${drillTiers!.id}`,
@@ -87,6 +97,43 @@ describe("manager's tips", () => {
       detail: drillTiers!.body,
       destination: 'drill-shop',
     });
+  });
+
+  it('keeps drill-tier advice out of D5', () => {
+    const drillTipId = 'drill-tiers-are-permanent';
+    const clear = deskClearCareer(254);
+    const base = {
+      ...clear,
+      season: 1,
+      week: 30,
+      eventFlags: [
+        ...clear.eventFlags,
+        ...tipIds
+          .filter((tipId) => tipId !== drillTipId)
+          .map((tipId) => `tip:seen:${tipId}`),
+      ],
+    };
+
+    const divisionFive = settleWeeklyTip(base);
+    expect(divisionFive.deskTip).toEqual({ season: 1, week: 30 });
+  });
+
+  it('hides a stale D5 drill-tier card already stored by an older build', () => {
+    const base = deskClearCareer(20261209);
+    const stale = {
+      ...base,
+      deskTip: {
+        season: base.season,
+        week: base.week,
+        tipId: 'drill-tiers-are-permanent',
+      },
+    };
+
+    expect(
+      homeViewModel(stale).notes.some(
+        (note) => note.id === 'tip:drill-tiers-are-permanent',
+      ),
+    ).toBe(false);
   });
 
   it('settles a week once, so re-reconciling cannot reroll it', () => {

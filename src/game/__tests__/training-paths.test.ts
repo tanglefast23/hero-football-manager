@@ -49,13 +49,13 @@ describe('training paths', () => {
     // division it reached: promotion puts upgrades on sale, it does not gift them.
     const drill = resolveTrainingDrillForPath(state, 'sprints');
     expect(drill.id).toBe('sprints');
-    expect(drill.gains.pac).toBe(4);
+    expect(drill.gains.pac).toBe(2);
 
     const bought = resolveTrainingDrillForPath(
       { ...state, ownedTrainingTiers: { sprints: 3 } },
       'sprints',
     );
     expect(bought.id).toBe('sprints-iii');
-    expect(bought.gains.pac).toBe(11);
+    expect(bought.gains.pac).toBe(6);
   });
 });

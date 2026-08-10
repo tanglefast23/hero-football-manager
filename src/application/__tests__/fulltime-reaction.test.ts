@@ -174,4 +174,72 @@ describe('full-time touchline reaction', () => {
     const second = reactionFor(20261100, 'loss', { assistant: true }).reaction;
     expect(second).toEqual(first);
   });
+
+  it('adds a stable mockery line when a headline rival beats the manager', () => {
+    const { before, after, fixtureId, isHome } = careerWithStaff(20261200, {
+      assistant: false,
+    });
+    const fixture = before.fixtures.find(
+      (candidate) => candidate.id === fixtureId,
+    )!;
+    const opponentClubId = isHome ? fixture.awayClubId : fixture.homeClubId;
+    const larry = before.players.find(
+      (player) => player.id === 'special-f171',
+    )!;
+    const rivalBefore: GameState = {
+      ...before,
+      players: before.players.map((player) =>
+        player.id === larry.id ? { ...player, clubId: opponentClubId } : player,
+      ),
+    };
+    const rivalAfter: GameState = {
+      ...after,
+      players: after.players.map((player) =>
+        player.id === larry.id ? { ...player, clubId: opponentClubId } : player,
+      ),
+    };
+    const score = isHome
+      ? { homeGoals: 0, awayGoals: 2 }
+      : { homeGoals: 2, awayGoals: 0 };
+
+    const first = postMatchViewModel(
+      rivalBefore,
+      rivalAfter,
+      fixtureId,
+      score,
+    ).rivalMockery;
+    const second = postMatchViewModel(
+      rivalBefore,
+      rivalAfter,
+      fixtureId,
+      score,
+    ).rivalMockery;
+
+    expect(first).toMatchObject({
+      heroId: 'special-f171',
+      heroName: larry.name,
+      matchSide: isHome ? 'away' : 'home',
+    });
+    expect(content.rivalHeroIntros.intros[0]!.victoryLines).toContain(
+      first?.line,
+    );
+    expect(second).toEqual(first);
+
+    const coachless: GameState = {
+      ...rivalAfter,
+      market: { ...rivalAfter.market!, headCoach: undefined },
+    };
+    expect(
+      postMatchViewModel(rivalBefore, coachless, fixtureId, score).rivalMockery,
+    ).toEqual(first);
+  });
+
+  it('does not add rival mockery when the manager wins or draws', () => {
+    expect(
+      reactionFor(20261201, 'win', { assistant: false }).rivalMockery,
+    ).toBeUndefined();
+    expect(
+      reactionFor(20261201, 'draw', { assistant: false }).rivalMockery,
+    ).toBeUndefined();
+  });
 });

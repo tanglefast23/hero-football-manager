@@ -12,6 +12,7 @@ import {
 import { useLayoutMode } from '../layout/use-layout-mode';
 import type { M2CupRoundViewModel } from '../m2-league-models';
 import { PixelText } from './PixelText';
+import { TutorialTapCue } from '../TutorialTapCue';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 /**
@@ -34,9 +35,15 @@ export interface CupBracketProps {
   rounds: readonly M2CupRoundViewModel[];
   /** Shown as a plate over the tree once the cup has been won. */
   championName?: string;
+  /** First Cup win helper: points at the first full bracket round. */
+  guideRoundOf32?: boolean;
 }
 
-export function CupBracket({ rounds, championName }: CupBracketProps) {
+export function CupBracket({
+  rounds,
+  championName,
+  guideRoundOf32 = false,
+}: CupBracketProps) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const narrow = useLayoutMode() !== 'twoColumn';
@@ -67,6 +74,16 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
           key={band.columns[0].round}
           style={index === 0 ? null : styles.bandGap}
         >
+          {guideRoundOf32 && index === 0 ? (
+            <View style={styles.roundOf32GuideSpace}>
+              <TutorialTapCue
+                label={band.columns[0].label}
+                detail={t('firstCupWin.youAreHere')}
+                direction="down"
+                style={styles.roundOf32Guide}
+              />
+            </View>
+          ) : null}
           {index > 0 ? (
             <Text style={styles.bandNote}>
               {t('cupBracket.winnersFromAbove')}
@@ -314,6 +331,8 @@ const makeStyles = (faces: LocaleFaces) =>
     headerRow: { height: HEADER_HEIGHT },
     /** Bands are one tree wrapped, so the seam is spacing plus a hand-off note. */
     bandGap: { marginTop: 18 },
+    roundOf32GuideSpace: { height: 84, position: 'relative' },
+    roundOf32Guide: { left: 0, top: 0 },
     bandNote: {
       color: '#6b6675',
       fontFamily: faces.data,

@@ -47,6 +47,8 @@ export interface MatchRailHeroTile {
   /** 0–1 share of the Zone threshold. */
   heat: number;
   status: RailHeroStatus;
+  /** The division-headline opponent uses the threat-red rail treatment. */
+  rival: boolean;
 }
 
 export interface MatchControlRailProps {
@@ -421,7 +423,13 @@ export function MatchControlRail({
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('matchRail.heroPowers')}</Text>
           {heroTiles.map((tile) => (
-            <View key={tile.id} style={styles.heroTile}>
+            <View
+              key={tile.id}
+              style={[
+                styles.heroTile,
+                tile.rival ? styles.heroTileRival : null,
+              ]}
+            >
               <Text style={[styles.heroGlyph, { color: tile.powerColor }]}>
                 {tile.powerGlyph}
               </Text>
@@ -433,13 +441,19 @@ export function MatchControlRail({
                   numberOfLines={1}
                   style={[styles.heroPower, { color: tile.powerColor }]}
                 >
-                  {tile.powerName}
+                  {tile.rival
+                    ? `${t('rivalHeroIntro.divisionRival')} · ${tile.powerName}`
+                    : tile.powerName}
                 </Text>
                 <View style={styles.energyTrack}>
                   <View
                     style={[
                       styles.heatFill,
-                      tile.status === 'building' ? null : styles.heatFillReady,
+                      tile.rival
+                        ? styles.heatFillRival
+                        : tile.status === 'building'
+                          ? null
+                          : styles.heatFillReady,
                       { width: `${Math.round(tile.heat * 100)}%` },
                     ]}
                   />
@@ -449,7 +463,11 @@ export function MatchControlRail({
                 <Text
                   style={[
                     styles.heroStatus,
-                    tile.status === 'building' ? null : styles.heroStatusReady,
+                    tile.rival
+                      ? styles.heroStatusRival
+                      : tile.status === 'building'
+                        ? null
+                        : styles.heroStatusReady,
                   ]}
                 >
                   {heroStatusText(tile, t)}
@@ -661,6 +679,10 @@ const makeStyles = (faces: LocaleFaces) =>
       paddingHorizontal: 12,
       paddingVertical: 12,
     },
+    heroTileRival: {
+      backgroundColor: '#321f2a',
+      borderColor: '#d94f52',
+    },
     heroGlyph: {
       width: 36,
       fontFamily: faces.display,
@@ -672,6 +694,7 @@ const makeStyles = (faces: LocaleFaces) =>
     heroPower: { fontFamily: faces.data, fontSize: 11, marginTop: 4 },
     heatFill: { height: 6, backgroundColor: '#c8862a' },
     heatFillReady: { backgroundColor: '#edb54a' },
+    heatFillRival: { backgroundColor: '#d94f52' },
     heroStatusColumn: { alignItems: 'center', gap: 8 },
     heroStatus: {
       color: '#b9b4c2',
@@ -680,6 +703,7 @@ const makeStyles = (faces: LocaleFaces) =>
       fontVariant: ['tabular-nums'],
     },
     heroStatusReady: { color: '#edb54a' },
+    heroStatusRival: { color: '#d94f52' },
     energyFillGreen: { backgroundColor: ENERGY_FILL_COLORS.green },
     energyFillAmber: { backgroundColor: ENERGY_FILL_COLORS.amber },
     energyFillRed: { backgroundColor: ENERGY_FILL_COLORS.red },

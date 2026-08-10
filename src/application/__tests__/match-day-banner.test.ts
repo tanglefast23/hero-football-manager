@@ -139,7 +139,7 @@ describe('matchDayBannerViewModel', () => {
    * fixture weeks arrived without ever passing through the Advance Week press
    * the announcement used to hang off — and went silent.
    */
-  it('announces the next fixture week the club settles into after a match', () => {
+  it('keeps the next fixture-week announcement after the financial report closes', async () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
     useM1Store.getState().startNewCareer(2);
     useM1Store.getState().completePlayerCreation({
@@ -179,6 +179,13 @@ describe('matchDayBannerViewModel', () => {
     expect(useM1Store.getState().career).toMatchObject({
       week: played.week + 1,
     });
+    expect(useM1Store.getState().matchDayBanner?.id).toBe(
+      `match-day-banner-${started.season}-${played.week + 1}`,
+    );
+
+    await useM1Store.getState().continueAfterMatch();
+    expect(useM1Store.getState().postMatchOverlay).toBe('summary');
+    useM1Store.getState().dismissPostMatchSummary();
     expect(useM1Store.getState().matchDayBanner?.id).toBe(
       `match-day-banner-${started.season}-${played.week + 1}`,
     );

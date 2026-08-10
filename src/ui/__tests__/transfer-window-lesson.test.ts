@@ -54,7 +54,7 @@ describe('the emergency-loan briefing', () => {
     );
     // The panel stays lit, so his words still have something to point at.
     expect(club).toContainSource(
-      "guideFocus === 'emergency-loan' ? 'relative border-2 border-blue-dark bg-blue-light p-1'",
+      "? 'relative border-2 border-blue-dark bg-blue-light p-1'",
     );
   });
 

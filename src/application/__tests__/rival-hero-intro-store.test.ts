@@ -64,7 +64,7 @@ describe('rival hero intro store flow', () => {
     ).toHaveLength(1);
   });
 
-  it('keeps the approved first tutorial match powerless after the teaser', () => {
+  it('keeps the new club powerless but lets Larry charge and fire after the teaser', () => {
     const career = openingMatchday();
     const fixture = matchDayViewModel(career, loadLaunchContent()).fixture;
     expect(fixture.opponentHeroCount).toBe(1);
@@ -82,12 +82,14 @@ describe('rival hero intro store flow', () => {
     useM1Store.getState().watchMatch();
 
     const watched = useM1Store.getState().watchedMatch!;
+    const userTeam = watched.userIsFixtureHome ? watched.home : watched.away;
+    const rivalTeam = watched.userIsFixtureHome ? watched.away : watched.home;
+    expect(userTeam.players.every((player) => player.power === undefined)).toBe(
+      true,
+    );
     expect(
-      watched.home.players.every((player) => player.power === undefined),
-    ).toBe(true);
-    expect(
-      watched.away.players.every((player) => player.power === undefined),
-    ).toBe(true);
+      rivalTeam.players.find((player) => player.id === 'special-f171'),
+    ).toMatchObject({ name: 'Larry Alan', power: 'SUPER_SPEED' });
     expect(useM1Store.getState().screen).toBe('watched');
   });
 });

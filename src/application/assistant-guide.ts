@@ -300,14 +300,23 @@ export type OpeningInboxDutyId =
   | 'facility-placement'
   | 'head-coach-market'
   | 'youth-intake'
-  | 'coaching-office';
+  | 'coaching-office'
+  | 'assistant-coach-hire'
+  | 'national-cup';
 
 const BLOCKING_INBOX_DUTIES: readonly OpeningInboxDutyId[] = [
   'facility-placement',
   'head-coach-market',
   'youth-intake',
   'coaching-office',
+  'assistant-coach-hire',
+  'national-cup',
 ];
+
+const LATER_MUST_DO_DUTIES = new Set<OpeningInboxDutyId>([
+  'assistant-coach-hire',
+  'national-cup',
+]);
 
 /** One durable job ID even when the coach lesson moves to its second briefing. */
 export function openingInboxDutyForGuideSequence(
@@ -336,6 +345,12 @@ export function isOpeningInboxDutyIncomplete(
   }
   if (duty === 'youth-intake') {
     return (state.youthIntake?.signedPlayerIds.length ?? 0) === 0;
+  }
+  if (duty === 'assistant-coach-hire') {
+    return state.market?.assistantCoach === undefined;
+  }
+  if (duty === 'national-cup') {
+    return !hasAssistantGuideSequenceCompleted(state, 'national-cup');
   }
   return !(
     state.facilities.grid?.buildings.some(
@@ -409,6 +424,18 @@ function isInboxDutyCompletable(
       }
     });
   }
+  if (duty === 'assistant-coach-hire') {
+    if (state.market === undefined) return false;
+    return state.market.coachCandidates.some((candidate) => {
+      try {
+        hireCareerCoach(state, state.market!, candidate.id, 'ASSISTANT');
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }
+  if (duty === 'national-cup') return true;
 
   // A wrong opening project in an older save must be allowed to finish. A job
   // which cannot use the one works crew must not deadlock Advance Week.
@@ -451,9 +478,16 @@ export const LAST_GATED_INBOX_WEEK = 3;
  */
 export function outstandingInboxDuties(state: GameState): OpeningInboxDutyId[] {
   if (!assistantTeaches(state)) return [];
-  if (state.season !== 1 || state.week > LAST_GATED_INBOX_WEEK) return [];
+  const dueDuties = new Set(
+    dueAssistantInboxGuideSequences(state)
+      .map(openingInboxDutyForGuideSequence)
+      .filter((duty): duty is OpeningInboxDutyId => duty !== undefined),
+  );
   return BLOCKING_INBOX_DUTIES.filter(
     (duty) =>
+      (LATER_MUST_DO_DUTIES.has(duty)
+        ? dueDuties.has(duty)
+        : state.season === 1 && state.week <= LAST_GATED_INBOX_WEEK) &&
       isOpeningInboxDutyIncomplete(state, duty) &&
       isInboxDutyCompletable(state, duty),
   );

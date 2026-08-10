@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MatchScreen, type PowerMatchQaConfig } from '../render/MatchScreen';
+import { LazyMatchScreen as MatchScreen } from '../render/LazyMatchScreen';
+import type { PowerMatchQaConfig } from '../render/MatchScreen';
 import {
   powerMatchShowcaseAway,
   powerMatchShowcaseHome,

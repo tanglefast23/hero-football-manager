@@ -35,6 +35,7 @@ export type FulltimeReportCaseId =
   | 'loss'
   | 'hiding'
   | 'blamed'
+  | 'rival-larry'
   | 'cup-giant'
   | 'cup-even';
 
@@ -72,6 +73,11 @@ const CASES: readonly {
     id: 'blamed',
     label: 'Loss · blamed',
     note: 'The one-in-three: he points at the assistant.',
+  },
+  {
+    id: 'rival-larry',
+    label: 'Loss · Larry mocks',
+    note: 'Larry beat us, laughs opposite the coach, and draws one stable line.',
   },
   {
     id: 'cup-giant',
@@ -162,6 +168,26 @@ function FulltimeReportReel({ caseId }: { caseId: FulltimeReportCaseId }) {
         fixture.awayClubId === career.userClubId,
     );
     const first = userFixtures[0];
+    if (caseId === 'rival-larry') {
+      const opponentClubId =
+        first.homeClubId === career.userClubId
+          ? first.awayClubId
+          : first.homeClubId;
+      const withLarry: GameState = {
+        ...career,
+        players: career.players.map((player) =>
+          player.id === 'special-f171'
+            ? { ...player, clubId: opponentClubId }
+            : player,
+        ),
+      };
+      return postMatchViewModel(
+        withLarry,
+        withLarry,
+        first.id,
+        goals(first, 0, 2),
+      );
+    }
     if (caseId === 'win')
       return postMatchViewModel(career, career, first.id, goals(first, 3, 1));
     if (caseId === 'rout')

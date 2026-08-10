@@ -236,7 +236,7 @@ describe('launch career adapter', () => {
   it('rebases a drill catalog left behind by a balance retune', () => {
     // `trainingRules.focusDrills` is baked into the save, so a gains retune that
     // only reached New Game would never be felt in the career actually being
-    // played. Tier II here carries the pre-retune +6.
+    // played. Tier II here carries the pre-retune +7.
     const content = loadLaunchContent();
     const current = createCareer(
       createLaunchCareerSetup(20260806, undefined, content),
@@ -245,7 +245,7 @@ describe('launch career adapter', () => {
       ...current,
       trainingRules: {
         focusDrills: current.trainingRules!.focusDrills.map((drill) =>
-          drill.id === 'sprints-ii' ? { ...drill, gains: { pac: 6 } } : drill,
+          drill.id === 'sprints-ii' ? { ...drill, gains: { pac: 7 } } : drill,
         ),
       },
     };

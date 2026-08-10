@@ -26,7 +26,10 @@ function trainWithoutSuper(
 
 describe('M2 player-specific instant training growth', () => {
   test('applies the age curve to deliberate stamina training', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90210) });
+    const initial = {
+      ...createCareer({ ...createLaunchCareerSetup(90210) }),
+      ownedTrainingTiers: { circuit: 3 },
+    };
     const playerId = initial.players.find(
       (player) => player.clubId === initial.userClubId,
     )!.id;
@@ -49,10 +52,10 @@ describe('M2 player-specific instant training growth', () => {
     const young = trainWithoutSuper(prepare(20), playerId, 'circuit');
     const prime = trainWithoutSuper(prepare(25), playerId, 'circuit');
 
-    // Circuit 1 (+4 STA) is the tier every career owns from the start. Age 20
-    // scales by 1.3 (round(5.2) = 5), age 25 by 1.0.
-    expect(young.after).toBe(55);
-    expect(prime.after).toBe(54);
+    // Circuit 3 gives +6 STA. Age 20 scales it by 1.1 to 7 after rounding;
+    // age 25 keeps it at 6.
+    expect(young.after).toBe(57);
+    expect(prime.after).toBe(56);
   });
 
   test('uses the matching facility level without a high-stat growth wall', () => {
@@ -96,13 +99,13 @@ describe('M2 player-specific instant training growth', () => {
 
     const result = trainWithoutSuper(state, playerId, 'circuit');
 
-    // Circuit 1's +4 STA doubles under the Lv3 Gym to +8; Engine's 15% (120
-    // hundredths) releases one whole point and banks 20. No growth wall at 90.
-    expect(result.after).toBe(99);
+    // Circuit 1's +2 STA becomes +3 under the Lv3 Gym. Engine's 15% bonus
+    // banks 39 hundredths from the unrounded 2.6 gain. No growth wall applies.
+    expect(result.after).toBe(93);
     expect(
       result.state.players.find((p) => p.id === playerId)
         ?.trainingBonusRemainders?.sta,
-    ).toBe(20);
+    ).toBe(39);
   });
 
   test('banks fractional archetype bonuses until repeat drills earn a whole point', () => {
@@ -111,7 +114,7 @@ describe('M2 player-specific instant training growth', () => {
       (player) => player.clubId === initial.userClubId,
     )!.id;
     // Anchor gives +15% DEF; a FWD earns no position bonus on DEF, and there is
-    // no coach, so each +4 Duels 1 drill banks exactly 60 hundredths.
+    // no coach, so each +2 Duels 1 drill banks exactly 30 hundredths.
     let state: GameState = {
       ...initial,
       trainingPoints: 100,
@@ -142,11 +145,11 @@ describe('M2 player-specific instant training growth', () => {
       };
     }
 
-    expect(gains).toEqual([4, 5, 4]);
+    expect(gains).toEqual([2, 2, 2]);
     expect(
       state.players.find((p) => p.id === playerId)?.trainingBonusRemainders
         ?.def,
-    ).toBe(80);
+    ).toBe(90);
   });
 
   test('allows gains through 99 and stops only at the universal 999 ceiling', () => {

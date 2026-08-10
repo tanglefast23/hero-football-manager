@@ -155,10 +155,9 @@ const REFERENCE_OUTFIELD_PATH_ID = 'sprints';
  * the club has not bought yet, and a path's owned tier is the wrong answer for
  * those rows.
  *
- * Keeper Drills award exactly half the outfield gain at every tier for the same
+ * Keeper Drills award roughly half the outfield gain at every tier for the same
  * TP — deliberately, because Reflexes is contested on every shot faced and
- * `training-leverage-rails` prices keeper training at 6.61x a striker's. This
- * returns 2 for the keeper path and 1 for everything else.
+ * `training-leverage-rails` prices keeper training at 6.61x a striker's.
  *
  * Derived from the content rather than written as a literal 2 on purpose. The
  * keeper ladder is under active balance review and `keeper-drill-gain-probe`
@@ -208,8 +207,8 @@ export function trainingPathForAttribute(attribute: keyof Attrs): string {
  * Read from the drill the club has actually bought rather than a ladder copied
  * into the caller, for two reasons. The obvious one: a frozen table goes stale
  * the day `content/training.json` moves. The one that would have shipped a bug:
- * the keeper ladder is deliberately half the outfield one (2/4/6/8/11 against
- * 4/7/11/16/22), because REF is the most leveraged attribute in the game — so a
+ * the keeper ladder is deliberately about half the outfield one (1/2/3/5/5
+ * against 2/4/6/9/10), because REF is the most leveraged attribute in the game — so a
  * hardcoded outfield table would have doubled every keeper reward and re-opened
  * exactly the leverage that ladder exists to price out.
  *

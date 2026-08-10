@@ -7,7 +7,7 @@
       "moneyCost": 0,
       "tpCost": 10,
       "gains": {
-        "pac": 4
+        "pac": 2
       }
     },
     {
@@ -16,7 +16,7 @@
       "moneyCost": 0,
       "tpCost": 15,
       "gains": {
-        "pac": 7
+        "pac": 4
       }
     },
     {
@@ -25,7 +25,7 @@
       "moneyCost": 0,
       "tpCost": 21,
       "gains": {
-        "pac": 11
+        "pac": 6
       }
     },
     {
@@ -34,7 +34,7 @@
       "moneyCost": 0,
       "tpCost": 28,
       "gains": {
-        "pac": 16
+        "pac": 9
       }
     },
     {
@@ -43,7 +43,7 @@
       "moneyCost": 0,
       "tpCost": 36,
       "gains": {
-        "pac": 22
+        "pac": 10
       }
     },
     {
@@ -52,7 +52,7 @@
       "moneyCost": 0,
       "tpCost": 10,
       "gains": {
-        "sho": 4
+        "sho": 2
       }
     },
     {
@@ -61,7 +61,7 @@
       "moneyCost": 0,
       "tpCost": 15,
       "gains": {
-        "sho": 7
+        "sho": 4
       }
     },
     {
@@ -70,7 +70,7 @@
       "moneyCost": 0,
       "tpCost": 21,
       "gains": {
-        "sho": 11
+        "sho": 6
       }
     },
     {
@@ -79,7 +79,7 @@
       "moneyCost": 0,
       "tpCost": 28,
       "gains": {
-        "sho": 16
+        "sho": 9
       }
     },
     {
@@ -88,7 +88,7 @@
       "moneyCost": 0,
       "tpCost": 36,
       "gains": {
-        "sho": 22
+        "sho": 10
       }
     },
     {
@@ -97,7 +97,7 @@
       "moneyCost": 0,
       "tpCost": 10,
       "gains": {
-        "pas": 4
+        "pas": 2
       }
     },
     {
@@ -106,7 +106,7 @@
       "moneyCost": 0,
       "tpCost": 15,
       "gains": {
-        "pas": 7
+        "pas": 4
       }
     },
     {
@@ -115,7 +115,7 @@
       "moneyCost": 0,
       "tpCost": 21,
       "gains": {
-        "pas": 11
+        "pas": 6
       }
     },
     {
@@ -124,7 +124,7 @@
       "moneyCost": 0,
       "tpCost": 28,
       "gains": {
-        "pas": 16
+        "pas": 9
       }
     },
     {
@@ -133,7 +133,7 @@
       "moneyCost": 0,
       "tpCost": 36,
       "gains": {
-        "pas": 22
+        "pas": 10
       }
     },
     {
@@ -142,7 +142,7 @@
       "moneyCost": 0,
       "tpCost": 10,
       "gains": {
-        "def": 4
+        "def": 2
       }
     },
     {
@@ -151,7 +151,7 @@
       "moneyCost": 0,
       "tpCost": 15,
       "gains": {
-        "def": 7
+        "def": 4
       }
     },
     {
@@ -160,7 +160,7 @@
       "moneyCost": 0,
       "tpCost": 21,
       "gains": {
-        "def": 11
+        "def": 6
       }
     },
     {
@@ -169,7 +169,7 @@
       "moneyCost": 0,
       "tpCost": 28,
       "gains": {
-        "def": 16
+        "def": 9
       }
     },
     {
@@ -178,7 +178,7 @@
       "moneyCost": 0,
       "tpCost": 36,
       "gains": {
-        "def": 22
+        "def": 10
       }
     },
     {
@@ -187,7 +187,7 @@
       "moneyCost": 0,
       "tpCost": 10,
       "gains": {
-        "tec": 4
+        "tec": 2
       }
     },
     {
@@ -196,7 +196,7 @@
       "moneyCost": 0,
       "tpCost": 15,
       "gains": {
-        "tec": 7
+        "tec": 4
       }
     },
     {
@@ -205,7 +205,7 @@
       "moneyCost": 0,
       "tpCost": 21,
       "gains": {
-        "tec": 11
+        "tec": 6
       }
     },
     {
@@ -214,7 +214,7 @@
       "moneyCost": 0,
       "tpCost": 28,
       "gains": {
-        "tec": 16
+        "tec": 9
       }
     },
     {
@@ -223,7 +223,7 @@
       "moneyCost": 0,
       "tpCost": 36,
       "gains": {
-        "tec": 22
+        "tec": 10
       }
     },
     {
@@ -232,7 +232,7 @@
       "moneyCost": 0,
       "tpCost": 10,
       "gains": {
-        "sta": 4
+        "sta": 2
       }
     },
     {
@@ -241,7 +241,7 @@
       "moneyCost": 0,
       "tpCost": 15,
       "gains": {
-        "sta": 7
+        "sta": 4
       }
     },
     {
@@ -250,7 +250,7 @@
       "moneyCost": 0,
       "tpCost": 21,
       "gains": {
-        "sta": 11
+        "sta": 6
       }
     },
     {
@@ -259,7 +259,7 @@
       "moneyCost": 0,
       "tpCost": 28,
       "gains": {
-        "sta": 16
+        "sta": 9
       }
     },
     {
@@ -268,7 +268,7 @@
       "moneyCost": 0,
       "tpCost": 36,
       "gains": {
-        "sta": 22
+        "sta": 10
       }
     },
     {
@@ -277,7 +277,7 @@
       "moneyCost": 0,
       "tpCost": 10,
       "gains": {
-        "ref": 2
+        "ref": 1
       }
     },
     {
@@ -286,7 +286,7 @@
       "moneyCost": 0,
       "tpCost": 15,
       "gains": {
-        "ref": 4
+        "ref": 2
       }
     },
     {
@@ -295,7 +295,7 @@
       "moneyCost": 0,
       "tpCost": 21,
       "gains": {
-        "ref": 6
+        "ref": 3
       }
     },
     {
@@ -304,7 +304,7 @@
       "moneyCost": 0,
       "tpCost": 28,
       "gains": {
-        "ref": 8
+        "ref": 5
       }
     },
     {
@@ -313,7 +313,7 @@
       "moneyCost": 0,
       "tpCost": 36,
       "gains": {
-        "ref": 11
+        "ref": 5
       }
     }
   ]

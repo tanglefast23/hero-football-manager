@@ -721,7 +721,7 @@ function ScoutingDesk({
           <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">
             {t('market.scoutingReports')}
           </Text>
-          {viewModel.scouting.reports.map((report, index) => (
+          {viewModel.scouting.reports.map((report) => (
             <Pressable
               key={report.playerId}
               accessibilityRole="button"
@@ -729,28 +729,11 @@ function ScoutingDesk({
                 player: report.playerName,
               })}
               onPress={() => onOpenScoutReport(report.playerId)}
-              className={
-                guideFocus === 'scout-report' && index === 0
-                  ? 'relative border-2 border-b-4 border-blue-dark bg-blue-light p-3'
-                  : 'relative border-2 border-b-4 border-ink bg-white p-3'
-              }
+              className="relative border-2 border-b-4 border-ink bg-white p-3"
               style={({ pressed }) => ({
                 opacity: pressed ? 0.78 : 1,
-                ...(guideFocus === 'scout-report' && index === 0
-                  ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
-                  : {}),
               })}
             >
-              {guideFocus === 'scout-report' && index === 0 ? (
-                <TutorialTapCue
-                  detail={t('market.openTheReport')}
-                  style={{
-                    left: '50%',
-                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                  }}
-                />
-              ) : null}
               <View className="flex-row items-start justify-between gap-3">
                 <View className="overflow-hidden border-2 border-ink bg-blue-light">
                   <PixelPortrait

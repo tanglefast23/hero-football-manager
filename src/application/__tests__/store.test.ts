@@ -33,7 +33,10 @@ import {
 import { careerMarketScoutOptions } from '../market-source-adapter';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 import { copyFor } from '../../i18n';
-import { outstandingInboxDuties } from '../assistant-guide';
+import {
+  outstandingInboxDuties,
+  type OpeningInboxDutyId,
+} from '../assistant-guide';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -426,6 +429,10 @@ describe('M1 app store integration', () => {
 
   it('trains a player the moment a drill is tapped and reviews the week without it', () => {
     startCreatedCareer(789);
+    const started = useM1Store.getState().career!;
+    // The shipped opening bank now funds one tier-one drill. This test needs
+    // two taps to verify popup sequencing, so fund that exact test contract.
+    useM1Store.setState({ career: { ...started, trainingPoints: 20 } });
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
     const unassignedPlayerId = 'bramble-rovers-p14';
@@ -440,7 +447,7 @@ describe('M1 app store integration', () => {
 
     const trained = useM1Store.getState().career!;
     const result = useM1Store.getState().lastDrillResult!;
-    // Division 5 unlocks tier II, so the tap resolves Sprints 2: 10 TP.
+    // A new Division 5 club owns Sprints 1: 10 TP.
     expect(result).toMatchObject({
       playerId,
       attribute: 'pac',
@@ -2181,16 +2188,34 @@ describe('M1 app store integration', () => {
     );
     expect(saved[0].envelope.home.players).toHaveLength(11);
     expect(saved[0].envelope.away.players).toHaveLength(11);
+    const userTeam =
+      controlledTeam === 0 ? saved[0].envelope.home : saved[0].envelope.away;
+    const rivalTeam =
+      controlledTeam === 0 ? saved[0].envelope.away : saved[0].envelope.home;
+    expect(userTeam.players.every((player) => player.power === undefined)).toBe(
+      true,
+    );
     expect(
-      saved[0].envelope.home.players.every(
-        (player) => player.power === undefined,
-      ),
-    ).toBe(true);
-    expect(
-      saved[0].envelope.away.players.every(
-        (player) => player.power === undefined,
-      ),
-    ).toBe(true);
+      rivalTeam.players.find((player) => player.id === 'special-f171'),
+    ).toMatchObject({ name: 'Larry Alan', power: 'SUPER_SPEED' });
+    const replayed = runReplay(saved[0].envelope);
+    const larryHomeIndex = saved[0].envelope.home.players.findIndex(
+      (player) => player.id === 'special-f171',
+    );
+    const larryIndex =
+      larryHomeIndex >= 0
+        ? larryHomeIndex
+        : 11 +
+          saved[0].envelope.away.players.findIndex(
+            (player) => player.id === 'special-f171',
+          );
+    expect(replayed.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: larryIndex,
+        power: 'SUPER_SPEED',
+      }),
+    );
   });
 
   it('keeps the user controllable in an away fixture and maps the score back to league order', () => {
@@ -2393,6 +2418,10 @@ describe('financial report reveals', () => {
       }
       if (state.screen === 'postmatch') {
         state.continueAfterMatch();
+        continue;
+      }
+      if (state.screen === 'event') {
+        progressJourneyEvent(state);
         continue;
       }
       if (state.screen !== 'management') {
@@ -2668,12 +2697,10 @@ function answerRefusedDeskDuty(): boolean {
 }
 
 function finishOpeningInboxJobs(
-  duties: readonly (
-    | 'facility-placement'
-    | 'head-coach-market'
-    | 'youth-intake'
-    | 'coaching-office'
-  )[] = ['facility-placement', 'head-coach-market'],
+  duties: readonly OpeningInboxDutyId[] = [
+    'facility-placement',
+    'head-coach-market',
+  ],
 ): void {
   for (const duty of duties) {
     const current = useM1Store.getState();
@@ -2701,7 +2728,21 @@ function finishOpeningInboxJobs(
       if (youthId === undefined)
         throw new Error('opening job helper has no youth offer');
       current.signYouth(youthId);
+    } else if (duty === 'assistant-coach-hire') {
+      if (career.market?.assistantCoach === undefined) {
+        const coachId = career.market?.coachCandidates.find(
+          (coach) => coach.id !== career.market?.headCoach?.id,
+        )?.id;
+        if (coachId === undefined)
+          throw new Error(
+            'opening job helper has no assistant coach candidate',
+          );
+        current.hireCoach(coachId, 'ASSISTANT');
+      }
+    } else if (duty === 'national-cup') {
+      current.completeAssistantGuide('national-cup');
     } else if (
+      duty === 'coaching-office' &&
       !(
         career.facilities.grid?.buildings.some(
           (building) => building.type === 'coaching-office',

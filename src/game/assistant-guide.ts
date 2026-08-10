@@ -84,6 +84,8 @@ export type AssistantGuideMilestone =
    * and a gaffer who consoles you every season is a nag.
    */
   | 'first-cup-exit-seen'
+  /** Bert celebrates the first Cup win and points out the Round of 32 once. */
+  | 'first-cup-round-of-32-seen'
   /**
    * The first crowd the club ever wins. Two beats, one per screen: the
    * congratulations on the desk, then the ledger he walks you to. Held apart so
@@ -150,6 +152,7 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'facility-combo-medical-training-pitch-seen':
     'guide:bert:facility-combo-medical-training-pitch-seen',
   'first-cup-exit-seen': 'guide:bert:first-cup-exit-seen',
+  'first-cup-round-of-32-seen': 'guide:bert:first-cup-round-of-32-seen',
   'first-fans-seen': 'guide:bert:first-fans-seen',
   'first-fans-ledger-seen': 'guide:bert:first-fans-ledger-seen',
   'expired-contract-seen': 'guide:bert:expired-contract-seen',
@@ -245,6 +248,12 @@ export function completeAssistantGuideSequence(
   if (
     sequenceId === 'facility-placement' &&
     !state.facilities.trainingGroundBuilt
+  ) {
+    return state;
+  }
+  if (
+    sequenceId === 'assistant-coach-hire' &&
+    state.market?.assistantCoach === undefined
   ) {
     return state;
   }

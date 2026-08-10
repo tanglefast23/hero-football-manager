@@ -32,6 +32,8 @@ const BODY_PREFIXES = [
   'coach.',
   // The players' agent, in that same bubble, for the same reason.
   'agent.',
+  // The winning division rival mocks the coach in the report's speech bubble.
+  'rivalHeroVictory.',
   // Disabled contract-promise explanations render as wrapping sans paragraphs
   // under each row (`MarketScreen.tsx`), not in the pixel label above them.
   'market.promiseBlocked',

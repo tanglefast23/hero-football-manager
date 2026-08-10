@@ -12,9 +12,10 @@
  * printed next to them, and re-tuning the overall generosity is one edit here
  * rather than three roundings to re-derive.
  *
- * 80 since 2026-08-07 (owner decision: every source 20% lower than it was).
+ * 40 since 2026-08-10. This slows the optimized manager who builds the pitch
+ * and hires both coaches early, not only the manager who uses one TP source.
  */
-export const TRAINING_POINT_SCALE_PERCENT = 80;
+export const TRAINING_POINT_SCALE_PERCENT = 40;
 
 /**
  * Applies the weekly scale to one source's full rate.
