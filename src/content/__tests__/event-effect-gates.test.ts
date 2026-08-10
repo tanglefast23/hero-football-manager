@@ -175,7 +175,7 @@ describe('event effect gates', () => {
         ),
     );
 
-    // 43 before the cut; 16 of the migrated events left with the cut list.
-    expect(squadMoraleEffects).toHaveLength(27);
+    // 43 before the cut; 16 migrated events and Giant Spider left the catalog.
+    expect(squadMoraleEffects).toHaveLength(26);
   });
 });

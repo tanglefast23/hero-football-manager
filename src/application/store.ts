@@ -1688,6 +1688,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({
       postMatch: null,
       postMatchOverlay: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
       ...(career?.pendingEvent === undefined ? {} : { screen: 'event' }),
       error: null,
     });
