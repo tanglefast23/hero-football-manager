@@ -66,6 +66,12 @@ export const TARGETS = {
   bed: -20,
 };
 
+/** Per-cue mix decisions that intentionally differ from their class target. */
+export const TARGET_OVERRIDES = {
+  // A blocked tap should register without competing with successful actions.
+  'assets/audio/sfx/negative.m4a': -18,
+};
+
 /** True-peak ceiling every output is held under, in dBTP. */
 const CEILING = -1.0;
 /** Gain smaller than this is inaudible and not worth a re-encode. */
@@ -385,7 +391,7 @@ for (const assetPath of assets) {
     // whole class ships unlevelled; a measurement that failed is a bug.
     throw new Error(`${assetPath}: could not measure loudness (class ${cls})`);
   }
-  const target = TARGETS[cls];
+  const target = TARGET_OVERRIDES[assetPath] ?? TARGETS[cls];
   const gain = target - loudness;
   const wouldPeak = (measured.truePeak ?? 0) + gain;
   rows.push({ assetPath, cls, measured, loudness, target, gain, wouldPeak });
@@ -449,6 +455,7 @@ if (dryRun) process.exit(0);
 const staging = mkdtempSync(join(tmpdir(), 'hfm-audio-levels-'));
 const manifest = {
   target: TARGETS,
+  targetOverrides: TARGET_OVERRIDES,
   ceilingDbtp: CEILING,
   generatedBy: relative(ROOT, fileURLToPath(import.meta.url)),
   assets: {},
