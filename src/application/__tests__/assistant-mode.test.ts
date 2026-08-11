@@ -5,6 +5,7 @@ import {
   activeCareerMatchday,
   completeMatchday,
   DEFAULT_CREATION_RATINGS,
+  midseasonTrainingStatus,
   willRetireAtSeasonTransition,
 } from '../../game';
 import { isFacilityOperational } from '../../game/facilities';
@@ -265,6 +266,8 @@ function runManagedCareer(
 
     if (current.screen === 'awakening') {
       current.continueAfterAwakening();
+    } else if (current.screen === 'midseason-training') {
+      current.completeMidseasonTraining();
     } else if (current.screen === 'event') {
       progressManagedEvent();
     } else if (current.screen === 'matchday') {
@@ -295,6 +298,10 @@ function runManagedCareer(
     } else if (current.screen === 'management') {
       if (current.postMatchOverlay === 'summary') {
         current.dismissPostMatchSummary();
+        continue;
+      }
+      if (midseasonTrainingStatus(career) === 'prompt') {
+        current.declineMidseasonTraining();
         continue;
       }
 

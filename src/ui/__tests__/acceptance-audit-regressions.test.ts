@@ -148,11 +148,12 @@ describe('player-facing acceptance audit regressions', () => {
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');
 
     expect(club).toContainSource("position: 'relative'");
-    // The hovered SfxPressable has to share the grid's stacking context so its
-    // raised tooltip can clear the absolutely positioned building layer.
+    // The cells stay in the grid's stacking context while facility art uses
+    // its own layer and becomes noninteractive during placement.
     expect(club).not.toContainSource('zIndex: placementActive ? 2 : 0');
+    expect(club).not.toContainSource('facilityPlacementHoverTip');
     expect(club).toContainSource(
-      'shared hover-tip host raises only the active cell',
+      'placementActive && previewCell && activeFootprint',
     );
     expect(club).toContainSource('zIndex: 3');
     expect(club).toContainSource('accessible={placementActive}');

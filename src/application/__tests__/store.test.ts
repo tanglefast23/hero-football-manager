@@ -23,6 +23,7 @@ import {
   currentUserDivision,
   DEFAULT_CREATION_RATINGS,
   leagueStandings,
+  midseasonTrainingStatus,
   offerCareerEvent,
   pendingRivalHeroIntro,
   startNextSeason,
@@ -1276,6 +1277,11 @@ describe('M1 app store integration', () => {
       } else if (current.screen === 'faceoff') {
         // Quick Result opens the face-off first; the manager taps through it.
         current.completeFaceOff();
+      } else if (midseasonTrainingStatus(career) === 'prompt') {
+        // This broad persistence journey tests every later season boundary, not
+        // the Yes branch. Decline the Week 19 decision so Advance Week is no
+        // longer correctly blocked by the unanswered captain request.
+        current.declineMidseasonTraining();
       } else if (
         current.screen === 'management' ||
         current.screen === 'postmatch' ||
@@ -2331,6 +2337,10 @@ function driveStoreUntil(
       progressJourneyEvent(current);
       continue;
     }
+    if (current.screen === 'midseason-training') {
+      current.completeMidseasonTraining();
+      continue;
+    }
     if (current.screen === 'matchday') {
       current.quickResult();
       continue;
@@ -2362,6 +2372,8 @@ function driveStoreUntil(
     if (current.screen === 'management') {
       if (current.postMatchOverlay === 'summary')
         current.dismissPostMatchSummary();
+      else if (midseasonTrainingStatus(career) === 'prompt')
+        current.declineMidseasonTraining();
       else {
         // An opening-week duty refuses the advance; answering it is what a
         // manager does next. Done in the same step so a journey that reloads

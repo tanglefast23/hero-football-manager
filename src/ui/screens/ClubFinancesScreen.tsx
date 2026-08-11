@@ -170,6 +170,8 @@ export interface ClubFinancesScreenProps {
   requiredBuildType?: FacilityTypeViewModel;
   guidanceNudgeTarget?: GuidanceNudgeTarget;
   guidanceNudgeToken?: number;
+  /** Starts the two-card income flash after Bert finishes the loan advice. */
+  incomeFacilitiesFlashToken?: number;
   /** Explains a refused catalog choice through Bert instead of a silent disabled card. */
   onRequiredBuildTypeBlocked?: (required: FacilityTypeViewModel) => void;
   onUpgradeFacility?: (buildingId: string) => void;
@@ -202,6 +204,7 @@ export function ClubFinancesScreen({
   requiredBuildType,
   guidanceNudgeTarget,
   guidanceNudgeToken,
+  incomeFacilitiesFlashToken,
   onRequiredBuildTypeBlocked,
   onUpgradeFacility,
   onRelocateFacility,
@@ -224,12 +227,6 @@ export function ClubFinancesScreen({
   const groundsRef = useRef<View>(null);
   const trainingGroundRef = useRef<View>(null);
   const scrollFrameRef = useRef<number | null>(null);
-  const coachingOfficeScrollFrameRef = useRef<number | null>(null);
-  const coachingOfficeScrolledRef = useRef(false);
-  const coachingOfficeBuildTargetRef = useRef<View>(null);
-  const incomeFacilityScrollFrameRef = useRef<number | null>(null);
-  const incomeFacilityScrolledRef = useRef(false);
-  const incomeFacilityBuildTargetRef = useRef<View>(null);
   const sponsorDeskTargetRef = useRef<View>(null);
   const sponsorBuzzTargetRef = useRef<View>(null);
   const sponsorBuzzAccessibilityRef = useRef<View>(null);
@@ -487,65 +484,6 @@ export function ClubFinancesScreen({
     });
   }, [guideTrainingGround]);
 
-  const scrollToCoachingOffice = useCallback(() => {
-    if (
-      guideFocus !== 'coaching-office' ||
-      coachingOfficeScrolledRef.current ||
-      coachingOfficeBuildTargetRef.current === null
-    )
-      return;
-    if (coachingOfficeScrollFrameRef.current !== null) {
-      cancelAnimationFrame(coachingOfficeScrollFrameRef.current);
-    }
-    coachingOfficeScrollFrameRef.current = requestAnimationFrame(() => {
-      coachingOfficeScrollFrameRef.current = null;
-      scrollToTarget(
-        scrollRef,
-        scrollViewportRef,
-        coachingOfficeBuildTargetRef,
-        latestScrollOffsetRef.current,
-      );
-      coachingOfficeScrolledRef.current = true;
-    });
-  }, [guideFocus]);
-
-  /**
-   * The bail-out follow-up: the loan briefing ends by naming a shop and a
-   * stand, and this is what puts them in front of the manager. They are the
-   * last two cards of a twelve-card menu, so arriving on the Facility board
-   * without this leaves him looking at eight training buildings he cannot
-   * afford and has just been told not to buy.
-   */
-  const scrollToIncomeFacilities = useCallback(() => {
-    if (
-      !guideIncomeFacilities ||
-      incomeFacilityScrolledRef.current ||
-      incomeFacilityBuildTargetRef.current === null
-    )
-      return;
-    if (incomeFacilityScrollFrameRef.current !== null) {
-      cancelAnimationFrame(incomeFacilityScrollFrameRef.current);
-    }
-    incomeFacilityScrollFrameRef.current = requestAnimationFrame(() => {
-      incomeFacilityScrollFrameRef.current = null;
-      scrollToTarget(
-        scrollRef,
-        scrollViewportRef,
-        incomeFacilityBuildTargetRef,
-        latestScrollOffsetRef.current,
-      );
-      incomeFacilityScrolledRef.current = true;
-    });
-  }, [guideIncomeFacilities]);
-
-  useEffect(() => {
-    if (!guideIncomeFacilities) {
-      incomeFacilityScrolledRef.current = false;
-      return;
-    }
-    scrollToIncomeFacilities();
-  }, [guideIncomeFacilities, scrollToIncomeFacilities]);
-
   useEffect(() => {
     scrollToTrainingGround();
     return () => {
@@ -553,14 +491,6 @@ export function ClubFinancesScreen({
         cancelAnimationFrame(scrollFrameRef.current);
     };
   }, [scrollToTrainingGround]);
-
-  useEffect(() => {
-    if (guideFocus !== 'coaching-office') {
-      coachingOfficeScrolledRef.current = false;
-      return;
-    }
-    scrollToCoachingOffice();
-  }, [guideFocus, scrollToCoachingOffice]);
 
   useEffect(() => {
     if (guideFocus !== 'facility-grid') return;
@@ -588,12 +518,6 @@ export function ClubFinancesScreen({
     () => () => {
       if (facilityGuideScrollFrameRef.current !== null) {
         cancelAnimationFrame(facilityGuideScrollFrameRef.current);
-      }
-      if (coachingOfficeScrollFrameRef.current !== null) {
-        cancelAnimationFrame(coachingOfficeScrollFrameRef.current);
-      }
-      if (incomeFacilityScrollFrameRef.current !== null) {
-        cancelAnimationFrame(incomeFacilityScrollFrameRef.current);
       }
       if (facilityPlacementScrollFrameRef.current !== null) {
         cancelAnimationFrame(facilityPlacementScrollFrameRef.current);
@@ -627,7 +551,6 @@ export function ClubFinancesScreen({
     if (!guideGrounds) return;
     if (guideFocus === 'coaching-office') {
       setSelectedBuildingId(null);
-      scrollToCoachingOffice();
       return;
     } else if (guideFocus === 'facility-grid') {
       return;
@@ -646,13 +569,7 @@ export function ClubFinancesScreen({
       groundsRef,
       latestScrollOffsetRef.current,
     );
-  }, [
-    facilities.buildings,
-    guideFocus,
-    guideGrounds,
-    reduceMotion,
-    scrollToCoachingOffice,
-  ]);
+  }, [facilities.buildings, guideFocus, guideGrounds, reduceMotion]);
 
   useEffect(() => {
     const slots = viewModel.sponsorship?.slots ?? [];
@@ -752,8 +669,8 @@ export function ClubFinancesScreen({
    */
   const revealFacilityPlacement = useCallback(() => {
     setFacilityPlacementHelperVisible(true);
-    // The opening lesson already owns the viewport and accessibility focus,
-    // but it uses the same immediate BUILD HERE marker as every later build.
+    // The opening lesson already owns the viewport and accessibility focus.
+    // Placement mode still lights legal + squares, so it needs no extra scroll.
     if (guidedFirstFacility) return;
     if (layoutMode !== 'single' || facilityPlacementTargetRef.current === null)
       return;
@@ -930,16 +847,13 @@ export function ClubFinancesScreen({
           requiredBuildType={requiredBuildType}
           guidanceNudgeTarget={guidanceNudgeTarget}
           guidanceNudgeToken={guidanceNudgeToken}
+          incomeFacilitiesFlashToken={incomeFacilitiesFlashToken}
           reduceMotion={reduceMotion}
           onRequiredBuildTypeBlocked={onRequiredBuildTypeBlocked}
           facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
-          coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
-          scrollToCoachingOffice={scrollToCoachingOffice}
           revealFacilityPlacement={revealFacilityPlacement}
           guideIncomeFacilities={guideIncomeFacilities}
-          incomeFacilityBuildTargetRef={incomeFacilityBuildTargetRef}
-          scrollToIncomeFacilities={scrollToIncomeFacilities}
         />
       ),
     },
@@ -2447,10 +2361,6 @@ function GroundsSection({
               style={{
                 position: 'relative',
                 flex: 1,
-                // Do not make the cell layer its own stacking context. The
-                // shared hover-tip host raises only the active cell; trapping
-                // it under a layer below the facility art made buildings paint
-                // through the placement message.
               }}
             >
               {Array.from({ length: facilities.height }, (_, y) => (
@@ -2713,22 +2623,6 @@ function GroundsSection({
                   zIndex: 4,
                 }}
               />
-            ) : null}
-
-            {placementActive && previewCell ? (
-              <View
-                pointerEvents="none"
-                style={styles.facilityPlacementHoverTip}
-              >
-                <Text className="font-mono text-[10px] leading-4 text-paper">
-                  {canPlaceAt(previewCell.x, previewCell.y)
-                    ? t('clubFinances.buildHereColumnRow', {
-                        column: previewCell.x + 1,
-                        row: previewCell.y + 1,
-                      })
-                    : t('clubFinances.blockedFootprintDoesNotFit')}
-                </Text>
-              </View>
             ) : null}
           </View>
         </View>
@@ -3085,17 +2979,14 @@ interface BuildMenuSectionProps {
   requiredBuildType?: FacilityTypeViewModel;
   guidanceNudgeTarget?: GuidanceNudgeTarget;
   guidanceNudgeToken?: number;
+  incomeFacilitiesFlashToken?: number;
   reduceMotion: boolean;
   onRequiredBuildTypeBlocked?: (required: FacilityTypeViewModel) => void;
   facilityGuideBuildTargetRef: RefObject<View | null>;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
-  coachingOfficeBuildTargetRef: RefObject<View | null>;
-  scrollToCoachingOffice: () => void;
   revealFacilityPlacement: () => void;
   /** Lights the Fan Shop and Stadium Stand after the board's loan lands. */
   guideIncomeFacilities: boolean;
-  incomeFacilityBuildTargetRef: RefObject<View | null>;
-  scrollToIncomeFacilities: () => void;
 }
 
 /**
@@ -3117,16 +3008,13 @@ function BuildMenuSection({
   requiredBuildType,
   guidanceNudgeTarget,
   guidanceNudgeToken,
+  incomeFacilitiesFlashToken,
   reduceMotion,
   onRequiredBuildTypeBlocked,
   facilityGuideBuildTargetRef,
   scrollFacilityGuideTargetIntoView,
-  coachingOfficeBuildTargetRef,
-  scrollToCoachingOffice,
   revealFacilityPlacement,
   guideIncomeFacilities,
-  incomeFacilityBuildTargetRef,
-  scrollToIncomeFacilities,
 }: BuildMenuSectionProps) {
   const t = useCopy();
   return (
@@ -3231,17 +3119,11 @@ function BuildMenuSection({
               .join(' ');
             return (
               <Fragment key={entry.type}>
-                {/* The banner rides the same wrapping row as the cards it
-                    introduces rather than sitting at the top of the menu:
-                    these two are the last of twelve, so a heading up there
-                    would scroll off before the buildings it names arrive. */}
+                {/* Keep the banner beside the two cards it introduces. Their
+                    top-of-menu position now keeps all three in the natural
+                    opening viewport, so tutorial entry must not scroll. */}
                 {guidedIncome && entry.type === 'fan-shop' ? (
-                  <View
-                    ref={incomeFacilityBuildTargetRef}
-                    collapsable={false}
-                    onLayout={scrollToIncomeFacilities}
-                    className="w-full border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
-                  >
+                  <View className="w-full border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3">
                     <PixelText className="text-sm uppercase tracking-wide text-ink">
                       {t('clubFinances.bertSays')}
                     </PixelText>
@@ -3255,24 +3137,11 @@ function BuildMenuSection({
                   </View>
                 ) : null}
                 <View
-                  ref={
-                    entry.type === 'coaching-office'
-                      ? coachingOfficeBuildTargetRef
-                      : undefined
-                  }
-                  collapsable={
-                    entry.type === 'coaching-office' ? false : undefined
-                  }
                   className={
                     guideFocus === 'coaching-office' &&
                     entry.type === 'coaching-office'
                       ? 'relative mt-20 w-[48%]'
                       : 'relative w-[48%]'
-                  }
-                  onLayout={
-                    entry.type === 'coaching-office'
-                      ? scrollToCoachingOffice
-                      : undefined
                   }
                 >
                   {/* The inbox sends you here to build a Coaching Office, and the
@@ -3360,13 +3229,17 @@ function BuildMenuSection({
                   >
                     <GuidanceDoubleFlash
                       trigger={
-                        (guidanceNudgeTarget === 'coaching-office' &&
-                          entry.type === 'coaching-office') ||
-                        (guidanceNudgeTarget === 'training-ground-facility' &&
-                          entry.type === 'training-pitch')
-                          ? guidanceNudgeToken
-                          : undefined
+                        guidedIncome
+                          ? incomeFacilitiesFlashToken
+                          : (guidanceNudgeTarget === 'coaching-office' &&
+                                entry.type === 'coaching-office') ||
+                              (guidanceNudgeTarget ===
+                                'training-ground-facility' &&
+                                entry.type === 'training-pitch')
+                            ? guidanceNudgeToken
+                            : undefined
                       }
+                      playOnMount={guidedIncome}
                       reduceMotion={reduceMotion}
                     />
                     <View className="mb-2 flex-row items-start gap-2">
@@ -3669,7 +3542,7 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
   return '#f7d7ba';
 }
 
-/** The temporary gold placement instruction and its grid-level hover label. */
+/** The temporary gold placement instruction and shared tutorial glow. */
 const styles = StyleSheet.create({
   facilityPlacementHelperAnchor: {
     position: 'absolute',
@@ -3684,19 +3557,6 @@ const styles = StyleSheet.create({
   facilityPlacementHelper: {
     width: 144,
     opacity: 0.5,
-  },
-  facilityPlacementHoverTip: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    width: 176,
-    zIndex: 100,
-    elevation: 30,
-    borderWidth: 2,
-    borderColor: '#241f2e',
-    backgroundColor: '#241f2e',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
   },
   guidedFacilityGlow: {
     boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',

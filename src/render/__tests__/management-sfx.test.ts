@@ -95,7 +95,7 @@ describe('management feedback sounds', () => {
     expect(mockPlayers.every((player) => player.muted)).toBe(true);
 
     setManagementSfxMasterVolume(0.4);
-    expect(mockPlayers[27].volume).toBeCloseTo(0.23829847041728445);
+    expect(mockPlayers[27].volume).toBeCloseTo(0.3);
     expect(
       mockPlayers
         .filter((_, index) => index !== 27)
@@ -111,7 +111,7 @@ describe('management feedback sounds', () => {
 
     expect(mockPlayers).toHaveLength(34);
     const trainingDing = mockPlayers[1];
-    expect(mockPlayers[27].volume).toBeCloseTo(0.29787308802160557);
+    expect(mockPlayers[27].volume).toBeCloseTo(0.375);
     expect(
       mockPlayers
         .filter((_, index) => index !== 27)
@@ -333,7 +333,7 @@ describe('management feedback sounds', () => {
     expect(progress.play).toHaveBeenCalledTimes(1);
   });
 
-  it('plays the supplied drill-complete cue once, 2 dB below three-quarter gain', async () => {
+  it('plays the supplied drill-complete cue once at three-quarter gain', async () => {
     const sounds = readFileSync(
       join(process.cwd(), 'src/render/management-sfx.ts'),
       'utf8',
@@ -346,9 +346,7 @@ describe('management feedback sounds', () => {
     expect(sounds).toContainSource(
       "'drill-complete': require('../../assets/audio/sfx/drill-complete-heavy.wav')",
     );
-    expect(sounds).toContainSource(
-      'const DRILL_COMPLETE_GAIN = 0.75 * 10 ** (-2 / 20)',
-    );
+    expect(sounds).toContainSource('const DRILL_COMPLETE_GAIN = 0.75');
     expect(modal).toContainSource(
       'streakRef.current += 1;\n    playDrillCompleteSfx();\n    if (result.isSuper)',
     );
@@ -358,12 +356,12 @@ describe('management feedback sounds', () => {
 
     expect(mockPlayers).toHaveLength(34);
     const completion = mockPlayers[27];
-    expect(completion.volume).toBeCloseTo(0.5957461760432111);
+    expect(completion.volume).toBeCloseTo(0.75);
     expect(completion.seekTo).toHaveBeenCalledWith(0);
     expect(completion.play).toHaveBeenCalledTimes(1);
 
     setManagementSfxMasterVolume(0.4);
-    expect(completion.volume).toBeCloseTo(0.23829847041728445);
+    expect(completion.volume).toBeCloseTo(0.3);
   });
 
   it('ties the progress bed to the count-up inside the drill scene', () => {

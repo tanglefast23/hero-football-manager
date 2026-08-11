@@ -122,7 +122,7 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'drill-complete': require('../../assets/audio/sfx/drill-complete-heavy.wav'),
 };
 
-const DRILL_COMPLETE_GAIN = 0.75 * 10 ** (-2 / 20);
+const DRILL_COMPLETE_GAIN = 0.75;
 
 const MANAGEMENT_SFX_BASE_GAIN: Partial<Record<ManagementSfxKey, number>> = {
   'drill-complete': DRILL_COMPLETE_GAIN,

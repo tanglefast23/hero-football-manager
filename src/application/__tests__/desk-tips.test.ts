@@ -8,6 +8,7 @@ import {
   type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
+import { ENABLED_LOCALES, ensureCatalog, loadCatalog } from '../../i18n';
 import { homeViewModel, settleWeeklyTip } from '../view-models';
 
 describe("manager's tips", () => {
@@ -46,9 +47,25 @@ describe("manager's tips", () => {
 
   it('ships tips that are all distinct and readable', () => {
     expect(new Set(tipIds).size).toBe(tipIds.length);
+    expect(tipIds).not.toContain('super-training-pity');
     expect(tipIds.length).toBeGreaterThanOrEqual(10);
     for (const tip of content.tips.tips) {
       expect(tip.body.length).toBeGreaterThan(60);
+    }
+  });
+
+  it('has a real title and body translation for every remaining tip', async () => {
+    for (const locale of ENABLED_LOCALES.filter((item) => item !== 'en')) {
+      await ensureCatalog(locale);
+      const strings = loadCatalog(locale).strings;
+      for (const tip of content.tips.tips) {
+        const title = strings[`tip.${tip.id}.title`];
+        const body = strings[`tip.${tip.id}.body`];
+        expect(title).toBeDefined();
+        expect(body).toBeDefined();
+        expect(title).not.toBe(tip.title);
+        expect(body).not.toBe(tip.body);
+      }
     }
   });
 

@@ -39,6 +39,10 @@ import {
   signCareerRenewalAtAsk,
   createCareer,
   currentUserDivision,
+  acceptMidseasonTraining as applyMidseasonTraining,
+  completeMidseasonTraining as markMidseasonTrainingComplete,
+  declineMidseasonTraining as refuseMidseasonTraining,
+  midseasonTrainingStatus,
   declineYouthIntakeOffers,
   dismissAssistantInboxProductForCurrentWeek,
   dismissAssistantInboxProductPermanently,
@@ -341,6 +345,7 @@ export type M1Screen =
   | 'welcome'
   | 'create-player'
   | 'management'
+  | 'midseason-training'
   | 'awakening'
   | 'event'
   | 'matchday'
@@ -502,6 +507,9 @@ interface M1Store {
     alertId: string,
     scope?: 'current-week' | 'permanent',
   ) => void;
+  acceptMidseasonTraining: () => void;
+  declineMidseasonTraining: () => void;
+  completeMidseasonTraining: () => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
@@ -1000,6 +1008,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
   setActiveTab(activeTab) {
     const current = get();
     if (
+      current.career !== null &&
+      midseasonTrainingStatus(current.career) === 'prompt'
+    ) {
+      set({ activeTab: 'home', screen: 'management', error: null });
+      return;
+    }
+    if (
       current.screen === 'matchday' &&
       current.career !== null &&
       pendingRivalHeroIntro(current.career) !== undefined
@@ -1205,8 +1220,54 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  acceptMidseasonTraining() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = applyMidseasonTraining(career);
+      if (next === career) return;
+      set({
+        career: next,
+        screen: 'midseason-training',
+        activeTab: 'home',
+        error: null,
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  declineMidseasonTraining() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = refuseMidseasonTraining(career);
+      if (next === career) return;
+      set({
+        career: next,
+        screen: 'management',
+        activeTab: 'home',
+        error: null,
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeMidseasonTraining() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = markMidseasonTrainingComplete(career);
+      if (next === career) return;
+      set({
+        career: next,
+        screen: 'management',
+        activeTab: 'home',
+        error: null,
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
   openMatchday() {
     const career = get().career;
+    if (career !== null && midseasonTrainingStatus(career) === 'prompt') return;
     if (career?.phase !== 'matchday') {
       set({ error: t('store.matchDayNotYet') });
       return;
@@ -1220,6 +1281,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({ error: t('store.startOrLoadCareer') });
       return;
     }
+    if (midseasonTrainingStatus(career) === 'prompt') return;
     const matchday = activeCareerMatchday(career);
     if (
       career.phase !== 'matchday' ||
@@ -1244,6 +1306,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const career = requireCareer(get());
+      if (midseasonTrainingStatus(career) === 'prompt') return;
       if (career.onboarding?.stage === 'create-player') {
         throw new Error(t('store.createPlayerFirst'));
       }
@@ -1369,11 +1432,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
         screen:
           weekReview !== null
             ? 'week-review'
-            : next.phase === 'matchday'
-              ? 'matchday'
-              : next.phase === 'season-end' || next.phase === 'complete'
-                ? seasonBoundaryScreen(next)
-                : 'management',
+            : midseasonTrainingStatus(next) === 'prompt'
+              ? 'management'
+              : next.phase === 'matchday'
+                ? 'matchday'
+                : next.phase === 'season-end' || next.phase === 'complete'
+                  ? seasonBoundaryScreen(next)
+                  : 'management',
         weekReview,
         inboxDutyReminder: null,
         inboxDutyFocus: null,
@@ -1395,6 +1460,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const before = requireCareer(get());
+      if (midseasonTrainingStatus(before) === 'prompt') return;
       if (pendingRivalHeroIntro(before) !== undefined) return;
       assertLeagueCupCheckpointPersisted(get(), before);
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
@@ -1527,6 +1593,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const career = requireCareer(get());
+      if (midseasonTrainingStatus(career) === 'prompt') return;
       if (pendingRivalHeroIntro(career) !== undefined) return;
       assertLeagueCupCheckpointPersisted(get(), career);
       const { fixture, teams, cupRoundLabel } = currentMatchday(career);
@@ -1666,6 +1733,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       (currentCareer.phase === 'season-end' ||
         currentCareer.phase === 'complete');
     const currentHasSecondMatch = currentCareer?.phase === 'matchday';
+    const currentHasMidseasonPrompt =
+      currentCareer !== null &&
+      midseasonTrainingStatus(currentCareer) === 'prompt';
     set({
       ...(currentCareer !== reachedCareer ? { career: currentCareer } : {}),
       postMatch:
@@ -1679,7 +1749,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           : 'summary',
       screen: currentSeasonBoundary
         ? seasonBoundaryScreen(currentCareer)
-        : currentHasSecondMatch
+        : currentHasSecondMatch && !currentHasMidseasonPrompt
           ? 'matchday'
           : 'management',
       activeTab: 'home',
@@ -1891,11 +1961,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         career,
         event,
       ).playerIds;
-      const next = selectCareerEventPlayer(
-        career,
-        playerId,
-        eligiblePlayerIds,
-      );
+      const next = selectCareerEventPlayer(career, playerId, eligiblePlayerIds);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -3082,6 +3148,9 @@ function resumeScreen(career: GameState): M1Screen {
   // opened, so treating the offer itself as "resume here" is what keeps a story
   // from being lost between a kill and the next launch.
   if (career.pendingEvent !== undefined) return 'event';
+  const midseasonTraining = midseasonTrainingStatus(career);
+  if (midseasonTraining === 'celebration') return 'midseason-training';
+  if (midseasonTraining === 'prompt') return 'management';
   if (career.phase === 'matchday') return 'matchday';
   if (career.phase === 'season-end' || career.phase === 'complete') {
     return seasonBoundaryScreen(career);

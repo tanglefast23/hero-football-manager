@@ -1943,27 +1943,23 @@ export function storyEventViewModel(
           ? t('storyEvent.transferTarget', {
               amount: formatMoneyForCopy(
                 t,
-                careerBuyingTransferQuote(
-                  state,
-                  state.market,
-                  player.id,
-                ).fee,
+                careerBuyingTransferQuote(state, state.market, player.id).fee,
               ),
             })
           : player.injuryWeeks > 0
-        ? t('storyEvent.playerInjured', {
-            n: player.injuryWeeks,
-            count: player.injuryWeeks,
-          })
-        : player.power !== undefined
-          ? t('storyEvent.licensedHero', {
-              status: starterIds.includes(player.id)
+            ? t('storyEvent.playerInjured', {
+                n: player.injuryWeeks,
+                count: player.injuryWeeks,
+              })
+            : player.power !== undefined
+              ? t('storyEvent.licensedHero', {
+                  status: starterIds.includes(player.id)
+                    ? t('storyEvent.startingXi')
+                    : t('storyEvent.squadPlayer'),
+                })
+              : starterIds.includes(player.id)
                 ? t('storyEvent.startingXi')
                 : t('storyEvent.squadPlayer'),
-            })
-          : starterIds.includes(player.id)
-            ? t('storyEvent.startingXi')
-            : t('storyEvent.squadPlayer'),
     ...(player.power
       ? {
           powerName: powerDisplayName(content, player.power, t) ?? player.power,
@@ -2593,6 +2589,7 @@ export function homeProductAlerts(
   );
   const negativeCashWeeks =
     state.financialSafety?.consecutiveNegativeWeeks ?? 0;
+  const emergencyLoanUsed = state.financialSafety?.emergencyLoanUsed === true;
   const loan = state.financialSafety?.loan;
   const financialWarningDismissed =
     isAssistantInboxProductDismissedForCurrentWeek(state, 'financial-warning');
@@ -2660,7 +2657,9 @@ export function homeProductAlerts(
     // escalation states, not one board row reached a desk that had anything
     // else on it. Money trouble outranks a squad grumble: nothing else in this
     // list can end the club.
-    ...(negativeCashWeeks > 0 && !financialWarningDismissed
+    ...(!emergencyLoanUsed &&
+    negativeCashWeeks > 0 &&
+    !financialWarningDismissed
       ? [
           {
             id: 'financial-warning',
@@ -5191,7 +5190,7 @@ function describeEventChoiceOutcome(
           reward,
           failure: describeEventEffects(failure.effects, t, state),
         })
-    : t('storyEvent.riskyChance', { percent: success.weight, reward });
+      : t('storyEvent.riskyChance', { percent: success.weight, reward });
 }
 
 function describeSafeOutcome(

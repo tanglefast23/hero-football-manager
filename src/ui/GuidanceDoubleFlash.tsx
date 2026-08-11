@@ -15,6 +15,8 @@ export type GuidanceNudgeTarget =
 export interface GuidanceDoubleFlashProps {
   /** A larger value restarts the cue from its first flash. */
   readonly trigger?: number;
+  /** Plays a positive trigger once when a newly revealed control mounts. */
+  readonly playOnMount?: boolean;
   readonly reduceMotion?: boolean;
   readonly className?: string;
 }
@@ -28,15 +30,19 @@ export interface GuidanceDoubleFlashProps {
  */
 export function GuidanceDoubleFlash({
   trigger,
+  playOnMount = false,
   reduceMotion = false,
   className,
 }: GuidanceDoubleFlashProps) {
   const opacity = useRef(new Animated.Value(0)).current;
   const previousTriggerRef = useRef(trigger);
+  const firstRunRef = useRef(true);
 
   useEffect(() => {
     const previousTrigger = previousTriggerRef.current;
     previousTriggerRef.current = trigger;
+    const firstRun = firstRunRef.current;
+    firstRunRef.current = false;
     opacity.stopAnimation();
     opacity.setValue(0);
     // A control mounted after the press receives the current token as its first
@@ -45,8 +51,9 @@ export function GuidanceDoubleFlash({
     if (
       trigger === undefined ||
       trigger <= 0 ||
-      previousTrigger === undefined ||
-      trigger <= previousTrigger
+      (firstRun && !playOnMount) ||
+      (!firstRun &&
+        (previousTrigger === undefined || trigger <= previousTrigger))
     )
       return undefined;
 
@@ -72,7 +79,7 @@ export function GuidanceDoubleFlash({
       animation.stop();
       opacity.setValue(0);
     };
-  }, [opacity, reduceMotion, trigger]);
+  }, [opacity, playOnMount, reduceMotion, trigger]);
 
   return (
     <Animated.View

@@ -175,6 +175,19 @@ describe('the board finance briefing', () => {
       ).toContain('financial-warning');
     });
 
+    it('does not bring Bert back during the four red weeks after the one loan', () => {
+      for (const consecutiveNegativeWeeks of [1, 2, 3]) {
+        const state = career(20261010 + consecutiveNegativeWeeks, -2540, {
+          consecutiveNegativeWeeks,
+          emergencyLoanUsed: true,
+        });
+
+        expect(
+          homeViewModel(state).alerts.map((alert) => alert.id),
+        ).not.toContain('financial-warning');
+      }
+    });
+
     it('says nothing when the club is not in the red', () => {
       const state = career(20260907, 12000, {
         consecutiveNegativeWeeks: 0,

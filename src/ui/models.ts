@@ -1262,6 +1262,25 @@ export interface ChampionshipCelebrationViewModel {
   coaches: readonly CelebrationCoachViewModel[];
 }
 
+export interface MidseasonTrainingPlayerViewModel {
+  readonly id: string;
+  readonly name: string;
+  readonly role: Role;
+  readonly spriteKey: string;
+  readonly isCaptain: boolean;
+}
+
+export interface MidseasonTrainingViewModel {
+  readonly clubName: string;
+  readonly season: number;
+  readonly trainingPoints: number;
+  readonly trainingPointsLabel: string;
+  readonly statGain: number;
+  readonly captain: MidseasonTrainingPlayerViewModel;
+  /** Every user-club player, including the captain. */
+  readonly squad: readonly MidseasonTrainingPlayerViewModel[];
+}
+
 /**
  * One block of the season podium: a club that finished in the top three, and
  * the player who stands on its step.

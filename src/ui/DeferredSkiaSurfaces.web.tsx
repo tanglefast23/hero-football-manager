@@ -6,7 +6,9 @@ import type { MatchDayBannerProps } from './components/MatchDayBanner';
 import type { AwakeningCutsceneScreenProps } from './screens/AwakeningCutsceneScreen';
 import type { ChampionshipCelebrationScreenProps } from './screens/ChampionshipCelebrationScreen';
 import type { EndgameCelebrationScreenProps } from './screens/EndgameCelebrationScreen';
+import type { MidseasonTrainingCelebrationScreenProps } from './screens/MidseasonTrainingCelebrationScreen';
 import type { StoryEventScreenProps } from './screens/StoryEventScreen';
+import { useCopy } from '../i18n';
 
 async function loadSkia() {
   const { LoadSkiaWeb } =
@@ -15,9 +17,13 @@ async function loadSkia() {
 }
 
 function LoadingSurface() {
+  const t = useCopy();
   return (
-    <View style={styles.loading} accessibilityLabel="Loading match artwork">
-      <Text style={styles.loadingText}>LOADING MATCH ART…</Text>
+    <View
+      style={styles.loading}
+      accessibilityLabel={t('app.a11y.loadingMatchArtwork')}
+    >
+      <Text style={styles.loadingText}>{t('app.loadingMatchArtwork')}</Text>
     </View>
   );
 }
@@ -56,6 +62,12 @@ const DeferredEndgameCelebrationScreen = lazy(async () => {
   await loadSkia();
   const module = await import('./SkiaSurfaceImplementations');
   return { default: module.EndgameCelebrationScreen };
+});
+
+const DeferredMidseasonTrainingCelebrationScreen = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.MidseasonTrainingCelebrationScreen };
 });
 
 const DeferredStoryEventScreen = lazy(async () => {
@@ -110,6 +122,16 @@ export function EndgameCelebrationScreen(props: EndgameCelebrationScreenProps) {
   return (
     <Suspense fallback={<LoadingSurface />}>
       <DeferredEndgameCelebrationScreen {...props} />
+    </Suspense>
+  );
+}
+
+export function MidseasonTrainingCelebrationScreen(
+  props: MidseasonTrainingCelebrationScreenProps,
+) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredMidseasonTrainingCelebrationScreen {...props} />
     </Suspense>
   );
 }

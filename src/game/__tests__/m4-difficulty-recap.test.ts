@@ -135,9 +135,7 @@ describe('M4 difficulty and season recap', () => {
       ),
     );
     expect(difficultyRules(cozy).negativeWeeksBeforeIntervention).toBe(4);
-    expect(
-      difficultyRules(chairman).negativeWeeksBeforeIntervention,
-    ).toBeLessThan(difficultyRules(cozy).negativeWeeksBeforeIntervention);
+    expect(difficultyRules(chairman).negativeWeeksBeforeIntervention).toBe(4);
     expect(difficultyRules(chairman).emergencyLoanAmount).toBeLessThan(
       difficultyRules(cozy).emergencyLoanAmount,
     );

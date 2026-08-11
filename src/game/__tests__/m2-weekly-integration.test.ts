@@ -16,6 +16,7 @@ import {
   createFacilityGrid,
   upgradeFacility,
   type FacilityGridState,
+  type PlacedFacility,
 } from '../facilities';
 import { buildCareerFacility } from '../management';
 import { FACILITY_CATALOG } from '../facilities';
@@ -63,6 +64,20 @@ function settleScheduledWeek(state: GameState): GameState {
   }
   return next;
 }
+
+const placedFacility = (
+  id: number,
+  type: PlacedFacility['type'],
+  x: number,
+  y: number,
+): PlacedFacility => ({
+  id: `facility-${id}`,
+  type,
+  level: 1,
+  capitalInvested: 10_000,
+  x,
+  y,
+});
 
 describe('M2 weekly sidecars', () => {
   test('advances exactly one Hero Cup round on each cup calendar week', () => {
@@ -250,6 +265,64 @@ describe('M2 weekly sidecars', () => {
     );
   });
 
+  test('skips an impossible facility offer and starts the player-sale warning after four red weeks', () => {
+    const base = fullCareer(5061);
+    const buildings: PlacedFacility[] = [
+      placedFacility(1, 'training-pitch', 0, 0),
+      placedFacility(2, 'coaching-office', 2, 0),
+      placedFacility(3, 'stadium-stand', 3, 0),
+      placedFacility(4, 'stadium-stand', 5, 0),
+      placedFacility(5, 'stadium-stand', 0, 2),
+      placedFacility(6, 'fan-shop', 2, 2),
+      placedFacility(7, 'fan-shop', 3, 2),
+      placedFacility(8, 'fan-shop', 4, 2),
+    ];
+    let state: GameState = {
+      ...base,
+      facilities: {
+        ...base.facilities,
+        trainingGroundBuilt: true,
+        grid: {
+          width: 8,
+          height: 6,
+          nextBuildingId: 9,
+          buildings,
+          discoveredAdjacencies: [],
+        },
+      },
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: -20_000 } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+      },
+    };
+
+    for (let week = 1; week <= 3; week += 1) {
+      state = settleScheduledWeek(state);
+      expect(state.financialSafety?.boardUltimatum).toBeUndefined();
+    }
+    state = settleScheduledWeek(state);
+
+    expect(state.financialSafety).toMatchObject({
+      emergencyLoanUsed: true,
+      facilityConversionUsed: true,
+      latestBoardResolution: {
+        kind: 'FACILITY_CONVERSION',
+        addedFacilities: [],
+        failureReason: 'COMMERCIAL_LIMITS_REACHED',
+      },
+      boardUltimatum: {
+        consequence: 'FORCED_SALE',
+        weeksRemaining: 4,
+      },
+    });
+    expect(
+      state.ledgers.slice(-4).flatMap((ledger) => ledger.lines),
+    ).not.toContainEqual(expect.objectContaining({ kind: 'emergency-loan' }));
+  });
+
   test('converts facilities once, then gives home matches four weeks before a forced sale', () => {
     let state = fullCareer(5051);
     // A club that has already spent its one emergency loan and is still under
@@ -265,7 +338,17 @@ describe('M2 weekly sidecars', () => {
       ),
       financialSafety: { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true },
     };
-    for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
+    for (let week = 0; week < 4; week += 1) {
+      state = settleScheduledWeek(state);
+      if (week < 3) {
+        expect(state.financialSafety?.boardUltimatum).toBeUndefined();
+      }
+    }
+    expect(
+      state.ledgers
+        .flatMap((ledger) => ledger.lines)
+        .filter((line) => line.kind === 'emergency-loan'),
+    ).toHaveLength(0);
     const facilityUltimatum = state.financialSafety?.boardUltimatum;
 
     expect(facilityUltimatum).toMatchObject({

@@ -18,6 +18,7 @@ import { rivalHeroIntroEntry } from './entries/rival-hero-intro';
 import { seasonPodiumEntry } from './entries/season-podium';
 import { squadSortHintEntry } from './entries/squad-sort-hint';
 import { liveMatchControlsEntry } from './entries/live-match-controls';
+import { midseasonTrainingEntry } from './entries/midseason-training';
 import type { DevHarnessRoutableEntry } from './route';
 
 /**
@@ -69,6 +70,7 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   careerEventsEntry,
   playerRequestsEntry,
   liveMatchControlsEntry,
+  midseasonTrainingEntry,
   squadSortHintEntry,
   boardUltimatumEntry,
   cupMismatchWarningEntry,

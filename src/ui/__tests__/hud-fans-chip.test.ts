@@ -34,6 +34,18 @@ describe('the HUD fans chip', () => {
     );
   });
 
+  it('renders a negative cash value and its dollar glyph in red', () => {
+    expect(shell).toContainSource(
+      'const negativeMoney = money && shownValue < 0;',
+    );
+    expect(shell).toContainSource(
+      "negativeMoney ? 'font-pixel text-xs text-red-dark' : 'font-pixel text-xs text-blue-dark'",
+    );
+    expect(shell).toContainSource(
+      "negativeMoney ? 'font-mono text-sm text-red-dark' : 'font-mono text-sm text-ink'",
+    );
+  });
+
   it('carries fans on the same summary the other two figures come from', () => {
     expect(models).toMatchSource(
       /ResourceSummaryViewModel \{[\s\S]{0,400}fans: number;/,

@@ -157,6 +157,7 @@ describe('non-match music ownership', () => {
     // loop underneath it.
     expect(menuThemeForScreen('championship-celebration', 1)).toBeNull();
     expect(menuThemeForScreen('endgame-celebration', 1)).toBeNull();
+    expect(menuThemeForScreen('midseason-training', 1)).toBeNull();
   });
 
   it('hands off exclusively from opening to management to event to awards music', () => {

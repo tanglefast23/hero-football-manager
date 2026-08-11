@@ -58,6 +58,7 @@ const isSpeech = (key: string): boolean =>
   /^playerRequest\.[^.]+\.line$/.test(key) ||
   key.startsWith('playerArrival.') ||
   key.startsWith('playerFarewell.') ||
+  key === 'midseasonTraining.captainLine' ||
   key.startsWith('titlePlayerPop.bubble.') ||
   key.startsWith('characterSpeech.');
 
@@ -80,6 +81,12 @@ const isSpeech = (key: string): boolean =>
  */
 export function budgetClass(key: string): BudgetClass {
   if (isSpoken(key)) return 'spoken';
+  if (
+    key === 'midseasonTraining.centerName' ||
+    key === 'midseasonTraining.spendAllTp' ||
+    key === 'app.loadingMatchArtwork'
+  )
+    return 'prose';
   if (voiceOf(key) === 'body' || isSpeech(key)) return 'prose';
   return 'boxed';
 }

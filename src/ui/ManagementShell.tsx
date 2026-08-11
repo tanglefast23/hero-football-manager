@@ -142,6 +142,7 @@ function ResourceChip({
   // one. A screen reader must not have to wait out an animation, and the
   // rolling value is presentation, not the number the player is being told.
   const shownValue = useCountUpNumber(value, reduceMotion);
+  const negativeMoney = money && shownValue < 0;
   const spoken = t('managementShell.a11y.resourceChip', {
     name,
     value: money ? formatCurrency(t, value) : formatCompactNumber(t, value),
@@ -173,7 +174,9 @@ function ResourceChip({
             className={
               hero
                 ? 'font-pixel text-xs text-gold-dark'
-                : 'font-pixel text-xs text-blue-dark'
+                : negativeMoney
+                  ? 'font-pixel text-xs text-red-dark'
+                  : 'font-pixel text-xs text-blue-dark'
             }
           >
             {glyph}
@@ -186,7 +189,9 @@ function ResourceChip({
           className={
             hero
               ? 'font-mono text-sm text-gold-dark'
-              : 'font-mono text-sm text-ink'
+              : negativeMoney
+                ? 'font-mono text-sm text-red-dark'
+                : 'font-mono text-sm text-ink'
           }
         >
           {abbrev(t, shownValue)}

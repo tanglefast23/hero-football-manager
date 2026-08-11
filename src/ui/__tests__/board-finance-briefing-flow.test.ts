@@ -188,17 +188,9 @@ describe('the money-making buildings', () => {
     );
   });
 
-  it('scrolls them into view, since they are the last two of twelve', () => {
-    expect(club).toContainSource(
-      'const scrollToIncomeFacilities = useCallback(',
-    );
-    expect(club).toContainSource('ref={incomeFacilityBuildTargetRef}');
-    expect(club).toContainSource('onLayout={scrollToIncomeFacilities}');
-  });
-
-  it('cancels its pending scroll when the screen goes away', () => {
-    expect(club).toMatchSource(
-      /incomeFacilityScrollFrameRef\.current !== null\) \{\s*\n\s*cancelAnimationFrame\(incomeFacilityScrollFrameRef\.current\)/,
-    );
+  it('keeps them at the natural facility-board position', () => {
+    expect(club).not.toContainSource('scrollToIncomeFacilities');
+    expect(club).not.toContainSource('incomeFacilityBuildTargetRef');
+    expect(club).not.toContainSource('incomeFacilityScrollFrameRef');
   });
 });

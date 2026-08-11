@@ -200,7 +200,7 @@ describe('matchDayBannerViewModel', () => {
   it('waits for the Financial Report to be dismissed before it announces', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
     expect(app).toMatchSource(
-      /store\.screen === 'management'\s*\n\s*&& !postMatchSummaryVisible\s*\n\s*&& store\.matchDayBanner !== null/,
+      /store\.screen === 'management'\s*\n\s*&& !postMatchSummaryVisible\s*\n\s*&& midseasonTrainingStage === null\s*\n\s*&& store\.matchDayBanner !== null/,
     );
   });
 

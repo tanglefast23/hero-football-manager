@@ -1981,9 +1981,26 @@ function resolveFinancialSafety(
     consecutiveNegativeWeeks >= rules.negativeWeeksBeforeIntervention &&
     emergencyLoanUsed
   ) {
-    boardUltimatum = facilityConversionUsed
-      ? createBoardUltimatum(state)
-      : createBoardFacilityUltimatum(state);
+    if (facilityConversionUsed) {
+      boardUltimatum = createBoardUltimatum(state);
+    } else {
+      const facilityUltimatum = createBoardFacilityUltimatum(state);
+      const facilityPlan = boardFacilityConversionAtDeadline(
+        state,
+        facilityUltimatum,
+      );
+      if (facilityPlan.addedFacilities.length > 0) {
+        boardUltimatum = facilityUltimatum;
+      } else {
+        // Do not make Bert offer a building conversion the board already knows
+        // cannot happen. Record the reason and start the player-sale warning
+        // window instead. No player leaves at this point; the normal four-week
+        // protection and recovery period still applies.
+        facilityConversionUsed = true;
+        latestBoardResolution = facilityPlan;
+        boardUltimatum = createBoardUltimatum(state);
+      }
+    }
   }
 
   // The floor is the last line and it never runs out. Everything above it —

@@ -108,25 +108,19 @@ describe('first facility placement guidance', () => {
     );
   });
 
-  it('keeps the hover helper above the full grid and inside its horizontal edges', () => {
+  it('removes the placement hover bar without removing the footprint preview', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
       'utf8',
     );
 
-    expect(source).not.toMatchSource(
-      /<Pressable[\s\S]*?tip=\{[\s\S]*?clubFinances\.buildHereColumnRow/,
+    expect(source).not.toContainSource('facilityPlacementHoverTip');
+    expect(source).not.toContainSource('clubFinances.buildHereColumnRow');
+    expect(source).not.toContainSource(
+      'clubFinances.blockedFootprintDoesNotFit',
     );
-    expect(source).toContainSource('styles.facilityPlacementHoverTip');
-    expect(source).not.toContainSource('hoveredCell');
-    expect(source).toContainSource('placementActive && previewCell');
-    expect(source).toContainSource('top: 8');
-    expect(source).toContainSource('left: 8');
-    expect(source).toContainSource('width: 176');
-    expect(source).toContainSource('zIndex: 100');
-    expect(source).toContainSource('elevation: 30');
-    expect(source).toMatchSource(
-      /placementActive \|\|[\s\S]*?overflow-visible/,
+    expect(source).toContainSource(
+      'placementActive && previewCell && activeFootprint',
     );
   });
 
@@ -180,23 +174,14 @@ describe('first facility placement guidance', () => {
     );
   });
 
-  it('scrolls coaching-office guidance to its build card without a grounds tooltip', () => {
+  it('keeps coaching-office guidance at the natural facility-board position', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
       'utf8',
     );
 
-    expect(source).toContainSource(
-      'const coachingOfficeBuildTargetRef = useRef<View>(null);',
-    );
-    expect(source).toContainSource("guideFocus !== 'coaching-office'");
-    expect(source).toContainSource('coachingOfficeBuildTargetRef,');
-    expect(source).toContainSource(
-      "ref={entry.type === 'coaching-office' ? coachingOfficeBuildTargetRef : undefined}",
-    );
-    expect(source).toContainSource(
-      "onLayout={entry.type === 'coaching-office' ? scrollToCoachingOffice : undefined}",
-    );
+    expect(source).not.toContainSource('scrollToCoachingOffice');
+    expect(source).not.toContainSource('coachingOfficeBuildTargetRef');
     expect(source).toMatchSource(
       /guideFocus !== 'facility-grid'\s*&& guideFocus !== 'coaching-office' \? \(/,
     );
@@ -208,8 +193,8 @@ describe('first facility placement guidance', () => {
       'utf8',
     );
 
-    // The viewport already scrolled the card into view, but nothing said which
-    // of the eight cards to press.
+    // The card is already in the opening viewport, but the lesson must still
+    // say which card to press.
     expect(finances).toContainSource(
       "guideFocus === 'coaching-office' && entry.type === 'coaching-office'",
     );

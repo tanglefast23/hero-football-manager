@@ -143,6 +143,10 @@ import { matchdayConditionWarningPlayer } from './src/ui/matchday-condition';
 import { PlayerRequestDecisionCard } from './src/ui/PlayerRequestDecisionCard';
 import { PlayerRequestWalkOn } from './src/ui/PlayerRequestWalkOn';
 import {
+  MidseasonTrainingCaptainWalkOn,
+  MidseasonTrainingDecisionCard,
+} from './src/ui/MidseasonTrainingPrompt';
+import {
   PlayerSaleFarewellWalkOn,
   type PlayerSaleFarewellModel,
 } from './src/ui/PlayerSaleFarewellWalkOn';
@@ -168,6 +172,7 @@ import {
   ChampionshipCelebrationScreen,
   EndgameCelebrationScreen,
   MatchDayBanner,
+  MidseasonTrainingCelebrationScreen,
   QuickResultFaceOff,
   RivalHeroIntroScreen,
   StoryEventScreen,
@@ -213,6 +218,7 @@ import {
   isFullyCappedPlayer,
   isTransferWindowOpen,
   leagueStandings,
+  midseasonTrainingStatus,
   shouldShowSquadSortHint,
   userClubName,
   hasAssistantGuideMilestone,
@@ -278,6 +284,7 @@ import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
 import { rivalHeroIntroViewModel } from './src/application/rival-hero-intro';
+import { midseasonTrainingViewModel } from './src/application/midseason-training';
 import type { QaRootAppProps } from './src/ui/qa/QaRootApp';
 
 const QaRootApp = lazy(async () => {
@@ -506,6 +513,8 @@ function GameApp() {
   const [dismissedAssistantObjectiveKey, setDismissedAssistantObjectiveKey] =
     useState<string | null>(null);
   const [guidanceNudgeToken, setGuidanceNudgeToken] = useState(0);
+  const [incomeFacilitiesFlashToken, setIncomeFacilitiesFlashToken] =
+    useState(0);
   const [tipDismissSequence, setTipDismissSequence] = useState(0);
   const [marketSectionRequest, setMarketSectionRequest] = useState<{
     section: MarketSectionId;
@@ -573,6 +582,9 @@ function GameApp() {
   const [bootAttempt, setBootAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] =
     useState<ConfirmationRequest | null>(null);
+  const [midseasonTrainingStage, setMidseasonTrainingStage] = useState<
+    'walk-on' | 'card' | null
+  >(null);
   const [developerSaveSummaries, setDeveloperSaveSummaries] = useState<
     DeveloperSaveSummary[]
   >([]);
@@ -2021,6 +2033,7 @@ function GameApp() {
       bertNotice !== undefined) &&
     signingWalkOn === null &&
     playerSaleFarewell === null &&
+    midseasonTrainingStage === null &&
     rivalHeroIntro === undefined &&
     // The Financial Report owns the screen while it is up. Bert used to walk on
     // and start talking underneath it, so a lesson the manager was meant to
@@ -2194,6 +2207,59 @@ function GameApp() {
   useEffect(() => {
     if (playerRequestVm?.pending === undefined) setRequestStage(null);
   }, [playerRequestVm?.pending?.requestId, playerRequestVm?.pending]);
+
+  const midseasonTrainingVm = useMemo(
+    () =>
+      store.career === null
+        ? undefined
+        : midseasonTrainingViewModel(store.career, t),
+    [store.career, locale],
+  );
+  const midseasonStatus =
+    store.career === null ? undefined : midseasonTrainingStatus(store.career);
+  useEffect(() => {
+    if (midseasonStatus !== 'prompt') {
+      setMidseasonTrainingStage(null);
+      return;
+    }
+    if (
+      midseasonTrainingStage !== null ||
+      store.screen !== 'management' ||
+      store.activeTab !== 'home' ||
+      store.matchDayBanner !== null ||
+      guideOverlayVisible ||
+      store.inboxDutyReminder !== null ||
+      postMatchSummaryVisible ||
+      playerSigning !== null ||
+      playerSaleFarewell !== null ||
+      requestStage !== null ||
+      coachOverlay !== null ||
+      facilityProjectNotice !== null ||
+      pendingConfirmation !== null ||
+      globalSettingsOpen ||
+      languageOffer !== null
+    ) {
+      return;
+    }
+    setMidseasonTrainingStage('walk-on');
+  }, [
+    coachOverlay,
+    facilityProjectNotice,
+    globalSettingsOpen,
+    guideOverlayVisible,
+    languageOffer,
+    midseasonStatus,
+    midseasonTrainingStage,
+    pendingConfirmation,
+    playerSaleFarewell,
+    playerSigning,
+    postMatchSummaryVisible,
+    requestStage,
+    store.activeTab,
+    store.inboxDutyReminder,
+    store.matchDayBanner,
+    store.screen,
+  ]);
 
   // Rival squads are settled the moment the week advances, so the preload can
   // start while the player is still on the home screen rather than waiting for
@@ -2517,6 +2583,17 @@ function GameApp() {
       <BootFailure
         message={t('app.savedCareerCouldNotBeLoaded')}
         onRetry={() => setBootAttempt((attempt) => attempt + 1)}
+      />
+    );
+  } else if (
+    store.screen === 'midseason-training' &&
+    midseasonTrainingVm !== undefined
+  ) {
+    screen = (
+      <MidseasonTrainingCelebrationScreen
+        viewModel={midseasonTrainingVm}
+        reduceMotion={reduceMotion}
+        onContinue={store.completeMidseasonTraining}
       />
     );
   } else if (store.screen === 'watched' && store.watchedMatch !== null) {
@@ -2880,7 +2957,9 @@ function GameApp() {
           setManagerTipGuideRequest(null);
         }}
         onAdvanceWeek={handleAdvanceWeek}
-        keyboardShortcutsEnabled={!guideOverlayVisible}
+        keyboardShortcutsEnabled={
+          !guideOverlayVisible && midseasonTrainingStage === null
+        }
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         developerSaveSummaries={
@@ -3029,6 +3108,7 @@ function GameApp() {
             requiredBuildType={requiredFacilityBuildType}
             guidanceNudgeTarget={guidanceNudgeTarget}
             guidanceNudgeToken={guidanceNudgeToken}
+            incomeFacilitiesFlashToken={incomeFacilitiesFlashToken}
             onRequiredBuildTypeBlocked={() =>
               store.notifyInboxDutyBlocked('coaching-office')
             }
@@ -3413,7 +3493,8 @@ function GameApp() {
   const screenRequiresHardCut =
     screenKey === MatchScreen ||
     screenKey === QuickResultFaceOff ||
-    screenKey === RivalHeroIntroScreen;
+    screenKey === RivalHeroIntroScreen ||
+    screenKey === MidseasonTrainingCelebrationScreen;
   // Confirmations have first claim on focus. Otherwise, a save warning that
   // has paused the career becomes the only interactive surface until Retry.
   const blockingSaveWarningVisible =
@@ -3437,6 +3518,7 @@ function GameApp() {
             store.screen === 'watched' ||
             store.screen === 'faceoff' ||
             store.screen === 'awakening' ||
+            store.screen === 'midseason-training' ||
             rivalHeroIntro !== undefined
               ? 'light'
               : 'dark'
@@ -3491,6 +3573,7 @@ function GameApp() {
             the moment Continue closes the report. */}
               {store.screen === 'management' &&
               !postMatchSummaryVisible &&
+              midseasonTrainingStage === null &&
               store.matchDayBanner !== null ? (
                 <MatchDayBanner
                   key={store.matchDayBanner.id}
@@ -3871,6 +3954,7 @@ function GameApp() {
                   if (wasLoan) {
                     setClubOfficeTab('facility');
                     setConciergeFocus('income-facilities');
+                    setIncomeFacilitiesFlashToken((token) => token + 1);
                   }
                 }}
               />
@@ -3955,6 +4039,30 @@ function GameApp() {
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
                 onDone={() => setPlayerSaleFarewell(null)}
+              />
+            ) : null}
+            {midseasonTrainingStage === 'walk-on' &&
+            midseasonTrainingVm !== undefined ? (
+              <MidseasonTrainingCaptainWalkOn
+                viewModel={midseasonTrainingVm}
+                navigationAnchor={navigationGuideAnchor}
+                reduceMotion={reduceMotion}
+                onDone={() => setMidseasonTrainingStage('card')}
+              />
+            ) : null}
+            {midseasonTrainingStage === 'card' &&
+            midseasonTrainingVm !== undefined ? (
+              <MidseasonTrainingDecisionCard
+                viewModel={midseasonTrainingVm}
+                reduceMotion={reduceMotion}
+                onYes={() => {
+                  store.acceptMidseasonTraining();
+                  setMidseasonTrainingStage(null);
+                }}
+                onNo={() => {
+                  store.declineMidseasonTraining();
+                  setMidseasonTrainingStage(null);
+                }}
               />
             ) : null}
             {/* Two stages: the player walks on and says their line, then the card

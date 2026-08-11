@@ -60,7 +60,11 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
   CHAIRMAN: {
     seasonOneWageSubsidyPercent: 40,
     sponsorIncomePercent: 80,
-    negativeWeeksBeforeIntervention: 2,
+    // The one emergency loan is followed by the same four-week recovery
+    // window in both modes. Chairman stays harder through lower income, the
+    // smaller loan, the deeper floor, and stronger opponent growth; cutting
+    // this window in half made a normal gap between home gates look insolvent.
+    negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 10_000,
     opponentGrowthPercent: 4,
     opponentGrowthAttributeCap: 800,
