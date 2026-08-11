@@ -57,8 +57,9 @@ describe('first facility placement guidance', () => {
     );
 
     expect(source).toMatchSource(
-      /const revealFacilityPlacement = useCallback\([\s\S]*?setFacilityPlacementHelperVisible\(true\);[\s\S]*?if \(guidedFirstFacility\) return;[\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[guidedFirstFacility, layoutMode, reduceMotion\]\);/,
+      /const revealFacilityPlacement = useCallback\([\s\S]*?setFacilityPlacementHelperVisible\(true\);[\s\S]*?if \(guidedFirstFacility\) return;[\s\S]*?if \(facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[guidedFirstFacility, reduceMotion\]\);/,
     );
+    expect(source).not.toContainSource("layoutMode !== 'single'");
     expect(source).toContainSource("{t('clubFinances.buildHere')}");
     expect(source).toContainSource('ref={facilityPlacementFocusRef}');
     expect(source).toContainSource('accessibilityRole="header"');

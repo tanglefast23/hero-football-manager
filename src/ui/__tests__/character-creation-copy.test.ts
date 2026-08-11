@@ -202,14 +202,12 @@ describe('first-hire screen copy', () => {
     expect(source).toContainSource('rosterNames,');
   });
 
-  it('parks the caret in the name field on desktop only', () => {
-    // A hovering pointer AND the wide layout. `Platform.OS === 'web'` plus
-    // `wide` was not enough: a landscape iPad is both, and it opened this
-    // screen with the on-screen keyboard already over the form and the name
-    // field already selected.
-    expect(source).toContainSource(
-      "if (!hasHoverPointer() || !wide || typeof document === 'undefined') return;",
-    );
+  it('parks the caret on desktop without treating a Magic Keyboard iPad as one', () => {
+    // A Magic Keyboard iPad can hover, but it also has touch. Auto-focus only
+    // belongs on a wide, hover-capable device with no touch surface.
+    expect(source).toContainSource('!hasHoverPointer() ||');
+    expect(source).toContainSource('hasTouchPointer() ||');
+    expect(source).toContainSource('!wide ||');
     expect(source).not.toContainSource("Platform.OS !== 'web' || !wide");
     // Focused by id, not by ref: NativeWind's wrapper never hands a ref down to
     // the input, so ref.current stays null and the caret never lands.

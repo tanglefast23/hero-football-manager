@@ -6,10 +6,8 @@
     <!--
       `viewport-fit=cover` is what makes env(safe-area-inset-*) report real
       numbers, which is how the shell keeps its chrome out from under an iPad's
-      status bar and home indicator. Pinch zoom is deliberately left alone: it is
-      an accessibility gesture, iOS ignores `user-scalable=no` anyway, and the
-      double-tap zoom that actually fought the game is handled by
-      `touch-action: manipulation` in global.css.
+      status bar and home indicator. Page zoom is controlled by `touch-action`
+      in global.css instead of viewport scale limits, which iOS Safari ignores.
     -->
     <meta
       name="viewport"

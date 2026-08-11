@@ -89,8 +89,8 @@ async function main() {
     css,
     'P1',
     'R2.1',
-    'touch-action:manipulation',
-    'double-tap zoom cannot fire on rapid taps (training)',
+    'touch-action:pan-x pan-y',
+    'page zoom cannot fire during rapid game taps',
   );
   cssCheck(
     css,

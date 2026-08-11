@@ -19,6 +19,12 @@ describe('coach hiring guidance', () => {
       "const hideCoachHiringCues = store.activeTab === 'market'",
     );
     expect(app).toContainSource(
+      "focusedInboxDutyId === 'head-coach-market'",
+    );
+    expect(app).toContainSource(
+      "focusedInboxDutyId === 'assistant-coach-hire'",
+    );
+    expect(app).toContainSource(
       'guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}',
     );
   });

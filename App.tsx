@@ -2169,7 +2169,9 @@ function GameApp() {
   ]);
   const hideCoachHiringCues =
     store.activeTab === 'market' &&
-    (visibleConciergeFocus === 'coach-market' ||
+    (focusedInboxDutyId === 'head-coach-market' ||
+      focusedInboxDutyId === 'assistant-coach-hire' ||
+      visibleConciergeFocus === 'coach-market' ||
       visibleConciergeFocus === 'coach-hire' ||
       visibleConciergeFocus === 'assistant-coach-hire');
 

@@ -42,12 +42,10 @@ svg {
 /*
  * Dragging across a pixel-art UI should not select it like a document.
  *
- * `touch-action: manipulation` is the tablet half of the same idea: without it
- * iPadOS treats two quick taps as a zoom, so training — which is deliberately
- * rapid tapping — zooms the page instead of buying drills, and every tap waits
- * out the double-tap window first. Pinch is deliberately left alone: it is an
- * accessibility gesture, iOS ignores `user-scalable=no` anyway, and a player who
- * pinches in needs to be able to pinch back out.
+ * `pan-x pan-y` keeps one-finger ScrollView movement but gives page zoom no
+ * gesture on the game surface. `manipulation` used to disable double-tap zoom
+ * while leaving pinch enabled; on iPad that still allowed a fast tap with a
+ * second resting contact to zoom and strand the game viewport.
  *
  * `-webkit-touch-callout: none` stops the iPadOS "Look Up / Copy" callout from
  * racing InfoTip's 500ms hold, which is how a touch screen reads a column tip.
@@ -55,6 +53,6 @@ svg {
 #root {
   -webkit-user-select: none;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: pan-x pan-y;
   -webkit-touch-callout: none;
 }

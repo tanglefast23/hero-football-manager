@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 type HoverQuery = { matches: boolean };
 
 let hoverQuery: HoverQuery | null | undefined;
+let touchQuery: HoverQuery | null | undefined;
 
 /**
  * True only where a pointer can rest on a control without pressing it.
@@ -35,4 +36,26 @@ export function hasHoverPointer(): boolean {
   // No matchMedia at all (jest, or a browser too old to answer): keep the
   // desktop behaviour rather than silently dropping hover everywhere.
   return hoverQuery === null ? true : hoverQuery.matches;
+}
+
+/**
+ * True when the web device has a touch surface, even if it also has a trackpad.
+ *
+ * An iPad in a Magic Keyboard answers both `(hover: hover)` and
+ * `(any-pointer: coarse)`. That makes it a hybrid device, not a desktop: focus
+ * can still move iPadOS's visual viewport even though text arrives from the
+ * hardware keyboard. `maxTouchPoints` is the fallback and also survives the
+ * desktop-style user agent used by iPadOS.
+ */
+export function hasTouchPointer(): boolean {
+  if (Platform?.OS !== 'web') return false;
+  if (touchQuery === undefined) {
+    touchQuery =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(any-pointer: coarse)')
+        : null;
+  }
+  const touchPoints =
+    typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints;
+  return touchQuery?.matches === true || touchPoints > 0;
 }

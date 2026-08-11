@@ -663,17 +663,17 @@ export function ClubFinancesScreen({
   const layoutMode = useLayoutMode();
 
   /**
-   * Every build choice briefly marks the grid. On a phone the build menu sits
-   * above the grounds, so the same action also moves the viewport to the grid.
-   * Wide layouts already show both columns and must not move the manager.
+   * Every build choice briefly marks the grid and moves the viewport to it.
+   * This stays consistent across phone, tablet, and desktop layouts: even when
+   * part of the grid is already visible, the chosen placement surface becomes
+   * the one clear next action.
    */
   const revealFacilityPlacement = useCallback(() => {
     setFacilityPlacementHelperVisible(true);
     // The opening lesson already owns the viewport and accessibility focus.
     // Placement mode still lights legal + squares, so it needs no extra scroll.
     if (guidedFirstFacility) return;
-    if (layoutMode !== 'single' || facilityPlacementTargetRef.current === null)
-      return;
+    if (facilityPlacementTargetRef.current === null) return;
     if (facilityPlacementScrollFrameRef.current !== null) {
       cancelAnimationFrame(facilityPlacementScrollFrameRef.current);
     }
@@ -689,7 +689,7 @@ export function ClubFinancesScreen({
       );
       focusGuideTarget(facilityPlacementFocusRef.current);
     });
-  }, [guidedFirstFacility, layoutMode, reduceMotion]);
+  }, [guidedFirstFacility, reduceMotion]);
 
   const loanSection: FlowSection[] =
     viewModel.loan === undefined

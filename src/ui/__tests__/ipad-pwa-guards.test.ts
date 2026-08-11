@@ -101,7 +101,7 @@ describe('iPad and installed web app guards', () => {
   it('keeps the browser from stealing taps, holds and overscroll', () => {
     const css = read('global.css');
 
-    expect(css).toContainSource('touch-action: manipulation;');
+    expect(css).toContainSource('touch-action: pan-x pan-y;');
     expect(css).toContainSource('-webkit-touch-callout: none;');
     expect(css).toContainSource('overscroll-behavior: none;');
   });

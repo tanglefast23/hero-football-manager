@@ -20,8 +20,27 @@ function loadForWeb(matchMedia?: MatchMedia): () => boolean {
   ).hasHoverPointer;
 }
 
+function loadTouchForWeb(
+  matchMedia?: MatchMedia,
+  maxTouchPoints = 0,
+): () => boolean {
+  jest.resetModules();
+  jest.doMock('react-native', () => ({ Platform: { OS: 'web' } }));
+  (globalThis as { window?: unknown }).window =
+    matchMedia === undefined ? {} : { matchMedia };
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { maxTouchPoints },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return (
+    require('../pointer-capability') as typeof import('../pointer-capability')
+  ).hasTouchPointer;
+}
+
 afterEach(() => {
   delete (globalThis as { window?: unknown }).window;
+  delete (globalThis as { navigator?: unknown }).navigator;
   jest.resetModules();
 });
 
@@ -77,6 +96,36 @@ describe('hover capability', () => {
     const native =
       require('../pointer-capability') as typeof import('../pointer-capability');
     expect(native.hasHoverPointer()).toBe(false);
+  });
+});
+
+describe('touch capability', () => {
+  it('keeps a trackpad-equipped iPad classified as touch-capable', () => {
+    const queries: string[] = [];
+    const hasTouchPointer = loadTouchForWeb((query) => {
+      queries.push(query);
+      return { matches: query === '(any-pointer: coarse)' };
+    });
+
+    expect(hasTouchPointer()).toBe(true);
+    expect(queries).toEqual(['(any-pointer: coarse)']);
+  });
+
+  it('uses maxTouchPoints when the media query cannot identify the iPad', () => {
+    const hasTouchPointer = loadTouchForWeb(() => ({ matches: false }), 5);
+
+    expect(hasTouchPointer()).toBe(true);
+  });
+
+  it('does not classify a mouse-only desktop or native screen as touch', () => {
+    expect(loadTouchForWeb(() => ({ matches: false }))()).toBe(false);
+
+    jest.resetModules();
+    jest.doMock('react-native', () => ({ Platform: { OS: 'ios' } }));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const native =
+      require('../pointer-capability') as typeof import('../pointer-capability');
+    expect(native.hasTouchPointer()).toBe(false);
   });
 });
 
