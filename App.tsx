@@ -79,7 +79,6 @@ import {
 } from './src/persistence';
 import { LazyMatchScreen as MatchScreen } from './src/render/LazyMatchScreen';
 import { isMatchPerformanceLimitActive } from './src/render/match-performance';
-import { QuickResultFaceOff } from './src/render/QuickResultFaceOff';
 import { setMasterVolume } from './src/render/audio';
 import {
   playAwakeningAscension,
@@ -127,58 +126,73 @@ import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
 import { assertRuntimeGoldenReplay } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
 import {
-  ClubFinancesScreen,
-  ConfirmationSheet,
-  CoachStaffOverlay,
-  FacilityProjectNotice,
-  PlayerSigningOverlay,
-  PlayerWalkOnWelcome,
-  PlayerRequestWalkOn,
-  PlayerRequestDecisionCard,
-  RivalHeroIntroScreen,
-  ClubHomeScreen,
-  ClubLegacyScreen,
   BertBriefingWalkOn,
-  TutorialSpotlight,
-  TutorialTapCue,
-  MatchdayConditionWarning,
-  matchdayConditionWarningPlayer,
-  CharacterCreationScreen,
+  bertBriefingBackgroundProps,
+} from './src/ui/BertBriefingWalkOn';
+import {
+  CoachStaffOverlay,
+  type CoachOverlayCoach,
+} from './src/ui/CoachStaffOverlay';
+import {
+  FacilityProjectNotice,
+  type FacilityProjectNoticeModel,
+} from './src/ui/FacilityProjectNotice';
+import { ManagementShell } from './src/ui/ManagementShell';
+import { MatchdayConditionWarning } from './src/ui/MatchdayConditionWarning';
+import { matchdayConditionWarningPlayer } from './src/ui/matchday-condition';
+import { PlayerRequestDecisionCard } from './src/ui/PlayerRequestDecisionCard';
+import { PlayerRequestWalkOn } from './src/ui/PlayerRequestWalkOn';
+import {
+  PlayerSigningOverlay,
+  type PlayerSigningConfirmation,
+} from './src/ui/PlayerSigningOverlay';
+import { PlayerWalkOnWelcome } from './src/ui/PlayerWalkOnWelcome';
+import { PostMatchSummaryModal } from './src/ui/PostMatchSummaryModal';
+import { TutorialSpotlight } from './src/ui/TutorialSpotlight';
+import { TutorialTapCue } from './src/ui/TutorialTapCue';
+import { advisorMilestonesToBank } from './src/ui/advisor-milestones';
+import { shouldAskAssistantMode } from './src/ui/assistant-mode-choice';
+import {
+  ConfirmationSheet,
+  confirmationBackgroundProps,
+  type ConfirmationRequest,
+} from './src/ui/components/ConfirmationSheet';
+import { ScreenTransition } from './src/ui/components/ScreenTransition';
+import { formatCurrency } from './src/ui/components/Scorecard';
+import {
   AwakeningCutsceneScreen,
-  AssistantModeChoiceScreen,
   ChampionshipCelebrationScreen,
-  SeasonPodiumScreen,
-  FixtureMatchDayScreen,
-  forgetLeagueRowPositions,
-  LeagueTableScreen,
-  M2LeagueScreen,
-  ManagementShell,
-  MarketScreen,
+  EndgameCelebrationScreen,
   MatchDayBanner,
-  NewGameWelcomeScreen,
-  PostMatchLedgerScreen,
-  PostMatchSummaryModal,
-  ScreenTransition,
-  SeasonEndScreen,
-  SquadTrainingScreen,
+  QuickResultFaceOff,
+  RivalHeroIntroScreen,
   StoryEventScreen,
+} from './src/ui/DeferredSkiaSurfaces';
+import type { GuidanceNudgeTarget } from './src/ui/GuidanceDoubleFlash';
+import { forgetLeagueRowPositions } from './src/ui/league-table-motion';
+import type { MarketSectionId } from './src/ui/market-models';
+import type { ClubOfficeTab } from './src/ui/models';
+import { shouldShowOpeningBrief } from './src/ui/opening-brief';
+import { AssistantModeChoiceScreen } from './src/ui/screens/AssistantModeChoiceScreen';
+import { AwardsCeremonyScreen } from './src/ui/screens/AwardsCeremonyScreen';
+import { CharacterCreationScreen } from './src/ui/screens/CharacterCreationScreen';
+import { ClubFinancesScreen } from './src/ui/screens/ClubFinancesScreen';
+import { ClubHomeScreen } from './src/ui/screens/ClubHomeScreen';
+import { ClubLegacyScreen } from './src/ui/screens/ClubLegacyScreen';
+import { FixtureMatchDayScreen } from './src/ui/screens/FixtureMatchDayScreen';
+import { LeagueTableScreen } from './src/ui/screens/LeagueTableScreen';
+import { M2LeagueScreen } from './src/ui/screens/M2LeagueScreen';
+import { MarketScreen } from './src/ui/screens/MarketScreen';
+import { NewGameWelcomeScreen } from './src/ui/screens/NewGameWelcomeScreen';
+import { PostMatchLedgerScreen } from './src/ui/screens/PostMatchLedgerScreen';
+import { SeasonEndScreen } from './src/ui/screens/SeasonEndScreen';
+import { SeasonPodiumScreen } from './src/ui/screens/SeasonPodiumScreen';
+import { SquadTrainingScreen } from './src/ui/screens/SquadTrainingScreen';
+import {
   TitleLandingScreen,
   TitleSettingsScreen,
-  WeeklyReviewScreen,
-  type CoachOverlayCoach,
-  type FacilityProjectNoticeModel,
-  type PlayerSigningConfirmation,
-  type ClubOfficeTab,
-  type MarketSectionId,
-  formatCurrency,
-  advisorMilestonesToBank,
-  shouldAskAssistantMode,
-  confirmationBackgroundProps,
-  bertBriefingBackgroundProps,
-  shouldShowOpeningBrief,
-  type ConfirmationRequest,
-  type GuidanceNudgeTarget,
-} from './src/ui';
+} from './src/ui/screens/TitleLandingScreen';
+import { WeeklyReviewScreen } from './src/ui/screens/WeeklyReviewScreen';
 import {
   activeCareerMatchday,
   assistantTeaches,
@@ -252,12 +266,10 @@ import { championshipCelebrationViewModel } from './src/application/championship
 import { seasonPodiumViewModel } from './src/application/season-podium';
 import { endgameCelebrationViewModel } from './src/application/endgame-celebration';
 import { hallOfFameViewModel } from './src/application/hall-of-fame';
-import { EndgameCelebrationScreen } from './src/ui/screens/EndgameCelebrationScreen';
 import {
   awardCeremonyLookIds,
   careerAwardCeremonyViewModel,
 } from './src/application/awards-ceremony';
-import { AwardsCeremonyScreen } from './src/ui/screens/AwardsCeremonyScreen';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
@@ -265,8 +277,13 @@ import { rivalHeroIntroViewModel } from './src/application/rival-hero-intro';
 import type { QaRootAppProps } from './src/ui/qa/QaRootApp';
 
 const QaRootApp = lazy(async () => {
-  const module = await import('./src/ui/qa/QaRootApp');
-  return { default: module.default };
+  if (Platform.OS === 'web') {
+    const { LoadSkiaWeb } =
+      await import('@shopify/react-native-skia/lib/module/web');
+    await LoadSkiaWeb({ locateFile: (file) => `/${file}` });
+  }
+  const module = await import('./src/ui/SkiaSurfaceImplementations');
+  return { default: module.QaRootApp };
 });
 
 function inboxDutyCopyStem(dutyId: OpeningInboxDutyId): string {

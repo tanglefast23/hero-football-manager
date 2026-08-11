@@ -74,6 +74,12 @@ export const TARGET_OVERRIDES = {
 
 /** True-peak ceiling every output is held under, in dBTP. */
 const CEILING = -1.0;
+/**
+ * Existing compressed cues can drift slightly above the mastering ceiling after
+ * decode. Fail the audit before they reach clipping, without re-encoding a cue
+ * for a harmless sub-decibel inter-sample overshoot.
+ */
+const CHECK_TRUE_PEAK_MAX = -0.1;
 /** Gain smaller than this is inaudible and not worth a re-encode. */
 const MIN_GAIN_DB = 0.5;
 /**
@@ -339,12 +345,26 @@ function solve(file, out, row) {
     const loudness = perceivedLoudness(after, row.cls);
     const miss = Math.abs(row.target - loudness);
 
-    if (best === null || miss < best.miss) {
-      best = { gain, limit, loudness, truePeak: after.truePeak, miss };
-    }
     // alimiter works on samples, not inter-sample peaks, so the true peak can
     // still land over the ceiling; that is always a reason to go round again.
     const overCeiling = after.truePeak > CEILING;
+    const peakExcess = Math.max(0, after.truePeak - CEILING);
+    if (
+      best === null ||
+      (!overCeiling && best.overCeiling) ||
+      (overCeiling === best.overCeiling &&
+        (overCeiling ? peakExcess < best.peakExcess : miss < best.miss))
+    ) {
+      best = {
+        gain,
+        limit,
+        loudness,
+        truePeak: after.truePeak,
+        miss,
+        overCeiling,
+        peakExcess,
+      };
+    }
     if (miss <= SOLVE_TOLERANCE_LU && !overCeiling) {
       return {
         gainDb: Number(gain.toFixed(2)),
@@ -354,13 +374,20 @@ function solve(file, out, row) {
       };
     }
     if (overCeiling) limit = true;
-    const next = Math.min(gain + (row.target - loudness), maxGain);
+    const next = overCeiling
+      ? gain - peakExcess - 0.1
+      : Math.min(gain + (row.target - loudness), maxGain);
     if (next === gain) break; // pinned at the limiting cap; more gain buys nothing
     if (next > row.gain) limit = true;
     gain = next;
   }
 
   // Re-render the best attempt, since the loop's last render is not it.
+  if (best.truePeak > CEILING) {
+    throw new Error(
+      `${row.assetPath}: could not hold true peak under ${CEILING} dBTP`,
+    );
+  }
   render(file, out, best.gain, best.limit, row.measured);
   return {
     gainDb: Number(best.gain.toFixed(2)),
@@ -407,9 +434,14 @@ const recorded = existsSync(MANIFEST)
   : {};
 function offTarget(row) {
   const entry = recorded[row.assetPath];
+  if (row.measured.truePeak > CHECK_TRUE_PEAK_MAX) return true;
   if (entry?.unreachable)
     return Math.abs(entry.after - row.loudness) > CHECK_TOLERANCE_LU;
   return Math.abs(row.gain) > CHECK_TOLERANCE_LU;
+}
+
+function needsWork(row) {
+  return offTarget(row);
 }
 
 const width = Math.max(...rows.map((r) => r.assetPath.length));
@@ -421,11 +453,11 @@ for (const row of rows) {
       : recorded[row.assetPath]?.unreachable
         ? 'ok (capped)'
         : 'ok'
-    : Math.abs(row.gain) < MIN_GAIN_DB
-      ? 'skip (inaudible)'
-      : row.wouldPeak > CEILING
+    : needsWork(row)
+      ? row.wouldPeak > CEILING
         ? `gain + limit ${(row.wouldPeak - CEILING).toFixed(1)}dB`
-        : 'gain';
+        : 'gain'
+      : 'skip (inaudible)';
   console.log(
     `${row.assetPath.padEnd(width)}  ${row.cls.padEnd(5)} ` +
       `${(row.loudness ?? NaN).toFixed(1).padStart(6)} ` +
@@ -437,7 +469,7 @@ for (const row of rows) {
 if (check) {
   const off = rows.filter(offTarget);
   console.log(
-    `\n${rows.length - off.length}/${rows.length} assets within ${CHECK_TOLERANCE_LU} LU of target.`,
+    `\n${rows.length - off.length}/${rows.length} assets within level and true-peak targets.`,
   );
   if (off.length) {
     console.log(
@@ -448,7 +480,7 @@ if (check) {
   process.exit(0);
 }
 
-const work = rows.filter((r) => Math.abs(r.gain) >= MIN_GAIN_DB);
+const work = rows.filter(needsWork);
 console.log(`\n${work.length} of ${rows.length} assets need levelling.`);
 if (dryRun) process.exit(0);
 
@@ -472,7 +504,7 @@ try {
       limited: false,
     };
 
-    if (Math.abs(row.gain) >= MIN_GAIN_DB) {
+    if (needsWork(row)) {
       const out = join(staging, `out${extname(row.assetPath)}`);
       const solved = solve(file, out, row);
       renameSync(out, file);

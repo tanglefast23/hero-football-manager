@@ -80,9 +80,9 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'duel-scuff': require('../../assets/audio/sfx/duel-scuff.wav'),
   'goal-fanfare': require('../../assets/audio/sfx/goal-fanfare.m4a'),
   'goal-celebration': require('../../assets/audio/sfx/goal-celebration.m4a'),
-  // The ball going in, cut to the 0.35s of actual hit plus its tail — the
-  // supplied recording is two seconds, and all but the front of it is silence.
-  'goal-net-hit': require('../../assets/audio/sfx/goal-net-hit.m4a'),
+  // The ball going in, cut to the 0.35s of actual hit plus its tail. Keep this
+  // lossless: AAC reconstruction pushed its sharp transient over true peak.
+  'goal-net-hit': require('../../assets/audio/sfx/goal-net-hit.wav'),
   'goal-crowd': require('../../assets/audio/sfx/goal-crowd.m4a'),
   'card-whistle': require('../../assets/audio/sfx/card-whistle.wav'),
   'crowd-jeer': require('../../assets/audio/sfx/crowd-jeer.wav'),

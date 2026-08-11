@@ -1,6 +1,5 @@
 import {
   Suspense,
-  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -81,11 +80,7 @@ import {
   type GuidanceNudgeTarget,
 } from '../GuidanceDoubleFlash';
 import { copyOrEnglish } from '../../application/copy-fallback';
-
-const TrainingDrillModal = lazy(async () => {
-  const module = await import('../TrainingDrillModal');
-  return { default: module.TrainingDrillModal };
-});
+import { LazyTrainingDrillModal as TrainingDrillModal } from '../LazyTrainingDrillModal';
 
 /**
  * The roster reads condition on the same three bands as the drill popup and

@@ -6,23 +6,11 @@ describe('first landing startup', () => {
   const webEntry = readFileSync(join(process.cwd(), 'index.web.ts'), 'utf8');
   const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
-  test('preloads the same CanvasKit URL used by the runtime loader', () => {
-    const preload = html.match(
-      /<link\s+[^>]*href="\/canvaskit\.wasm"[^>]*>/,
-    )?.[0];
-    const locateTemplate = webEntry.match(
-      /locateFile:\s*file\s*=>\s*`([^`]+)`/,
-    )?.[1];
-
-    expect(preload).toBeDefined();
-    expect(preload).toContain('rel="preload"');
-    expect(preload).toContain('as="fetch"');
-    expect(preload).toContain('type="application/wasm"');
-    expect(preload).toMatch(/\bcrossorigin(?:\s|\/>)/);
-    expect(html.match(/href="\/canvaskit\.wasm"/g)).toHaveLength(1);
-    expect(locateTemplate?.replace('${file}', 'canvaskit.wasm')).toBe(
-      '/canvaskit.wasm',
-    );
+  test('registers the title without fetching CanvasKit first', () => {
+    expect(webEntry).toContain("import App from './App';");
+    expect(webEntry).toContain('registerRootComponent(App);');
+    expect(webEntry).not.toContain('LoadSkiaWeb');
+    expect(html).not.toContain('canvaskit.wasm');
   });
 
   test('keeps a wordless, non-interactive status shell inside the React root', () => {

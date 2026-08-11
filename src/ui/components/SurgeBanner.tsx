@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
-import { Canvas, Rect } from '@shopify/react-native-skia';
 import { PixelText } from './PixelText';
 import { formatCurrency } from './Scorecard';
 import {
@@ -140,21 +139,28 @@ export function SurgeBanner({
         <View className="items-center border-2 border-b-4 border-ink bg-paper px-4 py-3">
           <View style={{ flexDirection: 'row', gap: 4 }}>
             {sprites.map((spriteId) => (
-              <Canvas
+              <View
                 key={spriteId}
-                style={{ width: SPRITE_PX, height: SPRITE_PX }}
+                style={{
+                  position: 'relative',
+                  width: SPRITE_PX,
+                  height: SPRITE_PX,
+                }}
               >
                 {financeSpriteRuns(spriteId).map((run) => (
-                  <Rect
+                  <View
                     key={run.id}
-                    x={run.x * FINANCE_SPRITE_SCALE}
-                    y={run.y * FINANCE_SPRITE_SCALE}
-                    width={run.width * FINANCE_SPRITE_SCALE}
-                    height={FINANCE_SPRITE_SCALE}
-                    color={run.color}
+                    style={{
+                      position: 'absolute',
+                      left: run.x * FINANCE_SPRITE_SCALE,
+                      top: run.y * FINANCE_SPRITE_SCALE,
+                      width: run.width * FINANCE_SPRITE_SCALE,
+                      height: FINANCE_SPRITE_SCALE,
+                      backgroundColor: run.color,
+                    }}
                   />
                 ))}
-              </Canvas>
+              </View>
             ))}
           </View>
           <View className="mt-2 flex-row items-center" style={{ gap: 8 }}>

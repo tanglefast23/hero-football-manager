@@ -1,0 +1,137 @@
+import { lazy, Suspense } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import type { QuickResultFaceOffProps } from '../render/QuickResultFaceOff';
+import type { RivalHeroIntroScreenProps } from './RivalHeroIntroScreen';
+import type { MatchDayBannerProps } from './components/MatchDayBanner';
+import type { AwakeningCutsceneScreenProps } from './screens/AwakeningCutsceneScreen';
+import type { ChampionshipCelebrationScreenProps } from './screens/ChampionshipCelebrationScreen';
+import type { EndgameCelebrationScreenProps } from './screens/EndgameCelebrationScreen';
+import type { StoryEventScreenProps } from './screens/StoryEventScreen';
+
+async function loadSkia() {
+  const { LoadSkiaWeb } =
+    await import('@shopify/react-native-skia/lib/module/web');
+  await LoadSkiaWeb({ locateFile: (file) => `/${file}` });
+}
+
+function LoadingSurface() {
+  return (
+    <View style={styles.loading} accessibilityLabel="Loading match artwork">
+      <Text style={styles.loadingText}>LOADING MATCH ART…</Text>
+    </View>
+  );
+}
+
+const DeferredQuickResultFaceOff = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.QuickResultFaceOff };
+});
+
+const DeferredRivalHeroIntroScreen = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.RivalHeroIntroScreen };
+});
+
+const DeferredMatchDayBanner = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.MatchDayBanner };
+});
+
+const DeferredAwakeningCutsceneScreen = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.AwakeningCutsceneScreen };
+});
+
+const DeferredChampionshipCelebrationScreen = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.ChampionshipCelebrationScreen };
+});
+
+const DeferredEndgameCelebrationScreen = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.EndgameCelebrationScreen };
+});
+
+const DeferredStoryEventScreen = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.StoryEventScreen };
+});
+
+export function QuickResultFaceOff(props: QuickResultFaceOffProps) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredQuickResultFaceOff {...props} />
+    </Suspense>
+  );
+}
+
+export function RivalHeroIntroScreen(props: RivalHeroIntroScreenProps) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredRivalHeroIntroScreen {...props} />
+    </Suspense>
+  );
+}
+
+export function MatchDayBanner(props: MatchDayBannerProps) {
+  return (
+    <Suspense fallback={null}>
+      <DeferredMatchDayBanner {...props} />
+    </Suspense>
+  );
+}
+
+export function AwakeningCutsceneScreen(props: AwakeningCutsceneScreenProps) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredAwakeningCutsceneScreen {...props} />
+    </Suspense>
+  );
+}
+
+export function ChampionshipCelebrationScreen(
+  props: ChampionshipCelebrationScreenProps,
+) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredChampionshipCelebrationScreen {...props} />
+    </Suspense>
+  );
+}
+
+export function EndgameCelebrationScreen(props: EndgameCelebrationScreenProps) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredEndgameCelebrationScreen {...props} />
+    </Suspense>
+  );
+}
+
+export function StoryEventScreen(props: StoryEventScreenProps) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredStoryEventScreen {...props} />
+    </Suspense>
+  );
+}
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#241f2e',
+  },
+  loadingText: {
+    color: '#f4ead0',
+    fontFamily: 'HFMSilkscreen_700Bold',
+    fontSize: 12,
+  },
+});

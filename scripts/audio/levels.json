@@ -210,6 +210,16 @@
       "afterTruePeak": -2.2,
       "bytes": 9780
     },
+    "assets/audio/sfx/drill-complete-heavy.wav": {
+      "class": "sfx",
+      "before": -7.1,
+      "beforeTruePeak": 0,
+      "gainDb": -8.9,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -8.9,
+      "bytes": 476238
+    },
     "assets/audio/sfx/drill-gain-reveal.m4a": {
       "class": "sfx",
       "before": -12.8,
@@ -270,6 +280,16 @@
       "after": -15.9,
       "afterTruePeak": -3.4,
       "bytes": 64448
+    },
+    "assets/audio/sfx/facility-start-work.wav": {
+      "class": "sfx",
+      "before": -9.7,
+      "beforeTruePeak": 0.1,
+      "gainDb": -6.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -6.2,
+      "bytes": 200446
     },
     "assets/audio/sfx/flame-hit.wav": {
       "class": "sfx",
@@ -371,16 +391,15 @@
       "afterTruePeak": -7,
       "bytes": 19631
     },
-    "assets/audio/sfx/goal-net-hit.m4a": {
+    "assets/audio/sfx/goal-net-hit.wav": {
       "class": "sfx",
-      "before": -20.3,
-      "beforeTruePeak": -1.4,
-      "gainDb": 5.9,
+      "before": -16,
+      "beforeTruePeak": 3.2,
+      "gainDb": 0,
       "limited": true,
-      "after": -16,
-      "afterTruePeak": 3.2,
-      "unreachable": false,
-      "bytes": 9743
+      "after": -15.7,
+      "afterTruePeak": -1.8,
+      "bytes": 63566
     },
     "assets/audio/sfx/grunt.wav": {
       "class": "sfx",

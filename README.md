@@ -51,7 +51,7 @@ The flag is the only way in. `App()` also refuses all QA roots on native Release
 
 Cold loads work, so a screenshot of one exact state costs a URL rather than a run of taps: `http://localhost:3000/#/dev/awards-ceremony/sweep`. Selecting an entry or a case updates the hash, and an address the registry no longer holds — a renamed entry, a dropped case — falls back to the menu and corrects the URL rather than stranding you. Native has no location hash, so there the harness simply holds its route in memory; everything else behaves the same.
 
-Career-event review has dedicated cold-load lanes for the complete 54-story catalog and its
+Career-event review has dedicated cold-load lanes for the complete 52-story catalog and its
 new interaction shapes: `#/dev/career-events/all`, `target-player`, `target-coach`,
 `target-facility`, and `two-part`. Category bookmarks are unchanged. These cases drive the
 production target rules, outcome resolver, and follow-up carry rather than a Harness-only
@@ -123,7 +123,7 @@ Research reports (source material, written by research agents):
 | Match music | **“Match Day Heroes”** — original 128 BPM heroic stadium-chiptune loop; the official watched-match theme |
 | Management music | **“Clubhouse Dreams”** — original 112 BPM warm chiptune loop for training, squad, transfers, facilities, and finances |
 | Event music | **“The Big Call”** — original 136 BPM dramatic chiptune loop for story interruptions and player choices |
-| Career events | **54 shipped stories.** Targeted stories let the manager choose a legal player, coach, or operational facility before the call; linked chapters keep that exact subject. The browser Dev Harness exposes all, target-player, target-coach, target-facility, and two-part lanes through the same production flow |
+| Career events | **52 shipped stories.** Targeted stories let the manager choose a legal player, coach, or operational facility before the call; linked chapters keep that exact subject. The browser Dev Harness exposes all, target-player, target-coach, target-facility, and two-part lanes through the same production flow |
 | Awakening music | A 10.3-second trimmed **“Spirit of the Dead”** pre-rise bed starts with the limp and fades over its final second if the player waits; it cuts the instant the rise begins, when the existing angels/harps ascension cue takes over |
 | Income sources | All four: sponsors, tickets/fans, prize money, player sales |
 | Supporters | Wins and heroes who actually appear add supporters; only the third and later consecutive losses cause slow decline, and a draw or win resets the streak |

@@ -3,16 +3,16 @@ import { gzipSync } from 'node:zlib';
 import path from 'node:path';
 
 const DIST = path.resolve('dist');
-// Ratcheted from the measured English first load after the accepted guided-job
-// polish. The raw allowance is 5 KB above that artifact. The compressed build
-// remains below its existing limit, so keep that tighter ceiling unchanged.
-const RAW_BUDGET = 7_646_416;
-const GZIP_BUDGET = 1_256_212;
+// Ratcheted from the measured English title load after Skia moved behind its
+// feature boundary. Both allowances are 5 KB above that accepted artifact.
+const RAW_BUDGET = 5_868_128;
+const GZIP_BUDGET = 863_477;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
   'Show the ceremony case',
 ];
+const SKIA_BODY_MARKERS = ['SkiaViewApi', 'JsiSkCanvas'];
 
 const html = readFileSync(path.join(DIST, 'index.html'), 'utf8');
 const browserEntryPaths = [
@@ -32,13 +32,15 @@ const indexSource = readFileSync(resolveDistPath(indexPath), 'utf8');
 const appMatch = indexSource.match(
   /"(\/_expo\/static\/js\/web\/App-[^"]+\.js)"/,
 );
-if (appMatch === null) {
-  throw new Error('index bundle does not name the App bundle');
-}
 
-// The HTML scripts load first. index.web.ts then loads App immediately after
-// CanvasKit is ready. Nested React.lazy chunks are not part of first load.
-const firstLoadPaths = [...new Set([...browserEntryPaths, appMatch[1]])];
+// App can be in the index entry or in an immediate child chunk. Match and QA
+// renderers are lazy and are not part of the title's first load.
+const firstLoadPaths = [
+  ...new Set([
+    ...browserEntryPaths,
+    ...(appMatch === null ? [] : [appMatch[1]]),
+  ]),
+];
 const files = firstLoadPaths.map((file) => ({
   file,
   source: readFileSync(resolveDistPath(file)),
@@ -52,6 +54,9 @@ const combined = Buffer.concat(files.map((file) => file.source)).toString(
   'utf8',
 );
 const qaMarkers = QA_BODY_MARKERS.filter((marker) => combined.includes(marker));
+const skiaMarkers = SKIA_BODY_MARKERS.filter((marker) =>
+  combined.includes(marker),
+);
 
 console.info(
   JSON.stringify(
@@ -62,6 +67,7 @@ console.info(
       gzipBytes,
       gzipBudget: GZIP_BUDGET,
       qaBodyMarkers: qaMarkers,
+      skiaBodyMarkers: skiaMarkers,
     },
     null,
     2,
@@ -80,6 +86,11 @@ if (gzipBytes > GZIP_BUDGET) {
 }
 if (qaMarkers.length > 0) {
   throw new Error(`QA bodies leaked into first load: ${qaMarkers.join(', ')}`);
+}
+if (skiaMarkers.length > 0) {
+  throw new Error(
+    `Skia renderer leaked into title first load: ${skiaMarkers.join(', ')}`,
+  );
 }
 
 function resolveDistPath(urlPath) {

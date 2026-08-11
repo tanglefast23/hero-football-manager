@@ -175,7 +175,8 @@ describe('event effect gates', () => {
         ),
     );
 
-    // 43 before the cut; 16 migrated events and Giant Spider left the catalog.
-    expect(squadMoraleEffects).toHaveLength(26);
+    // 43 before the cut; 16 migrated events and Giant Spider left the catalog,
+    // then the retired heavy-defeat interruption removed its three outcomes.
+    expect(squadMoraleEffects).toHaveLength(23);
   });
 });

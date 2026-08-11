@@ -10,11 +10,19 @@ describe('training stat option rendering', () => {
     );
 
     expect(screen).toContainSource(
-      "const module = await import('../TrainingDrillModal');",
+      "import { LazyTrainingDrillModal as TrainingDrillModal } from '../LazyTrainingDrillModal';",
     );
     expect(screen).toContainSource('<Suspense fallback={null}>');
     expect(screen).not.toContainSource(
       "import { TrainingDrillModal } from '../TrainingDrillModal';",
+    );
+
+    const boundary = readFileSync(
+      join(process.cwd(), 'src/ui/LazyTrainingDrillModal.tsx'),
+      'utf8',
+    );
+    expect(boundary).toContainSource(
+      "const module = await import('./SkiaSurfaceImplementations');",
     );
   });
 

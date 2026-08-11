@@ -48,9 +48,8 @@ describe('master audio volume', () => {
     initAudio();
 
     const sfx = mockPlayers.slice(0, -2);
-    const whooshIndex = audioKeysForProfile('full').indexOf(
-      'ball-flight-whoosh',
-    );
+    const whooshIndex =
+      audioKeysForProfile('full').indexOf('ball-flight-whoosh');
     const theme = mockPlayers.at(-2)!;
     const fireLoop = mockPlayers.at(-1)!;
 
