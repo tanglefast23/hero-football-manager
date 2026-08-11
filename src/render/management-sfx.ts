@@ -1,6 +1,7 @@
 // Owns short management-screen feedback sounds. Kept fail-soft so an older
 // native dev client can still render the review UI when expo-audio is absent.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
+import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 
 type ExplicitManagementSfxKey =
   | 'match-statement'
@@ -20,7 +21,8 @@ type ExplicitManagementSfxKey =
   | 'quick-result-faceoff'
   | 'match-day-fanfare'
   | 'match-control'
-  | 'drill-complete';
+  | 'drill-complete'
+  | 'midseason-footsteps';
 
 export type ManagementActionCue =
   | 'select'
@@ -120,12 +122,18 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // The supplied heavy drill-finish cue. Appended so every existing semantic
   // key keeps its catalog order; its own base gain is pinned below.
   'drill-complete': require('../../assets/audio/sfx/drill-complete-heavy.wav'),
+  // The supplied walking loop under the whole-squad Week 19 scene. PCM keeps
+  // the loop boundary clean on iOS and web; appended so every existing cue
+  // and rapid-voice index stays stable.
+  'midseason-footsteps': require('../../assets/audio/sfx/midseason-footsteps-loop.wav'),
 };
 
 const DRILL_COMPLETE_GAIN = 0.75;
+const MIDSEASON_FOOTSTEPS_GAIN = 0.45;
 
 const MANAGEMENT_SFX_BASE_GAIN: Partial<Record<ManagementSfxKey, number>> = {
   'drill-complete': DRILL_COMPLETE_GAIN,
+  'midseason-footsteps': MIDSEASON_FOOTSTEPS_GAIN,
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -141,6 +149,7 @@ const rapidPlayers = new Map<RapidManagementSfxKey, AudioPlayer[]>();
 const rapidPlayerCursor = new Map<RapidManagementSfxKey, number>();
 let masterVolume = 1;
 let initAttempted = false;
+let midseasonFootstepsActive = false;
 const warned = new Set<string>();
 
 function warnOnce(context: string, error: unknown): void {
@@ -210,6 +219,7 @@ function initManagementSfx(): void {
       const baseGain = MANAGEMENT_SFX_BASE_GAIN[key] ?? 1;
       player.volume = baseGain * masterVolume;
       player.muted = masterVolume === 0;
+      if (key === 'midseason-footsteps') player.loop = true;
       players.set(key, player);
       ownedPlayers.add(player);
       playerBaseGains.set(player, baseGain);
@@ -300,6 +310,43 @@ export function playDrillResultSfx(streak: number): void {
 export function playDrillCompleteSfx(): void {
   playManagementSfx('drill-complete');
 }
+
+/** Stops the rock drill cue when the team scene is skipped or unmounted. */
+export function stopDrillCompleteSfx(): void {
+  try {
+    players.get('drill-complete')?.pause();
+  } catch (error) {
+    warnOnce('drill complete stop failed', error);
+  }
+}
+
+/** Starts the supplied footsteps and holds the loop for the whole team scene. */
+export function playMidseasonFootstepsSfx(): void {
+  midseasonFootstepsActive = true;
+  if (audioIsSuspended()) return;
+  playManagementSfx('midseason-footsteps');
+}
+
+/** Stops the team footsteps immediately at finish, skip, or unmount. */
+export function stopMidseasonFootstepsSfx(): void {
+  midseasonFootstepsActive = false;
+  pauseMidseasonFootsteps();
+}
+
+function pauseMidseasonFootsteps(): void {
+  try {
+    players.get('midseason-footsteps')?.pause();
+  } catch (error) {
+    warnOnce('midseason footsteps stop failed', error);
+  }
+}
+
+registerAudioOwner({
+  suspend: pauseMidseasonFootsteps,
+  resume: () => {
+    if (midseasonFootstepsActive) playMidseasonFootstepsSfx();
+  },
+});
 
 /** Big celebratory hit for a SUPER training session. */
 export function playSuperTrainingSfx(): void {
@@ -535,6 +582,7 @@ function varyRapidPitch(key: RapidManagementSfxKey, player: AudioPlayer): void {
 }
 
 export function teardownManagementSfx(): void {
+  midseasonFootstepsActive = false;
   for (const player of ownedPlayers) {
     try {
       player.pause();

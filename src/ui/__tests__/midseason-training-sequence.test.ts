@@ -49,10 +49,20 @@ describe('Week 19 team training presentation', () => {
     expect(celebration).toContainSource('<Atlas');
     expect(celebration).toContainSource('ROLE_ORDER.map((role, index)');
     expect(celebration).toContainSource('playDrillProgressSfx();');
+    expect(celebration).toContainSource('playDrillCompleteSfx();');
+    expect(celebration).toContainSource('playMidseasonFootstepsSfx();');
+    expect(celebration).toContainSource(
+      'setTimeout(playTrainingStatDing, 700)',
+    );
+    expect(celebration).toContainSource('setTimeout(playPositiveSfx, 1_550)');
+    expect(celebration).toContainSource(
+      'setTimeout(playSuperTrainingYaySfx, 2_800)',
+    );
     expect(celebration).toContainSource('<GreenBullPixelMark />');
     expect(celebration).toContainSource('<Firework');
     expect(celebration).toContainSource('styles.confetti');
     expect(celebration).toContainSource('styles.plus');
+    expect(celebration).toContain('+{viewModel.statGain}');
     expect(celebration).toContainSource('antiAlias={false}');
   });
 
@@ -67,6 +77,27 @@ describe('Week 19 team training presentation', () => {
     expect(celebration).toContainSource('setFinished(true);');
     expect(celebration).toContainSource("t('midseasonTraining.continue')");
     expect(celebration).toContainSource('onPress={continueOnce}');
+    expect(celebration).toContainSource('stopMidseasonFootstepsSfx();');
+    expect(celebration).toContainSource('stopDrillCompleteSfx();');
+  });
+
+  it('uses two hard close-up cuts and the shared two-column footer width', () => {
+    const celebration = source(
+      'src/ui/screens/MidseasonTrainingCelebrationScreen.tsx',
+    );
+
+    expect(celebration).toContainSource(
+      "setTimeout(() => setCameraShot('forwards'), 700)",
+    );
+    expect(celebration).toContainSource(
+      "setTimeout(() => setCameraShot('defenders'), 2_100)",
+    );
+    expect(celebration).toContainSource(
+      'const closeScale = width >= 900 ? 5 : 3;',
+    );
+    expect(celebration).toContainSource("setCameraShot('wide');");
+    expect(celebration).not.toContainSource('cameraProgress');
+    expect(celebration).toContainSource('maxWidth: DESKTOP_CONTENT_MAX_WIDTH');
   });
 
   it('registers D5 and D1 production-backed full flows in the Dev Harness', () => {

@@ -19,10 +19,18 @@ import {
 } from '@shopify/react-native-skia';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { ActionButton } from '../components/Scorecard';
+import { DESKTOP_CONTENT_MAX_WIDTH } from '../layout/DesktopClamp';
 import {
+  playDrillCompleteSfx,
   playDrillGainRevealSfx,
   playDrillProgressSfx,
+  playMidseasonFootstepsSfx,
+  playPositiveSfx,
+  playSuperTrainingYaySfx,
+  playTrainingStatDing,
+  stopDrillCompleteSfx,
   stopDrillProgressSfx,
+  stopMidseasonFootstepsSfx,
 } from '../../render/management-sfx';
 import {
   buildFallbackAtlas,
@@ -44,6 +52,10 @@ const FIREWORK_COLORS = ['#f6c744', '#63c56b', '#62b5e5'];
 const ROLE_ORDER = ['FWD', 'MID', 'DEF', 'GK'] as const;
 const ROW_BOTTOMS = [0.66, 0.49, 0.32, 0.15] as const;
 const PLUS_COUNT = 18;
+const PLAYER_ROW_HEIGHT = 68;
+const PLAYER_FOCUS_Y = 42;
+
+type CameraShot = 'wide' | 'forwards' | 'defenders';
 
 type CelebrationAtlas = ReturnType<typeof buildSpriteAtlas>;
 
@@ -66,9 +78,12 @@ export function MidseasonTrainingCelebrationScreen({
   const t = useCopy();
   const { width, height } = useWindowDimensions();
   const [finished, setFinished] = useState(reduceMotion);
+  const [cameraShot, setCameraShot] = useState<CameraShot>('wide');
   const finishedRef = useRef(reduceMotion);
   const continuedRef = useRef(false);
   const animationsRef = useRef<Animated.CompositeAnimation[]>([]);
+  const reinforcementTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const cameraCutTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const titleProgress = useRef(
     new Animated.Value(reduceMotion ? 1 : 0),
   ).current;
@@ -104,24 +119,40 @@ export function MidseasonTrainingCelebrationScreen({
   const pitchWidth = Math.min(width, Math.max(300, pitchHeight * 0.68));
   const pitchLeft = (width - pitchWidth) / 2;
 
+  const stopSceneAudio = useCallback(() => {
+    for (const timer of reinforcementTimersRef.current) clearTimeout(timer);
+    reinforcementTimersRef.current = [];
+    stopDrillProgressSfx();
+    stopDrillCompleteSfx();
+    stopMidseasonFootstepsSfx();
+  }, []);
+
+  const clearCameraCuts = useCallback(() => {
+    for (const timer of cameraCutTimersRef.current) clearTimeout(timer);
+    cameraCutTimersRef.current = [];
+  }, []);
+
   const finishAnimation = useCallback(() => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     for (const animation of animationsRef.current) animation.stop();
     animationsRef.current = [];
-    stopDrillProgressSfx();
+    clearCameraCuts();
+    setCameraShot('wide');
+    stopSceneAudio();
     playDrillGainRevealSfx();
     titleProgress.setValue(1);
     for (const value of rowJumpProgress) value.setValue(0);
     setFinished(true);
-  }, [rowJumpProgress, titleProgress]);
+  }, [clearCameraCuts, rowJumpProgress, stopSceneAudio, titleProgress]);
 
   const continueOnce = useCallback(() => {
     if (continuedRef.current) return;
     continuedRef.current = true;
-    stopDrillProgressSfx();
+    clearCameraCuts();
+    stopSceneAudio();
     onContinue();
-  }, [onContinue]);
+  }, [clearCameraCuts, onContinue, stopSceneAudio]);
 
   const handleWholeScreenPress = useCallback(() => {
     if (!finishedRef.current) finishAnimation();
@@ -133,10 +164,23 @@ export function MidseasonTrainingCelebrationScreen({
       finishedRef.current = true;
       setFinished(true);
       titleProgress.setValue(1);
-      return () => stopDrillProgressSfx();
+      return stopSceneAudio;
     }
 
     playDrillProgressSfx();
+    playDrillCompleteSfx();
+    playMidseasonFootstepsSfx();
+    reinforcementTimersRef.current = [
+      setTimeout(playTrainingStatDing, 700),
+      setTimeout(playPositiveSfx, 1_550),
+      setTimeout(playSuperTrainingYaySfx, 2_800),
+    ];
+    cameraCutTimersRef.current = [
+      setTimeout(() => setCameraShot('forwards'), 700),
+      setTimeout(() => setCameraShot('wide'), 1_350),
+      setTimeout(() => setCameraShot('defenders'), 2_100),
+      setTimeout(() => setCameraShot('wide'), 2_850),
+    ];
     const title = Animated.spring(titleProgress, {
       toValue: 1,
       damping: 8,
@@ -222,17 +266,20 @@ export function MidseasonTrainingCelebrationScreen({
 
     return () => {
       clearTimeout(timer);
+      clearCameraCuts();
       for (const animation of animationsRef.current) animation.stop();
       animationsRef.current = [];
-      stopDrillProgressSfx();
+      stopSceneAudio();
     };
   }, [
+    clearCameraCuts,
     confettiProgress,
     finishAnimation,
     fireworkProgress,
     plusProgress,
     reduceMotion,
     rowJumpProgress,
+    stopSceneAudio,
     titleProgress,
   ]);
 
@@ -250,6 +297,27 @@ export function MidseasonTrainingCelebrationScreen({
         ],
       };
 
+  const closeRoleIndex =
+    cameraShot === 'forwards' ? 0 : cameraShot === 'defenders' ? 2 : null;
+  const closeScale = width >= 900 ? 5 : 3;
+  const focusedRowY =
+    closeRoleIndex === null
+      ? height / 2
+      : height -
+        pitchHeight * ROW_BOTTOMS[closeRoleIndex] -
+        PLAYER_ROW_HEIGHT +
+        PLAYER_FOCUS_Y;
+  const cameraTranslateY =
+    closeRoleIndex === null ? 0 : (height / 2 - focusedRowY) * closeScale;
+  const cameraTranslateStyle =
+    closeRoleIndex === null
+      ? undefined
+      : { transform: [{ translateY: cameraTranslateY }] };
+  const cameraScaleStyle =
+    closeRoleIndex === null
+      ? undefined
+      : { transform: [{ scale: closeScale }] };
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -265,124 +333,184 @@ export function MidseasonTrainingCelebrationScreen({
         style={styles.root}
         edges={['top', 'left', 'right', 'bottom']}
       >
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          <View style={styles.nightSky} />
-          <View style={[styles.stands, { height: pitchTop + 18 }]}>
-            {Array.from({ length: 64 }, (_, index) => (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, cameraTranslateStyle]}
+        >
+          <View style={[StyleSheet.absoluteFill, cameraScaleStyle]}>
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              <View style={styles.nightSky} />
+              <View style={[styles.stands, { height: pitchTop + 18 }]}>
+                {Array.from({ length: 64 }, (_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.fan,
+                      {
+                        left: `${(index * 37) % 100}%`,
+                        top: 12 + ((index * 19) % Math.max(20, pitchTop - 24)),
+                        backgroundColor:
+                          CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
               <View
-                key={index}
                 style={[
-                  styles.fan,
+                  styles.pitch,
                   {
-                    left: `${(index * 37) % 100}%`,
-                    top: 12 + ((index * 19) % Math.max(20, pitchTop - 24)),
-                    backgroundColor:
-                      CONFETTI_COLORS[index % CONFETTI_COLORS.length],
-                  },
-                ]}
-              />
-            ))}
-          </View>
-          <View
-            style={[
-              styles.pitch,
-              {
-                left: pitchLeft,
-                top: pitchTop,
-                width: pitchWidth,
-                height: pitchHeight,
-              },
-            ]}
-          >
-            <View style={styles.pitchStripeOne} />
-            <View style={styles.pitchStripeTwo} />
-            <View style={styles.touchline} />
-            <View style={styles.halfwayLine} />
-            <View style={styles.centerCircle} />
-          </View>
-          <View style={[styles.floodlight, styles.floodlightLeft]} />
-          <View style={[styles.floodlight, styles.floodlightRight]} />
-        </View>
-
-        {!finished ? (
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            {FIREWORK_COLORS.map((color, index) => (
-              <Firework
-                key={color}
-                progress={fireworkProgress[index]}
-                color={color}
-                left={width * (0.18 + index * 0.32)}
-                top={pitchTop * (index === 1 ? 0.34 : 0.58)}
-                radius={index === 1 ? 58 : 44}
-              />
-            ))}
-            {confetti.map((piece) => (
-              <Animated.View
-                key={piece.id}
-                style={[
-                  styles.confetti,
-                  {
-                    left: piece.left,
-                    top: piece.top,
-                    width: piece.width,
-                    height: piece.height,
-                    backgroundColor: piece.color,
-                    opacity: confettiProgress.interpolate({
-                      inputRange: [0, 0.05, 0.9, 1],
-                      outputRange: [0, 1, 1, 0],
-                    }),
-                    transform: [
-                      {
-                        translateY: confettiProgress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, height + 100],
-                        }),
-                      },
-                      {
-                        rotate: confettiProgress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', `${piece.turns * 360}deg`],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
-            ))}
-            {plusProgress.map((progress, index) => (
-              <Animated.Text
-                key={`plus-${index}`}
-                style={[
-                  styles.plus,
-                  {
-                    left:
-                      pitchLeft +
-                      14 +
-                      ((index * 61) % Math.max(1, pitchWidth - 38)),
-                    top:
-                      pitchTop +
-                      pitchHeight * (0.28 + ((index * 17) % 55) / 100),
-                    color: index % 3 === 0 ? '#f6c744' : '#f4f1ea',
-                    opacity: progress.interpolate({
-                      inputRange: [0, 0.16, 0.75, 1],
-                      outputRange: [0, 1, 0.9, 0],
-                    }),
-                    transform: [
-                      {
-                        translateY: progress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, -104 - (index % 4) * 12],
-                        }),
-                      },
-                    ],
+                    left: pitchLeft,
+                    top: pitchTop,
+                    width: pitchWidth,
+                    height: pitchHeight,
                   },
                 ]}
               >
-                +
-              </Animated.Text>
-            ))}
+                <View style={styles.pitchStripeOne} />
+                <View style={styles.pitchStripeTwo} />
+                <View style={styles.touchline} />
+                <View style={styles.halfwayLine} />
+                <View style={styles.centerCircle} />
+              </View>
+              <View style={[styles.floodlight, styles.floodlightLeft]} />
+              <View style={[styles.floodlight, styles.floodlightRight]} />
+            </View>
+
+            {!finished ? (
+              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                {FIREWORK_COLORS.map((color, index) => (
+                  <Firework
+                    key={color}
+                    progress={fireworkProgress[index]}
+                    color={color}
+                    left={width * (0.18 + index * 0.32)}
+                    top={pitchTop * (index === 1 ? 0.34 : 0.58)}
+                    radius={index === 1 ? 58 : 44}
+                  />
+                ))}
+                {confetti.map((piece) => (
+                  <Animated.View
+                    key={piece.id}
+                    style={[
+                      styles.confetti,
+                      {
+                        left: piece.left,
+                        top: piece.top,
+                        width: piece.width,
+                        height: piece.height,
+                        backgroundColor: piece.color,
+                        opacity: confettiProgress.interpolate({
+                          inputRange: [0, 0.05, 0.9, 1],
+                          outputRange: [0, 1, 1, 0],
+                        }),
+                        transform: [
+                          {
+                            translateY: confettiProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, height + 100],
+                            }),
+                          },
+                          {
+                            rotate: confettiProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', `${piece.turns * 360}deg`],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                ))}
+                {plusProgress.map((progress, index) => (
+                  <Animated.Text
+                    key={`plus-${index}`}
+                    style={[
+                      styles.plus,
+                      {
+                        left:
+                          pitchLeft +
+                          7 +
+                          ((index * 61) % Math.max(1, pitchWidth - 58)),
+                        top:
+                          pitchTop +
+                          pitchHeight * (0.28 + ((index * 17) % 55) / 100),
+                        color: index % 3 === 0 ? '#f6c744' : '#f4f1ea',
+                        opacity: progress.interpolate({
+                          inputRange: [0, 0.16, 0.75, 1],
+                          outputRange: [0, 1, 0.9, 0],
+                        }),
+                        transform: [
+                          {
+                            translateY: progress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, -104 - (index % 4) * 12],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    +{viewModel.statGain}
+                  </Animated.Text>
+                ))}
+              </View>
+            ) : null}
+
+            <View
+              pointerEvents="none"
+              style={[styles.crestWrap, { top: pitchTop + 20 }]}
+            >
+              <GreenBullPixelMark />
+              <Text
+                style={styles.centerName}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+              >
+                {t('midseasonTraining.centerName')}
+              </Text>
+            </View>
+
+            {ROLE_ORDER.map((role, index) => {
+              const players = viewModel.squad.filter(
+                (player) => player.role === role,
+              );
+              const jumpStyle = finished
+                ? undefined
+                : {
+                    transform: [
+                      {
+                        translateY: rowJumpProgress[index].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -11],
+                        }),
+                      },
+                    ],
+                  };
+              return (
+                <Animated.View
+                  key={role}
+                  pointerEvents="none"
+                  style={[
+                    styles.playerRow,
+                    {
+                      left: pitchLeft,
+                      bottom: pitchHeight * ROW_BOTTOMS[index],
+                      width: pitchWidth,
+                    },
+                    jumpStyle,
+                  ]}
+                >
+                  <CelebrationPlayerRow
+                    atlas={spriteAtlas}
+                    players={players}
+                    width={pitchWidth}
+                  />
+                </Animated.View>
+              );
+            })}
           </View>
-        ) : null}
+        </View>
 
         <Animated.View
           pointerEvents="none"
@@ -401,77 +529,26 @@ export function MidseasonTrainingCelebrationScreen({
           </View>
         </Animated.View>
 
-        <View
-          pointerEvents="none"
-          style={[styles.crestWrap, { top: pitchTop + 20 }]}
-        >
-          <GreenBullPixelMark />
-          <Text
-            style={styles.centerName}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-          >
-            {t('midseasonTraining.centerName')}
-          </Text>
-        </View>
-
-        {ROLE_ORDER.map((role, index) => {
-          const players = viewModel.squad.filter(
-            (player) => player.role === role,
-          );
-          const jumpStyle = finished
-            ? undefined
-            : {
-                transform: [
-                  {
-                    translateY: rowJumpProgress[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, -11],
-                    }),
-                  },
-                ],
-              };
-          return (
-            <Animated.View
-              key={role}
-              pointerEvents="none"
-              style={[
-                styles.playerRow,
-                {
-                  left: pitchLeft,
-                  bottom: pitchHeight * ROW_BOTTOMS[index],
-                  width: pitchWidth,
-                },
-                jumpStyle,
-              ]}
-            >
-              <CelebrationPlayerRow
-                atlas={spriteAtlas}
-                players={players}
-                width={pitchWidth}
-              />
-            </Animated.View>
-          );
-        })}
-
         <View style={styles.footer}>
-          {finished ? (
-            <>
-              <ActionButton
-                label={t('midseasonTraining.continue')}
-                accessibilityLabel={t('midseasonTraining.a11y.continue')}
-                variant="confirm"
-                onPress={continueOnce}
-              />
+          <View style={styles.footerMeasure}>
+            {finished ? (
+              <>
+                <ActionButton
+                  label={t('midseasonTraining.continue')}
+                  accessibilityLabel={t('midseasonTraining.a11y.continue')}
+                  variant="confirm"
+                  onPress={continueOnce}
+                />
+                <Text style={styles.tapHint}>
+                  {t('midseasonTraining.tapAnywhere')}
+                </Text>
+              </>
+            ) : (
               <Text style={styles.tapHint}>
-                {t('midseasonTraining.tapAnywhere')}
+                {t('midseasonTraining.tapToFinish')}
               </Text>
-            </>
-          ) : (
-            <Text style={styles.tapHint}>
-              {t('midseasonTraining.tapToFinish')}
-            </Text>
-          )}
+            )}
+          </View>
         </View>
       </SafeAreaView>
     </Pressable>
@@ -487,7 +564,7 @@ function CelebrationPlayerRow({
   readonly players: readonly MidseasonTrainingPlayerViewModel[];
   readonly width: number;
 }) {
-  const height = 68;
+  const height = PLAYER_ROW_HEIGHT;
   const geometry = useMemo(() => {
     if (players.length === 0) return { scale: 1, entries: [] };
     const gap = 4;
@@ -805,7 +882,7 @@ const styles = StyleSheet.create({
   playerRow: {
     position: 'absolute',
     zIndex: 10,
-    height: 68,
+    height: PLAYER_ROW_HEIGHT,
     alignItems: 'center',
   },
   plus: {
@@ -813,6 +890,8 @@ const styles = StyleSheet.create({
     zIndex: 13,
     fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 24,
+    width: 44,
+    textAlign: 'center',
     textShadowColor: '#241f2e',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
@@ -835,6 +914,11 @@ const styles = StyleSheet.create({
     left: 18,
     right: 18,
     bottom: 12,
+  },
+  footerMeasure: {
+    width: '100%',
+    maxWidth: DESKTOP_CONTENT_MAX_WIDTH,
+    alignSelf: 'center',
     gap: 5,
   },
   tapHint: {
