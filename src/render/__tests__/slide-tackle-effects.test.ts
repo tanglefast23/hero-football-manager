@@ -2,104 +2,131 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   TACKLE_DUST_OPACITY,
-  TACKLE_DUST_PIXELS,
+  TACKLE_DUST_PHASES,
+  TACKLE_DUST_POSITION_SCALE,
+  TACKLE_DUST_SIZE_SCALE,
   TACKLE_GRASS_OPACITY,
-  TACKLE_GRASS_PIXELS,
+  TACKLE_GRASS_PHASES,
   TACKLE_TRAIL_SAMPLES,
+  TACKLE_VFX_STEP_MS,
 } from '../slide-tackle-effects';
 
 const source = readFileSync(
   join(process.cwd(), 'src/render/WorkletMatchOverlays.tsx'),
   'utf8',
 );
-// Scoped to this component: other hard-edged overlays in the same file
-// (WorkletSpeedLines) also disable AA and snap their geometry, and a whole-file
-// count would make these assertions fail every time one is added.
 const component = source.slice(
   source.indexOf('export function WorkletSlideTackleEffects('),
   source.indexOf('export function WorkletSpeedLines('),
 );
 
-describe('slide-tackle debris', () => {
-  it('keeps dust at 65% and grass at 40% opacity', () => {
-    expect(TACKLE_DUST_OPACITY).toBe(0.65);
-    expect(TACKLE_GRASS_OPACITY).toBe(0.4);
+describe('slide-tackle procedural debris', () => {
+  it('makes dust almost transparent and grass dominant', () => {
+    expect(TACKLE_DUST_OPACITY).toBe(0.15);
+    expect(TACKLE_GRASS_OPACITY).toBe(0.8);
   });
 
-  it('makes grass 40% narrower and shifts both grass builders toward the feet', () => {
-    expect(component).toContain('sample.side + 12');
-    expect(component).toContain('blade.side + 12');
-    expect(component).toContain('Math.max(1, pixel * 0.6)');
-    expect(component).toContain('Math.max(1, pixel * 0.9)');
+  it('uses four authored phases at one change every 334ms', () => {
+    expect(TACKLE_VFX_STEP_MS).toBe(334);
+    expect(TACKLE_DUST_PHASES).toHaveLength(4);
+    expect(TACKLE_GRASS_PHASES).toHaveLength(4);
+    expect(component).toContain(
+      'Math.floor((age * 100) / TACKLE_VFX_STEP_MS) % 4',
+    );
   });
 
-  it('uses integer-sized pixel clusters rather than blurred geometry', () => {
-    for (const pixel of TACKLE_DUST_PIXELS) {
-      expect(Number.isInteger(pixel.along)).toBe(true);
-      expect(Number.isInteger(pixel.side)).toBe(true);
-      expect(Number.isInteger(pixel.size)).toBe(true);
-      expect(pixel.size).toBeGreaterThan(0);
+  it('uses a large backward dust trail while preserving 15% opacity', () => {
+    expect(TACKLE_DUST_SIZE_SCALE).toBe(3.4);
+    expect(TACKLE_DUST_POSITION_SCALE).toBe(1.25);
+    expect(component).toContain(
+      'sample.dustSize * TACKLE_DUST_SIZE_SCALE * pixel',
+    );
+    expect(component).toContain(
+      'sideX * sample.side * TACKLE_DUST_POSITION_SCALE * pixel',
+    );
+    expect(component).toContain('travelX * sample.progress');
+    for (const phase of TACKLE_DUST_PHASES) {
+      expect(phase.length).toBeGreaterThanOrEqual(7);
+      expect(
+        Math.max(...phase.map((fragment) => fragment.side)),
+      ).toBeGreaterThanOrEqual(14);
+      expect(
+        Math.min(...phase.map((fragment) => fragment.side)),
+      ).toBeLessThanOrEqual(-14);
+      expect(
+        Math.max(...phase.map((fragment) => fragment.size)),
+      ).toBeGreaterThanOrEqual(7);
+      expect(Math.max(...phase.map((fragment) => fragment.along))).toBeLessThan(
+        0,
+      );
     }
-    for (const pixel of TACKLE_GRASS_PIXELS) {
-      expect(Number.isInteger(pixel.along)).toBe(true);
-      expect(Number.isInteger(pixel.side)).toBe(true);
-      expect(Number.isInteger(pixel.height)).toBe(true);
-      expect(pixel.height).toBeGreaterThan(0);
+    expect(
+      Math.min(...TACKLE_DUST_PHASES.at(-1)!.map((fragment) => fragment.along)),
+    ).toBeLessThan(
+      Math.min(...TACKLE_DUST_PHASES[0].map((fragment) => fragment.along)),
+    );
+    for (const sample of TACKLE_TRAIL_SAMPLES) {
+      expect(sample.dustSize).toBeGreaterThanOrEqual(5);
+      expect(Math.abs(sample.side)).toBeGreaterThanOrEqual(5);
+      expect(
+        (sample.dustSize * TACKLE_DUST_SIZE_SCALE) / 2,
+      ).toBeGreaterThanOrEqual(
+        Math.abs(sample.side) * TACKLE_DUST_POSITION_SCALE,
+      );
+    }
+  });
+
+  it('uses short detached turf fragments instead of tall grass blades', () => {
+    for (const phase of TACKLE_GRASS_PHASES) {
+      for (const fragment of phase) {
+        expect(Number.isInteger(fragment.along)).toBe(true);
+        expect(Number.isInteger(fragment.side)).toBe(true);
+        expect(fragment.width).toBeGreaterThan(0);
+        expect(fragment.height).toBeGreaterThan(0);
+        expect(fragment.height).toBeLessThanOrEqual(2);
+      }
     }
     for (const sample of TACKLE_TRAIL_SAMPLES) {
-      expect(Number.isInteger(sample.side)).toBe(true);
-      expect(Number.isInteger(sample.dustSize)).toBe(true);
-      expect(Number.isInteger(sample.grassHeight)).toBe(true);
-      expect(sample.dustSize).toBeGreaterThan(0);
-      expect(sample.grassHeight).toBeGreaterThan(0);
+      expect(sample.grassHeight).toBeLessThanOrEqual(2);
+      expect(sample.grassWidth).toBeGreaterThan(0);
     }
+    expect(component).not.toContain('blade.height + rise');
   });
 
-  it('covers the whole travelled path with more debris than the body spray alone', () => {
-    expect(TACKLE_TRAIL_SAMPLES.length).toBeGreaterThan(
-      TACKLE_DUST_PIXELS.length,
-    );
+  it('keeps the ground trail on the real launch-to-current path', () => {
     expect(TACKLE_TRAIL_SAMPLES[0].progress).toBeLessThanOrEqual(0.05);
     expect(TACKLE_TRAIL_SAMPLES.at(-1)!.progress).toBeGreaterThanOrEqual(0.9);
-    expect(TACKLE_TRAIL_SAMPLES.map((sample) => sample.progress)).toEqual(
-      [...TACKLE_TRAIL_SAMPLES]
-        .map((sample) => sample.progress)
-        .sort((a, b) => a - b),
-    );
-  });
-
-  it('explicitly disables Skia antialiasing on both debris layers', () => {
-    expect(component).not.toBe('');
-    expect(component.match(/antiAlias=\{false\}/g)).toHaveLength(2);
-  });
-
-  it('anchors the trail to the packed launch point and current live position', () => {
-    // The launch point rides in the action buffer; the far end is the live
-    // interpolated position, so the trail spans the path actually travelled
-    // instead of being pinned under the sliding body.
     expect(component).toContain('actionData.value[offset + 6]');
     expect(component).toContain('actionData.value[offset + 7]');
-    expect(component).toContain('visualPositions.value[player * 2]');
     expect(component).toMatch(/travelX \* sample\.progress/);
     expect(component).toMatch(/travelY \* sample\.progress/);
   });
 
-  it('lands every debris rect on the pixel grid through the one shared rule', () => {
-    // Shape, not literals: each of the four rect builders (trail + body spray,
-    // dust + grass) must snap both of its edges on both axes, so a fractional
-    // span cannot put the far edge back on a sub-pixel phase.
-    const builders = component.match(/builder\.moveTo\(/g) ?? [];
-    expect(builders).toHaveLength(4);
-    expect(component.match(/snapDevicePixels\(/g)).toHaveLength(
-      builders.length * 4,
+  it('removes traveling phases for Reduce Motion and adaptive reduction', () => {
+    expect(component).toContain('if (reduceMotion) return;');
+    expect(component.match(/if \(reducedEffects\) continue;/g)).toHaveLength(2);
+    expect(component).toContain(
+      'const trailCount = reducedEffects ? 4 : TACKLE_TRAIL_SAMPLES.length;',
     );
-    // ...and it is the shared helper, never a local re-implementation.
-    expect(source).toContain("import { snapDevicePixels } from './pixel-grid'");
-    expect(component).not.toMatch(/Math\.round\(/);
-    expect(component).toContain('devicePixelRatio');
   });
 
-  it('receives the real device pixel ratio from MatchScreen at both layers', () => {
+  it('draws two batched hard-edged paths', () => {
+    expect(component.match(/usePathValue\(/g)).toHaveLength(1);
+    expect(component.match(/<Path/g)).toHaveLength(2);
+    expect(component.match(/antiAlias=\{false\}/g)).toHaveLength(2);
+  });
+
+  it('snaps every rectangle edge through the shared helper', () => {
+    const helper = source.slice(
+      source.indexOf('function addSnappedDebrisRect('),
+      source.indexOf('export function WorkletSlideTackleEffects('),
+    );
+    expect(helper.match(/snapDevicePixels\(/g)).toHaveLength(4);
+    expect(component).toContain('addSnappedDebrisRect(');
+    expect(component).not.toMatch(/Math\.round\(/);
+  });
+
+  it('receives device, motion, and adaptive-reduction inputs at both layers', () => {
     const screen = readFileSync(
       join(process.cwd(), 'src/render/MatchScreen.tsx'),
       'utf8',
@@ -108,6 +135,8 @@ describe('slide-tackle debris', () => {
     expect(uses).toHaveLength(2);
     for (const use of uses) {
       expect(use).toContain('devicePixelRatio={devicePixelRatio}');
+      expect(use).toContain('reduceMotion={reduceMotion}');
+      expect(use).toContain('reducedEffects={reducedEffects}');
     }
   });
 });
