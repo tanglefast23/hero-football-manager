@@ -502,9 +502,13 @@ export function reconcileSatisfiedAssistantGuideSequences(
 ): GameState {
   let next = state;
   // The listing lesson already explains bids, cash, and wage removal. Retire
-  // the old follow-up and heal saves that still have it queued or delivered.
-  next = deferAssistantGuideSequencesUntilUnlock(next, ['transfer-bid']);
-  next = completeAssistantGuideSequence(next, 'transfer-bid');
+  // the old follow-up and heal incomplete saves that still have it queued or
+  // delivered. Do not remove and re-add an existing completion flag: that
+  // reorders eventFlags and makes repeated reconciliation non-idempotent.
+  if (!hasAssistantGuideSequenceCompleted(next, 'transfer-bid')) {
+    next = deferAssistantGuideSequencesUntilUnlock(next, ['transfer-bid']);
+    next = completeAssistantGuideSequence(next, 'transfer-bid');
+  }
   if (state.market?.headCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'head-coach-market');
     next = completeAssistantGuideSequence(next, 'head-coach-hire');

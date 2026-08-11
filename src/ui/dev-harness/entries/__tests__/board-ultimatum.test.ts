@@ -319,23 +319,23 @@ describe('the board ultimatum reel', () => {
    * the warning, the debt and the countdown took all three, and for those four
    * weeks the squad's own business waited.
    *
-   * The debt is the one that did not need a slot. It says nothing that expires,
-   * and the finances screen now carries the same balance every week — so it
-   * schedules as an ordinary row and the third slot goes back to the club.
+   * The warning belongs to the pre-loan stage, and the debt says nothing that
+   * expires. The finances screen carries the same balance every week, so at an
+   * active deadline only the countdown holds an urgent slot and the other two
+   * slots go back to the club.
    */
-  it('leaves the deadline desk a slot for the club’s own business', () => {
+  it('leaves the deadline desk room for the club’s own business', () => {
     const state = boardUltimatumCareer('ultimatum', {
       ...OPTIONS,
       quietDesk: false,
     });
     const rows = homeViewModel(state).alerts.map((alert) => alert.id);
 
-    expect(rows.filter(isTimeCriticalBoardRow).sort()).toEqual([
-      'board-ultimatum',
-      'financial-warning',
-    ]);
-    expect(rows.filter((id) => !isBoardRow(id))).toHaveLength(1);
-    // The row still exists and still queues; it is the slot that was freed.
+    // The warning belongs to the pre-loan stage. Once the one emergency loan
+    // has been used, only the active deadline remains time-critical.
+    expect(rows.filter(isTimeCriticalBoardRow)).toEqual(['board-ultimatum']);
+    expect(rows.filter((id) => !isBoardRow(id))).toHaveLength(2);
+    // The debt row still exists and queues without displacing current business.
     expect(homeProductAlerts(state).map((alert) => alert.id)).toContain(
       'emergency-loan',
     );
