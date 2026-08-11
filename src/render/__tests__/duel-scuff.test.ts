@@ -110,14 +110,15 @@ describe('WorkletDuelScuff batching', () => {
     expect(component).toContainSource('age >= DUEL_SCUFF_TICKS');
   });
 
-  it('is drawn over the atlas, where two overlapping duellists cannot hide it', () => {
+  it('is replaced in production by the shared procedural contact layer', () => {
     const screen = readFileSync(
       join(process.cwd(), 'src/render/MatchScreen.tsx'),
       'utf8',
     );
     const atlasAt = screen.indexOf('<Atlas');
-    const scuffAt = screen.indexOf('<WorkletDuelScuff');
+    const effectsAt = screen.indexOf('<ProceduralMatchEffects');
     expect(atlasAt).toBeGreaterThan(-1);
-    expect(scuffAt).toBeGreaterThan(atlasAt);
+    expect(effectsAt).toBeGreaterThan(atlasAt);
+    expect(screen).not.toContain('<WorkletDuelScuff');
   });
 });

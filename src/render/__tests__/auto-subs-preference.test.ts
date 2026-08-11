@@ -40,7 +40,7 @@ describe('automatic substitution policy', () => {
     expect(loopEnd).toBeGreaterThan(loopStart);
     const catchUpLoop = match.slice(loopStart, loopEnd);
     expect(catchUpLoop).toMatch(
-      /if \(!heldForPowerReview\) \{\s*tick\(s\);[\s\S]*?queueControlledAutoSubstitution\(s, autoSubsRef\.current\);\s*\}/,
+      /if \(!heldForPowerReview && !heldForMatchVfxReview\) \{\s*tick\(s\);[\s\S]*?queueControlledAutoSubstitution\(s, autoSubsRef\.current\);\s*\}/,
     );
     expect(match.slice(loopEnd)).not.toContain(
       'queueControlledAutoSubstitution(s, autoSubsRef.current);',

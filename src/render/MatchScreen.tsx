@@ -32,7 +32,13 @@ import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
-import type { MatchInput, MatchState, PowerId, TeamDef } from '../sim/types';
+import type {
+  MatchEvent,
+  MatchInput,
+  MatchState,
+  PowerId,
+  TeamDef,
+} from '../sim/types';
 import {
   BASE_PLAYER_COUNT,
   decoyCloneAt,
@@ -78,11 +84,18 @@ import {
   ENCORE_MARKER_TICKS,
   type EncoreMarker,
   WorkletBallShadow,
-  WorkletDuelScuff,
   WorkletMatchOverlays,
   WorkletSlideTackleEffects,
   WorkletSpeedLines,
 } from './WorkletMatchOverlays';
+import { ProceduralMatchEffects } from './ProceduralMatchEffects';
+import {
+  appendMatchVfxEmitter,
+  isHardShotPower,
+  prepareMatchVfxEmitter,
+  type MatchVfxKind,
+  type PreparedMatchVfxEmitter,
+} from './match-vfx';
 import {
   BALL_AIRBORNE_THRESHOLD_CM,
   ballFlightWhooshStarted,
@@ -141,6 +154,14 @@ import {
   powerMatchShowcaseSucceeded,
   powerMatchShowcaseSuccessRestartsPlay,
 } from './power-match-showcase';
+import {
+  advanceMatchVfxShowcase,
+  initializeMatchVfxShowcase,
+  MATCH_VFX_SHOWCASE_FREEZE_TICKS,
+  MATCH_VFX_SHOWCASE_SAFETY_TICK,
+  matchVfxShowcaseEvent,
+  type MatchVfxQaConfig,
+} from './match-vfx-showcase';
 import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
@@ -412,6 +433,7 @@ export function MatchScreen({
   cupRoundLabel,
   powerCutInQaEntries,
   powerMatchQa,
+  matchVfxQa,
   presentationOnly = false,
   onPowerShowcaseComplete,
   onOpenSettings,
@@ -448,6 +470,8 @@ export function MatchScreen({
   powerCutInQaEntries?: readonly PowerCutInQaEntry[];
   /** Dev-only live match scenario. It still fires through the real engine. */
   powerMatchQa?: PowerMatchQaConfig;
+  /** Dev-only real-event fixture for procedural match-effect review. */
+  matchVfxQa?: MatchVfxQaConfig;
   /** Hide coaching controls and centre the pitch for an automatic match clip. */
   presentationOnly?: boolean;
   /** Acquisition replay only: freezes 1s after the staged power has ended. */
@@ -557,6 +581,8 @@ export function MatchScreen({
     );
     if (powerMatchQa !== undefined) {
       initializePowerMatchShowcase(stateRef.current, powerMatchQa.power);
+    } else if (matchVfxQa !== undefined) {
+      initializeMatchVfxShowcase(stateRef.current, matchVfxQa.kind);
     }
   }
   const match = stateRef.current;
@@ -574,11 +600,18 @@ export function MatchScreen({
   const bannerRef = useRef<MatchBanner[]>([]);
   const scoreFlashUntilRef = useRef<number>(0);
   // Ball-flight presentation — recent positions while a shot or lifted pass
-  // flies, and the last kick origin + tick (dust puff). Render-only.
+  // flies. The old puff remains for ordinary shots and Decoy Pop only; hard
+  // shots now use the shared procedural match-VFX layer.
   const ballFlightTrailRef = useRef<Array<{ x: number; y: number; z: number }>>(
     [],
   );
-  const puffRef = useRef<{ x: number; y: number; tick: number } | null>(null);
+  const puffRef = useRef<{
+    x: number;
+    y: number;
+    tick: number;
+    owner: 'ordinary-shot' | 'decoy-pop';
+  } | null>(null);
+  const matchVfxRef = useRef<PreparedMatchVfxEmitter[]>([]);
   // End-of-match hold deadline (RAF/performance.now() timebase), set once
   // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
   const fulltimeDeadlineRef = useRef<number | null>(null);
@@ -1357,6 +1390,10 @@ export function MatchScreen({
       last = now;
 
       const eventsBefore = s.events.length;
+      const eventFrames = new Map<
+        MatchEvent,
+        Readonly<{ before: PitchFrame; after: PitchFrame }>
+      >();
       let snap = false;
       let advanced = false;
       let pauseAfterPublish = false;
@@ -1366,11 +1403,16 @@ export function MatchScreen({
       // and the flag cannot flip mid-invocation on a single-threaded runtime.
       while (acc >= TICK_MS && s.phase !== 'fulltime') {
         const before = nextRef.current!;
+        const tickEventsBefore = s.events.length;
         prevRef.current = before;
         const heldForPowerReview =
           powerMatchQa !== undefined &&
           advancePowerMatchShowcaseReady(s, powerMatchQa.power);
-        if (!heldForPowerReview) {
+        const heldForMatchVfxReview =
+          !heldForPowerReview &&
+          matchVfxQa !== undefined &&
+          advanceMatchVfxShowcase(s, matchVfxQa.kind);
+        if (!heldForPowerReview && !heldForMatchVfxReview) {
           tick(s);
           // A frame may catch up several engine ticks. Evaluate Auto Subs after
           // each one, in the same order as Quick Result, so a scheduled tick or
@@ -1379,6 +1421,12 @@ export function MatchScreen({
         }
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
+        for (const event of s.events.slice(tickEventsBefore)) {
+          eventFrames.set(event, {
+            before,
+            after: nextRef.current,
+          });
+        }
 
         // The acquisition clip ends when the power's promise lands, not on a
         // timer, so what the manager is left looking at is the power working.
@@ -1400,6 +1448,23 @@ export function MatchScreen({
           // match's coaching prompt uses a few hundred lines below.
           pauseAfterPublish = true;
           showcaseFroze = true;
+          acc = 0;
+          break;
+        }
+
+        const matchVfxQaEvent =
+          matchVfxQa === undefined
+            ? undefined
+            : matchVfxShowcaseEvent(s, matchVfxQa.kind);
+        const matchVfxSafetyFreeze =
+          matchVfxQa !== undefined && s.tick >= MATCH_VFX_SHOWCASE_SAFETY_TICK;
+        if (
+          (matchVfxQaEvent !== undefined &&
+            s.tick >= matchVfxQaEvent.t + MATCH_VFX_SHOWCASE_FREEZE_TICKS) ||
+          matchVfxSafetyFreeze
+        ) {
+          automaticPauseReasonsRef.current.add('showcase');
+          pauseAfterPublish = true;
           acc = 0;
           break;
         }
@@ -1483,21 +1548,131 @@ export function MatchScreen({
           tier: s.players[player]?.def.powerTier ?? 1,
         });
       };
+      const recordMatchVfx = (
+        kind: MatchVfxKind,
+        event: MatchEvent,
+        actor: number,
+        anchor: PowerEffectPoint,
+        direction: PowerEffectPoint,
+        target?: number,
+        intensity?: number,
+      ) => {
+        matchVfxRef.current = appendMatchVfxEmitter(
+          matchVfxRef.current,
+          prepareMatchVfxEmitter({
+            matchSeed: seed,
+            kind,
+            eventTick: event.t,
+            actor,
+            target,
+            anchor,
+            direction,
+            intensity,
+          }),
+        );
+      };
+      const interruptedPlayers = new Set(
+        newEvents.flatMap((event) =>
+          event.kind === 'POWER_INTERRUPTED' ? [event.player] : [],
+        ),
+      );
       for (const e of newEvents) {
+        const captured = eventFrames.get(e);
+        const eventBefore = captured?.before ?? prevRef.current!;
+        const eventAfter = captured?.after ?? nextRef.current!;
         playForEvent(e);
         playHapticForEvent(e, controlledTeam);
         if (e.kind === 'POWER_FIRED' && e.power === 'FIRE_TORCH') {
           torchCasterPos = { ...nextRef.current!.players[e.player] };
         }
         const shotActor = e.kind === 'SHOT' ? (e.actor ?? e.by) : -1;
-        if (
-          !suppressCosmeticEffects &&
-          e.kind === 'SHOT' &&
-          playerAt(s, shotActor) !== undefined
-        ) {
-          // Kick up a dust puff at the striker's feet — the visual "he hit it".
-          const o = playerAt(s, shotActor)!.pos;
-          puffRef.current = { x: o.x, y: o.y, tick: e.t };
+        if (e.kind === 'SHOT' && playerAt(s, shotActor) !== undefined) {
+          const origin = eventAfter.players[shotActor];
+          const shotPlayer = playerAt(s, shotActor)!;
+          const ballDirection = {
+            x: eventAfter.ball.x - eventBefore.ball.x,
+            y: eventAfter.ball.y - eventBefore.ball.y,
+          };
+          const direction =
+            ballDirection.x === 0 && ballDirection.y === 0
+              ? { x: 0, y: shotPlayer.team === 0 ? -1 : 1 }
+              : ballDirection;
+          if (origin !== undefined && isHardShotPower(e.power)) {
+            if (puffRef.current?.owner === 'ordinary-shot')
+              puffRef.current = null;
+            recordMatchVfx(
+              'hard-shot',
+              e,
+              shotActor,
+              origin,
+              direction,
+              undefined,
+              Math.min(1, e.power / 100),
+            );
+          } else if (origin !== undefined && !suppressCosmeticEffects) {
+            // Ordinary shots retain the small legacy puff. A hard shot owns the
+            // new burst instead, so the two treatments never stack.
+            puffRef.current = {
+              x: origin.x,
+              y: origin.y,
+              tick: e.t,
+              owner: 'ordinary-shot',
+            };
+          }
+        }
+        if (e.kind === 'TACKLE' && e.contact) {
+          const challenger = eventAfter.players[e.by];
+          const target = eventAfter.players[e.on];
+          if (challenger !== undefined && target !== undefined) {
+            const kind: MatchVfxKind | null = interruptedPlayers.has(e.on)
+              ? null
+              : e.style === 'standing'
+                ? 'standing-tackle'
+                : e.style === 'slide'
+                  ? 'slide-tackle'
+                  : null;
+            if (kind !== null) {
+              recordMatchVfx(
+                kind,
+                e,
+                e.by,
+                {
+                  x: (challenger.x + target.x) / 2,
+                  y: (challenger.y + target.y) / 2,
+                },
+                {
+                  x: target.x - challenger.x,
+                  y: target.y - challenger.y,
+                },
+                e.on,
+              );
+            }
+          }
+        }
+        if (e.kind === 'SAVE') {
+          const keeper = eventAfter.players[e.by];
+          if (keeper !== undefined) {
+            recordMatchVfx(
+              'save-impact',
+              e,
+              e.by,
+              { x: eventBefore.ball.x, y: keeper.y },
+              {
+                x: eventBefore.ball.x - keeper.x,
+                y: eventBefore.ball.y - keeper.y,
+              },
+            );
+          }
+        }
+        if (e.kind === 'POWER_INTERRUPTED') {
+          const interrupted = eventAfter.players[e.player];
+          const player = playerAt(s, e.player);
+          if (interrupted !== undefined && player !== undefined) {
+            recordMatchVfx('power-interruption', e, e.player, interrupted, {
+              x: 0,
+              y: player.team === 0 ? -1 : 1,
+            });
+          }
         }
         if (
           e.kind === 'GOAL' ||
@@ -1705,7 +1880,12 @@ export function MatchScreen({
           });
         }
         if (e.kind === 'DECOY_POP') {
-          puffRef.current = { x: e.pos.x, y: e.pos.y, tick: e.t };
+          puffRef.current = {
+            x: e.pos.x,
+            y: e.pos.y,
+            tick: e.t,
+            owner: 'decoy-pop',
+          };
         }
         if (e.kind === 'TACKLE' && e.style === 'power') {
           const source = playerAt(s, e.by);
@@ -2014,6 +2194,7 @@ export function MatchScreen({
     cutInMode,
     firstMatchTutorial,
     home,
+    matchVfxQa,
     onDone,
     powerMatchQa,
     publishAtlasFrame,
@@ -3015,15 +3196,6 @@ export function MatchScreen({
                     ballHeight={workletBallHeight}
                     scale={scale}
                   />
-                  <WorkletSlideTackleEffects
-                    layer="dust"
-                    visualPositions={workletVisualPositions}
-                    actionData={workletActionData}
-                    visualTick={workletVisualTick}
-                    scale={scale}
-                    playerDrawScale={playerSpriteScale.drawScale}
-                    devicePixelRatio={devicePixelRatio}
-                  />
                   <Atlas
                     image={atlas.image as SkImage}
                     sprites={sprites}
@@ -3033,6 +3205,17 @@ export function MatchScreen({
                     sampling={PIXEL_ART_SAMPLING}
                   />
                   <WorkletSlideTackleEffects
+                    layer="dust"
+                    visualPositions={workletVisualPositions}
+                    actionData={workletActionData}
+                    visualTick={workletVisualTick}
+                    scale={scale}
+                    playerDrawScale={playerSpriteScale.drawScale}
+                    devicePixelRatio={devicePixelRatio}
+                    reduceMotion={reduceMotion}
+                    reducedEffects={reducedEffects}
+                  />
+                  <WorkletSlideTackleEffects
                     layer="grass"
                     visualPositions={workletVisualPositions}
                     actionData={workletActionData}
@@ -3040,16 +3223,17 @@ export function MatchScreen({
                     scale={scale}
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
+                    reduceMotion={reduceMotion}
+                    reducedEffects={reducedEffects}
                   />
-                  {/* Beaten-challenge contact mark. Over the atlas because the
-                    standoff ring leaves the two duelling sprites overlapping,
-                    and under it the mark would be invisible. */}
-                  <WorkletDuelScuff
-                    actionData={workletActionData}
-                    visualTick={workletVisualTick}
+                  <ProceduralMatchEffects
+                    emitters={matchVfxRef.current}
+                    visualTick={hud.visualTick}
                     scale={scale}
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
+                    reduceMotion={reduceMotion}
+                    reducedEffects={reducedEffects}
                   />
                   {presentedPowerEffects.map((effect) => (
                     <PowerEffectScene

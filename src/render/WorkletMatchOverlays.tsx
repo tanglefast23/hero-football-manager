@@ -1,5 +1,10 @@
 import { Fragment } from 'react';
-import { DashPathEffect, Path, usePathValue } from '@shopify/react-native-skia';
+import {
+  DashPathEffect,
+  Path,
+  usePathValue,
+  type SkPathBuilder,
+} from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import {
   WORKLET_ACTION_SLIDE,
@@ -19,11 +24,14 @@ import {
 import {
   TACKLE_DUST_COLOR,
   TACKLE_DUST_OPACITY,
-  TACKLE_DUST_PIXELS,
+  TACKLE_DUST_PHASES,
+  TACKLE_DUST_POSITION_SCALE,
+  TACKLE_DUST_SIZE_SCALE,
   TACKLE_GRASS_COLOR,
   TACKLE_GRASS_OPACITY,
-  TACKLE_GRASS_PIXELS,
+  TACKLE_GRASS_PHASES,
   TACKLE_TRAIL_SAMPLES,
+  TACKLE_VFX_STEP_MS,
 } from './slide-tackle-effects';
 import {
   DUEL_SCUFF_COLOR,
@@ -110,9 +118,10 @@ const SPEED_LINE_COLOR = '#ffffff';
 
 /**
  * Pixel-clustered tackle debris. The body spray follows the player while a
- * ground-locked trail spans the real launch-to-current path. Dust is batched
- * into one hard-edged path at exactly 65% opacity; grass is a second 40%-opacity
- * path. No blur/filter nodes.
+ * ground-locked trail spans the real launch-to-current path. A large backward
+ * dust spray is batched into one hard-edged path at exactly 15% opacity; grass
+ * is a second 80%-opacity path. Both render above the player Atlas so the
+ * transparent dust still reads in motion. No blur/filter nodes.
  *
  * Every rect corner goes through `snapDevicePixels`, the same single rounding
  * rule the camera, the sprite atlas and the duel scuff use. The inputs are all
@@ -123,6 +132,26 @@ const SPEED_LINE_COLOR = '#ffffff';
  * Both edges are snapped, not just the near one, so a fractional span cannot put
  * the far edge back on a fraction.
  */
+function addSnappedDebrisRect(
+  builder: SkPathBuilder,
+  rawLeft: number,
+  rawTop: number,
+  width: number,
+  height: number,
+  devicePixelRatio: number,
+): void {
+  'worklet';
+  const left = snapDevicePixels(rawLeft, devicePixelRatio);
+  const top = snapDevicePixels(rawTop, devicePixelRatio);
+  const right = snapDevicePixels(rawLeft + width, devicePixelRatio);
+  const bottom = snapDevicePixels(rawTop + height, devicePixelRatio);
+  builder.moveTo(left, top);
+  builder.lineTo(right, top);
+  builder.lineTo(right, bottom);
+  builder.lineTo(left, bottom);
+  builder.close();
+}
+
 export function WorkletSlideTackleEffects({
   layer,
   visualPositions,
@@ -131,6 +160,8 @@ export function WorkletSlideTackleEffects({
   scale,
   playerDrawScale,
   devicePixelRatio,
+  reduceMotion,
+  reducedEffects,
 }: {
   layer: 'dust' | 'grass';
   visualPositions: SharedValue<Float32Array>;
@@ -139,9 +170,12 @@ export function WorkletSlideTackleEffects({
   scale: number;
   playerDrawScale: number;
   devicePixelRatio: number;
+  reduceMotion: boolean;
+  reducedEffects: boolean;
 }) {
   const debris = usePathValue((builder) => {
     'worklet';
+    if (reduceMotion) return;
     const presentationTick = Math.max(0, visualTick.value);
     const pixel = scale * playerDrawScale;
     for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
@@ -167,97 +201,96 @@ export function WorkletSlideTackleEffects({
       const travelX = cx - originX;
       const travelY = cy - originY;
       const age = Math.max(0, elapsed - 1.5);
+      const phase = Math.floor((age * 100) / TACKLE_VFX_STEP_MS) % 4;
+      const trailCount = reducedEffects ? 4 : TACKLE_TRAIL_SAMPLES.length;
 
       if (layer === 'dust') {
-        for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
+        for (let index = 0; index < trailCount; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
-          const size = sample.dustSize * pixel;
+          const size = sample.dustSize * TACKLE_DUST_SIZE_SCALE * pixel;
           const rawLeft =
             originX +
             travelX * sample.progress +
-            sideX * sample.side * pixel -
+            sideX * sample.side * TACKLE_DUST_POSITION_SCALE * pixel -
             size * 0.5;
           const rawTop =
             originY +
             travelY * sample.progress +
-            sideY * sample.side * pixel -
+            sideY * sample.side * TACKLE_DUST_POSITION_SCALE * pixel -
             size * 0.5;
-          const left = snapDevicePixels(rawLeft, devicePixelRatio);
-          const top = snapDevicePixels(rawTop, devicePixelRatio);
-          const right = snapDevicePixels(rawLeft + size, devicePixelRatio);
-          const bottom = snapDevicePixels(rawTop + size, devicePixelRatio);
-          builder.moveTo(left, top);
-          builder.lineTo(right, top);
-          builder.lineTo(right, bottom);
-          builder.lineTo(left, bottom);
-          builder.close();
+          addSnappedDebrisRect(
+            builder,
+            rawLeft,
+            rawTop,
+            size,
+            size,
+            devicePixelRatio,
+          );
         }
 
-        const count = Math.min(
-          TACKLE_DUST_PIXELS.length,
-          Math.max(2, Math.floor(age * 2) + 2),
-        );
-        for (let index = 0; index < count; index += 1) {
-          const puff = TACKLE_DUST_PIXELS[index];
-          const drift = Math.min(5, age * 0.8 + index * 0.35);
-          const along = puff.along - drift;
-          const size = puff.size * pixel;
-          const rawLeft = cx + (ux * along + sideX * puff.side) * pixel;
+        if (reducedEffects) continue;
+        const dustPhase = TACKLE_DUST_PHASES[phase];
+        for (let index = 0; index < dustPhase.length; index += 1) {
+          const puff = dustPhase[index];
+          const size = puff.size * TACKLE_DUST_SIZE_SCALE * pixel;
+          const rawLeft =
+            cx +
+            (ux * puff.along + sideX * puff.side) *
+              TACKLE_DUST_POSITION_SCALE *
+              pixel -
+            size * 0.5;
           const rawTop =
-            cy + (uy * along + sideY * puff.side) * pixel - size * 0.5;
-          const left = snapDevicePixels(rawLeft, devicePixelRatio);
-          const top = snapDevicePixels(rawTop, devicePixelRatio);
-          const right = snapDevicePixels(rawLeft + size, devicePixelRatio);
-          const bottom = snapDevicePixels(rawTop + size, devicePixelRatio);
-          builder.moveTo(left, top);
-          builder.lineTo(right, top);
-          builder.lineTo(right, bottom);
-          builder.lineTo(left, bottom);
-          builder.close();
+            cy +
+            (uy * puff.along + sideY * puff.side) *
+              TACKLE_DUST_POSITION_SCALE *
+              pixel -
+            size * 0.5;
+          addSnappedDebrisRect(
+            builder,
+            rawLeft,
+            rawTop,
+            size,
+            size,
+            devicePixelRatio,
+          );
         }
       } else {
-        for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
+        for (let index = 0; index < trailCount; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
           const footSide = sample.side + 12;
           const rawBaseX =
             originX + travelX * sample.progress + sideX * footSide * pixel;
           const rawBaseY =
             originY + travelY * sample.progress + sideY * footSide * pixel;
-          const width = Math.max(1, pixel * 0.6);
+          const width = sample.grassWidth * pixel;
           const height = sample.grassHeight * pixel;
-          const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
-          const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);
-          const rightX = snapDevicePixels(rawBaseX + width, devicePixelRatio);
-          const tipY = snapDevicePixels(rawBaseY - height, devicePixelRatio);
-          builder.moveTo(baseX, baseY);
-          builder.lineTo(rightX, baseY);
-          builder.lineTo(rightX, tipY);
-          builder.lineTo(baseX, tipY);
-          builder.close();
+          addSnappedDebrisRect(
+            builder,
+            rawBaseX - width * 0.5,
+            rawBaseY - height * 0.5,
+            width,
+            height,
+            devicePixelRatio,
+          );
         }
 
-        const count = Math.min(
-          TACKLE_GRASS_PIXELS.length,
-          Math.max(1, Math.floor(age * 1.5)),
-        );
-        for (let index = 0; index < count; index += 1) {
-          const blade = TACKLE_GRASS_PIXELS[index];
-          const rise = Math.min(7, age + index * 0.7);
-          const along = blade.along - age * 0.35;
-          const footSide = blade.side + 12;
-          const rawBaseX = cx + (ux * along + sideX * footSide) * pixel;
-          const rawBaseY = cy + (uy * along + sideY * footSide) * pixel;
-          const width = Math.max(1, pixel * 0.9);
-          const height = (blade.height + rise) * pixel;
-          const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
-          const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);
-          const rightX = snapDevicePixels(rawBaseX + width, devicePixelRatio);
-          const tipY = snapDevicePixels(rawBaseY - height, devicePixelRatio);
-          builder.moveTo(baseX, baseY);
-          builder.lineTo(rightX, baseY);
-          builder.lineTo(rightX, tipY);
-          builder.lineTo(baseX, tipY);
-          builder.close();
+        if (reducedEffects) continue;
+        const grassPhase = TACKLE_GRASS_PHASES[phase];
+        for (let index = 0; index < grassPhase.length; index += 1) {
+          const shard = grassPhase[index];
+          const footSide = shard.side + 12;
+          const rawCenterX = cx + (ux * shard.along + sideX * footSide) * pixel;
+          const rawCenterY = cy + (uy * shard.along + sideY * footSide) * pixel;
+          const width = shard.width * pixel;
+          const height = shard.height * pixel;
+          addSnappedDebrisRect(
+            builder,
+            rawCenterX - width * 0.5,
+            rawCenterY - shard.rise * pixel - height * 0.5,
+            width,
+            height,
+            devicePixelRatio,
+          );
         }
       }
     }
