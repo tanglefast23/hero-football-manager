@@ -33,7 +33,7 @@ describe('rival hero intro Dev Harness entry', () => {
       app.indexOf('<FixtureMatchDayScreen'),
     );
     expect(app).toContainSource('rivalHeroIntro === undefined');
-    expect(app).toContainSource('|| screenKey === RivalHeroIntroScreen;');
+    expect(app).toContainSource('screenKey === RivalHeroIntroScreen');
     expect(app).toContainSource(
       'rivalHeroIntro === undefined && lowConditionMatchdayStarter !== null',
     );

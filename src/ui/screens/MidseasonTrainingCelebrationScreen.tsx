@@ -41,7 +41,7 @@ import type {
   MidseasonTrainingPlayerViewModel,
   MidseasonTrainingViewModel,
 } from '../models';
-import { useCopy } from '../../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 // The drill progress bed is four seconds long. Finish with it so the payoff
 // never drops into silence before the Continue state appears.
@@ -76,6 +76,7 @@ export function MidseasonTrainingCelebrationScreen({
   onContinue,
 }: MidseasonTrainingCelebrationScreenProps) {
   const t = useCopy();
+  const pixelStyles = usePixelStyles(makePixelStyles);
   const { width, height } = useWindowDimensions();
   const [finished, setFinished] = useState(reduceMotion);
   const [cameraShot, setCameraShot] = useState<CameraShot>('wide');
@@ -427,6 +428,7 @@ export function MidseasonTrainingCelebrationScreen({
                     key={`plus-${index}`}
                     style={[
                       styles.plus,
+                      pixelStyles.display,
                       {
                         left:
                           pitchLeft +
@@ -463,7 +465,7 @@ export function MidseasonTrainingCelebrationScreen({
             >
               <GreenBullPixelMark />
               <Text
-                style={styles.centerName}
+                style={[styles.centerName, pixelStyles.display]}
                 numberOfLines={2}
                 adjustsFontSizeToFit
               >
@@ -516,12 +518,14 @@ export function MidseasonTrainingCelebrationScreen({
           pointerEvents="none"
           style={[styles.titleCard, titleStyle]}
         >
-          <Text style={styles.kicker}>
+          <Text style={[styles.kicker, pixelStyles.display]}>
             {t('midseasonTraining.trainingTrip')}
           </Text>
-          <Text style={styles.title}>{t('midseasonTraining.teamBoost')}</Text>
+          <Text style={[styles.title, pixelStyles.display]}>
+            {t('midseasonTraining.teamBoost')}
+          </Text>
           <View style={styles.gainCard}>
-            <Text style={styles.gainText}>
+            <Text style={[styles.gainText, pixelStyles.display]}>
               {t('midseasonTraining.plusAllStats', {
                 gain: viewModel.statGain,
               })}
@@ -539,12 +543,12 @@ export function MidseasonTrainingCelebrationScreen({
                   variant="confirm"
                   onPress={continueOnce}
                 />
-                <Text style={styles.tapHint}>
+                <Text style={[styles.tapHint, pixelStyles.display]}>
                   {t('midseasonTraining.tapAnywhere')}
                 </Text>
               </>
             ) : (
-              <Text style={styles.tapHint}>
+              <Text style={[styles.tapHint, pixelStyles.display]}>
                 {t('midseasonTraining.tapToFinish')}
               </Text>
             )}
@@ -666,6 +670,9 @@ const GREEN_BULL_PIXELS = [
   '....DGGD...DGGD....',
   '.....DD.....DD.....',
 ] as const;
+
+const makePixelStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({ display: { fontFamily: faces.display } });
 
 function Firework({
   progress,
@@ -817,7 +824,6 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: '#f6c744',
-    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 10,
     letterSpacing: 2,
     textAlign: 'center',
@@ -826,7 +832,6 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 4,
     color: '#f4f1ea',
-    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 26,
     lineHeight: 30,
     textAlign: 'center',
@@ -846,7 +851,6 @@ const styles = StyleSheet.create({
   },
   gainText: {
     color: '#241f2e',
-    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 12,
     textAlign: 'center',
     textTransform: 'uppercase',
@@ -870,7 +874,6 @@ const styles = StyleSheet.create({
   centerName: {
     marginTop: 3,
     color: '#f4f1ea',
-    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 8,
     lineHeight: 10,
     textAlign: 'center',
@@ -888,7 +891,6 @@ const styles = StyleSheet.create({
   plus: {
     position: 'absolute',
     zIndex: 13,
-    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 24,
     width: 44,
     textAlign: 'center',
@@ -923,7 +925,6 @@ const styles = StyleSheet.create({
   },
   tapHint: {
     color: '#f4f1ea',
-    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
     lineHeight: 13,
     textAlign: 'center',

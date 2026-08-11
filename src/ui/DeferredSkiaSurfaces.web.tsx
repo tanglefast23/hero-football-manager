@@ -8,7 +8,7 @@ import type { ChampionshipCelebrationScreenProps } from './screens/ChampionshipC
 import type { EndgameCelebrationScreenProps } from './screens/EndgameCelebrationScreen';
 import type { MidseasonTrainingCelebrationScreenProps } from './screens/MidseasonTrainingCelebrationScreen';
 import type { StoryEventScreenProps } from './screens/StoryEventScreen';
-import { useCopy } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 async function loadSkia() {
   const { LoadSkiaWeb } =
@@ -18,6 +18,7 @@ async function loadSkia() {
 
 function LoadingSurface() {
   const t = useCopy();
+  const styles = usePixelStyles(makeStyles);
   return (
     <View
       style={styles.loading}
@@ -144,16 +145,17 @@ export function StoryEventScreen(props: StoryEventScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#241f2e',
-  },
-  loadingText: {
-    color: '#f4ead0',
-    fontFamily: 'HFMSilkscreen_700Bold',
-    fontSize: 12,
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    loading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#241f2e',
+    },
+    loadingText: {
+      color: '#f4ead0',
+      fontFamily: faces.display,
+      fontSize: 12,
+    },
+  });
