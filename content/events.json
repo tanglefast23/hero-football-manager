@@ -1105,9 +1105,10 @@
       "body": "The youth coach says one young player has scored in every training match.",
       "trigger": {
         "season": 1,
-        "minWeek": 6,
-        "maxWeek": 30,
-        "requiresPlayer": true
+        "minWeek": 1,
+        "maxWeek": 4,
+        "requiresPlayer": true,
+        "requiresPlayerSource": "YOUTH_OFFERS"
       },
       "choices": [
         {
@@ -1163,6 +1164,76 @@
                 {
                   "type": "tp",
                   "amount": 4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "selling-club-needs-cash",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-handshake",
+      "title": "A Selling Club Needs Cash",
+      "body": "Your scout learns that one club on the Deals list needs cash for urgent roof repairs. Their director wants a transfer done quickly.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 17,
+        "maxWeek": 30,
+        "requiresPlayer": true,
+        "requiresPlayerSource": "TRANSFER_TARGETS"
+      },
+      "choices": [
+        {
+          "id": "tip-off-the-press",
+          "label": "Let the repair bill reach the press",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "The price drops",
+              "text": "The story brings other creditors to the door. The director calls first and cuts the asking fee by 15%.",
+              "effects": [
+                {
+                  "type": "transferFeePercent",
+                  "percent": -15
+                },
+                {
+                  "type": "flag",
+                  "flag": "selling-club-price-dropped",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "The director learns that the leak came from your club. He adds 10% to the asking fee.",
+              "effects": [
+                {
+                  "type": "transferFeePercent",
+                  "percent": 10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "make-a-private-offer",
+          "label": "Offer a quiet, quick deal",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The director values certainty and cuts the asking fee by 5%.",
+              "effects": [
+                {
+                  "type": "transferFeePercent",
+                  "percent": -5
                 }
               ]
             }

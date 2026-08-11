@@ -19,6 +19,7 @@ import {
 } from '../game/player-appearance';
 import {
   COACH_WAGE_PER_LEVEL,
+  furtherReducedPlayerWeeklyWage,
   reducedPlayerWeeklyWage,
   type CoachCandidate,
 } from '../game/market';
@@ -31,7 +32,7 @@ import { playerLookId } from '../render/sprites/player-look';
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
-export const LAUNCH_ROSTER_VERSION = 4;
+export const LAUNCH_ROSTER_VERSION = 5;
 let careerSeedNonce = 0;
 let lastGeneratedCareerSeed: number | undefined;
 
@@ -295,9 +296,14 @@ export function reconcileLaunchRoster(
     savedLaunchRosterVersion === 3 &&
     state.market !== undefined &&
     coachMarketNeedsRepricing(state.market);
-  const needsPlayerWageReduction =
+  const needsFullPlayerWageReduction =
     savedLaunchRosterVersion < 3 ||
     (savedLaunchRosterVersion === 3 && !versionThreeNeedsCoachMigration);
+  const needsAdditionalPlayerWageReduction =
+    savedLaunchRosterVersion === 4 ||
+    (savedLaunchRosterVersion === 3 && versionThreeNeedsCoachMigration);
+  const needsPlayerWageReduction =
+    needsFullPlayerWageReduction || needsAdditionalPlayerWageReduction;
   const needsCoachWageReduction =
     savedLaunchRosterVersion < 3 || versionThreeNeedsCoachMigration;
   const missing = needsLegacyRosterExpansion
@@ -355,7 +361,9 @@ export function reconcileLaunchRoster(
       const migratedPlayer = needsPlayerWageReduction
         ? {
             ...player,
-            weeklyWage: reducedPlayerWeeklyWage(player.weeklyWage),
+            weeklyWage: needsFullPlayerWageReduction
+              ? reducedPlayerWeeklyWage(player.weeklyWage)
+              : furtherReducedPlayerWeeklyWage(player.weeklyWage),
           }
         : player;
       const current = launchById.get(player.id);

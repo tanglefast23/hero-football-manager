@@ -44,7 +44,7 @@ describe('club finances immediate transaction history', () => {
       'training-pitch': '+12 TP per level +10% DEF Training',
       'coaching-office': 'Unlock Assistant Coach',
       'fan-shop': '+$$$ Merchandise boost. Scales with Fans.',
-      'stadium-stand': '+50% home gate income',
+      'stadium-stand': '+100% home gate income',
       'medical-bay': 'Recovery -1 week',
       dorm: '+4 condition recovery weekly',
       'scout-office': '3 names per mission',
@@ -160,6 +160,96 @@ describe('club finances immediate transaction history', () => {
     expect(viewModel.projectedBalance).toBe(
       viewModel.resources.money + viewModel.weeklyNet,
     );
+  });
+
+  test('shows the newest three saved returns for each income source', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260811));
+    const review = (week: number) => {
+      const gateBase = week * 100;
+      return {
+        season: 1,
+        week,
+        lines: [
+          {
+            kind: 'tickets' as const,
+            label: 'League home gate',
+            labelKey: 'ledger.leagueHomeGate',
+            amount: gateBase + gateBase / 2,
+            reveal: {
+              source: 'league-gate' as const,
+              base: gateBase,
+              variancePercent: 0,
+              surge: false,
+              multiplierPercent: 150,
+              facilityCount: 1,
+            },
+          },
+          {
+            kind: 'merch' as const,
+            label: 'Fan Shop merchandise',
+            labelKey: 'ledger.fanShopMerchandise',
+            amount: week * 40,
+          },
+          {
+            kind: 'sponsor' as const,
+            label: 'Local advertising (monthly)',
+            labelKey: 'ledger.localAdvertisingMonthly',
+            amount: week * 200,
+          },
+        ],
+        balanceAfter: initial.clubs.find(
+          (club) => club.id === initial.userClubId,
+        )!.cash,
+      };
+    };
+    const withHistory = {
+      ...initial,
+      week: 6,
+      ledgers: [
+        ...[1, 2, 3, 4].map(review),
+        {
+          season: 1,
+          week: 5,
+          lines: [
+            { kind: 'wages' as const, label: 'Weekly wages', amount: -500 },
+          ],
+          balanceAfter: 1_000,
+        },
+      ],
+    };
+
+    const rows = new Map(
+      clubFinancesViewModel(withHistory).incomeGeneration.rows.map((row) => [
+        row.id,
+        row,
+      ]),
+    );
+
+    expect(rows.get('income-gate')?.history).toEqual([
+      { periodLabel: 'S1 · W4', amount: 600 },
+      { periodLabel: 'S1 · W3', amount: 450 },
+      { periodLabel: 'S1 · W2', amount: 300 },
+    ]);
+    expect(rows.get('income-stadium-stand')?.history).toEqual([
+      { periodLabel: 'S1 · W4', amount: 200 },
+      { periodLabel: 'S1 · W3', amount: 150 },
+      { periodLabel: 'S1 · W2', amount: 100 },
+    ]);
+    expect(rows.get('income-fan-shop')?.history).toEqual([
+      { periodLabel: 'S1 · W4', amount: 160 },
+      { periodLabel: 'S1 · W3', amount: 120 },
+      { periodLabel: 'S1 · W2', amount: 80 },
+    ]);
+    expect(rows.get('income-sponsor')?.history).toEqual([
+      { periodLabel: 'S1 · W4', amount: 800 },
+      { periodLabel: 'S1 · W3', amount: 600 },
+      { periodLabel: 'S1 · W2', amount: 400 },
+    ]);
+    expect(
+      clubFinancesViewModel(initial).incomeGeneration.rows.every(
+        (row) => row.history === undefined,
+      ),
+    ).toBe(true);
   });
 
   test('projects four weeks with home gates, away no-gate weeks, Cup gates, and sponsor cadence', () => {

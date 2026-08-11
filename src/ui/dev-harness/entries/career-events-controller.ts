@@ -4,6 +4,7 @@ import {
   advanceFacilityConstruction,
   buildCareerFacility,
   careerEventPlayerSaleBlocker,
+  createPreseasonYouthIntake,
   deterministicCareerEventRoll,
   hireCareerCoach,
   offerCareerEvent,
@@ -71,6 +72,36 @@ export function careerEventsCareer(): GameState {
   }
   state = hireHarnessCoach(state, 'HEAD');
   state = hireHarnessCoach(state, 'ASSISTANT');
+  const rival = state.players.find(
+    (player) => player.clubId !== state.userClubId,
+  );
+  if (rival === undefined) throw new Error('harness career has no rival player');
+  const range = (value: number) => ({ minimum: value, maximum: value });
+  state = {
+    ...state,
+    youthIntake: createPreseasonYouthIntake({ ...state, week: 1 }),
+    market: {
+      ...state.market!,
+      scoutReports: [
+        {
+          playerId: rival.id,
+          role: rival.role,
+          age: rival.age ?? 24,
+          statRanges: {
+            pac: range(rival.attrs.pac),
+            sho: range(rival.attrs.sho),
+            pas: range(rival.attrs.pas),
+            def: range(rival.attrs.def),
+            tec: range(rival.attrs.tec),
+            sta: range(rival.attrs.sta),
+            ref: range(rival.attrs.ref),
+          },
+          potentialRange: range(rival.potential ?? 3),
+          ...(rival.power === undefined ? {} : { power: rival.power }),
+        },
+      ],
+    },
+  };
   qaCareer = state;
   return state;
 }
@@ -262,7 +293,7 @@ export function readyStoryEvent(
     const id = preferredHarnessPlayerId(state, event, candidates.playerIds);
     if (id === undefined)
       throw new Error(`event ${event.id} has no eligible player`);
-    return selectCareerEventPlayer(state, id);
+    return selectCareerEventPlayer(state, id, candidates.playerIds);
   }
   if (
     event.trigger.requiresCoach === true &&

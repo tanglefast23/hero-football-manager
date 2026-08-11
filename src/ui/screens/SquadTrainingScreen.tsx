@@ -307,6 +307,14 @@ export function SquadTrainingScreen({
   const [squadTab, setSquadTab] = useState<'drills' | 'requests'>(
     initialSquadTab,
   );
+  useEffect(() => {
+    if (
+      guideFocus === 'squad-requests' &&
+      requestViewModel?.pending !== undefined
+    ) {
+      setSquadTab('requests');
+    }
+  }, [guideFocus, requestViewModel?.pending]);
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
   /**

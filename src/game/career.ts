@@ -1319,7 +1319,7 @@ export function currentActualMonthlySponsorIncome(
  * `divisionTicketPrice` instead of bypassing it: the same stand is worth far
  * more in D1 than in D5, which is what makes it the club's climb investment.
  */
-const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 50;
+const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 100;
 
 /** Combined operational Stadium Stand level and building count across up to three stands. */
 function gridStadiumStands(grid: FacilityGridState | undefined): {
@@ -1358,7 +1358,7 @@ export function gridStadiumStandLevel(
  * What the club's money buildings are currently worth, as multipliers.
  *
  * The accounts office shows these as percentages rather than cash: a Stand is
- * not worth "$600", it is worth half the gate again, and what that pays
+ * not worth a fixed cash amount, it is worth the full base gate again, and what that pays
  * depends on the division the club is in when it is read. One derivation,
  * reused by the panel that explains them, so the copy can never drift from the
  * settlement above it.

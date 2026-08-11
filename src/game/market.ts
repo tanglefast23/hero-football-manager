@@ -464,7 +464,8 @@ export function playerValuation(
 const GLOBAL_WAGE_SCALE = 0.96;
 
 /** Player-only relief applied after every existing wage rule. Coach wages are separate. */
-export const PLAYER_WAGE_REDUCTION_PERCENT = 10;
+export const PLAYER_WAGE_REDUCTION_PERCENT = 15;
+export const ADDITIONAL_PLAYER_WAGE_REDUCTION_PERCENT = 5;
 
 export function reducedPlayerWeeklyWage(currentWeeklyWage: number): number {
   if (!Number.isSafeInteger(currentWeeklyWage) || currentWeeklyWage < 0) {
@@ -473,6 +474,20 @@ export function reducedPlayerWeeklyWage(currentWeeklyWage: number): number {
   return checkedRound(
     (currentWeeklyWage * (100 - PLAYER_WAGE_REDUCTION_PERCENT)) / 100,
     'reduced player weekly wage',
+  );
+}
+
+/** One-time save migration for careers that already received the earlier 10% cut. */
+export function furtherReducedPlayerWeeklyWage(
+  currentWeeklyWage: number,
+): number {
+  if (!Number.isSafeInteger(currentWeeklyWage) || currentWeeklyWage < 0) {
+    throw new Error('player weekly wage must be a non-negative safe integer');
+  }
+  return checkedRound(
+    (currentWeeklyWage * (100 - ADDITIONAL_PLAYER_WAGE_REDUCTION_PERCENT)) /
+      100,
+    'further reduced player weekly wage',
   );
 }
 

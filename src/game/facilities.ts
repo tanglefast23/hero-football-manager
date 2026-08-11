@@ -281,10 +281,9 @@ export const FACILITY_CATALOG: Readonly<
     [40, 65, 95],
     250,
   ),
-  // At the D5 floor (500 fans, $4 tickets), Level 1 adds $600 per home gate.
-  // Across nine league gates that is $5,400, less $1,500 annual upkeep: a
-  // $3,900 return and roughly 2.6-season payback before Cup ties. It remains a
-  // slower club-growth investment than the Fan Shop without being a trap.
+  // At the D5 floor (500 fans, $4 tickets), Level 1 adds $1,200 per home gate.
+  // Across nine league gates that is $10,800, less $1,500 annual upkeep: a
+  // $9,300 return and roughly 1.1-season payback before Cup ties.
   'stadium-stand': facility(
     'stadium-stand',
     'Stadium Stand',

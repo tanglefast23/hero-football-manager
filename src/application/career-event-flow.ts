@@ -2,6 +2,7 @@ import type { EventCatalog } from '../content';
 import { copyFor, type CopyFn } from '../i18n';
 import {
   applyCareerEventOutcome,
+  applyCareerTransferFeeAdjustment,
   applyCoachEventEffect,
   applyFacilityEventEffect,
   completeCareerEventPlayerSale,
@@ -106,6 +107,9 @@ export function resolveCareerEventChoice(
   const fame = outcome.effects.find((effect) => effect.type === 'fame');
   const playerSale = outcome.effects.find(
     (effect) => effect.type === 'playerSale',
+  );
+  const transferFee = outcome.effects.find(
+    (effect) => effect.type === 'transferFeePercent',
   );
   const coachBoosts = outcome.effects.filter(
     (effect) => effect.type === 'coachBoost',
@@ -251,6 +255,13 @@ export function resolveCareerEventChoice(
   }
   if (playerSale?.type === 'playerSale') {
     next = completeCareerEventPlayerSale(next, playerId!, playerSale.fee);
+  }
+  if (transferFee?.type === 'transferFeePercent') {
+    next = applyCareerTransferFeeAdjustment(
+      next,
+      playerId!,
+      transferFee.percent,
+    );
   }
 
   const milestone = isCareerMilestoneEventId(pending.eventId);

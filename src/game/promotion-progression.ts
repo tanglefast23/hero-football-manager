@@ -317,20 +317,26 @@ export function trainingDrillBlockedReason(
 }
 
 /**
- * Each division up adds $10,000 to the champion's purse, and half of that to
- * the runner-up's. D5 keeps the numbers the opening ramp was measured on; the
- * climb is what funds the drill shop, which is the point of charging for it.
+ * Every league position receives a season-end purse. First and second keep the
+ * promotion-scale prizes; the lower places taper quickly so survival money is
+ * useful without competing with the promotion reward.
  */
-const LEAGUE_PRIZE_STEP_PER_DIVISION = 10_000;
+const LEAGUE_PRIZES_BY_DIVISION: Readonly<
+  Record<DivisionLevel, readonly number[]>
+> = {
+  5: [20_000, 10_000, 6_000, 5_000, 4_000, 3_000, 2_000, 1_500, 1_000, 500],
+  4: [30_000, 15_000, 9_000, 7_000, 5_500, 4_500, 3_500, 2_500, 1_500, 1_000],
+  3: [40_000, 20_000, 12_000, 10_000, 7_500, 6_000, 4_500, 3_000, 2_000, 1_000],
+  2: [50_000, 25_000, 15_000, 12_000, 9_500, 7_500, 5_500, 4_000, 2_500, 1_500],
+  1: [60_000, 30_000, 18_000, 14_500, 11_500, 9_000, 6_500, 5_000, 3_000, 2_000],
+};
 
 export function leaguePrizeMoney(
   division: DivisionLevel,
   position: number,
 ): number {
-  if (position > 2) return 0;
-  const championPrize =
-    20_000 + (5 - division) * LEAGUE_PRIZE_STEP_PER_DIVISION;
-  return position === 1 ? championPrize : championPrize / 2;
+  if (!Number.isInteger(position) || position < 1 || position > 10) return 0;
+  return LEAGUE_PRIZES_BY_DIVISION[division][position - 1] ?? 0;
 }
 
 export function promotionRewardsForDivision(

@@ -143,6 +143,10 @@ import { matchdayConditionWarningPlayer } from './src/ui/matchday-condition';
 import { PlayerRequestDecisionCard } from './src/ui/PlayerRequestDecisionCard';
 import { PlayerRequestWalkOn } from './src/ui/PlayerRequestWalkOn';
 import {
+  PlayerSaleFarewellWalkOn,
+  type PlayerSaleFarewellModel,
+} from './src/ui/PlayerSaleFarewellWalkOn';
+import {
   PlayerSigningOverlay,
   type PlayerSigningConfirmation,
 } from './src/ui/PlayerSigningOverlay';
@@ -557,6 +561,8 @@ function GameApp() {
     useState<FacilityProjectNoticeModel | null>(null);
   const [playerSigning, setPlayerSigning] =
     useState<PlayerSigningConfirmation | null>(null);
+  const [playerSaleFarewell, setPlayerSaleFarewell] =
+    useState<PlayerSaleFarewellModel | null>(null);
   const [awakeningBeat, setAwakeningBeat] = useState<1 | 2 | 3>(1);
   const [selectedLeagueDivision, setSelectedLeagueDivision] = useState<
     DivisionLevel | undefined
@@ -2014,6 +2020,7 @@ function GameApp() {
       boardFinanceMessage !== undefined ||
       bertNotice !== undefined) &&
     signingWalkOn === null &&
+    playerSaleFarewell === null &&
     rivalHeroIntro === undefined &&
     // The Financial Report owns the screen while it is up. Bert used to walk on
     // and start talking underneath it, so a lesson the manager was meant to
@@ -2972,7 +2979,12 @@ function GameApp() {
             guideTraining={visibleAssistantObjectiveTarget === 'training-plan'}
             guidanceNudgeTarget={guidanceNudgeTarget}
             guidanceNudgeToken={guidanceNudgeToken}
-            guideFocus={visibleConciergeFocus ?? undefined}
+            guideFocus={
+              activeGuideFocus ??
+              assistantSequence?.pages[0]?.focus ??
+              visibleConciergeFocus ??
+              undefined
+            }
             dismissTipsToken={tipDismissSequence}
             managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}
             showSortHint={squadSortHintVisible}
@@ -3171,6 +3183,19 @@ function GameApp() {
                 (candidate) => candidate.id === bidId,
               );
               const acceptingBid = bid !== undefined;
+              const careerBeforeSale = store.career;
+              const farewellPlayer: PlayerSaleFarewellModel | undefined =
+                acceptingBid &&
+                listing !== undefined &&
+                careerBeforeSale !== null
+                  ? {
+                      playerId: listing.playerId,
+                      playerName: listing.playerName,
+                      role: listing.role,
+                      lookId: listing.lookId,
+                      selectionKey: `${careerBeforeSale.careerSeed}:${careerBeforeSale.season}:${careerBeforeSale.week}:${listing.playerId}`,
+                    }
+                  : undefined;
               requestConfirmation({
                 title: acceptingBid
                   ? `Accept ${bid?.buyerName ?? 'this club'} bid?`
@@ -3180,12 +3205,25 @@ function GameApp() {
                   : 'The transfer office will request up to three club bids. Listing does not sell the player; you will compare every offer first.',
                 confirmLabel: acceptingBid ? 'Accept bid' : 'Request bids',
                 tone: acceptingBid ? 'danger' : 'normal',
-                onConfirm: () =>
+                onConfirm: () => {
                   performManagementAction(
                     () => store.actOnTransfer(playerId, direction, bidId),
                     acceptingBid ? 'cash' : 'dispatch',
                     acceptingBid ? 'success' : 'commit',
-                  ),
+                  );
+                  const after = useM1Store.getState();
+                  if (
+                    farewellPlayer !== undefined &&
+                    after.error === null &&
+                    after.career?.players.some(
+                      (player) =>
+                        player.id === farewellPlayer.playerId &&
+                        player.clubId === after.career?.userClubId,
+                    ) !== true
+                  ) {
+                    setPlayerSaleFarewell(farewellPlayer);
+                  }
+                },
               });
             }}
             onHireCoach={(coachId, role) => {
@@ -3252,7 +3290,12 @@ function GameApp() {
             onCloseNegotiation={store.closeTransferTalks}
             onDismissGuideFocus={() => setConciergeFocus(null)}
             onDealsGuideAnchorChange={setMarketDealsGuideAnchor}
-            guideFocus={visibleConciergeFocus ?? undefined}
+            guideFocus={
+              activeGuideFocus ??
+              assistantSequence?.pages[0]?.focus ??
+              visibleConciergeFocus ??
+              undefined
+            }
             requestedSection={marketSectionRequest?.section}
             requestedSectionToken={marketSectionRequest?.token}
             lockedSection={
@@ -3904,6 +3947,14 @@ function GameApp() {
                 player={playerSigning}
                 reduceMotion={reduceMotion}
                 onClose={() => setPlayerSigning(null)}
+              />
+            ) : null}
+            {playerSaleFarewell !== null ? (
+              <PlayerSaleFarewellWalkOn
+                player={playerSaleFarewell}
+                navigationAnchor={navigationGuideAnchor}
+                reduceMotion={reduceMotion}
+                onDone={() => setPlayerSaleFarewell(null)}
               />
             ) : null}
             {/* Two stages: the player walks on and says their line, then the card

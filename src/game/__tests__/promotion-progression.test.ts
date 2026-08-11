@@ -80,20 +80,27 @@ describe('permanent promotion progression', () => {
     ).toContain('Tier 5 drills · $40,000 each');
   });
 
-  test('raises the league purse one $10,000 step per division', () => {
-    // D5 is untouched so the measured opening ramp does not move; the climb is
-    // what funds the drill shop.
-    expect(
-      [5, 4, 3, 2, 1].map((division) =>
-        leaguePrizeMoney(division as DivisionLevel, 1),
-      ),
-    ).toEqual([20_000, 30_000, 40_000, 50_000, 60_000]);
-    expect(
-      [5, 4, 3, 2, 1].map((division) =>
-        leaguePrizeMoney(division as DivisionLevel, 2),
-      ),
-    ).toEqual([10_000, 15_000, 20_000, 25_000, 30_000]);
-    expect(leaguePrizeMoney(1, 3)).toBe(0);
+  test('pays a smaller season-end purse to every league position', () => {
+    const expectedByDivision: Readonly<
+      Record<DivisionLevel, readonly number[]>
+    > = {
+      5: [20_000, 10_000, 6_000, 5_000, 4_000, 3_000, 2_000, 1_500, 1_000, 500],
+      4: [30_000, 15_000, 9_000, 7_000, 5_500, 4_500, 3_500, 2_500, 1_500, 1_000],
+      3: [40_000, 20_000, 12_000, 10_000, 7_500, 6_000, 4_500, 3_000, 2_000, 1_000],
+      2: [50_000, 25_000, 15_000, 12_000, 9_500, 7_500, 5_500, 4_000, 2_500, 1_500],
+      1: [60_000, 30_000, 18_000, 14_500, 11_500, 9_000, 6_500, 5_000, 3_000, 2_000],
+    };
+
+    for (const division of [5, 4, 3, 2, 1] as const) {
+      expect(
+        Array.from({ length: 10 }, (_, index) =>
+          leaguePrizeMoney(division, index + 1),
+        ),
+      ).toEqual(expectedByDivision[division]);
+    }
+    expect(leaguePrizeMoney(5, 0)).toBe(0);
+    expect(leaguePrizeMoney(1, 11)).toBe(0);
+    expect(leaguePrizeMoney(3, 1.5)).toBe(0);
   });
 
   test('migrates old full-career saves and persists the earned tier', () => {

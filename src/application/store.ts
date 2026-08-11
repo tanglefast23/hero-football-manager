@@ -1887,7 +1887,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
       ) {
         throw new Error('that player is not eligible for this story');
       }
-      const next = selectCareerEventPlayer(career, playerId);
+      const eligiblePlayerIds = careerEventTargetCandidates(
+        career,
+        event,
+      ).playerIds;
+      const next = selectCareerEventPlayer(
+        career,
+        playerId,
+        eligiblePlayerIds,
+      );
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

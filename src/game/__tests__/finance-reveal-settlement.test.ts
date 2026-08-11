@@ -185,7 +185,7 @@ describe('settlement reveals', () => {
     expect(line?.reveal?.variancePercent).toBe(roll.percent);
     expect(line?.reveal?.surge).toBe(roll.surge);
     if (line?.reveal?.source !== 'merch') {
-      expect(line?.reveal?.multiplierPercent).toBe(200); // two Lv1 stands
+      expect(line?.reveal?.multiplierPercent).toBe(300); // two Lv1 stands
       expect(line?.reveal?.facilityCount).toBe(2);
     }
     gateReconstructs(line!);
@@ -385,7 +385,7 @@ describe('settlement reveals', () => {
     if (line?.reveal === undefined || line.reveal.source === 'merch') {
       throw new Error('expected a gate reveal');
     }
-    expect(line.reveal.multiplierPercent).toBe(200); // one Lv2 stand
+    expect(line.reveal.multiplierPercent).toBe(300); // one Lv2 stand
     expect(line.reveal.facilityCount).toBe(1);
     gateReconstructs(line);
   });

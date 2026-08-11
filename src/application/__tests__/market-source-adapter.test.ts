@@ -15,6 +15,7 @@ import {
   type CareerMarketState,
 } from '../../game/market-career';
 import type { CareerPlayer, GameState } from '../../game/types';
+import { playerGrowthGrade } from '../../game/training';
 import { copyFor } from '../../i18n';
 
 function fullCareer(seed = 20260719): GameState {
@@ -196,6 +197,16 @@ describe('career market view-model source adapter', () => {
     expect(
       visible.transfers.some((listing) => listing.direction === 'SELL'),
     ).toBe(true);
+    const ownedPlayer = state.players.find(
+      (player) => player.clubId === state.userClubId,
+    )!;
+    expect(
+      visible.transfers.find(
+        (listing) =>
+          listing.direction === 'SELL' &&
+          listing.playerId === ownedPlayer.id,
+      )?.potentialLabel,
+    ).toMatch(new RegExp(`^${playerGrowthGrade(ownedPlayer)} · SUPER \\d+%$`));
   });
 
   it('maps a scouted player from outside the active division into a buy listing', () => {

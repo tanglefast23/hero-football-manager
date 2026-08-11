@@ -1469,6 +1469,14 @@ const careerMarketSchema = z
           .passthrough(),
       )
       .optional(),
+    transferFeeAdjustments: z
+      .array(
+        z.object({
+          playerId: nonemptyString,
+          percent: z.number().int().min(-50).max(50),
+        }),
+      )
+      .optional(),
     clubFameAdjustment: safeInteger.optional(),
     transferTalks: z
       .object({

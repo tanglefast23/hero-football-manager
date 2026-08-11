@@ -384,13 +384,13 @@ describe('transfer rules and valuations', () => {
     }
   });
 
-  it('applies the ten-percent player wage cut after the existing wage curve', () => {
+  it('applies the fifteen-percent player wage cut after the existing wage curve', () => {
     const expected: Readonly<Record<DivisionLevel, number>> = {
-      5: 135,
-      4: 199,
-      3: 293,
-      2: 432,
-      1: 605,
+      5: 128,
+      4: 188,
+      3: 277,
+      2: 408,
+      1: 571,
     };
     for (const division of [5, 4, 3, 2, 1] as const) {
       const support = DIVISION_SUPPORT_STRENGTHS[division];
@@ -401,7 +401,7 @@ describe('transfer rules and valuations', () => {
         expected[division],
       );
     }
-    expect(reducedPlayerWeeklyWage(1_000)).toBe(900);
+    expect(reducedPlayerWeeklyWage(1_000)).toBe(850);
     expect(reducedPlayerWeeklyWage(0)).toBe(0);
   });
 

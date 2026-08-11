@@ -180,9 +180,11 @@ export function dueAssistantInboxGuideSequences(
   const listings = state.market.transferListings ?? [];
   if (state.market.transferTalks !== undefined) {
     due.push('transfer-negotiation');
-  } else if (listings.some((listing) => listing.bids.length > 0)) {
-    due.push('transfer-bid');
-  } else if (playerSalesUnlocked && isTransferWindowOpen(state.week)) {
+  } else if (
+    !listings.some((listing) => listing.bids.length > 0) &&
+    playerSalesUnlocked &&
+    isTransferWindowOpen(state.week)
+  ) {
     due.push(
       isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list',
     );
@@ -200,16 +202,9 @@ export function dueAssistantInboxGuideSequences(
     due.push('division-leaders');
   }
 
-  // The week the Requests tab appears. Gated on the same baked catalog the tab
-  // itself reads, so a career that never received one — a measurement harness —
-  // is never told about a feature it does not have.
-  const requestTuning = state.playerRequestRules?.tuning;
-  if (
-    requestTuning !== undefined &&
-    (state.season > requestTuning.startSeason ||
-      (state.season === requestTuning.startSeason &&
-        state.week >= requestTuning.startWeek))
-  ) {
+  // Teach Requests only when the first real request is already waiting. The
+  // calendar unlock alone can leave Bert explaining an empty page for weeks.
+  if (state.playerRequests?.pending !== undefined) {
     due.push('player-requests');
   }
 
@@ -506,6 +501,10 @@ export function reconcileSatisfiedAssistantGuideSequences(
   state: GameState,
 ): GameState {
   let next = state;
+  // The listing lesson already explains bids, cash, and wage removal. Retire
+  // the old follow-up and heal saves that still have it queued or delivered.
+  next = deferAssistantGuideSequencesUntilUnlock(next, ['transfer-bid']);
+  next = completeAssistantGuideSequence(next, 'transfer-bid');
   if (state.market?.headCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'head-coach-market');
     next = completeAssistantGuideSequence(next, 'head-coach-hire');
@@ -567,6 +566,14 @@ export function reconcileSatisfiedAssistantGuideSequences(
     );
   }
   if (next.season < 3) premature.push('sponsor-buzz');
+  if (
+    next.playerRequests?.pending === undefined &&
+    !hasAssistantGuideSequenceCompleted(next, 'player-requests')
+  ) {
+    // Repairs saves which queued the old calendar-based lesson before a player
+    // had asked for anything. It will queue again with the first real request.
+    premature.push('player-requests');
+  }
   if (!isStoryFeaturePacingActive(next)) {
     return deferAssistantGuideSequencesUntilUnlock(next, premature);
   }
@@ -588,7 +595,6 @@ export function reconcileSatisfiedAssistantGuideSequences(
       'scout-report',
       'roster-cap',
       'transfer-list',
-      'transfer-bid',
       'transfer-negotiation',
     );
   }

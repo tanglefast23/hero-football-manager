@@ -43,6 +43,7 @@ import {
   playerPotentialGrade,
   POTENTIAL_GRADES,
   superTrainingChancePercent,
+  type PotentialGrade,
 } from '../game/archetype-caps';
 import type {
   ContractPerkViewModel,
@@ -96,6 +97,8 @@ export interface TransferListingSource {
     readonly name: string;
     readonly lookId?: string;
     readonly powerName?: string;
+    /** Same current-growth grade shown for this player on the Squad register. */
+    readonly potentialGrade?: PotentialGrade;
   };
   readonly direction: 'BUY' | 'SELL';
   readonly sellingClubDivision: number;
@@ -152,6 +155,8 @@ export interface YouthIntakeViewSource {
       readonly lookId?: string;
       readonly age: number;
       readonly potential: 1 | 2 | 3 | 4 | 5;
+      /** Same current-growth grade shown after this prospect joins the squad. */
+      readonly potentialGrade?: PotentialGrade;
       readonly archetype: string;
       readonly weeklyWage: number;
       /** Academy prospects show their real stats — the club's own kids, no fog. */
@@ -580,6 +585,7 @@ function youthIntakeViewModel(
         potentialLabel: exactPotentialLabel(
           offer.player.id,
           offer.player.potential,
+          offer.player.potentialGrade,
         ),
         stats: youthStatLine(offer.player.role, offer.player.attrs),
         signingBonus: offer.signingBonus,
@@ -726,6 +732,7 @@ function transferListing(
     potentialLabel: exactPotentialLabel(
       listing.player.id,
       listing.player.potential as 1 | 2 | 3 | 4 | 5,
+      listing.player.potentialGrade,
     ),
     direction: listing.direction,
     ...(listing.player.powerName === undefined
@@ -775,9 +782,10 @@ function transferListing(
 function exactPotentialLabel(
   playerId: string,
   potential: 1 | 2 | 3 | 4 | 5,
+  growthGrade?: PotentialGrade,
 ): string {
-  const grade = playerPotentialGrade({ id: playerId, potential });
-  return `${grade} · SUPER ${superTrainingChancePercent(grade)}%`;
+  const rawGrade = playerPotentialGrade({ id: playerId, potential });
+  return `${growthGrade ?? rawGrade} · SUPER ${superTrainingChancePercent(rawGrade)}%`;
 }
 
 function scoutPotentialLabel(

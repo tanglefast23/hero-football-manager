@@ -33,15 +33,12 @@ describe('M2 deterministic management balance rails', () => {
       // division, then moved again under the approved opening-income retune. The
       // measured sampled peak is now 113,256.
       expect(summary.minimumBalance).toBeGreaterThanOrEqual(-335_000);
-      // The approved global wage cut moved this rail hard. Measured peaks:
-      // 113,256 at no cut, 131,950 at 4%, 135,714 at 5% — roughly 4,700 of
-      // six-season peak cash for every one percent off the wage bill, because a
-      // passive club banks the saving every week and never spends it. The
-      // permanent 500-fan first-reach reward moved the sampled peak to 141,116.
-      // The approved player-only 10% wage cut moved the sampled peak to 180,994;
-      // 190k keeps about five percent headroom without turning this into an
-      // unmeasured ceiling. If the opening reads rich, start here.
-      expect(summary.maximumBalance).toBeLessThanOrEqual(190_000);
+      // The approved player-only 15% wage cut and the new all-position league
+      // purses moved the five sampled peaks to 84,239 / 62,533 / 228,530 /
+      // 95,592 / 60,844. Seed 77 is the promoted outlier. 240k keeps almost
+      // exactly five percent headroom over that measured peak without turning
+      // this into an unmeasured ceiling. If the opening reads rich, start here.
+      expect(summary.maximumBalance).toBeLessThanOrEqual(240_000);
       expect(summary.minimumWeeklyNet).toBeGreaterThanOrEqual(-15_000);
       expect(summary.maximumWeeklyNet).toBeLessThanOrEqual(40_000);
       expect(Number.isSafeInteger(summary.endingCash)).toBe(true);

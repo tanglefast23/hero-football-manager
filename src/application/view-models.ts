@@ -24,6 +24,7 @@ import { managerNotes } from './manager-notes';
 import { eventOfferForWeek } from './event-selection';
 import {
   careerEventTargetCandidates,
+  careerEventTargetPlayers,
   reconcilePendingCareerEvent,
 } from './career-event-targets';
 import {
@@ -80,6 +81,7 @@ import {
   POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
   careerRenewalBlockedReasonCopy,
+  careerBuyingTransferQuote,
   careerRenewalWeeklyAsk,
   resolveTrainingDrillForPath,
   rosterForClub,
@@ -115,6 +117,7 @@ import {
   type FacilityType,
   compareIds,
   type GameState,
+  type LedgerLine,
   type LedgerLineKind,
   type LedgerLineReveal,
   type PlacedFacility,
@@ -491,6 +494,29 @@ function incomeGenerationViewModel(
   t: CopyFn,
 ): IncomeGenerationViewModel {
   const commercial = commercialFacilitySummary(state);
+  const homeGateHistory = recentIncomeHistory(state, (lines) =>
+    settledIncomeTotal(lines, (line) =>
+      line.kind === 'tickets' ? line.amount : undefined,
+    ),
+  );
+  const stadiumStandHistory = recentIncomeHistory(state, (lines) =>
+    settledIncomeTotal(lines, (line) => {
+      const reveal = line.reveal;
+      if (
+        line.kind !== 'tickets' ||
+        reveal === undefined ||
+        reveal.source === 'merch'
+      )
+        return undefined;
+      const bonus = line.amount - reveal.base;
+      return bonus > 0 ? bonus : undefined;
+    }),
+  );
+  const fanShopHistory = recentIncomeHistory(state, (lines) =>
+    settledIncomeTotal(lines, (line) =>
+      line.kind === 'merch' ? line.amount : undefined,
+    ),
+  );
   const rows: IncomeGenerationViewModel['rows'] = [
     {
       id: 'income-gate',
@@ -503,6 +529,7 @@ function incomeGenerationViewModel(
       // statement — including the surge the Financial Report makes a banner of.
       effect: t('clubFinances.incomeGateEffect'),
       owned: true,
+      ...(homeGateHistory.length === 0 ? {} : { history: homeGateHistory }),
     },
     {
       id: 'income-stadium-stand',
@@ -536,6 +563,9 @@ function incomeGenerationViewModel(
               percent: commercial.gateBonusPercent,
             }),
       owned: commercial.standCount > 0,
+      ...(stadiumStandHistory.length === 0
+        ? {}
+        : { history: stadiumStandHistory }),
     },
     {
       id: 'income-fan-shop',
@@ -562,6 +592,7 @@ function incomeGenerationViewModel(
           ? t('clubFinances.incomeShopEffectUnbuilt')
           : t('clubFinances.incomeShopEffect', { level: commercial.shopLevel }),
       owned: commercial.shopCount > 0,
+      ...(fanShopHistory.length === 0 ? {} : { history: fanShopHistory }),
     },
   ];
   // At D5 this is the one line of commercial income the club has no say over;
@@ -569,6 +600,18 @@ function incomeGenerationViewModel(
   // renames itself rather than the panel gaining a second sponsor block.
   const sponsorIncome = currentActualMonthlySponsorIncome(state, club);
   const managedSponsors = sponsorship?.managed === true;
+  const sponsorHistory = recentIncomeHistory(state, (lines) =>
+    settledIncomeTotal(lines, (line) => {
+      if (line.kind !== 'sponsor') return undefined;
+      const localAdvertising =
+        line.labelKey === 'ledger.localAdvertisingMonthly' ||
+        (line.labelKey === undefined &&
+          line.label === 'Local advertising (monthly)');
+      if (managedSponsors ? localAdvertising : !localAdvertising)
+        return undefined;
+      return line.amount;
+    }),
+  );
   return {
     rows: [
       ...rows,
@@ -589,6 +632,9 @@ function incomeGenerationViewModel(
                 : t('clubFinances.incomeAdvertisingDetail'),
               effect: t('clubFinances.incomeSponsorEffect'),
               owned: true,
+              ...(sponsorHistory.length === 0
+                ? {}
+                : { history: sponsorHistory }),
             },
           ]),
       ...(sponsorship?.buzz === undefined
@@ -604,6 +650,51 @@ function incomeGenerationViewModel(
           ]),
     ],
   };
+}
+
+const INCOME_HISTORY_LIMIT = 3;
+
+/**
+ * The newest Weekly Reviews where one income source actually appears.
+ *
+ * Ledgers are append-only saved truth. Reading them avoids recalculating an old
+ * gate with today's fans, ticket price, facilities, or difficulty rules.
+ */
+function recentIncomeHistory(
+  state: GameState,
+  amountForReview: (lines: readonly LedgerLine[]) => number | undefined,
+): NonNullable<IncomeGenerationViewModel['rows'][number]['history']> {
+  const history: Array<{ periodLabel: string; amount: number }> = [];
+  for (
+    let index = state.ledgers.length - 1;
+    index >= 0 && history.length < INCOME_HISTORY_LIMIT;
+    index -= 1
+  ) {
+    const ledger = state.ledgers[index];
+    const amount = amountForReview(ledger.lines);
+    if (amount === undefined) continue;
+    history.push({
+      periodLabel: `S${ledger.season} · W${ledger.week}`,
+      amount,
+    });
+  }
+  return history;
+}
+
+/** One Weekly Review can contain both a league gate and a Cup gate. */
+function settledIncomeTotal(
+  lines: readonly LedgerLine[],
+  amountForLine: (line: LedgerLine) => number | undefined,
+): number | undefined {
+  let found = false;
+  let total = 0;
+  for (const line of lines) {
+    const amount = amountForLine(line);
+    if (amount === undefined) continue;
+    found = true;
+    total += amount;
+  }
+  return found ? total : undefined;
 }
 
 export function clubFinancesViewModel(
@@ -1592,7 +1683,7 @@ function facilityEffectLabel(
   }
   if (type === 'fan-shop') return t('clubFinances.facilityShopEffect');
   if (type === 'stadium-stand')
-    return t('clubFinances.facilityStandEffect', { percent: level * 50 });
+    return t('clubFinances.facilityStandEffect', { percent: level * 100 });
   throw new Error(`missing facility effect copy for ${type}`);
 }
 
@@ -1690,10 +1781,10 @@ export function storyEventViewModel(
   );
   if (event === undefined)
     throw new Error(`unknown story event ${pending.eventId}`);
-  const selected =
-    pending.selectedPlayerId === undefined
-      ? undefined
-      : state.players.find((player) => player.id === pending.selectedPlayerId);
+  const targetPlayers = careerEventTargetPlayers(state, event);
+  const selected = targetPlayers.find(
+    (player) => player.id === pending.selectedPlayerId,
+  );
   const starterIds =
     state.lineups.find((lineup) => lineup.clubId === state.userClubId)
       ?.playerIds ?? [];
@@ -1826,8 +1917,7 @@ export function storyEventViewModel(
         );
   // Starters first, then by rating: the manager is usually deciding about
   // someone who plays, and within that the number is what the choice turns on.
-  const squad = state.players
-    .filter((player) => player.clubId === state.userClubId)
+  const playerOptions = targetPlayers
     .filter((player) => targetCandidates.playerIds.includes(player.id))
     .slice()
     .sort(
@@ -1846,7 +1936,21 @@ export function storyEventViewModel(
     role: player.role,
     overall: overall(player.role, player.attrs),
     detail:
-      player.injuryWeeks > 0
+      event.trigger.requiresPlayerSource === 'YOUTH_OFFERS'
+        ? t('storyEvent.youthOffer')
+        : event.trigger.requiresPlayerSource === 'TRANSFER_TARGETS' &&
+            state.market !== undefined
+          ? t('storyEvent.transferTarget', {
+              amount: formatMoneyForCopy(
+                t,
+                careerBuyingTransferQuote(
+                  state,
+                  state.market,
+                  player.id,
+                ).fee,
+              ),
+            })
+          : player.injuryWeeks > 0
         ? t('storyEvent.playerInjured', {
             n: player.injuryWeeks,
             count: player.injuryWeeks,
@@ -1906,7 +2010,7 @@ export function storyEventViewModel(
     // their mind, and an unlocked card that cannot be re-opened is a dead end.
     playerChoices:
       requiresPlayer && pending.playerLocked !== true
-        ? squad.map((player) => storyPlayer(player, false))
+        ? playerOptions.map((player) => storyPlayer(player, false))
         : [],
     ...(selectedCoach === undefined ? {} : { selectedCoach }),
     coachSelectionRequired: requiresCoach,
@@ -5076,8 +5180,17 @@ function describeEventChoiceOutcome(
   const hasEmptyFailure = choice.outcomes.some(
     (outcome) => outcome.effects.length === 0,
   );
+  const failure = choice.outcomes.find(
+    (outcome) => outcome !== success && outcome.effects.length > 0,
+  );
   return hasEmptyFailure
     ? t('storyEvent.riskyChanceOrNothing', { percent: success.weight, reward })
+    : failure !== undefined
+      ? t('storyEvent.riskyChanceWithFailure', {
+          percent: success.weight,
+          reward,
+          failure: describeEventEffects(failure.effects, t, state),
+        })
     : t('storyEvent.riskyChance', { percent: success.weight, reward });
 }
 
@@ -5325,6 +5438,15 @@ function eventRewardItems(
         }),
         kind: 'stat',
         positive: effect.percent > 0,
+      });
+    }
+    if (effect.type === 'transferFeePercent' && effect.percent !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardTransferFee', {
+          amount: signedAmount(t, effect.percent),
+        }),
+        kind: 'money',
+        positive: effect.percent < 0,
       });
     }
   }

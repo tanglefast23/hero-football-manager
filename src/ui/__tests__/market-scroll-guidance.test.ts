@@ -49,6 +49,22 @@ describe('market scroll guidance', () => {
     expect(market).toContainSource("requestedSection === 'SCOUT'");
     expect(market).toContainSource("requestedSection === 'TRANSFERS'");
     expect(market).toContainSource("requestedSection === 'COACHES'");
+    expect(market).not.toContainSource("if (layoutMode !== 'single') return;");
+  });
+
+  it('opens Deals before Bert explains transfer listings', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const market = readFileSync(
+      join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
+      'utf8',
+    );
+
+    expect(app).toContainSource(
+      'activeGuideFocus ??\n              assistantSequence?.pages[0]?.focus',
+    );
+    expect(market).toMatchSource(
+      /guideFocus === 'transfer-list'[\s\S]*?setSection\('TRANSFERS'\)/,
+    );
   });
 
   it('lands the assistant-coach inbox action on the Coaches hiring page', () => {

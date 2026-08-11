@@ -38,7 +38,7 @@ function gateLine(
   options: GateOptions = {},
 ): PostMatchLedgerLineViewModel {
   const standLevel = options.standLevel ?? 0;
-  const multiplierPercent = 100 + standLevel * 50;
+  const multiplierPercent = 100 + standLevel * 100;
   const amount = base + Math.floor((base * (multiplierPercent - 100)) / 100);
   const reveal: LedgerLineReveal = {
     source: options.cup === true ? 'cup-gate' : 'league-gate',
@@ -234,7 +234,7 @@ const CASES: readonly HarnessCase[] = [
   {
     id: 'facilities',
     label: '2 stands + 3 shops',
-    note: 'Gate ×200%, merch ×3 with adjacency caption.',
+    note: 'Gate ×300%, merch ×3 with adjacency caption.',
     build: () =>
       reportCase([
         gateLine(1968, { standLevel: 2, standCount: 2 }),

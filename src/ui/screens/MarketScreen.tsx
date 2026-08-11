@@ -264,7 +264,6 @@ export function MarketScreen({
 
   useEffect(() => {
     if (lockedSection !== undefined) return;
-    if (layoutMode !== 'single') return;
     if (requestedSection === 'YOUTH' && youthSectionVisible)
       setSection('YOUTH');
     else if (requestedSection === 'SCOUT' && scoutSectionVisible)
@@ -275,7 +274,6 @@ export function MarketScreen({
       setSection('COACHES');
   }, [
     coachSectionVisible,
-    layoutMode,
     lockedSection,
     requestedSection,
     requestedSectionToken,

@@ -716,6 +716,11 @@ const EventEffectSchema = z.discriminatedUnion('type', [
     type: z.literal('facilityIncomeBonus'),
     percent: z.number().int().min(-15).max(20),
   }),
+  /** Changes the selected scouted player's selling-club asking fee. */
+  z.strictObject({
+    type: z.literal('transferFeePercent'),
+    percent: z.number().int().min(-20).max(20),
+  }),
   z.strictObject({
     type: z.literal('loyalty'),
     amount: z.number().int().min(-25).max(25),
@@ -758,6 +763,7 @@ const SINGULAR_EFFECT_TYPES = [
   'facilityTrainingBonus',
   'facilityRecoveryBonus',
   'facilityIncomeBonus',
+  'transferFeePercent',
 ] as const;
 
 /** Coach effects a story may point at, and the trigger each one requires. */
@@ -905,6 +911,10 @@ export const GameEventSchema = z
         requiredPersonality: EventRequirementSchema.shape.requiredPersonality,
         requiresHero: z.boolean().optional(),
         requiresPlayer: z.boolean().optional(),
+        /** Uses a Market list instead of the signed first-team squad. */
+        requiresPlayerSource: z
+          .enum(['YOUTH_OFFERS', 'TRANSFER_TARGETS'])
+          .optional(),
         /** The one keeper story: the picker offers only goalkeepers. */
         requiresPlayerRole: z.literal('GK').optional(),
         /** The card asks the manager to point at the head coach or the assistant. */
@@ -967,6 +977,16 @@ export const GameEventSchema = z
             context,
             ['requiresCoachRole'],
             'requiresCoachRole requires requiresCoach',
+          );
+        }
+        if (
+          trigger.requiresPlayerSource !== undefined &&
+          trigger.requiresPlayer !== true
+        ) {
+          addIssue(
+            context,
+            ['requiresPlayerSource'],
+            'requiresPlayerSource requires requiresPlayer',
           );
         }
       }),
@@ -1040,6 +1060,19 @@ export const GameEventSchema = z
         const facilityEffect = outcome.effects.find((effect) =>
           (FACILITY_EFFECT_TYPES as readonly string[]).includes(effect.type),
         );
+        const transferFeeEffect = outcome.effects.find(
+          (effect) => effect.type === 'transferFeePercent',
+        );
+        if (
+          transferFeeEffect !== undefined &&
+          event.trigger.requiresPlayerSource !== 'TRANSFER_TARGETS'
+        ) {
+          addIssue(
+            context,
+            ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+            `a "transferFeePercent" effect requires ${event.id} to target TRANSFER_TARGETS`,
+          );
+        }
         if (
           facilityEffect !== undefined &&
           event.trigger.requiresFacility === undefined

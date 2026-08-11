@@ -25,6 +25,7 @@ import {
 import type { GameState } from '../../game/types';
 import { createLaunchCareerSetup } from '../launch';
 import { FACILITY_CATALOG } from '../../game/facilities';
+import { DEFAULT_PLAYER_REQUEST_STATE } from '../../game/player-requests';
 import {
   currentAssistantObjective,
   dueAssistantInboxGuideSequences,
@@ -557,6 +558,62 @@ describe('assistant guide application flow', () => {
     );
   });
 
+  test('queues the Requests lesson only when the first request is waiting', () => {
+    const initial = createCareer(createLaunchCareerSetup(2_005));
+    const noRequest: GameState = {
+      ...initial,
+      season: 2,
+      week: 5,
+      playerRequests: DEFAULT_PLAYER_REQUEST_STATE,
+    };
+
+    expect(dueAssistantInboxGuideSequences(noRequest)).not.toContain(
+      'player-requests',
+    );
+
+    const asker = noRequest.players.find(
+      (player) => player.clubId === noRequest.userClubId,
+    )!;
+    const firstRequest: GameState = {
+      ...noRequest,
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        pending: {
+          requestId: 'agent-in-the-room',
+          playerId: asker.id,
+          askedSeason: 2,
+          askedWeek: 5,
+          warned: false,
+        },
+      },
+    };
+    expect(dueAssistantInboxGuideSequences(firstRequest)).toContain(
+      'player-requests',
+    );
+
+    const premature = reconcileSatisfiedAssistantGuideSequences({
+      ...noRequest,
+      eventFlags: [
+        ...noRequest.eventFlags,
+        'guide:bert:inbox:queued:player-requests',
+      ],
+    });
+    expect(premature.eventFlags).not.toContain(
+      'guide:bert:inbox:queued:player-requests',
+    );
+
+    const alreadyTaught = completeAssistantGuideSequence(
+      noRequest,
+      'player-requests',
+    );
+    expect(
+      hasAssistantGuideSequenceCompleted(
+        reconcileSatisfiedAssistantGuideSequences(alreadyTaught),
+        'player-requests',
+      ),
+    ).toBe(true);
+  });
+
   test('strips an upgrade lesson a story-season save was already handed', () => {
     let state = createCareer(createLaunchCareerSetup(938));
     state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
@@ -757,6 +814,66 @@ describe('assistant guide application flow', () => {
       'youth-intake',
     );
     expect(outstandingInboxDuties(oldSave)).toEqual([]);
+  });
+
+  it('retires the duplicate transfer-bid lesson and clears it from old saves', () => {
+    const state = createCareer(createLaunchCareerSetup(417));
+    const player = state.players.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+    const buyer = state.clubs.find((club) => club.id !== state.userClubId)!;
+    const withBid: GameState = {
+      ...state,
+      market: {
+        ...state.market!,
+        transferListings: [
+          {
+            playerId: player.id,
+            listedSeason: state.season,
+            listedWeek: state.week,
+            bids: [
+              {
+                id: 'legacy-bid',
+                playerId: player.id,
+                buyerClubId: buyer.id,
+                quote: {
+                  playerId: player.id,
+                  valuation: 1_000,
+                  fee: 1_000,
+                  bandPercent: 100,
+                },
+                madeSeason: state.season,
+                madeWeek: state.week,
+              },
+            ],
+          },
+        ],
+      },
+      eventFlags: [
+        ...state.eventFlags,
+        'guide:bert:inbox:queued:transfer-bid',
+        'guide:bert:inbox:delivered:s2:w1:guide:transfer-bid',
+      ],
+    };
+
+    expect(dueAssistantInboxGuideSequences(withBid)).not.toContain(
+      'transfer-bid',
+    );
+
+    const repaired = reconcileSatisfiedAssistantGuideSequences(withBid);
+    expect(hasAssistantGuideSequenceCompleted(repaired, 'transfer-bid')).toBe(
+      true,
+    );
+    expect(
+      repaired.eventFlags.some(
+        (flag) =>
+          flag === 'guide:bert:inbox:queued:transfer-bid' ||
+          flag.endsWith('guide:transfer-bid'),
+      ),
+    ).toBe(false);
+    expect(homeViewModel(repaired).alerts).not.toContainEqual(
+      expect.objectContaining({ guideSequenceId: 'transfer-bid' }),
+    );
   });
 
   it('never holds the week open for a duty the club cannot pay for', () => {

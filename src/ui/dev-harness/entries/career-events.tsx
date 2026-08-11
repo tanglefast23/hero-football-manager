@@ -26,6 +26,7 @@ import {
   riskSideHint,
   type RiskSide,
 } from './career-events-controller';
+import { careerEventTargetCandidates } from '../../../application/career-event-targets';
 
 const CONTENT = loadLaunchContent();
 
@@ -116,7 +117,13 @@ export function CareerEventsReel({ caseId }: { readonly caseId: string }) {
           viewModel={viewModel}
           onChoose={choose}
           onSelectPlayer={(playerId) =>
-            setState((current) => selectCareerEventPlayer(current, playerId))
+            setState((current) =>
+              selectCareerEventPlayer(
+                current,
+                playerId,
+                careerEventTargetCandidates(current, activeEvent).playerIds,
+              ),
+            )
           }
           onSelectCoach={(role) =>
             setState((current) => selectCareerEventCoach(current, role))

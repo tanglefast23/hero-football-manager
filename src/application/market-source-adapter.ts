@@ -2,6 +2,7 @@ import { currentUserDivision } from '../game/m2-career';
 import { isFacilityOperational } from '../game/facilities';
 import { isAvailableForSelection } from '../game/lineup';
 import {
+  careerBuyingTransferQuote,
   careerTransferTarget,
   type CareerMarketState,
 } from '../game/market-career';
@@ -15,6 +16,7 @@ import {
   type ValuationPlayer,
 } from '../game/market';
 import type { CareerPlayer, GameState } from '../game/types';
+import { playerGrowthGrade } from '../game/training';
 import { maxSigningTermSeasons } from '../game/retirement';
 import { careerRosterCapacity } from '../game/youth-intake';
 import { highestDivisionReached } from '../game/promotion-progression';
@@ -127,6 +129,8 @@ export function careerMarketViewModelSource(
       'BUY',
       divisionForClub(state, player.clubId, division),
       report.power !== undefined,
+      false,
+      careerBuyingTransferQuote(state, market, player.id, division),
     );
   });
   const sellListings = state.players
@@ -272,6 +276,7 @@ export function careerMarketViewModelSource(
                 lookId: offer.player.lookId,
                 age: offer.player.age ?? 16,
                 potential: offer.player.potential ?? 1,
+                potentialGrade: playerGrowthGrade(offer.player),
                 archetype: offer.player.archetype ?? 'All-Rounder',
                 weeklyWage: offer.player.weeklyWage,
                 attrs: offer.player.attrs,
@@ -385,6 +390,7 @@ function transferListing(
       ...valuationPlayer(player),
       name: player.name,
       lookId: player.lookId,
+      potentialGrade: playerGrowthGrade(player),
       ...(revealPower && player.power !== undefined
         ? {
             powerName: t('market.powerAndTier', {

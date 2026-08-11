@@ -297,7 +297,7 @@ describe('facility weekly integration', () => {
     expect(afterTen?.facilityStaBonusRemainder).toBe(10);
   });
 
-  test('raises the home gate by 50% for every level across up to three Stadium Stands', () => {
+  test('raises the home gate by 100% for every level across up to three Stadium Stands', () => {
     const initial = createCareer(createLaunchCareerSetup(20260725));
     const homeFixture = initial.fixtures.find(
       (fixture) =>
@@ -355,13 +355,13 @@ describe('facility weekly integration', () => {
 
     // 500 fans at 60% attendance x $4 tickets is the $1,200 D5 baseline.
     expect(gateOf(playedHomeWeek)).toBe(1_200);
-    expect(gateOf(withStands(1))).toBe(1_800);
-    expect(gateOf(withStands(2))).toBe(2_400);
-    expect(gateOf(withStands(3))).toBe(3_000);
+    expect(gateOf(withStands(1))).toBe(2_400);
+    expect(gateOf(withStands(2))).toBe(3_600);
+    expect(gateOf(withStands(3))).toBe(4_800);
     // Every placed stand contributes, regardless of build order.
-    expect(gateOf(withStands(1, 3))).toBe(3_600);
-    expect(gateOf(withStands(3, 1))).toBe(3_600);
-    expect(gateOf(withStands(1, 1, 1))).toBe(3_000);
+    expect(gateOf(withStands(1, 3))).toBe(6_000);
+    expect(gateOf(withStands(3, 1))).toBe(6_000);
+    expect(gateOf(withStands(1, 1, 1))).toBe(4_800);
   });
 
   test('uses the reduced x1.10/x1.20/x1.30 facility ladder', () => {

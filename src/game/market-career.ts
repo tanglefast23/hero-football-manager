@@ -145,6 +145,11 @@ export interface CareerMarketState {
   readonly assistantCoachSeasonsEmployed?: number;
   readonly unlockedCoachContentIds?: readonly string[];
   readonly transferListings?: readonly CareerTransferListing[];
+  /** Story adjustments to the selling club's asking fee for scouted targets. */
+  readonly transferFeeAdjustments?: readonly {
+    readonly playerId: string;
+    readonly percent: number;
+  }[];
   /** Persistent reputation changes that are not owned by any one player. */
   readonly clubFameAdjustment?: number;
   readonly transferTalks?: CareerTransferTalks;
@@ -452,12 +457,7 @@ export function beginCareerTransferTalks(
       `${player.name}'s club has no other cover for that position and will not sell.`,
     );
   }
-  const quote = buyingTransferQuote(valuationPlayer(player), {
-    careerSeed: state.careerSeed,
-    season: state.season,
-    week: state.week,
-    sellingClubDivision: target.sellingClubDivision,
-  });
+  const quote = careerBuyingTransferQuote(state, market, playerId, division);
   const weeklyAsk = Math.max(
     1,
     Math.round(player.weeklyWage * (player.power ? 3.5 : 1.2)),
@@ -629,6 +629,9 @@ export function completeCareerTransfer(
       ...market,
       scoutReports: market.scoutReports.filter(
         (report) => report.playerId !== player.id,
+      ),
+      transferFeeAdjustments: (market.transferFeeAdjustments ?? []).filter(
+        (adjustment) => adjustment.playerId !== player.id,
       ),
       transferTalks: undefined,
     },
@@ -1420,6 +1423,9 @@ export function refreshCareerMarketForNewSeason(
   const scoutReports = previous.scoutReports.filter((report) =>
     currentTransferTargetIds.has(report.playerId),
   );
+  const retainedReportIds = new Set(
+    scoutReports.map((report) => report.playerId),
+  );
   const head = progressEmployedCoach(
     previous.headCoach,
     previous.headCoachSeasonsEmployed,
@@ -1436,6 +1442,9 @@ export function refreshCareerMarketForNewSeason(
     activeScoutMission: previous.activeScoutMission,
     activeScoutMissionFeeWaived: previous.activeScoutMissionFeeWaived,
     scoutReports,
+    transferFeeAdjustments: (previous.transferFeeAdjustments ?? []).filter(
+      (adjustment) => retainedReportIds.has(adjustment.playerId),
+    ),
     ...(head === undefined
       ? {}
       : {
@@ -1554,6 +1563,64 @@ export function careerTransferTarget(
     }
   }
   return undefined;
+}
+
+/** The exact quote shown on Deals and frozen when transfer talks open. */
+export function careerBuyingTransferQuote(
+  state: GameState,
+  market: CareerMarketState,
+  playerId: string,
+  fallbackDivision = 5,
+): TransferQuote {
+  const target = careerTransferTarget(state, playerId, fallbackDivision);
+  if (target === undefined) throw new Error(`unknown transfer target ${playerId}`);
+  const quote = buyingTransferQuote(valuationPlayer(target.player), {
+    careerSeed: state.careerSeed,
+    season: state.season,
+    week: state.week,
+    sellingClubDivision: target.sellingClubDivision,
+  });
+  const percent =
+    market.transferFeeAdjustments?.find(
+      (adjustment) => adjustment.playerId === playerId,
+    )?.percent ?? 0;
+  return {
+    ...quote,
+    fee: Math.max(1, Math.round((quote.fee * (100 + percent)) / 100)),
+  };
+}
+
+/** Applies one story result to one player who is still visible on Deals. */
+export function applyCareerTransferFeeAdjustment(
+  state: GameState,
+  playerId: string,
+  percentDelta: number,
+): GameState {
+  const market = state.market;
+  if (market === undefined) throw new Error('the career market is not initialized');
+  if (!Number.isSafeInteger(percentDelta)) {
+    throw new Error('transfer fee adjustment must be a safe integer');
+  }
+  if (!market.scoutReports.some((report) => report.playerId === playerId)) {
+    throw new Error(`transfer target ${playerId} is no longer on Deals`);
+  }
+  const current =
+    market.transferFeeAdjustments?.find(
+      (adjustment) => adjustment.playerId === playerId,
+    )?.percent ?? 0;
+  const percent = Math.max(-50, Math.min(50, current + percentDelta));
+  return {
+    ...state,
+    market: {
+      ...market,
+      transferFeeAdjustments: [
+        ...(market.transferFeeAdjustments ?? []).filter(
+          (adjustment) => adjustment.playerId !== playerId,
+        ),
+        { playerId, percent },
+      ],
+    },
+  };
 }
 
 /**

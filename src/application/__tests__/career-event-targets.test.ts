@@ -8,6 +8,7 @@ import {
   reconcilePendingCareerEvent,
   skipUnavailableCareerEvent,
 } from '../career-event-targets';
+import { eventIsEligible } from '../event-selection';
 
 const catalog = loadLaunchContent().events;
 
@@ -71,6 +72,67 @@ function targetCareer(): GameState {
 }
 
 describe('career event target candidates', () => {
+  test('the youth breakthrough offers only players with waiting youth offers', () => {
+    const state = targetCareer();
+    const youth = event('youth-coach-breakthrough');
+    const offerIds = state.youthIntake?.offers.map((offer) => offer.player.id);
+    expect(offerIds?.length).toBeGreaterThan(0);
+    expect(careerEventTargetCandidates(state, youth).playerIds).toEqual(
+      offerIds,
+    );
+    expect(
+      careerEventTargetCandidates(
+        { ...state, youthIntake: { ...state.youthIntake!, offers: [] } },
+        youth,
+      ).playerIds,
+    ).toEqual([]);
+    expect(eventIsEligible({ ...state, week: 1 }, youth)).toBe(true);
+    expect(
+      eventIsEligible(
+        {
+          ...state,
+          week: 1,
+          youthIntake: { ...state.youthIntake!, offers: [] },
+        },
+        youth,
+      ),
+    ).toBe(false);
+  });
+
+  test('the selling-club story offers only players visible from scout reports', () => {
+    const state = targetCareer();
+    const rival = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const report = {
+      playerId: rival.id,
+      role: rival.role,
+      age: rival.age ?? 24,
+      statRanges: Object.fromEntries(
+        Object.entries(rival.attrs).map(([key, value]) => [
+          key,
+          { minimum: value, maximum: value },
+        ]),
+      ) as NonNullable<GameState['market']>['scoutReports'][number]['statRanges'],
+      potentialRange: {
+        minimum: rival.potential ?? 3,
+        maximum: rival.potential ?? 3,
+      },
+    };
+    const story = event('selling-club-needs-cash');
+    const withReport: GameState = {
+      ...state,
+      market: { ...state.market!, scoutReports: [report] },
+    };
+
+    expect(careerEventTargetCandidates(state, story).playerIds).toEqual([]);
+    expect(careerEventTargetCandidates(withReport, story).playerIds).toEqual([
+      rival.id,
+    ]);
+    expect(eventIsEligible({ ...state, week: 17 }, story)).toBe(false);
+    expect(eventIsEligible({ ...withReport, week: 17 }, story)).toBe(true);
+  });
+
   test('the penalty gauntlet offers only user-club goalkeepers', () => {
     const state = targetCareer();
     const candidates = careerEventTargetCandidates(

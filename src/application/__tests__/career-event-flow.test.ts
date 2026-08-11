@@ -1,5 +1,8 @@
 import { loadLaunchContent, type GameEvent } from '../../content';
 import {
+  applyCareerEventOutcome,
+  beginCareerTransferTalks,
+  careerBuyingTransferQuote,
   createCareer,
   careerEventPlayerSaleBlocker,
   offerCareerEvent,
@@ -33,6 +36,28 @@ function career(): GameState {
   };
 }
 
+function exactReport(
+  player: GameState['players'][number],
+): NonNullable<GameState['market']>['scoutReports'][number] {
+  const range = (value: number) => ({ minimum: value, maximum: value });
+  return {
+    playerId: player.id,
+    role: player.role,
+    age: player.age ?? 24,
+    statRanges: {
+      pac: range(player.attrs.pac),
+      sho: range(player.attrs.sho),
+      pas: range(player.attrs.pas),
+      def: range(player.attrs.def),
+      tec: range(player.attrs.tec),
+      sta: range(player.attrs.sta),
+      ref: range(player.attrs.ref),
+    },
+    potentialRange: range(player.potential ?? 3),
+    ...(player.power === undefined ? {} : { power: player.power }),
+  };
+}
+
 function playerEvent(eventId: string): GameState {
   const offered = offerCareerEvent(career(), eventId);
   const playerId = careerEventTargetCandidates(offered, event(eventId))
@@ -42,6 +67,94 @@ function playerEvent(eventId: string): GameState {
 }
 
 describe('shared career event flow', () => {
+  test('applies the youth breakthrough stat and morale to the selected waiting offer', () => {
+    const initial = { ...career(), week: 1 };
+    const offer = initial.youthIntake?.offers[0];
+    if (offer === undefined) throw new Error('test career has no youth offer');
+    const offered: GameState = {
+      ...initial,
+      pendingEvent: {
+        eventId: 'youth-coach-breakthrough',
+        selectedPlayerId: offer.player.id,
+      },
+    };
+
+    const resolved = applyCareerEventOutcome(
+      offered,
+      'promote-the-kid-early',
+      'The youth player earns the breakthrough.',
+      {
+        playerEffect: {
+          playerId: offer.player.id,
+          moraleDelta: 6,
+          attribute: 'sho',
+          attributeDelta: 2,
+        },
+      },
+    );
+    const changed = resolved.youthIntake?.offers.find(
+      (candidate) => candidate.player.id === offer.player.id,
+    )?.player;
+
+    expect(changed?.attrs.sho).toBe(offer.player.attrs.sho + 2);
+    expect(changed?.morale).toBe(offer.player.morale + 6);
+    expect(resolved.players.some((player) => player.id === offer.player.id)).toBe(
+      false,
+    );
+  });
+
+  test('changes the selected Deals asking fee and freezes the same fee in talks', () => {
+    const initial = { ...career(), week: 17 };
+    const rival = initial.players.find((player) => {
+      if (player.clubId === initial.userClubId) return false;
+      return (
+        initial.players.filter(
+          (candidate) =>
+            candidate.clubId === player.clubId &&
+            candidate.role === player.role &&
+            candidate.id !== player.id,
+        ).length > 0
+      );
+    });
+    if (rival === undefined) throw new Error('test career has no sellable rival');
+    const withReport: GameState = {
+      ...initial,
+      market: { ...initial.market!, scoutReports: [exactReport(rival)] },
+    };
+    const playerIds = careerEventTargetCandidates(
+      withReport,
+      event('selling-club-needs-cash'),
+    ).playerIds;
+    const offered = selectCareerEventPlayer(
+      offerCareerEvent(withReport, 'selling-club-needs-cash'),
+      rival.id,
+      playerIds,
+    );
+    const before = careerBuyingTransferQuote(
+      offered,
+      offered.market!,
+      rival.id,
+    );
+    const resolved = resolveCareerEventChoice(
+      offered,
+      catalog,
+      'make-a-private-offer',
+    );
+    const after = careerBuyingTransferQuote(
+      resolved,
+      resolved.market!,
+      rival.id,
+    );
+    const talks = beginCareerTransferTalks(
+      resolved,
+      resolved.market!,
+      rival.id,
+    );
+
+    expect(after.fee).toBe(Math.round(before.fee * 0.95));
+    expect(talks.transferTalks?.transferQuote.fee).toBe(after.fee);
+  });
+
   test('is byte-identical for identical inputs and a safe call consumes no risky history', () => {
     const offered = playerEvent('rival-bid-arrives');
     const before = serializeGameState(offered);

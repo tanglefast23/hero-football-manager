@@ -908,7 +908,7 @@ export interface TrainingPointIncomeViewModel {
  * What the club owns that brings money IN, and what each one is worth.
  *
  * Deliberately percentages and multipliers rather than cash. A Stadium Stand is
- * worth half the gate again whatever division the club is in, and printing one
+ * worth the full base gate again whatever division the club is in, and printing one
  * week's dollars would date the moment the club is promoted — the multiplier is
  * the durable fact, and the statement above already shows the week's money.
  * Sponsorship is the exception the shape allows for: it is a payment, not a
@@ -924,6 +924,12 @@ export interface IncomeGenerationViewModel {
     effect: string;
     /** Rows for things the club has yet to build read back as prospects. */
     owned: boolean;
+    /** Up to three newest settled Weekly Reviews where this source paid. */
+    history?: readonly {
+      periodLabel: string;
+      /** Authoritative saved income, or the saved facility-only share. */
+      amount: number;
+    }[];
   }[];
 }
 

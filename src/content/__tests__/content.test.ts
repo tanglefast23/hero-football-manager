@@ -154,7 +154,7 @@ describe('validated M1 launch content', () => {
       circuit: [3, 4, 5, 6, 7],
       'keeper-drills': [1, 2, 3, 3, 4],
     });
-    expect(content.events.events).toHaveLength(52);
+    expect(content.events.events).toHaveLength(53);
     // 'medical' has no events since the flu-wave and physio cards were cut:
     // both paid in TP and morale for a story about illness, and neither ever
     // touched condition. The category stays in the schema for future content.
@@ -188,13 +188,13 @@ describe('validated M1 launch content', () => {
           headline: choice.outcomes[0].successHeadline,
         })),
     );
-    expect(successHeadlines).toHaveLength(52);
+    expect(successHeadlines).toHaveLength(53);
     for (const { event, headline } of successHeadlines) {
       expect(headline).toEqual(expect.any(String));
       expect(headline).not.toContain(event);
     }
     expect(new Set(successHeadlines.map((entry) => entry.headline)).size).toBe(
-      52,
+      53,
     );
     expect(
       content.events.events.some((event) => event.trigger.requiresPlayer),
@@ -235,7 +235,7 @@ describe('validated M1 launch content', () => {
       content.events.events.filter(
         (event) => event.trigger.requiresPlayer === true,
       ),
-    ).toHaveLength(21);
+    ).toHaveLength(22);
     expect(
       content.events.events.filter(
         (event) => event.trigger.requiresCoach === true,

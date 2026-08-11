@@ -283,7 +283,7 @@ describe('launch career adapter', () => {
 
     const reconciled = reconcileLaunchRoster(established, content);
 
-    expect(reconciled.launchRosterVersion).toBe(4);
+    expect(reconciled.launchRosterVersion).toBe(5);
     expect(
       reconciled.players.some((player) => player.id === 'bramble-rovers-p14'),
     ).toBe(false);
@@ -332,7 +332,7 @@ describe('launch career adapter', () => {
     expect(reconciled.cashTransactions).toEqual([]);
   });
 
-  it('cuts saved player wages once and leaves current coach contracts alone', () => {
+  it('cuts pre-reduction saved player wages by 15% once and leaves current coach contracts alone', () => {
     const current = enableFullCareer(
       createCareer(createLaunchCareerSetup(20260810, DEFAULT_USER_CLUB_ID)),
     );
@@ -355,8 +355,8 @@ describe('launch career adapter', () => {
 
     const migrated = reconcileLaunchRoster(saved);
 
-    expect(migrated.launchRosterVersion).toBe(4);
-    expect(migrated.players.every((player) => player.weeklyWage === 900)).toBe(
+    expect(migrated.launchRosterVersion).toBe(5);
+    expect(migrated.players.every((player) => player.weeklyWage === 850)).toBe(
       true,
     );
     expect(migrated.market).toStrictEqual(market);
@@ -367,6 +367,34 @@ describe('launch career adapter', () => {
           .reduce((sum, player) => sum + player.weeklyWage, 0),
       );
     }
+    expect(reconcileLaunchRoster(migrated)).toStrictEqual(migrated);
+  });
+
+  it('cuts version-4 saved player wages by one additional 5% once', () => {
+    const current = enableFullCareer(
+      createCareer(createLaunchCareerSetup(20260811, DEFAULT_USER_CLUB_ID)),
+    );
+    const saved = {
+      ...current,
+      launchRosterVersion: 4,
+      players: current.players.map((player) => ({
+        ...player,
+        weeklyWage: 900,
+      })),
+      clubs: current.clubs.map((club) => ({
+        ...club,
+        weeklyWages:
+          current.players.filter((player) => player.clubId === club.id).length *
+          900,
+      })),
+    };
+
+    const migrated = reconcileLaunchRoster(saved);
+
+    expect(migrated.launchRosterVersion).toBe(5);
+    expect(migrated.players.every((player) => player.weeklyWage === 855)).toBe(
+      true,
+    );
     expect(reconcileLaunchRoster(migrated)).toStrictEqual(migrated);
   });
 
@@ -407,7 +435,7 @@ describe('launch career adapter', () => {
 
     const migrated = reconcileLaunchRoster(saved);
 
-    expect(migrated.launchRosterVersion).toBe(4);
+    expect(migrated.launchRosterVersion).toBe(5);
     expect(migrated.market?.headCoach?.weeklyWage).toBe(300 * headCoach.level);
     expect(migrated.market?.assistantCoach?.weeklyWage).toBe(
       150 * assistantCoach.level,
@@ -417,7 +445,7 @@ describe('launch career adapter', () => {
         (coach) => coach.weeklyWage === 300 * coach.level,
       ),
     ).toBe(true);
-    expect(migrated.players.every((player) => player.weeklyWage === 900)).toBe(
+    expect(migrated.players.every((player) => player.weeklyWage === 855)).toBe(
       true,
     );
     expect(reconcileLaunchRoster(migrated)).toStrictEqual(migrated);

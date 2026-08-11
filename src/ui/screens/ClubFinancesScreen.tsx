@@ -1957,30 +1957,57 @@ function IncomeGenerationSection({
             key={row.id}
             accessible
             accessibilityRole="text"
-            accessibilityLabel={`${row.label}, ${row.effect}. ${row.detail}`}
-            className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2 last:border-b-0"
+            accessibilityLabel={`${row.label}, ${row.effect}. ${row.detail}${
+              row.history === undefined
+                ? ''
+                : `. ${t('clubFinances.incomeRecent')}: ${row.history
+                    .map(
+                      (entry) =>
+                        `${entry.periodLabel}, ${formatCurrency(t, entry.amount, true)}`,
+                    )
+                    .join(', ')}`
+            }`}
+            className="min-h-11 border-b border-ink/10 px-3 py-2 last:border-b-0"
           >
-            <View className="flex-1 pr-3">
+            <View className="flex-row items-center">
+              <View className="flex-1 pr-3">
+                <Text
+                  className={
+                    row.owned ? 'text-base text-ink' : 'text-base text-ink/45'
+                  }
+                >
+                  {row.label}
+                </Text>
+                <Text className="mt-0.5 text-xs leading-4 text-ink/60">
+                  {row.detail}
+                </Text>
+              </View>
               <Text
                 className={
-                  row.owned ? 'text-base text-ink' : 'text-base text-ink/45'
+                  row.owned
+                    ? 'font-mono text-base text-pitch-ink'
+                    : 'font-mono text-base text-ink/40'
                 }
               >
-                {row.label}
-              </Text>
-              <Text className="mt-0.5 text-xs leading-4 text-ink/60">
-                {row.detail}
+                {row.effect}
               </Text>
             </View>
-            <Text
-              className={
-                row.owned
-                  ? 'font-mono text-base text-pitch-ink'
-                  : 'font-mono text-base text-ink/40'
-              }
-            >
-              {row.effect}
-            </Text>
+            {row.history === undefined ? null : (
+              <View className="mt-1.5 flex-row flex-wrap items-center gap-x-3 gap-y-1">
+                <PixelText className="text-xs uppercase text-ink/55">
+                  {t('clubFinances.incomeRecent')}
+                </PixelText>
+                {row.history.map((entry) => (
+                  <Text
+                    key={`${row.id}-${entry.periodLabel}`}
+                    className="font-mono text-xs text-pitch-dark"
+                  >
+                    {entry.periodLabel} ·{' '}
+                    {formatCurrency(t, entry.amount, true)}
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
         ))}
       </View>

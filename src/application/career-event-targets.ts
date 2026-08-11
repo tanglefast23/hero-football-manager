@@ -3,6 +3,8 @@ import {
   drainPendingMilestone,
   isCareerMilestoneEventId,
   isFacilityOperational,
+  careerTransferTarget,
+  type CareerPlayer,
   type GameState,
 } from '../game';
 
@@ -13,6 +15,33 @@ export interface CareerEventTargetCandidates {
   readonly playerIds: readonly string[];
   readonly coachRoles: readonly CareerEventCoachRole[];
   readonly facilityIds: readonly string[];
+}
+
+/** The real player records behind the event's authored source. */
+export function careerEventTargetPlayers(
+  state: GameState,
+  event: GameEvent,
+): CareerPlayer[] {
+  if (event.trigger.requiresPlayer !== true) return [];
+  const source = event.trigger.requiresPlayerSource;
+  const players =
+    source === 'YOUTH_OFFERS'
+      ? state.youthIntake?.status === 'OPEN'
+        ? state.youthIntake.offers.map((offer) => offer.player)
+        : []
+      : source === 'TRANSFER_TARGETS'
+        ? (state.market?.scoutReports ?? []).flatMap((report) => {
+            const target = careerTransferTarget(state, report.playerId);
+            return target === undefined ? [] : [target.player];
+          })
+        : state.players.filter(
+            (player) => player.clubId === state.userClubId,
+          );
+  return players.filter(
+    (player) =>
+      event.trigger.requiresPlayerRole === undefined ||
+      player.role === event.trigger.requiresPlayerRole,
+  );
 }
 
 /** The one target shape an authored story asks the manager to choose. */
@@ -33,14 +62,7 @@ export function careerEventTargetCandidates(
 ): CareerEventTargetCandidates {
   const playerIds =
     event.trigger.requiresPlayer === true
-      ? state.players
-          .filter((player) => player.clubId === state.userClubId)
-          .filter(
-            (player) =>
-              event.trigger.requiresPlayerRole === undefined ||
-              player.role === event.trigger.requiresPlayerRole,
-          )
-          .map((player) => player.id)
+      ? careerEventTargetPlayers(state, event).map((player) => player.id)
       : [];
 
   const market = state.market;

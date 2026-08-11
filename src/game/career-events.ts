@@ -495,6 +495,7 @@ export function offerCareerEvent(
 export function selectCareerEventPlayer(
   state: GameState,
   playerId: string,
+  eligibleExternalPlayerIds: readonly string[] = [],
 ): GameState {
   if (state.pendingEvent === undefined)
     throw new Error('there is no pending event');
@@ -510,7 +511,7 @@ export function selectCareerEventPlayer(
     (candidate) =>
       candidate.id === playerId && candidate.clubId === state.userClubId,
   );
-  if (player === undefined)
+  if (player === undefined && !eligibleExternalPlayerIds.includes(playerId))
     throw new Error(`unknown user-club player ${playerId}`);
   return {
     ...state,
@@ -746,6 +747,7 @@ export function applyCareerEventOutcome(
     if (!flags.includes(flag)) flags.push(flag);
   }
 
+  const playerEffectState = applyPlayerEffect(state, application.playerEffect);
   const resolved: GameState = {
     ...state,
     clubs: state.clubs.map((candidate) =>
@@ -755,7 +757,7 @@ export function applyCareerEventOutcome(
     ),
     trainingPoints,
     eventFlags: flags,
-    players: applyPlayerEffect(state, application.playerEffect),
+    ...playerEffectState,
     pendingEvent: {
       ...state.pendingEvent,
       resolvedChoiceId: choiceId,
@@ -841,12 +843,18 @@ export function dismissCareerEvent(
 function applyPlayerEffect(
   state: GameState,
   effect: CareerEventPlayerEffect | undefined,
-): GameState['players'] {
-  if (effect === undefined) return state.players;
-  const player = state.players.find(
+): Pick<GameState, 'players' | 'youthIntake'> {
+  if (effect === undefined) {
+    return { players: state.players, youthIntake: state.youthIntake };
+  }
+  const rosterPlayer = state.players.find(
     (candidate) =>
       candidate.id === effect.playerId && candidate.clubId === state.userClubId,
   );
+  const youthPlayer = state.youthIntake?.offers.find(
+    (offer) => offer.player.id === effect.playerId,
+  )?.player;
+  const player = rosterPlayer ?? youthPlayer;
   if (player === undefined)
     throw new Error(`unknown event player ${effect.playerId}`);
   const moraleDelta = safeDelta(effect.moraleDelta ?? 0, 'event morale');
@@ -886,8 +894,7 @@ function applyPlayerEffect(
   );
   const fameDelta = safeDelta(effect.fameDelta ?? 0, 'event fame');
 
-  return state.players.map((candidate) => {
-    if (candidate.id !== effect.playerId) return candidate;
+  const applyToPlayer = (candidate: typeof player): typeof player => {
     const morale = Math.max(
       0,
       Math.min(100, safeAdd(candidate.morale, moraleDelta, 'event morale')),
@@ -949,7 +956,28 @@ function applyPlayerEffect(
             ),
           }),
     };
-  });
+  };
+  return {
+    players:
+      rosterPlayer === undefined
+        ? state.players
+        : state.players.map((candidate) =>
+            candidate.id === effect.playerId
+              ? applyToPlayer(candidate)
+              : candidate,
+          ),
+    youthIntake:
+      youthPlayer === undefined || state.youthIntake === undefined
+        ? state.youthIntake
+        : {
+            ...state.youthIntake,
+            offers: state.youthIntake.offers.map((offer) =>
+              offer.player.id === effect.playerId
+                ? { ...offer, player: applyToPlayer(offer.player) }
+                : offer,
+            ),
+          },
+  };
 }
 
 function safeDelta(value: number, label: string): number {
