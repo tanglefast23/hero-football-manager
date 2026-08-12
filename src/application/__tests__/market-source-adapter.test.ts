@@ -203,8 +203,7 @@ describe('career market view-model source adapter', () => {
     expect(
       visible.transfers.find(
         (listing) =>
-          listing.direction === 'SELL' &&
-          listing.playerId === ownedPlayer.id,
+          listing.direction === 'SELL' && listing.playerId === ownedPlayer.id,
       )?.potentialLabel,
     ).toMatch(new RegExp(`^${playerGrowthGrade(ownedPlayer)} · SUPER \\d+%$`));
   });

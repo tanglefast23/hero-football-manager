@@ -98,9 +98,9 @@ describe('shared career event flow', () => {
 
     expect(changed?.attrs.sho).toBe(offer.player.attrs.sho + 2);
     expect(changed?.morale).toBe(offer.player.morale + 6);
-    expect(resolved.players.some((player) => player.id === offer.player.id)).toBe(
-      false,
-    );
+    expect(
+      resolved.players.some((player) => player.id === offer.player.id),
+    ).toBe(false);
   });
 
   test('changes the selected Deals asking fee and freezes the same fee in talks', () => {
@@ -116,7 +116,8 @@ describe('shared career event flow', () => {
         ).length > 0
       );
     });
-    if (rival === undefined) throw new Error('test career has no sellable rival');
+    if (rival === undefined)
+      throw new Error('test career has no sellable rival');
     const withReport: GameState = {
       ...initial,
       market: { ...initial.market!, scoutReports: [exactReport(rival)] },

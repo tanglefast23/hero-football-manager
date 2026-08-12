@@ -1573,7 +1573,8 @@ export function careerBuyingTransferQuote(
   fallbackDivision = 5,
 ): TransferQuote {
   const target = careerTransferTarget(state, playerId, fallbackDivision);
-  if (target === undefined) throw new Error(`unknown transfer target ${playerId}`);
+  if (target === undefined)
+    throw new Error(`unknown transfer target ${playerId}`);
   const quote = buyingTransferQuote(valuationPlayer(target.player), {
     careerSeed: state.careerSeed,
     season: state.season,
@@ -1597,7 +1598,8 @@ export function applyCareerTransferFeeAdjustment(
   percentDelta: number,
 ): GameState {
   const market = state.market;
-  if (market === undefined) throw new Error('the career market is not initialized');
+  if (market === undefined)
+    throw new Error('the career market is not initialized');
   if (!Number.isSafeInteger(percentDelta)) {
     throw new Error('transfer fee adjustment must be a safe integer');
   }
