@@ -34,6 +34,7 @@ import type {
 } from '../models';
 import { useCopy, type CopyFn } from '../../i18n';
 import { PlayerRunSprite } from '../../render/PlayerRunSprite';
+import { ClubCrest } from '../components/ClubCrest';
 import {
   playRivalHeroLaugh,
   stopRivalHeroLaugh,
@@ -228,9 +229,10 @@ function TeamLine({
 }) {
   return (
     <View className="mt-4 items-center">
-      <View className="px-4 py-2">
+      <View className="flex-row items-center gap-3 px-4 py-2">
+        <ClubCrest clubName={name} size={24} />
         <PixelText
-          className="text-center text-base uppercase text-ink"
+          className="min-w-0 text-center text-base uppercase text-ink"
           numberOfLines={2}
         >
           {name}

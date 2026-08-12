@@ -24,6 +24,7 @@ import { InfoTip } from './components/InfoTip';
 import { useGuideAnchor } from './use-guide-anchor';
 import { useCountUpNumber } from './use-count-up-number';
 import { IdleAttract } from './components/IdleAttract';
+import { ClubCrest } from './components/ClubCrest';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
 import { useCopy, type CopyFn } from '../i18n';
 import {
@@ -512,6 +513,7 @@ export function ManagementShell({
         onLayout={moneyGuideAnchor.scheduleMeasurement}
       >
         <View className="flex-row items-center gap-2">
+          <ClubCrest clubName={clubName} size={24} />
           <Text
             className="min-w-0 flex-1 font-pixel text-sm uppercase text-ink"
             numberOfLines={1}

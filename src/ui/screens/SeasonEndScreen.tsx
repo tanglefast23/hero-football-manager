@@ -32,6 +32,7 @@ import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
 import { AgentFinalDemandGate } from '../AgentFinalDemandGate';
 import { isExpiredContractRevealed } from '../expired-contract-reveal';
 import { useCopy } from '../../i18n';
+import { ClubCrest } from '../components/ClubCrest';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -513,8 +514,9 @@ export function SeasonEndScreen({
                     {row.position}
                   </Text>
                   <View className="flex-1 flex-row items-center pr-2">
+                    <ClubCrest clubName={row.clubName} />
                     <Text
-                      className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${textClass}`}
+                      className={`ml-2 flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${textClass}`}
                       numberOfLines={1}
                     >
                       {row.clubName}

@@ -90,7 +90,7 @@ Two greens sit outside every turf ramp on purpose and are **not** turf: `#65b96e
 
 ### Club colours
 
-Each club in `content/clubs.json` carries a `primaryColor` / `secondaryColor` pair. **Nothing renders them yet** — the match paints fixed home/away kits from `src/render/team-kit-ui.ts` (`#d94f52` home, `#edb54a` colour-safe home, `#5a8fd6` away), and the only code that touches the club fields is the zod schema that validates them. They were re-derived onto the palette on 2026-08-08 anyway, so the day they are wired up they are already legal. Every pair keeps its club's original character; only the values moved.
+Each club in `content/clubs.json` carries a `primaryColor` / `secondaryColor` pair. `ClubCrest` renders those pairs as tiny 8×8 pixel shields beside club names. Generated pyramid clubs combine one readable prefix motif with a suffix pattern, so every club keeps a stable badge without save data. The match still paints fixed home/away kits from `src/render/team-kit-ui.ts` (`#d94f52` home, `#edb54a` colour-safe home, `#5a8fd6` away).
 
 | Club | Primary | Secondary | Reads as |
 |---|---|---|---|

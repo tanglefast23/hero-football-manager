@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import type { M2LeagueFixtureViewModel } from '../m2-league-models';
 import { StatusChip } from './Scorecard';
 import { useCopy } from '../../i18n';
+import { ClubCrest } from './ClubCrest';
 
 /**
  * `venue`, `result` and `status` are CODES the row branches on, so the words
@@ -70,9 +71,15 @@ export function LeagueFixtureRow({
         <Text className="text-sm text-ink/50" numberOfLines={1}>
           {t(fixture.venue === 'HOME' ? 'm2League.hosts' : 'm2League.visits')}
         </Text>
-        <Text className="mt-0.5 text-base font-bold text-ink" numberOfLines={1}>
-          {fixture.opponentName}
-        </Text>
+        <View className="mt-0.5 flex-row items-center gap-2">
+          <ClubCrest clubName={fixture.opponentName} />
+          <Text
+            className="min-w-0 flex-1 text-base font-bold text-ink"
+            numberOfLines={1}
+          >
+            {fixture.opponentName}
+          </Text>
+        </View>
       </View>
       <View className="items-end gap-1 pl-2">
         <Text className="font-mono text-base text-ink">

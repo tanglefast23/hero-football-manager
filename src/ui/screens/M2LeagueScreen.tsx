@@ -34,6 +34,7 @@ import type { TutorialAnchorLayout } from '../tutorial-cue-position';
 import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { ClubCrest } from '../components/ClubCrest';
 
 /**
  * What each abbreviated column means, in one sentence, reachable by tapping the
@@ -354,11 +355,12 @@ export function M2LeagueScreen({
                     {row.position}
                   </Text>
                   <View className="flex-1 flex-row items-center pr-1">
+                    <ClubCrest clubName={row.clubName} />
                     <Text
                       className={
                         row.isUserClub
-                          ? 'flex-1 text-base font-bold text-ink'
-                          : 'flex-1 text-base text-ink'
+                          ? 'ml-2 flex-1 text-base font-bold text-ink'
+                          : 'ml-2 flex-1 text-base text-ink'
                       }
                       numberOfLines={1}
                     >
@@ -543,15 +545,23 @@ export function M2LeagueScreen({
                       tone="hero"
                     />
                   </View>
-                  <Text className="mt-2 text-sm font-bold text-ink/70">
-                    {viewModel.cup.nextMatch.opponentName === undefined
-                      ? t('m2League.roundStatusAwaitingDraw')
-                      : `${t(
-                          viewModel.cup.nextMatch.venue === 'HOME'
-                            ? 'm2League.hosts'
-                            : 'm2League.visits',
-                        )} ${viewModel.cup.nextMatch.opponentName}`}
-                  </Text>
+                  <View className="mt-2 flex-row items-center gap-2">
+                    {viewModel.cup.nextMatch.opponentName ===
+                    undefined ? null : (
+                      <ClubCrest
+                        clubName={viewModel.cup.nextMatch.opponentName}
+                      />
+                    )}
+                    <Text className="min-w-0 flex-1 text-sm font-bold text-ink/70">
+                      {viewModel.cup.nextMatch.opponentName === undefined
+                        ? t('m2League.roundStatusAwaitingDraw')
+                        : `${t(
+                            viewModel.cup.nextMatch.venue === 'HOME'
+                              ? 'm2League.hosts'
+                              : 'm2League.visits',
+                          )} ${viewModel.cup.nextMatch.opponentName}`}
+                    </Text>
+                  </View>
                 </View>
               ) : null}
               {viewModel.cup.championName ? (
@@ -559,9 +569,15 @@ export function M2LeagueScreen({
                   <Text className="font-pixel text-sm uppercase text-gold-dark">
                     {t('m2League.cupChampions')}
                   </Text>
-                  <Text className="mt-1 font-pixel text-xl uppercase text-ink">
-                    {viewModel.cup.championName}
-                  </Text>
+                  <View className="mt-1 flex-row items-center gap-2">
+                    <ClubCrest
+                      clubName={viewModel.cup.championName}
+                      size={24}
+                    />
+                    <Text className="min-w-0 flex-1 font-pixel text-xl uppercase text-ink">
+                      {viewModel.cup.championName}
+                    </Text>
+                  </View>
                   <Text className="mt-2 text-sm leading-5 text-ink/65">
                     {t('m2League.theirRoadToThe')}
                   </Text>
@@ -754,10 +770,11 @@ function CupRoundCard({
                   key={bye.clubName}
                   className={
                     bye.involvesUserClub
-                      ? 'border border-blue-dark bg-blue-light px-2 py-1'
-                      : 'border border-ink/20 bg-paper px-2 py-1'
+                      ? 'flex-row items-center gap-1.5 border border-blue-dark bg-blue-light px-2 py-1'
+                      : 'flex-row items-center gap-1.5 border border-ink/20 bg-paper px-2 py-1'
                   }
                 >
+                  <ClubCrest clubName={bye.clubName} />
                   <Text
                     className={
                       bye.involvesUserClub
@@ -834,33 +851,39 @@ function CupTie({
         transform: [{ translateY: pressed ? 2 : 0 }],
       })}
     >
-      <Text
-        className={
-          fixture.winnerName === fixture.homeClubName
-            ? 'flex-1 text-sm font-bold text-ink'
-            : 'flex-1 text-sm text-ink'
-        }
-        numberOfLines={2}
-      >
-        {fixture.homeClubName}
-        {fixture.winnerName === fixture.homeClubName ? '  ✓' : ''}
-      </Text>
+      <View className="min-w-0 flex-1 flex-row items-center gap-2">
+        <ClubCrest clubName={fixture.homeClubName} />
+        <Text
+          className={
+            fixture.winnerName === fixture.homeClubName
+              ? 'min-w-0 flex-1 text-sm font-bold text-ink'
+              : 'min-w-0 flex-1 text-sm text-ink'
+          }
+          numberOfLines={2}
+        >
+          {fixture.homeClubName}
+          {fixture.winnerName === fixture.homeClubName ? '  ✓' : ''}
+        </Text>
+      </View>
       <View className="mx-2 min-w-12 border-2 border-ink bg-paper px-2 py-1">
         <Text className="text-center font-mono text-sm text-ink">
           {fixture.scoreLabel}
         </Text>
       </View>
-      <Text
-        className={
-          fixture.winnerName === fixture.awayClubName
-            ? 'flex-1 text-right text-sm font-bold text-ink'
-            : 'flex-1 text-right text-sm text-ink'
-        }
-        numberOfLines={2}
-      >
-        {fixture.winnerName === fixture.awayClubName ? '✓  ' : ''}
-        {fixture.awayClubName}
-      </Text>
+      <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
+        <Text
+          className={
+            fixture.winnerName === fixture.awayClubName
+              ? 'min-w-0 flex-1 text-right text-sm font-bold text-ink'
+              : 'min-w-0 flex-1 text-right text-sm text-ink'
+          }
+          numberOfLines={2}
+        >
+          {fixture.winnerName === fixture.awayClubName ? '✓  ' : ''}
+          {fixture.awayClubName}
+        </Text>
+        <ClubCrest clubName={fixture.awayClubName} />
+      </View>
     </Pressable>
   );
 }

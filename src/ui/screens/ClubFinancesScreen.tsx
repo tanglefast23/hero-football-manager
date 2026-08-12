@@ -21,6 +21,7 @@ import {
 } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
 import { FacilitySprite } from '../components/FacilitySprite';
+import { ClubCrest } from '../components/ClubCrest';
 import type {
   ClubFacilityBuildingViewModel,
   CoachStaffMemberViewModel,
@@ -984,12 +985,15 @@ export function ClubFinancesScreen({
                   <PixelText className="text-sm uppercase text-blue-dark">
                     {t('clubFinances.clubOffice')}
                   </PixelText>
-                  <PixelText
-                    className="mt-1 text-xl uppercase leading-7 text-ink"
-                    numberOfLines={2}
-                  >
-                    {viewModel.clubName}
-                  </PixelText>
+                  <View className="mt-1 flex-row items-center gap-2">
+                    <ClubCrest clubName={viewModel.clubName} size={24} />
+                    <PixelText
+                      className="min-w-0 flex-1 text-xl uppercase leading-7 text-ink"
+                      numberOfLines={2}
+                    >
+                      {viewModel.clubName}
+                    </PixelText>
+                  </View>
                 </View>
                 <StatusChip label={viewModel.periodLabel} />
               </View>

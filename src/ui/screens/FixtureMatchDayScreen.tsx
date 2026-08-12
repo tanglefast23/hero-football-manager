@@ -19,6 +19,7 @@ import {
 } from '../matchday-condition';
 import { useCopy } from '../../i18n';
 import { hasHoverPointer } from '../pointer-capability';
+import { ClubCrest } from '../components/ClubCrest';
 
 /**
  * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
@@ -255,21 +256,27 @@ export function FixtureMatchDayScreen({
   const fixtureCard = (
     <PaperPanel stamp={fixture.venueLabel}>
       <View className="flex-row items-center gap-3">
-        <Text
-          className="flex-1 text-right font-pixel text-base uppercase leading-6 text-ink"
-          numberOfLines={2}
-        >
-          {fixture.homeTeam}
-        </Text>
+        <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
+          <Text
+            className="min-w-0 text-right font-pixel text-base uppercase leading-6 text-ink"
+            numberOfLines={2}
+          >
+            {fixture.homeTeam}
+          </Text>
+          <ClubCrest clubName={fixture.homeTeam} size={24} />
+        </View>
         <View className="border-2 border-ink bg-ink px-3 py-2">
           <Text className="font-pixel text-base text-signal">V</Text>
         </View>
-        <Text
-          className="flex-1 font-pixel text-base uppercase leading-6 text-ink"
-          numberOfLines={2}
-        >
-          {fixture.awayTeam}
-        </Text>
+        <View className="min-w-0 flex-1 flex-row items-center gap-2">
+          <ClubCrest clubName={fixture.awayTeam} size={24} />
+          <Text
+            className="min-w-0 font-pixel text-base uppercase leading-6 text-ink"
+            numberOfLines={2}
+          >
+            {fixture.awayTeam}
+          </Text>
+        </View>
       </View>
       {fixture.opponentHeroes.length > 0 ? (
         <View className="mt-3 flex-row flex-wrap justify-center gap-2">
