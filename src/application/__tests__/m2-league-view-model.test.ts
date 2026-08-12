@@ -309,6 +309,16 @@ describe('m2LeagueViewModel', () => {
     expect(
       view.cup.currentRoundFixtures.filter((fixture) => fixture.playableNow),
     ).toHaveLength(1);
+
+    // The cup draws from all five tiers, so the tie is unreadable without where
+    // the opponent sits. Written out, and a real position in a real division.
+    const standing = view.cup.nextMatch?.opponentStandingLabel;
+    const parsed = /^Division ([1-5]) Rank ([1-9]|10)$/.exec(standing ?? '');
+    expect(parsed).not.toBeNull();
+    const opponentId = career.pyramid.divisions
+      .flatMap((division) => division.clubs)
+      .find((club) => club.name === view.cup.nextMatch?.opponentName)!;
+    expect(Number(parsed![1])).toBe(opponentId.division);
   });
 
   it('shows the next round week after the user wins while the draw is pending', () => {

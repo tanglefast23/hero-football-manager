@@ -165,6 +165,7 @@ import {
   confirmationBackgroundProps,
   type ConfirmationRequest,
 } from './src/ui/components/ConfirmationSheet';
+import { InfoTipLayer } from './src/ui/components/InfoTip';
 import { ScreenTransition } from './src/ui/components/ScreenTransition';
 import { formatCurrency } from './src/ui/components/Scorecard';
 import {
@@ -4174,6 +4175,9 @@ function GameApp() {
               action?.();
             }}
           />
+          {/* Last child on purpose. Stat tips are drawn here, after every card
+              and panel, so nothing can paint through them. */}
+          <InfoTipLayer />
         </View>
       </SafeAreaProvider>
     </LocaleProvider>

@@ -2397,6 +2397,7 @@
     "m2League.matchesCount": "{count} laga",
     "m2League.nextCupMatch": "Laga {cup} berikutnya",
     "m2League.noneRecordedYetThisSeason": "Belum ada {metric} musim ini",
+    "m2League.opponentStanding": "Divisi {division} Peringkat {rank}",
     "m2League.outcome.advanced": "Lolos",
     "m2League.outcome.bye": "Bye",
     "m2League.outcome.champion": "Juara",

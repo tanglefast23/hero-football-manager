@@ -552,15 +552,25 @@ export function M2LeagueScreen({
                         clubName={viewModel.cup.nextMatch.opponentName}
                       />
                     )}
-                    <Text className="min-w-0 flex-1 text-sm font-bold text-ink/70">
-                      {viewModel.cup.nextMatch.opponentName === undefined
-                        ? t('m2League.roundStatusAwaitingDraw')
-                        : `${t(
-                            viewModel.cup.nextMatch.venue === 'HOME'
-                              ? 'm2League.hosts'
-                              : 'm2League.visits',
-                          )} ${viewModel.cup.nextMatch.opponentName}`}
-                    </Text>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-sm font-bold text-ink/70">
+                        {viewModel.cup.nextMatch.opponentName === undefined
+                          ? t('m2League.roundStatusAwaitingDraw')
+                          : `${t(
+                              viewModel.cup.nextMatch.venue === 'HOME'
+                                ? 'm2League.hosts'
+                                : 'm2League.visits',
+                            )} ${viewModel.cup.nextMatch.opponentName}`}
+                      </Text>
+                      {/* The cup crosses all five tiers, so the club name alone
+                          says nothing about how hard the tie is. */}
+                      {viewModel.cup.nextMatch.opponentStandingLabel ===
+                      undefined ? null : (
+                        <Text className="text-xs font-bold text-ink/50">
+                          {viewModel.cup.nextMatch.opponentStandingLabel}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 </View>
               ) : null}

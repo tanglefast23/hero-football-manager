@@ -70,7 +70,6 @@ import type {
   ClubLineupState,
   ClubState,
   GameState,
-  LeagueFixture,
   LeagueStanding,
 } from './types';
 
@@ -548,13 +547,12 @@ function balanceOpeningDivision(state: GameState): GameState {
     state.season,
     state.careerSeed,
   );
-  // Last, on purpose. The ladder above, the pin and the first-opponent buff are
-  // the most carefully tuned numbers in the game, and none of them should see a
-  // special: the hero is added on top of a finished division, which is what
-  // makes "additive" literally true.
+  // Last, on purpose. The ladder above and the pin are the most carefully tuned
+  // numbers in the game, and neither should see a special: the hero is added on
+  // top of a finished division, which is what makes "additive" literally true.
   const overlaid = overlayDivisionSpecials({
     clubs: state.clubs,
-    players: strengthenFirstOpponent(players, fixtures, state.userClubId),
+    players,
     lineups: state.lineups,
     division: 5,
     userClubId: state.userClubId,
@@ -566,58 +564,6 @@ function balanceOpeningDivision(state: GameState): GameState {
     lineups: overlaid.lineups,
     fixtures,
   };
-}
-
-/** The attribute each position is judged by, and the one a +5 is felt through. */
-const FIRST_OPPONENT_KEY_ATTR: Readonly<
-  Record<CareerPlayer['role'], 'ref' | 'def' | 'pas' | 'sho'>
-> = {
-  GK: 'ref',
-  DEF: 'def',
-  MID: 'pas',
-  FWD: 'sho',
-};
-const FIRST_OPPONENT_BONUS = 5;
-
-/**
- * Week one is watched with nothing built and nothing trained, so it carries the
- * whole first impression of what a league match costs. Every player in that one
- * opponent gets +5 on their position's defining attribute — applied after the
- * schedule is pinned, so it sharpens the opening fixture without disturbing the
- * strength ordering that chose it. The rest of the division is untouched.
- */
-function strengthenFirstOpponent(
-  players: readonly CareerPlayer[],
-  fixtures: readonly LeagueFixture[],
-  userClubId: string,
-): CareerPlayer[] {
-  const opener = fixtures
-    .filter(
-      (fixture) =>
-        fixture.homeClubId === userClubId || fixture.awayClubId === userClubId,
-    )
-    .sort(
-      (left, right) => left.week - right.week || compareIds(left.id, right.id),
-    )[0];
-  if (opener === undefined) return [...players];
-  const opponentClubId =
-    opener.homeClubId === userClubId ? opener.awayClubId : opener.homeClubId;
-  return players.map((player) => {
-    if (player.clubId !== opponentClubId) return player;
-    const key = FIRST_OPPONENT_KEY_ATTR[player.role];
-    const attrs = {
-      ...player.attrs,
-      [key]: Math.min(99, player.attrs[key] + FIRST_OPPONENT_BONUS),
-    };
-    return {
-      ...player,
-      attrs,
-      signingStatTotal: Object.values(attrs).reduce(
-        (sum, value) => sum + value,
-        0,
-      ),
-    };
-  });
 }
 
 function generatedActiveDivision(
@@ -745,10 +691,10 @@ export function divisionSponsorMonthlyFee(division: DivisionLevel): number {
  * Puts the division's named superheroes on the strongest rival club.
  *
  * Called at both season starts and nowhere else. In season 1 it runs at the very
- * end of `balanceOpeningDivision`, after the 42-50 strength ladder, the fixture
- * pin and the first-opponent buff, so none of the opening's tuned numbers ever
- * sees a special. From season 2 it runs straight after `generatedActiveDivision`
- * and before looks are assigned.
+ * end of `balanceOpeningDivision`, after the 42-50 strength ladder and the
+ * fixture pin, so none of the opening's tuned numbers ever sees a special. From
+ * season 2 it runs straight after `generatedActiveDivision` and before looks are
+ * assigned.
  *
  * Rebuilding from scratch each season is the whole design: the heroes belong to
  * the division, not to a club, so a club that is strongest this year fields them
@@ -881,11 +827,34 @@ function overlayDivisionSpecials(input: {
         }
       : club,
   );
-  const lineups = input.lineups.map((lineup) =>
-    lineup.clubId === hostId
-      ? { clubId: hostId, playerIds: startingEleven(hostPlayers) }
-      : lineup,
-  );
+  /**
+   * Rebuild the host, and any club whose lineup no longer names its own squad.
+   *
+   * Rebuilding only the host was not enough. `carried` above drops every
+   * non-user special before the measuring starts, so when the host changes —
+   * which any change to squad strength can do — the PREVIOUS host keeps an
+   * eleven naming a character who is no longer in its squad, or in the league
+   * at all. Nothing downstream notices until the save is serialized, where it
+   * surfaces as `lineup player belongs to another club`, a long way from here.
+   *
+   * Checked against each club's own final squad rather than against a list of
+   * specials: any future reassignment gets the same repair for free.
+   */
+  const squadByClubId = new Map<string, CareerPlayer[]>();
+  for (const player of players) {
+    const squad = squadByClubId.get(player.clubId);
+    if (squad === undefined) squadByClubId.set(player.clubId, [player]);
+    else squad.push(player);
+  }
+  const lineups = input.lineups.map((lineup) => {
+    if (lineup.clubId === hostId)
+      return { clubId: hostId, playerIds: startingEleven(hostPlayers) };
+    const squad = squadByClubId.get(lineup.clubId) ?? [];
+    const ownSquadIds = new Set(squad.map((player) => player.id));
+    if (lineup.playerIds.every((playerId) => ownSquadIds.has(playerId)))
+      return lineup;
+    return { clubId: lineup.clubId, playerIds: startingEleven(squad) };
+  });
   return { clubs, players, lineups };
 }
 

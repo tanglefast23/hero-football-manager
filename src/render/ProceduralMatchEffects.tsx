@@ -2,14 +2,23 @@ import { Path, Skia, type SkPath } from '@shopify/react-native-skia';
 import { useMemo } from 'react';
 import { snapDevicePixels } from './pixel-grid';
 import {
+  MATCH_VFX_PHASE_COUNT,
   activeMatchVfxEmitters,
   matchVfxAgeMs,
+  matchVfxFadeOpacity,
   sampleMatchVfxGeometry,
   type MatchVfxColorRole,
   type PreparedMatchVfxEmitter,
 } from './match-vfx';
 
-export const PROCEDURAL_MATCH_VFX_RENDER_NODE_COUNT = 5 as const;
+/**
+ * Five colours × four age steps. Fixed: a burst fades as it ages, and a path
+ * carries one colour at one opacity, so each colour needs a path per step. The
+ * count does not grow with the number of live emitters, which is the property
+ * that matters — every mark of one colour at one age still batches into one
+ * path.
+ */
+export const PROCEDURAL_MATCH_VFX_RENDER_NODE_COUNT = 20 as const;
 
 interface ProceduralMatchEffectsProps {
   emitters: readonly PreparedMatchVfxEmitter[];
@@ -29,16 +38,23 @@ const ROLE_ORDER: readonly MatchVfxColorRole[] = [
   'gold',
 ];
 
-function buildPaths(
-  props: ProceduralMatchEffectsProps,
-): Readonly<Record<MatchVfxColorRole, SkPath>> {
-  const builders = {
+const AGE_STEPS: readonly number[] = Array.from(
+  { length: MATCH_VFX_PHASE_COUNT },
+  (_unused, step) => step,
+);
+
+type BucketedPaths = readonly Readonly<Record<MatchVfxColorRole, SkPath>>[];
+
+function buildPaths(props: ProceduralMatchEffectsProps): BucketedPaths {
+  // One builder set per age step: same batching as before within a step, and a
+  // step is the unit the fade moves on.
+  const buckets = AGE_STEPS.map(() => ({
     ink: Skia.PathBuilder.Make(),
     cream: Skia.PathBuilder.Make(),
     grass: Skia.PathBuilder.Make(),
     blue: Skia.PathBuilder.Make(),
     gold: Skia.PathBuilder.Make(),
-  };
+  }));
   const pixel = props.scale * props.playerDrawScale;
   for (const emitter of activeMatchVfxEmitters(
     props.emitters,
@@ -54,6 +70,8 @@ function buildPaths(
     const sideY = emitter.direction.x;
     const centerX = emitter.anchor.x * props.scale;
     const centerY = emitter.anchor.y * props.scale;
+    const builders =
+      buckets[Math.min(geometry.ageStep, MATCH_VFX_PHASE_COUNT - 1)]!;
     for (const item of geometry.marks) {
       const width = item.width * pixel;
       const height = item.height * pixel;
@@ -77,13 +95,17 @@ function buildPaths(
       builder.close();
     }
   }
-  return Object.freeze({
-    ink: builders.ink.detach(),
-    cream: builders.cream.detach(),
-    grass: builders.grass.detach(),
-    blue: builders.blue.detach(),
-    gold: builders.gold.detach(),
-  });
+  return Object.freeze(
+    buckets.map((builder) =>
+      Object.freeze({
+        ink: builder.ink.detach(),
+        cream: builder.cream.detach(),
+        grass: builder.grass.detach(),
+        blue: builder.blue.detach(),
+        gold: builder.gold.detach(),
+      }),
+    ),
+  );
 }
 
 export function ProceduralMatchEffects(props: ProceduralMatchEffectsProps) {
@@ -108,14 +130,17 @@ export function ProceduralMatchEffects(props: ProceduralMatchEffectsProps) {
   };
   return (
     <>
-      {ROLE_ORDER.map((role) => (
-        <Path
-          antiAlias={false}
-          color={colors[role]}
-          key={role}
-          path={paths[role]}
-        />
-      ))}
+      {AGE_STEPS.map((step) =>
+        ROLE_ORDER.map((role) => (
+          <Path
+            antiAlias={false}
+            color={colors[role]}
+            key={`${step}:${role}`}
+            opacity={matchVfxFadeOpacity(step)}
+            path={paths[step]![role]}
+          />
+        )),
+      )}
     </>
   );
 }

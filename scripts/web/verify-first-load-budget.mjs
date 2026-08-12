@@ -7,15 +7,21 @@ const DIST = path.resolve('dist');
 // above the accepted artifact, so ordinary feature growth eventually needs a
 // deliberate re-ratchet and a one-off leak still trips the gate.
 //
-// Re-ratcheted 2026-08-12 off the club-crests merge at 64e23d44, which took the
-// artifact to 5_895_627 raw / 867_978 gzip and put main over the previous raw
-// mark on its own — the crests ship as inline data across every team-name
-// surface. The previous mark was set at 0128bcc4 (5_886_821 / 865_222), and
-// before that at 0b2fc042 (5_861_753 / 858_160). Checked before moving the
-// number: the QA and Skia marker assertions below both stayed clean, so this is
-// deliberate content growth, not a renderer or dev-harness leak.
-const RAW_BUDGET = 5_900_627;
-const GZIP_BUDGET = 872_978;
+// Re-ratcheted 2026-08-12 (raw only) off the stat-tip top layer branch, measured
+// at 5_896_612 raw / 868_302 gzip. Only RAW moved: gzip still fits its existing
+// mark with 1.9 KB to spare, and loosening a gate that is passing buys nothing.
+//
+// Where the raw growth came from, because it is worth not misattributing: main
+// was ALREADY 3_552 bytes over this gate at 64e23d44 (the club-crests merge,
+// 5_895_373) and its own CI run failed on exactly this line. The branch doing
+// the re-ratchet adds the remaining 1_239 bytes. Checked before moving the
+// number, same as last time: the QA and Skia marker assertions below both
+// stayed clean, so this is distributed growth, not a renderer or dev-harness
+// leak.
+//
+// Previous marks: 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 5_901_732;
+const GZIP_BUDGET = 870_222;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

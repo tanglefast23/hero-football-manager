@@ -2397,6 +2397,7 @@
     "m2League.matchesCount": "{count} jogos",
     "m2League.nextCupMatch": "Próximo jogo da {cup}",
     "m2League.noneRecordedYetThisSeason": "Ainda sem {metric} nesta temporada",
+    "m2League.opponentStanding": "Divisão {division} Posição {rank}",
     "m2League.outcome.advanced": "Avançou",
     "m2League.outcome.bye": "Folga",
     "m2League.outcome.champion": "Campeão",
