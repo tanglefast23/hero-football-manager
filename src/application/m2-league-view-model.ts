@@ -2,7 +2,11 @@ import {
   CUP_SETTLEMENT_WEEKS,
   isDivisionLeadersUnlocked,
 } from '../game/career';
-import { currentUserDivision, type M2CareerState } from '../game/m2-career';
+import {
+  currentUserDivision,
+  deterministicM2FinishOrders,
+  type M2CareerState,
+} from '../game/m2-career';
 import type {
   DivisionLevel,
   NationalCup,
@@ -354,6 +358,8 @@ function cupViewModel(
     currentRound,
     source,
     clubNames,
+    currentClubDivisions,
+    clubStandings(source),
     t,
   );
 
@@ -405,13 +411,53 @@ function cupViewModel(
   };
 }
 
+/**
+ * Every club's position in its own division, keyed by club id.
+ *
+ * The user's tier is the played table. The other four are not simulated week by
+ * week, so their order is the same deterministic one the game itself resolves
+ * them with at season end — not a number invented for this label.
+ */
+function clubStandings(
+  source: M2LeagueViewModelSource,
+): ReadonlyMap<string, number> {
+  const activeOrderedClubIds = source.activeStandings
+    .slice()
+    .sort((left, right) => left.position - right.position)
+    .map((standing) => standing.clubId);
+  const finishOrders = deterministicM2FinishOrders(
+    source.career,
+    source.season,
+    currentUserDivision(source.career),
+    activeOrderedClubIds,
+  );
+  return new Map(
+    finishOrders.flatMap((order) =>
+      order.orderedClubIds.map((clubId, index) => [clubId, index + 1] as const),
+    ),
+  );
+}
+
 function nextCupMatch(
   cup: NationalCup,
   currentRound: NationalCupRound,
   source: M2LeagueViewModelSource,
   clubNames: ReadonlyMap<string, string>,
+  clubDivisions: ReadonlyMap<string, DivisionLevel>,
+  clubPositions: ReadonlyMap<string, number>,
   t: CopyFn,
 ): NonNullable<M2NationalCupViewModel['nextMatch']> | undefined {
+  const standingLabel = (clubId: string): { opponentStandingLabel: string } | undefined => {
+    const division = clubDivisions.get(clubId);
+    const position = clubPositions.get(clubId);
+    if (division === undefined || position === undefined) return undefined;
+    return {
+      opponentStandingLabel: t('m2League.opponentStanding', {
+        division,
+        rank: position,
+      }),
+    };
+  };
   if (cup.season !== source.season || cup.championClubId !== undefined)
     return undefined;
 
@@ -432,6 +478,7 @@ function nextCupMatch(
       roundLabel: cupRoundLabel(currentRound.label, t),
       opponentName: requireClubName(clubNames, opponentId),
       venue: userIsHome ? 'HOME' : 'AWAY',
+      ...standingLabel(opponentId),
     };
   }
 

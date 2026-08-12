@@ -2397,6 +2397,7 @@
     "m2League.matchesCount": "{count} trận",
     "m2League.nextCupMatch": "Trận {cup} tiếp theo",
     "m2League.noneRecordedYetThisSeason": "Chưa có {metric} mùa này",
+    "m2League.opponentStanding": "Hạng {division} Bậc {rank}",
     "m2League.outcome.advanced": "Đi tiếp",
     "m2League.outcome.bye": "Miễn",
     "m2League.outcome.champion": "Vô địch",
