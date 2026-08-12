@@ -2853,17 +2853,42 @@ export function MatchScreen({
     });
     setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
   };
+  /**
+   * Records a coaching decision, or reports that the engine refused it.
+   *
+   * The three coaching controls are disabled from `coachingDisabled`, which is
+   * computed at render time — while the engine refuses inputs the moment its
+   * own state says the match is over. The RAF loop and the press handlers share
+   * one thread, so a press landing in the frame between the tick that reached
+   * full time and the re-render that greys the control reaches an engine that
+   * has already closed. That throw used to be impossible and is now the normal
+   * refusal, so it is caught here rather than taking the match screen down at
+   * the final whistle — the one moment a manager is still poking at these.
+   *
+   * The banner is only flashed on success: announcing a change the engine
+   * refused would be a lie printed over the closing match.
+   */
+  const recordCoachingInput = (input: MatchInput): boolean => {
+    try {
+      queueInput(match, input);
+      return true;
+    } catch (error) {
+      console.warn('MatchScreen: the engine refused a coaching input', error);
+      return false;
+    }
+  };
   // Re-picking what is already selected is not a coaching decision: it would
   // record a redundant replay input and flash a banner announcing no change.
   // Compared against the DISPLAYED value, so a second tap landing before the
   // queued input applies is caught too.
   const selectFormation = (formation: FormationId) => {
     if (formation === displayedFormation) return;
-    queueInput(match, {
+    const recorded = recordCoachingInput({
       tick: match.tick + 1,
       kind: 'SET_FORMATION',
       formation,
     });
+    if (!recorded) return;
     pushInputBanner(
       `formation-input:${match.tick}`,
       `${formation} · ${t(`formation.${formation}.blurb`).toUpperCase()}`,
@@ -2872,11 +2897,12 @@ export function MatchScreen({
   };
   const selectMentality = (mentality: Mentality) => {
     if (mentality === displayedMentality) return;
-    queueInput(match, {
+    const recorded = recordCoachingInput({
       tick: match.tick + 1,
       kind: 'SET_MENTALITY',
       mentality,
     });
+    if (!recorded) return;
     pushInputBanner(
       `mentality-input:${match.tick}`,
       `${t('matchScreen.playstyle')} · ${mentalityLabel(mentality, t)}`,
@@ -2885,11 +2911,12 @@ export function MatchScreen({
   };
   const selectEnergyUse = (mode: EnergyUse) => {
     if (mode === displayedEnergyUse) return;
-    queueInput(match, {
+    const recorded = recordCoachingInput({
       tick: match.tick + 1,
       kind: 'SET_ENERGY_USE',
       energyUse: mode,
     });
+    if (!recorded) return;
     pushInputBanner(
       `energy-input:${match.tick}`,
       `${t('matchScreen.energyUse')} · ${energyUseLabel(mode, t)}`,

@@ -115,3 +115,59 @@ describe('created outfield player point-buy', () => {
     ).toThrow('name');
   });
 });
+
+describe('typed names are held to what the shipped pixel face can draw', () => {
+  const draft = (name: string) => ({
+    name,
+    ratings: DEFAULT_CREATION_RATINGS,
+  });
+
+  it('accepts the alphabets the face carries', () => {
+    // Latin-1 and the hand-built Vietnamese set are IN the face, so these must
+    // keep working — a rule that only allowed ASCII would break six locales'
+    // own keyboards to fix two.
+    for (const name of [
+      'Jo Rook',
+      "Seán O'Neill-Vega",
+      'Ægir Þórsson',
+      'Nguyễn Quang Hải',
+      'Renée Müller',
+      'Player 7',
+    ]) {
+      expect(validateCreatedPlayerDraft(draft(name)).name).toBe(name);
+    }
+  });
+
+  it('rejects everything the face would render as a tofu box', () => {
+    // Each of these was ACCEPTED before, and drew as an empty box on the league
+    // table, the scoreboard, the squad register and the match HUD, in all seven
+    // languages. U+202E is here on its own account: it is not a glyph at all,
+    // it reverses every character drawn after it.
+    for (const name of [
+      'Łukasz Piszczek', // Ł
+      'Ünder Çalhanoğlu', // ğ
+      'Ολυμπιακός', // Greek
+      'Зенит', // Cyrillic
+      '中村俊輔', // CJK
+      '🏆 FC', // emoji
+      'Bob‮htim S', // RIGHT-TO-LEFT OVERRIDE
+      'Mr {count}', // braces knock translated lines back to English
+    ]) {
+      expect(() => validateCreatedPlayerDraft(draft(name))).toThrow(
+        'cannot display',
+      );
+    }
+  });
+
+  it('holds club and squad renames to the same rule', () => {
+    expect(() =>
+      validateCreatedPlayerDraft({ ...draft('Jo Rook'), clubName: 'Зенит' }),
+    ).toThrow('cannot display');
+    expect(() =>
+      validateCreatedPlayerDraft({
+        ...draft('Jo Rook'),
+        rosterNames: { 'club-p1': '🏆' },
+      }),
+    ).toThrow('cannot display');
+  });
+});

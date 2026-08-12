@@ -154,8 +154,11 @@ describe('M2 player-specific instant training growth', () => {
 
   test('allows gains through 99 and stops only at the universal 999 ceiling', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90213) });
+    // Outfielders: SHO is inert for a keeper, and the drill now refuses to take
+    // TP for a stat the match engine never reads for that role.
     const roster = initial.players.filter(
-      (player) => player.clubId === initial.userClubId,
+      (player) =>
+        player.clubId === initial.userClubId && player.role !== 'GK',
     );
     const state = {
       ...initial,

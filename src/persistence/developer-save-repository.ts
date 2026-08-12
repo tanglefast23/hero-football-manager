@@ -35,7 +35,7 @@ const UPSERT_SQL = `
     saved_career_seed, save_sequence
   )
   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  ON CONFLICT(slot) DO UPDATE SET
+  ON CONFLICT(saved_career_seed, slot) DO UPDATE SET
     kind = excluded.kind,
     schema_version = excluded.schema_version,
     state_json = excluded.state_json,

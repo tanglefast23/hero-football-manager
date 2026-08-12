@@ -149,6 +149,31 @@ describe('contributionsFrom', () => {
     expect(rows).toContainEqual(row('sub1', { goals: 1 }));
   });
 
+  it('credits the shooter when the ball crossed after his replacement came on', () => {
+    // Seed 23: struck at tick 135, substitution at 136, ball across at 144. The
+    // slot walk only sees where the ball ENDED, so the goal went to a man who
+    // was on the bench when it was hit. Engine m2.2 stamps the shooter's id at
+    // the strike, and the top-scorer table is built from these rows.
+    const rows = contributionsFrom(
+      matchWith(
+        [
+          {
+            t: 136,
+            kind: 'SUBSTITUTION',
+            player: 9,
+            outPlayerId: 'p9',
+            inPlayerId: 'sub1',
+            team: 0,
+          },
+          { t: 144, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' },
+        ],
+        SLOTS.map((id, slot) => (slot === 9 ? 'sub1' : id)),
+      ),
+    );
+    expect(rows).toContainEqual(row('p9', { goals: 1 }));
+    expect(rows.find((candidate) => candidate.playerId === 'sub1')).toBeUndefined();
+  });
+
   /**
    * A Decoy clone is entity 22 or 23 and owns no lineup slot, so its tackles
    * and passes used to be looked up under an index nobody holds and dropped.

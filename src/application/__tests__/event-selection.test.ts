@@ -307,4 +307,42 @@ describe('M4 event selection', () => {
       eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId,
     ).toBe(repeatable.id);
   });
+  /**
+   * The deck's order decides which story a seeded career fires, so the
+   * comparator has to be one the language pins. `localeCompare` reads the JS
+   * engine's own collation table — Hermes on device need not agree with V8
+   * under Jest — which is the exact hazard `src/game/ordering.ts` documents and
+   * forbids. Every shipped id happens to sort the same under both today; these
+   * two do not, so the draw moves the moment the comparator does.
+   */
+  it('orders the deck by code unit, not by the host engine collation', () => {
+    const initial = createCareer(createLaunchCareerSetup(4_242));
+    const state = {
+      ...initial,
+      season: 2,
+      week: 12,
+      phase: 'manage' as const,
+      eventClock: { weeksWithoutEvent: 8, riskyChoices: 0 },
+    };
+    const eligible = content.events
+      .filter((event) => eventIsEligible(state, event))
+      .slice(0, 2);
+    expect(eligible).toHaveLength(2);
+    // 'A-story' < 'a-story' by UTF-16 code unit; ICU collation puts the
+    // lowercase first. Same rarity, so the two weights are equal, the draw
+    // lands on a fixed slot, and the two orderings put a different id in it:
+    // this seed reads slot 1, which is 'a-story' here and 'A-story' under
+    // `localeCompare`.
+    const [upper, lower] = eligible;
+    const twoEvents = {
+      ...content,
+      events: [
+        { ...lower, id: 'a-story', rarity: upper.rarity },
+        { ...upper, id: 'A-story' },
+      ],
+    };
+
+    expect(eventOfferForWeek(state, twoEvents, { deskClear: true }).eventId)
+      .toBe('a-story');
+  });
 });

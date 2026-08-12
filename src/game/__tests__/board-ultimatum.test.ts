@@ -9,9 +9,15 @@ import {
   createBoardUltimatum,
   protectBoardUltimatumPlayer,
 } from '../board-ultimatum';
-import { createCareer } from '../career';
+import {
+  activeCareerMatchday,
+  advanceWeek,
+  completeMatchday,
+  createCareer,
+} from '../career';
 import { buildCareerTeamDef } from '../squad';
 import type { FacilityGridState, PlacedFacility } from '../facilities';
+import type { GameState } from '../types';
 
 function career(seed: number) {
   return createCareer(createLaunchCareerSetup(seed));
@@ -352,5 +358,121 @@ describe('board ultimatum domain', () => {
     expect(clearedSafety).toMatchObject({
       latestBoardResolution: { kind: 'TARGET_MET', targetCash: 1_000 },
     });
+  });
+});
+
+/**
+ * The deadline arrives and the board cannot sell anyone.
+ *
+ * Two ways to get there: nobody is eligible at all (a squad trimmed to the
+ * starting eleven, reachable by releasing expired substitutes at season end),
+ * or the list is fine but no rival club can afford the quoted fee.
+ */
+describe('board ultimatum deadline with no completable sale', () => {
+  function collapsingCareer(seed: number, cash: number): GameState {
+    const state = career(seed);
+    const ultimatum = createBoardUltimatum(state)!;
+    return {
+      ...state,
+      clubs: state.clubs.map((club) =>
+        club.id === state.userClubId ? { ...club, cash } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        facilityConversionUsed: true,
+        boardUltimatum: { ...ultimatum, weeksRemaining: 1 },
+      },
+    };
+  }
+
+  /** Only the starting eleven remains, so nobody can leave without breaking it. */
+  function trimmedToStartingEleven(state: GameState): GameState {
+    const lineup = state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+    const keep = new Set(lineup.playerIds);
+    const dropped = state.players.filter(
+      (player) => player.clubId === state.userClubId && !keep.has(player.id),
+    );
+    return {
+      ...state,
+      players: state.players.filter(
+        (player) => player.clubId !== state.userClubId || keep.has(player.id),
+      ),
+      clubs: state.clubs.map((club) =>
+        club.id === state.userClubId
+          ? {
+              ...club,
+              weeklyWages: dropped.reduce(
+                (total, player) => total - player.weeklyWage,
+                club.weeklyWages,
+              ),
+            }
+          : club,
+      ),
+    };
+  }
+
+  function settle(state: GameState): GameState {
+    let next = advanceWeek(state);
+    while (next.phase === 'matchday') {
+      const matchday = activeCareerMatchday(next)!;
+      next = completeMatchday(
+        next,
+        matchday.fixtures.map((fixture) => ({
+          fixtureId: fixture.id,
+          homeGoals: 0,
+          awayGoals: 2,
+        })),
+      );
+    }
+    return next;
+  }
+
+  test('drops a threat it can never carry out instead of parking it at one week forever', () => {
+    let state = trimmedToStartingEleven(collapsingCareer(31_337, -12_000));
+    expect(createBoardUltimatum(state)).toBeUndefined();
+
+    const seen: (string | undefined)[] = [];
+    for (let week = 0; week < 12; week += 1) {
+      state = settle(state);
+      if (state.phase === 'season-end') break;
+      seen.push(state.financialSafety?.boardUltimatum?.id);
+    }
+
+    // Every settlement, not just the first: the ultimatum must not come back
+    // while the squad still cannot supply a list.
+    expect(seen.length).toBeGreaterThan(5);
+    expect(seen.filter((id) => id !== undefined)).toEqual([]);
+    // Fail-soft, not game over — the club keeps playing and the floor carries it.
+    expect(state.players.filter((player) => player.clubId === state.userClubId))
+      .toHaveLength(11);
+  });
+
+  test('mints a fresh id for each refreshed round instead of appending to the old one', () => {
+    // No rival can afford anyone, so a sale is quoted and never completes.
+    let state = collapsingCareer(31_337, -12_000);
+    state = {
+      ...state,
+      clubs: state.clubs.map((club) =>
+        club.id === state.userClubId ? club : { ...club, cash: 0 },
+      ),
+    };
+
+    const ids: string[] = [];
+    for (let week = 0; week < 16; week += 1) {
+      state = settle(state);
+      if (state.phase === 'season-end') break;
+      const id = state.financialSafety?.boardUltimatum?.id;
+      if (id !== undefined && ids[ids.length - 1] !== id) ids.push(id);
+    }
+
+    expect(ids.length).toBeGreaterThan(1);
+    for (const id of ids) {
+      expect(id).toMatch(/^board-ultimatum-s\d+-w\d+$/);
+    }
+    // The bug: 22 -> 40 -> 58 -> 76 characters in sixteen weeks.
+    expect(Math.max(...ids.map((id) => id.length))).toBeLessThan(30);
   });
 });

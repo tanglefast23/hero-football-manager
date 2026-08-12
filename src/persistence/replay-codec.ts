@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
 import type { ReplayEnvelope } from '../sim/types';
-import { validateEnvelope } from '../sim/match';
+import { ENGINE_VERSION, validateEnvelope } from '../sim/match';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
 import {
   CorruptReplayEnvelopeError,
   InvalidReplayEnvelopeError,
+  UnsupportedReplayEngineError,
   UnsupportedReplaySchemaError,
 } from './errors';
 
@@ -246,6 +247,18 @@ export function parseStoredReplayEnvelope(serialized: string): ReplayEnvelope {
     throw new CorruptReplayEnvelopeError(formatIssues(validation.error.issues));
   }
   const envelope = validation.data as ReplayEnvelope;
+  // Refused here rather than at replay time. An envelope taped by another
+  // engine version is not corrupt, but replaying it desyncs silently: the
+  // stored inputs consume the PRNG differently, so the match simply plays out
+  // wrong instead of failing. `runReplay` makes the same comparison; making it
+  // here means nothing can hand an unusable envelope to a caller in the first
+  // place.
+  if (envelope.engineVersion !== ENGINE_VERSION) {
+    throw new UnsupportedReplayEngineError(
+      envelope.engineVersion,
+      ENGINE_VERSION,
+    );
+  }
   assertEngineValid(envelope, true);
   return envelope;
 }

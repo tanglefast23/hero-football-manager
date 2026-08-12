@@ -27,6 +27,9 @@ import type {
   TeamDef,
 } from './types';
 
+// m2.2 stamps the shooter's stable id on the ball and puts it on the GOAL event
+// as scoredById, so a substitution landing inside a shot's ~9-tick flight can no
+// longer steal the goal from the man who struck it.
 // m2.1 rates automatic-substitution replacements at their real entry condition
 // with a freshness floor (no more kickoff cascades through a tired bench),
 // feeds replay inputs incrementally so a recorded substitute-of-a-substitute
@@ -46,7 +49,7 @@ import type {
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.1';
+export const ENGINE_VERSION = 'm2.2';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -153,6 +156,11 @@ export function createMatch(
 ): MatchState {
   validateTeamDef(home, 'home team');
   validateTeamDef(away, 'away team');
+  // validateTeamDef only sees one squad, but the engine treats a player id as
+  // globally unique: observePossession compares the holder's id against
+  // state.ballHolderId to notice a turnover, so a shared id makes a change of
+  // possession invisible and leaves ballHolderTeam naming the wrong side.
+  requireDistinctSquadIds(home, away);
   const optsCopy: MatchOpts = { ...opts }; // detach from caller's opts object, same reasoning as deepCopyTeam below
   const teams: [TeamDef, TeamDef] = [deepCopyTeam(home), deepCopyTeam(away)];
   const state: MatchState = {
@@ -207,7 +215,30 @@ export function createMatch(
   return state;
 }
 
+function requireDistinctSquadIds(home: TeamDef, away: TeamDef): void {
+  const homeIds = new Set(
+    [...home.players, ...(home.bench ?? [])].map((p) => p.id),
+  );
+  for (const p of [...away.players, ...(away.bench ?? [])]) {
+    if (homeIds.has(p.id)) {
+      throw new Error(
+        `home and away squads share player id ${p.id}; player IDs must be unique across both teams`,
+      );
+    }
+  }
+}
+
 export function queueInput(state: MatchState, input: MatchInput): void {
+  // The match is over: tick() returns immediately at fulltime, so anything
+  // queued here would be recorded in the replay log and never simulated.
+  if (state.phase === 'fulltime') {
+    throw new Error('the match is over — no further inputs can be recorded');
+  }
+  if (state.inputLog.length >= MAX_REPLAY_INPUTS) {
+    throw new Error(
+      `input log is full (${MAX_REPLAY_INPUTS} max) — a longer log cannot be serialized as a replay`,
+    );
+  }
   if (input.tick <= state.tick) {
     throw new Error(
       `input stamped for tick ${input.tick} but match is at tick ${state.tick} — inputs must be future-stamped`,
@@ -483,6 +514,14 @@ function serializeReplayOpts(opts: MatchOpts): MatchOpts {
 }
 
 export function envelopeFrom(state: MatchState): ReplayEnvelope {
+  // serializeReplayOpts deliberately drops blindAutoHome, so an envelope taken
+  // from a blind-auto match replays as a DIFFERENT match while every
+  // determinism assertion still passes. Refuse to hand out that lie.
+  if (state.blindAutoHome) {
+    throw new Error(
+      'a blindAutoHome match has no replay — the test-only flag is not serialized, so the envelope would replay a different match',
+    );
+  }
   return {
     schemaVersion: 1,
     engineVersion: ENGINE_VERSION,

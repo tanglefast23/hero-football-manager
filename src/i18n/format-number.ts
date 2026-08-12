@@ -17,9 +17,20 @@ export function formatInteger(
   value: number,
   signed = false,
 ): string {
+  // The loop below groups every three CHARACTERS of `String(...)`, which is
+  // digit grouping only while the string is all digits. `Infinity` came out as
+  // "In,fin,ity", `NaN` survived by luck at three characters, and 1e21 — where
+  // `String()` switches to exponential — became "1e,+21", in every locale, with
+  // `formatMoney` wrapping it as "+$In,fin,ity". No shipped path reaches a
+  // non-finite money value; this keeps it that way rather than putting out a
+  // fire.
+  if (!Number.isFinite(value)) return signed && value > 0 ? '+0' : '0';
   const truncated = Math.trunc(value);
   const negative = truncated < 0;
   const digits = String(Math.abs(truncated));
+  if (!/^\d+$/.test(digits)) {
+    return negative ? `-${digits}` : signed ? `+${digits}` : digits;
+  }
   const separator = localeMeta(locale).groupSeparator;
 
   let grouped = '';

@@ -292,6 +292,33 @@ export async function createPreferencesRepository(
   database: PersistenceDatabase,
 ): Promise<PreferencesRepository> {
   await migrateDatabase(database);
+
+  /**
+   * Stores a migrated row so the next launch skips the ladder — best effort,
+   * on purpose.
+   *
+   * The migration has already produced a valid `AppPreferences` in memory. If
+   * the rewrite is allowed to throw, it escapes `load()`, and
+   * `loadPreferencesFailSoft` cannot tell a refused write from an unreadable
+   * row: it answers with defaults and the player loses their language, high
+   * contrast, text scale and volume — while the good row sits untouched on
+   * disk. A swallowed failure costs one retry next launch instead.
+   */
+  async function persistMigrated(
+    migrated: AppPreferences,
+  ): Promise<AppPreferences> {
+    try {
+      await database.runAsync(UPSERT_SQL, [
+        PRIMARY_SLOT,
+        PREFERENCES_SCHEMA_VERSION,
+        JSON.stringify(migrated),
+      ]);
+    } catch {
+      // Keep the settings this build just read perfectly well.
+    }
+    return migrated;
+  }
+
   return {
     async load() {
       const row = await database.getFirstAsync<StoredPreferencesRow>(LOAD_SQL, [
@@ -328,12 +355,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === M2_PREFERENCES_SCHEMA_VERSION) {
         const legacy = M2PreferencesSchema.safeParse(decoded);
@@ -359,12 +381,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === M4_PREFERENCES_SCHEMA_VERSION) {
         const legacy = M4PreferencesSchema.safeParse(decoded);
@@ -385,12 +402,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === CUT_IN_HISTORY_PREFERENCES_SCHEMA_VERSION) {
         const legacy = CutInHistoryPreferencesSchema.safeParse(decoded);
@@ -411,12 +423,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION) {
         const legacy = ManagerTipsPreferencesSchema.safeParse(decoded);
@@ -438,12 +445,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === AUTO_SUBS_PREFERENCES_SCHEMA_VERSION) {
         const legacy = AutoSubsPreferencesSchema.safeParse(decoded);
@@ -464,12 +466,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === SQUAD_SORT_PREFERENCES_SCHEMA_VERSION) {
         const legacy = SquadSortPreferencesSchema.safeParse(decoded);
@@ -493,12 +490,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION) {
         const legacy = ClimbCompletedPreferencesSchema.safeParse(decoded);
@@ -520,12 +512,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version === DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION) {
         const legacy = V9PreferencesSchema.safeParse(decoded);
@@ -546,12 +533,7 @@ export async function createPreferencesRepository(
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
           performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
-        await database.runAsync(UPSERT_SQL, [
-          PRIMARY_SLOT,
-          PREFERENCES_SCHEMA_VERSION,
-          JSON.stringify(migrated),
-        ]);
-        return migrated;
+        return persistMigrated(migrated);
       }
       if (row.schema_version !== PREFERENCES_SCHEMA_VERSION) {
         throw new Error('Saved settings use an unsupported or corrupt format.');

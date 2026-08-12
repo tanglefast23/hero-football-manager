@@ -11,9 +11,11 @@ import {
   buildTrainingGround,
   releaseCareerPlayer,
   renewCareerPlayer,
+  repairCareerLineupForInjuries,
   selectCareerLicensedHeroes,
   setCareerLineup,
   swapCareerLineupPlayer,
+  tryRepairCareerLineupForInjuries,
 } from '../squad';
 import { trainPlayerInstantly } from '../training';
 import {
@@ -538,5 +540,43 @@ describe('career squad integration', () => {
     const released = releaseCareerPlayer(onlyKeeperExpired, keeperId);
 
     expect(startNextSeason(released).season).toBe(2);
+  });
+
+  it('calls up an emergency keeper rather than dead-ending the week', () => {
+    // Weekly settlement and match day both repair the lineup, so an outage the
+    // bench cannot cover used to throw on Advance Week AND Play Match — an
+    // unrecoverable save in a game that promises warnings and a forced sale but
+    // never a game over. Unreachable through the shipped content today; the
+    // guard is here because `applyPlayerEffect` already implements injuryWeeks
+    // and one authored event would open it.
+    const keeperId = `${CLUB_IDS[0]}-p0`;
+    const initial = career();
+    const noKeeper: GameState = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === keeperId ? { ...player, injuryWeeks: 4 } : player,
+      ),
+    };
+
+    // Nothing on the books can cover it: the honest answer is still "no".
+    expect(tryRepairCareerLineupForInjuries(noKeeper)).toBeUndefined();
+
+    const repaired = repairCareerLineupForInjuries(noKeeper);
+    const lineup = repaired.lineups.find((l) => l.clubId === CLUB_IDS[0])!;
+    const relief = repaired.players.find((p) => p.id === lineup.playerIds[0])!;
+
+    expect(relief.id).not.toBe(keeperId);
+    expect(relief.role).toBe('GK');
+    expect(relief.injuryWeeks).toBe(0);
+    expect(() => buildCareerTeamDef(repaired, CLUB_IDS[0])).not.toThrow();
+    // The wage bill still agrees with the roster it pays.
+    expect(
+      repaired.clubs.find((c) => c.id === CLUB_IDS[0])!.weeklyWages,
+    ).toBe(
+      initial.clubs.find((c) => c.id === CLUB_IDS[0])!.weeklyWages +
+        relief.weeklyWage,
+    );
+    // The two entry points that used to brick the save.
+    expect(() => advanceWeek(noKeeper)).not.toThrow();
   });
 });

@@ -40,6 +40,25 @@ describe('committing taps are guarded', () => {
     );
   });
 
+  it('guards the one shared sheet every club decision commits through', () => {
+    // Hire, sign, release, sell and license-and-swap all commit through this
+    // button. The caller clears `pendingConfirmation` with a useState write, so
+    // two presses in the same batch both saw a live confirmation and ran the
+    // action twice — the second one surfacing an internal id in the error
+    // banner ("unknown coach candidate coach-s1-mateo-silva") during the week-1
+    // tutorial. It was the only one of the four commit surfaces with no guard.
+    const sheet = read('src/ui/components/ConfirmationSheet.tsx');
+    expect(sheet).toContainSource(
+      "import { useTapGuard } from '../use-tap-guard';",
+    );
+    expect(sheet).toContainSource('const guardTap = useTapGuard();');
+    expect(sheet).toContainSource('guardTap(() => {');
+    expect(sheet).toContainSource('}, [guardTap, onConfirm]);');
+    // The cancel path stays unguarded: backing out twice is harmless, and a
+    // swallowed cancel is a manager stuck in a dialog they asked to leave.
+    expect(sheet).toContainSource('const cancel = useCallback(() => {\n    confirmedRef.current = false;\n    onCancel();');
+  });
+
   it('re-arms the match-day hand-off when the store refuses it', () => {
     const source = read('src/ui/screens/FixtureMatchDayScreen.tsx');
 
@@ -74,6 +93,10 @@ describe('committing taps are guarded', () => {
   });
 
   it('keeps the last-resort database reset from failing in silence', () => {
-    expect(read('App.tsx')).toContainSource('The save could not be deleted.');
+    // The sentence moved out of App.tsx and into the store's copy catalog, so
+    // this follows the behaviour rather than the file that used to hold it.
+    expect(read('src/application/store.ts')).toContainSource(
+      "t('store.saveDeleteFailed', {",
+    );
   });
 });

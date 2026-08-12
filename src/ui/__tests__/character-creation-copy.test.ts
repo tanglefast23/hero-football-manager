@@ -228,6 +228,15 @@ describe('first-hire screen copy', () => {
       'document.getElementById(NAME_FIELD_ID)?.focus({ preventScroll: true })',
     );
   });
+
+  it('shows the blocked commit as blocked instead of fully live', () => {
+    // The button must stay pressable — the press is what raises the reason it
+    // is blocked — but it kept its full-strength blue while it could not
+    // proceed, so managers tapped it again and again waiting for something.
+    expect(source).toContainSource('visuallyDisabled={!canSubmit}');
+    expect(source).not.toContainSource('disabled={!canSubmit}');
+    expect(source).toContainSource('if (!canSubmit) {\n            setSubmitAttempted(true);');
+  });
 });
 
 describe('roster rename sheet', () => {

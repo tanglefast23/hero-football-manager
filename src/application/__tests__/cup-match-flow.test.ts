@@ -368,6 +368,15 @@ function emptyCareerRepository(
   };
 }
 
+/**
+ * A GENUINE cross-division play-in tie.
+ *
+ * The user is redrawn against a club that really plays `divisionGap` tiers up,
+ * swapping the two clubs' fixtures so every entrant still appears exactly once.
+ * Relabelling the same-division draw opponent in `seedDivisionByClubId` — what
+ * this used to do — left the club inside `state.clubs`, which is the one thing
+ * a real cross-division opponent is never in.
+ */
 function prepareCupTie(
   divisionGap: 1 | 2,
   winner: 'user' | 'opponent' = 'user',
@@ -385,10 +394,16 @@ function prepareCupTie(
       candidate.awayClubId === career.userClubId,
   );
   if (fixture === undefined) throw new Error('expected a user play-in fixture');
-  const opponentClubId =
+  const drawnOpponentId =
     fixture.homeClubId === career.userClubId
       ? fixture.awayClubId
       : fixture.homeClubId;
+  const opponentDivision = (5 - divisionGap) as 3 | 4;
+  const opponentClubId = career.m2!.pyramid.divisions
+    .find((division) => division.level === opponentDivision)!
+    .clubs.find(
+      (club) => cup.seedDivisionByClubId![club.id] === opponentDivision,
+    )!.id;
   const strong = {
     pac: 999,
     sho: 999,
@@ -412,13 +427,29 @@ function prepareCupTie(
   // merely favoured — penalties would otherwise decide it.
   const dominant = winner === 'user' ? strong : weak;
   const overmatched = winner === 'user' ? weak : strong;
+  // Straight swap: the user faces the higher-division club, and the club the
+  // user was drawn against inherits that club's tie. No entrant is duplicated.
+  const swapClub = (clubId: string) =>
+    clubId === drawnOpponentId
+      ? opponentClubId
+      : clubId === opponentClubId
+        ? drawnOpponentId
+        : clubId;
   const nextCup = {
     ...cup,
-    seedDivisionByClubId: {
-      ...cup.seedDivisionByClubId,
-      [career.userClubId]: 5 as const,
-      [opponentClubId]: (5 - divisionGap) as 3 | 4,
-    },
+    rounds: cup.rounds.map((round, roundIndex) =>
+      roundIndex !== 0
+        ? round
+        : {
+            ...round,
+            fixtures: round.fixtures.map((candidate) => ({
+              ...candidate,
+              homeClubId: swapClub(candidate.homeClubId),
+              awayClubId: swapClub(candidate.awayClubId),
+            })),
+            byeClubIds: round.byeClubIds.map(swapClub),
+          },
+    ),
   };
   const prepared = withRivalHeroIntrosSeen({
     ...career,

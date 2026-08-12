@@ -59,9 +59,12 @@ export function contributionsFrom(
   for (let index = match.events.length - 1; index >= 0; index -= 1) {
     const event = match.events[index];
     if (event.kind === 'GOAL') {
-      // `shot.by` is pre-attributed by the engine, so a clone's goal already
-      // names its source slot and must not be resolved a second time.
-      const scorer = slotOwners.get(event.by);
+      // From engine m2.2 the shooter's own id is stamped when the shot is
+      // STRUCK, so a substitution made while the ball was in the air can no
+      // longer steal the goal. `shot.by` is pre-attributed by the engine, so a
+      // clone's goal already names its source slot and must not be resolved a
+      // second time — that still governs the pre-m2.2 fallback below.
+      const scorer = event.scoredById ?? slotOwners.get(event.by);
       if (scorer !== undefined) bump(scorer, 'goals');
       if (event.assistedById !== undefined) bump(event.assistedById, 'assists');
     } else if (event.kind === 'SAVE') {

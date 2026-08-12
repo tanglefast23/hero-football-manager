@@ -32,6 +32,44 @@ export function formatCurrency(
   return formatMoneyForCopy(t, value, signed);
 }
 
+/** Top-bar numerals: grouped under 10k, then k / M so three chips fit one row. */
+export function formatCompactHudNumber(t: CopyFn, value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000)
+    return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (abs >= 10_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  return formatCompactNumber(t, value);
+}
+
+export interface HudMoneyChip {
+  /** The currency mark, in the chip's pixel face. */
+  readonly glyph: string;
+  /** The figure, in the chip's data face. */
+  readonly amount: string;
+}
+
+/**
+ * The HUD money chip, split into the two Text nodes it paints in two faces.
+ *
+ * The mark and the figure being separate nodes is exactly how a negative
+ * balance came out as `$-3,178`: the sign rode the figure, so it landed on the
+ * wrong side of the mark. The chip's own accessibilityLabel — built from
+ * `formatCurrency` — has always said `-$3,178`, and this makes the painted
+ * string agree with the spoken one.
+ */
+export function compactHudMoney(
+  t: CopyFn,
+  mark: string,
+  value: number,
+): HudMoneyChip {
+  const negative = value < 0;
+  return {
+    // ASCII hyphen, matching formatMoney: Silkscreen has no true-minus glyph.
+    glyph: negative ? `-${mark}` : mark,
+    amount: formatCompactHudNumber(t, Math.abs(value)),
+  };
+}
+
 export interface PaperPanelProps {
   children: ReactNode;
   title?: string;

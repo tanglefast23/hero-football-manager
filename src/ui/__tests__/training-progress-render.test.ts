@@ -47,7 +47,7 @@ describe('training stat option rendering', () => {
     expect(source).toContainSource(
       'const unaffordable = !blocked && !option.affordable;',
     );
-    expect(source).toContainSource("title: 'Not enough TP'");
+    expect(source).toContainSource("title: t('trainingDrill.notEnoughTp')");
     expect(source).toContainSource('setNotice(null)');
     // Greyed the same either way.
     expect(source).toContainSource('className={disabled || unaffordable');

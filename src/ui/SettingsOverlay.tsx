@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { PanResponder, ScrollView, Text, View } from 'react-native';
+import { PanResponder, Platform, ScrollView, Text, View } from 'react-native';
 import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { ActionButton } from './components/Scorecard';
 import { SfxPressable as Pressable } from './components/SfxPressable';
@@ -304,6 +304,7 @@ export function SettingsOverlay({
           accessible={false}
           accessibilityViewIsModal
           importantForAccessibility="yes"
+          {...webSettingsDialogProps(t('settings.title'))}
           className={
             subPageOpen
               ? 'w-full max-w-lg border-2 border-b-4 border-ink bg-paper p-5'
@@ -671,4 +672,19 @@ export function SettingsOverlay({
       </View>
     </Modal>
   );
+}
+
+/**
+ * The dialog boundary, for the half of the platforms that need it spelled out.
+ *
+ * The overlay already blocks the page correctly — CrossPlatformModal marks the
+ * app root `inert` and `aria-hidden`, so background focus and pointer input are
+ * both refused. What it never announced was what the thing in front IS: with no
+ * `role`, a screen reader read the panel as an anonymous group rather than a
+ * dialog, and there was no accessible name to read either. Native owns its own
+ * modal boundary through `accessibilityViewIsModal`.
+ */
+function webSettingsDialogProps(title: string): object {
+  if (Platform.OS !== 'web') return {};
+  return { role: 'dialog', 'aria-modal': true, 'aria-label': title };
 }

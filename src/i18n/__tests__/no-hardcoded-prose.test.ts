@@ -41,3 +41,36 @@ test('the scanner rejects new visible source prose', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a callback prop does not exempt the prose inside it', () => {
+  // The hole this gate shipped with, and the one that hid every confirmation
+  // dialog in the game. `onPress` is not a render prop, so the whitelist check
+  // used to skip the WHOLE callback body — a `requestConfirmation({ title: … })`
+  // three lines in was invisible. The rule now is that the whitelist only
+  // decides what a literal handed DIRECTLY to an attribute means; a literal
+  // behind a function expression is ordinary code and gets scanned as such.
+  //
+  // Both halves are asserted together on purpose: an over-broad fix that simply
+  // stopped consulting the whitelist would also start reporting `testID` and
+  // `variant`, and this file would then be a list of false positives.
+  const dir = mkdtempSync(join(tmpdir(), 'hfm-hardcoded-prose-'));
+  const file = join(dir, 'CallbackSurface.tsx');
+  try {
+    writeFileSync(
+      file,
+      [
+        'export const CallbackSurface = () => (',
+        '  <Row',
+        '    testID="settings-row-primary"',
+        "    onPress={() => confirm({ title: 'Let this player leave?' })}",
+        '  />',
+        ');',
+      ].join('\n'),
+    );
+    expect(offendersIn(file).map((offender) => offender.text)).toEqual([
+      'Let this player leave?',
+    ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

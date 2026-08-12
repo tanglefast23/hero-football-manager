@@ -5,7 +5,7 @@ import {
   cupMismatchWarningFlag,
 } from '../cup-mismatch-warning';
 import { CUP_SETTLEMENT_WEEKS, createCareer } from '../career';
-import type { DivisionLevel } from '../pyramid';
+import type { DivisionLevel, PyramidPlayer } from '../pyramid';
 import type { GameState } from '../types';
 
 describe('Bert Cup mismatch warning', () => {
@@ -74,31 +74,40 @@ describe('Bert Cup mismatch warning', () => {
     expect(advisor?.body).toHaveLength(2);
   });
 
+  it('warns about an opponent that exists only in the pyramid', () => {
+    const state = cupCareer(3, 1);
+    const opponentClubId = warningFixtureOpponent(state);
+
+    // The regression this whole feature died of: the club is real, plays three
+    // tiers up, and is nowhere in the user's own ten-club division.
+    expect(state.clubs.map((club) => club.id)).not.toContain(opponentClubId);
+    expect(cupMismatchWarning(state)).toMatchObject({
+      divisionGap: 3,
+      body: [
+        expect.stringContaining(
+          pyramidOpponent(state, opponentClubId).name,
+        ),
+      ],
+    });
+  });
+
   it('names the strongest shooting threat in the opponent starting XI', () => {
     const state = cupCareer(3, 2);
-    const warning = cupMismatchWarning(state)!;
     const opponentClubId = warningFixtureOpponent(state);
-    const starterIds = state.lineups.find(
-      (lineup) => lineup.clubId === opponentClubId,
-    )!.playerIds;
-    const targetId = starterIds.find(
-      (playerId) =>
-        state.players.find((player) => player.id === playerId)?.role === 'FWD',
-    )!;
-    const tuned = {
-      ...state,
-      players: state.players.map((player) => {
-        if (player.clubId !== opponentClubId || player.role === 'GK')
-          return player;
-        return player.id === targetId
-          ? {
-              ...player,
-              name: 'Comet Boots',
-              attrs: { ...player.attrs, sho: 999, tec: 999, pac: 999 },
-            }
-          : { ...player, attrs: { ...player.attrs, sho: 1, tec: 1, pac: 1 } };
-      }),
-    };
+    const opponent = pyramidOpponent(state, opponentClubId);
+    const targetId = opponent.squad.find(
+      (player) => player.role === 'FWD',
+    )!.id;
+    const tuned = withPyramidSquad(state, opponentClubId, (player) => {
+      if (player.role === 'GK') return player;
+      return player.id === targetId
+        ? {
+            ...player,
+            name: 'Comet Boots',
+            attrs: { ...player.attrs, sho: 999, tec: 999, pac: 999 },
+          }
+        : { ...player, attrs: { ...player.attrs, sho: 1, tec: 1, pac: 1 } };
+    });
 
     expect(cupMismatchWarning(tuned)).toMatchObject({
       starPlayer: { playerId: targetId, playerName: 'Comet Boots' },
@@ -119,6 +128,16 @@ describe('Bert Cup mismatch warning', () => {
   });
 });
 
+/**
+ * A GENUINE cross-division tie: the user is redrawn against a club that really
+ * plays `divisionGap` tiers up and therefore exists only in the pyramid.
+ *
+ * This used to relabel the same-division play-in opponent in
+ * `seedDivisionByClubId`, which left the club in `state.clubs` — so the club
+ * lookup succeeded in the test and failed in every real career, and 27 of 27
+ * driven cross-division ties shipped with no warning at all. The seed map is
+ * now read exactly as the draw wrote it.
+ */
 function cupCareer(divisionGap: number, matchSeed: number): GameState {
   const state = createCareer(createLaunchCareerSetup(20260805));
   const cup = state.m2!.nationalCups.find(
@@ -129,10 +148,19 @@ function cupCareer(divisionGap: number, matchSeed: number): GameState {
       candidate.homeClubId === state.userClubId ||
       candidate.awayClubId === state.userClubId,
   )!;
-  const opponentClubId =
-    fixture.homeClubId === state.userClubId
-      ? fixture.awayClubId
-      : fixture.homeClubId;
+  const seedDivisions = cup.seedDivisionByClubId!;
+  const userDivision = seedDivisions[state.userClubId];
+  expect(userDivision).toBe(5);
+  const opponentDivision = (userDivision - divisionGap) as DivisionLevel;
+  const opponent =
+    opponentDivision === userDivision
+      ? // A same-division tie is the one case the club is already in the draw.
+        state.clubs.find((club) => club.id !== state.userClubId)!
+      : state.m2!.pyramid.divisions.find(
+          (division) => division.level === opponentDivision,
+        )!.clubs[0];
+  expect(seedDivisions[opponent.id]).toBe(opponentDivision);
+
   return {
     ...state,
     week: CUP_SETTLEMENT_WEEKS[0],
@@ -144,11 +172,6 @@ function cupCareer(divisionGap: number, matchSeed: number): GameState {
           ? candidate
           : {
               ...candidate,
-              seedDivisionByClubId: {
-                ...candidate.seedDivisionByClubId,
-                [state.userClubId]: 5,
-                [opponentClubId]: (5 - divisionGap) as DivisionLevel,
-              },
               rounds: candidate.rounds.map((round, roundIndex) =>
                 roundIndex !== 0
                   ? round
@@ -156,13 +179,54 @@ function cupCareer(divisionGap: number, matchSeed: number): GameState {
                       ...round,
                       fixtures: round.fixtures.map((candidateFixture) =>
                         candidateFixture.id === fixture.id
-                          ? { ...candidateFixture, matchSeed }
+                          ? {
+                              ...candidateFixture,
+                              matchSeed,
+                              homeClubId:
+                                candidateFixture.homeClubId ===
+                                state.userClubId
+                                  ? state.userClubId
+                                  : opponent.id,
+                              awayClubId:
+                                candidateFixture.awayClubId ===
+                                state.userClubId
+                                  ? state.userClubId
+                                  : opponent.id,
+                            }
                           : candidateFixture,
                       ),
                     },
               ),
             },
       ),
+    },
+  };
+}
+
+function pyramidOpponent(state: GameState, clubId: string) {
+  return state.m2!.pyramid.divisions
+    .flatMap((division) => division.clubs)
+    .find((club) => club.id === clubId)!;
+}
+
+function withPyramidSquad(
+  state: GameState,
+  clubId: string,
+  tune: (player: PyramidPlayer) => PyramidPlayer,
+): GameState {
+  return {
+    ...state,
+    m2: {
+      ...state.m2!,
+      pyramid: {
+        ...state.m2!.pyramid,
+        divisions: state.m2!.pyramid.divisions.map((division) => ({
+          ...division,
+          clubs: division.clubs.map((club) =>
+            club.id === clubId ? { ...club, squad: club.squad.map(tune) } : club,
+          ),
+        })),
+      },
     },
   };
 }

@@ -8,7 +8,10 @@ import { isAvailableForSelection } from './lineup';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
 import { compareIds } from './ordering';
 import { CUP_SETTLEMENT_WEEKS } from './schedule';
-import { repairCareerLineupForInjuries } from './squad';
+import {
+  repairCareerLineupForInjuries,
+  tryRepairCareerLineupForInjuries,
+} from './squad';
 import type {
   ActiveRequestEffect,
   CareerPlayer,
@@ -525,6 +528,24 @@ export function resolvePlayerRequest(
       ? absenceWeeksFor(definition.cost.weeks, difficulty)
       : 0;
 
+  // The cover test that let this player ask ran at DRAW time, up to two weeks
+  // ago (`answerWeeks`), and the squad moves in between: drill the reserve
+  // keeper into the treatment room and Grant used to throw an internal
+  // "injured starter <id> has no eligible lineup replacement", leaving Refuse —
+  // the answer that costs morale and loyalty — as the only working button. Ask
+  // again now, before anything is charged. The card stays pending, so the
+  // manager can heal or buy cover and grant it after all.
+  if (awayWeeks > 0) {
+    const asker = state.players.find(
+      (candidate) => candidate.id === pending.playerId,
+    );
+    if (asker !== undefined && !lineupSurvivesLeave(state, asker)) {
+      throw new Error(
+        `${asker.name} cannot be spared: no eligible replacement is available`,
+      );
+    }
+  }
+
   const players = state.players.map((player) => {
     if (player.clubId !== state.userClubId) return player;
     const isAsker = player.id === pending.playerId;
@@ -884,19 +905,19 @@ export function advancePlayerRequests(
  * repair itself is.
  */
 function lineupSurvivesLeave(state: GameState, player: CareerPlayer): boolean {
-  try {
-    repairCareerLineupForInjuries({
+  // `tryRepair`, not `repairCareerLineupForInjuries`: the latter fails soft by
+  // calling an emergency youth up from the academy, so it would answer "yes,
+  // survives" for every squad ever and this gate would stop existing.
+  return (
+    tryRepairCareerLineupForInjuries({
       ...state,
       players: state.players.map((candidate) =>
         candidate.id === player.id
           ? { ...candidate, awayWeeks: (candidate.awayWeeks ?? 0) + 1 }
           : candidate,
       ),
-    });
-    return true;
-  } catch {
-    return false;
-  }
+    }) !== undefined
+  );
 }
 
 function withRequests(

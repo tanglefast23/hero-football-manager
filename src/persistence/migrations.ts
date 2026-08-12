@@ -96,6 +96,30 @@ const MIGRATIONS: readonly Migration[] = [
       )`,
     ],
   },
+  // The developer slots were keyed on the slot alone while every read filters by
+  // `saved_career_seed`, so starting a second career to reproduce something
+  // silently overwrote the first career's checkpoints — `list()` then answered
+  // `[]` and `load()` `null`, because the rows were gone, not hidden. The key
+  // becomes the pair the reads already assume. These rows are debug-only and
+  // worth nothing outside the session that wrote them, so the rung drops and
+  // recreates rather than copying.
+  {
+    version: 7,
+    statements: [
+      'DROP TABLE IF EXISTS "developer_saves"',
+      `CREATE TABLE IF NOT EXISTS developer_saves (
+        slot TEXT NOT NULL CHECK (slot IN ('1','2','3','4','5','A','B','C','D','E')),
+        kind TEXT NOT NULL CHECK (kind IN ('AUTO','MANUAL')),
+        schema_version INTEGER NOT NULL,
+        state_json TEXT NOT NULL,
+        saved_season INTEGER NOT NULL CHECK (saved_season >= 1),
+        saved_week INTEGER NOT NULL CHECK (saved_week >= 1),
+        saved_career_seed INTEGER NOT NULL,
+        save_sequence INTEGER NOT NULL CHECK (save_sequence >= 0),
+        PRIMARY KEY (saved_career_seed, slot)
+      )`,
+    ],
+  },
 ];
 
 export const PERSISTENCE_SCHEMA_VERSION = MIGRATIONS.length;

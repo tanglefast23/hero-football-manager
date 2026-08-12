@@ -193,7 +193,12 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
   for (let index = match.events.length - 1; index >= 0; index--) {
     const event = match.events[index];
     if (event.kind === 'GOAL') {
-      const playerId = slotOwners.get(event.by);
+      // From engine m2.2 the shooter's own id is stamped on the ball when the
+      // shot is STRUCK, which is the only thing the slot walk cannot see: a
+      // substitution between the strike and the ball crossing the line handed
+      // the goal to the man who came on while it was in the air. The rewind
+      // below stays for replays taped before m2.2, where there is no id.
+      const playerId = event.scoredById ?? slotOwners.get(event.by);
       if (playerId !== undefined) {
         goals.push({
           playerId,

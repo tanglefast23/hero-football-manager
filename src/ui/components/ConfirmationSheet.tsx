@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CrossPlatformModal as Modal } from './CrossPlatformModal';
 import { ActionButton } from './Scorecard';
+import { useTapGuard } from '../use-tap-guard';
 import { useCopy } from '../../i18n';
 
 export interface ConfirmationRequest {
@@ -155,10 +156,24 @@ export function ConfirmationSheet({
     onCancel();
   }, [onCancel]);
 
+  /**
+   * Every confirmed club decision commits through this one button — hire, sign,
+   * release, sell, license and swap. The caller clears its pending confirmation
+   * with a `useState` write, which does not land until the next render, so two
+   * presses dispatched in the same batch both read a live confirmation and ran
+   * the action twice. The engine refuses the second one, but it refuses it in
+   * developer English with an internal id ("unknown coach candidate
+   * coach-s1-mateo-silva") during the week-1 tutorial. The other three commit
+   * surfaces already guard themselves; guarding here covers every caller at
+   * once, including the ones nobody has written yet.
+   */
+  const guardTap = useTapGuard();
   const confirm = useCallback(() => {
-    confirmedRef.current = true;
-    onConfirm();
-  }, [onConfirm]);
+    guardTap(() => {
+      confirmedRef.current = true;
+      onConfirm();
+    });
+  }, [guardTap, onConfirm]);
 
   return (
     <Modal

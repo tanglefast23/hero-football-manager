@@ -25,15 +25,49 @@ export function copyOrEnglish(
   if (key === undefined) return english;
   const resolved = t(
     key,
-    params === undefined ? undefined : translatedParams(t, params),
+    params === undefined ? undefined : shielded(translatedParams(t, params)),
   );
   // A leftover `{placeholder}` means this value was saved with a key but
   // without the params that key needs — a recap or a ledger line written before
   // the producer started emitting them. `interpolate` leaves the hole visible on
   // purpose, which is right for a component and wrong here, where the English
   // beside it is already a finished sentence.
+  //
+  // Only a hole the TEMPLATE left counts, which is what the shielding above
+  // buys: player and club names are typed, so a manager called `Mr {count}` put
+  // a brace in the OUTPUT with every param correctly supplied, and this test
+  // read that as a broken template and dropped the whole locale back to English
+  // — one Spanish ledger line at a time, silently.
   if (resolved === key || /\{[a-zA-Z0-9_]+\}/.test(resolved)) return english;
-  return resolved;
+  return unshield(resolved);
+}
+
+/**
+ * Braces a param VALUE carries, hidden from the residual-hole test above.
+ *
+ * Control characters rather than an escape sequence: they cannot occur in a
+ * catalog string or in a name (`validateTypedName` allows neither), so the
+ * round trip is exact, and `interpolate` is single-pass so nothing can
+ * re-expand them in between.
+ */
+const BRACE_OPEN = '\u0001';
+const BRACE_CLOSE = '\u0002';
+
+function shielded(params: CopyParams): CopyParams {
+  const hidden: Record<string, string | number> = { ...params };
+  let changed = false;
+  for (const [name, value] of Object.entries(params)) {
+    if (typeof value !== 'string' || !/[{}]/.test(value)) continue;
+    hidden[name] = value.replace(/\{/g, BRACE_OPEN).replace(/\}/g, BRACE_CLOSE);
+    changed = true;
+  }
+  return changed ? hidden : params;
+}
+
+function unshield(value: string): string {
+  return value.includes(BRACE_OPEN) || value.includes(BRACE_CLOSE)
+    ? value.replace(/\u0001/g, '{').replace(/\u0002/g, '}')
+    : value;
 }
 
 /**

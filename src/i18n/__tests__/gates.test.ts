@@ -9,7 +9,7 @@ import {
   localeMeta,
 } from '../index';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
-import { scannedFiles } from '../hardcoded-prose';
+import { scannedFiles, sourceFiles } from '../hardcoded-prose';
 import { faceForKey } from '../voice';
 import { budgetClass, copyBudget } from '../copy-budget';
 import { advanceEm } from '../advance';
@@ -63,6 +63,26 @@ describe('i18n gates', () => {
       expect({ locale, missing: keys.filter((key) => !have.has(key)) }).toEqual(
         { locale, missing: [] },
       );
+    }
+  });
+
+  test('gate 1c — no locale carries a key English has dropped', () => {
+    // Gate 1 is a SUBSET check, English -> locale, so it cannot see a key a
+    // locale still has and English no longer does. That direction was blind for
+    // long enough to ship 1,440 dead strings: 30 events were cut from
+    // `content/events.json` and their eight keys apiece stayed behind in all six
+    // catalogs, ~168 KB of translated prose for text no player can reach,
+    // downloaded and parsed on every phone.
+    //
+    // Measured against `englishAll()`, not the chrome catalog: a locale
+    // legitimately carries content keys, which live in `content/*.json` and
+    // never appear in `en.json`.
+    const known = new Set(Object.keys(englishAll()));
+    for (const locale of translated()) {
+      const stale = Object.keys(loadCatalog(locale).strings).filter(
+        (key) => !known.has(key),
+      );
+      expect({ locale, stale }).toEqual({ locale, stale: [] });
     }
   });
 
@@ -339,25 +359,29 @@ describe('persisted labels resolve through the catalog', () => {
     // A producer that dual-writes a key nothing can resolve is worse than one
     // that writes English only: the fallback still renders, so nothing looks
     // broken, and the string silently never translates.
+    // The whole of both pure rings, not a hand-kept list. The list held four
+    // files and there are twenty producers: `retirement.ts`,
+    // `promotion-progression.ts`, `facilities.ts`, `youth-intake.ts`,
+    // `season-recap.ts` and eleven more dual-write keys this gate never read.
+    // And it only ever matched `labelKey`, while the rings also emit `textKey`,
+    // `titleKey`, `detailKey`, `nameKey` and `descriptionKey`. Nothing is
+    // broken today — every producer resolves — so this is recurrence
+    // prevention, and a walk cannot go stale the way a list does.
     const sources = [
-      'src/game/career.ts',
-      'src/game/player-requests.ts',
-      // The ledger's six cash-transaction lines. They were outside this gate
-      // while one of them still interpolated an English training-path name.
-      'src/game/management.ts',
-      // The sponsor objective a signed deal carries for a whole season. It is
-      // written at OFFER generation, so an unguarded key would be wrong on
-      // three cards a week before it was ever wrong on a contract.
-      'src/game/sponsors.ts',
-    ];
-    const keys = sources.flatMap((file) => {
-      const text = readFileSync(join(process.cwd(), file), 'utf8');
-      return [
-        ...[...text.matchAll(/labelKey: '([^']+)'/g)].map((match) => match[1]!),
-        ...[...text.matchAll(/labelKey: `([^`]+)`/g)].map((match) => match[1]!),
-      ];
-    });
+      ...sourceFiles('src/game'),
+      ...sourceFiles('src/sim'),
+    ].filter((file) => !/__tests__|\.test\.tsx?$/.test(file));
+    const KEY_PROPS =
+      /(labelKey|textKey|titleKey|detailKey|nameKey|descriptionKey): ['`]([^'`]+)['`]/g;
+    const keys = sources.flatMap((file) =>
+      [...readFileSync(join(process.cwd(), file), 'utf8').matchAll(KEY_PROPS)]
+        .map((match) => match[2]!)
+        // A key built entirely at runtime — `` `${prefix}.title` `` — names no
+        // literal prefix to check, and the content floors cover those.
+        .filter((key) => !key.startsWith('$')),
+    );
 
+    expect(sources.length).toBeGreaterThan(20);
     expect(keys.length).toBeGreaterThan(0);
     // Both English sources: chrome keys from en.json, content keys derived from
     // the content files. A producer may legitimately reference either.
@@ -366,7 +390,18 @@ describe('persisted labels resolve through the catalog', () => {
     // resolves for every id rather than the literal `${...}` text.
     const dynamic = keys.filter((key) => key.includes('$'));
     const literal = keys.filter((key) => !key.includes('$'));
-    expect(literal.filter((key) => !known.has(key))).toEqual([]);
+    // A key with an `n` param may be authored as `key.one` / `key.other` and
+    // never as `key` — `retirement.shortContract` is. `resolveCopy` selects the
+    // suffix at runtime, so the bare name resolving to nothing is correct, not
+    // missing. Same allowance gate 1b already makes.
+    expect(
+      literal.filter(
+        (key) =>
+          !known.has(key) &&
+          !known.has(`${key}.one`) &&
+          !known.has(`${key}.other`),
+      ),
+    ).toEqual([]);
     for (const template of dynamic) {
       const prefix = template.slice(0, template.indexOf('$'));
       expect({

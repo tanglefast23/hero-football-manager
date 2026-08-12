@@ -521,6 +521,46 @@ describe('resolvePlayerRequest', () => {
     expect(entry.balanceAfter).toBe(cashOf(next));
   });
 
+  it('re-checks cover when the leave is answered, not only when it was asked', () => {
+    // `eligibleAskers` runs its cover test at DRAW time and the manager has two
+    // weeks to answer. Drill the reserve keeper into the treatment room in
+    // between and Grant used to throw `injured starter <id> has no eligible
+    // lineup replacement` — an internal id — while Refuse still worked, forcing
+    // the answer that costs morale and loyalty.
+    const base = requestFixture('bahamas-fortnight');
+    const lineup = base.lineups.find((l) => l.clubId === base.userClubId)!;
+    const keepers = base.players.filter(
+      (p) => p.clubId === base.userClubId && p.role === 'GK',
+    );
+    const starter = keepers.find((p) => lineup.playerIds.includes(p.id))!;
+    const backup = keepers.find((p) => p.id !== starter.id)!;
+    const asking: GameState = {
+      ...base,
+      playerRequests: {
+        ...base.playerRequests!,
+        pending: { ...base.playerRequests!.pending!, playerId: starter.id },
+      },
+    };
+
+    // With cover on the bench this is exactly the card the shipped draw makes.
+    expect(() => resolvePlayerRequest(asking, CATALOG, 'GRANTED')).not.toThrow();
+
+    const noCover: GameState = {
+      ...asking,
+      players: asking.players.map((p) =>
+        p.id === backup.id ? { ...p, injuryWeeks: 3 } : p,
+      ),
+    };
+
+    expect(() => resolvePlayerRequest(noCover, CATALOG, 'GRANTED')).toThrow(
+      'no eligible replacement is available',
+    );
+    // Nothing was charged and the card is still open, so the manager can heal
+    // or buy cover and grant it after all.
+    expect(noCover.playerRequests!.pending).toBeDefined();
+    expect(() => resolvePlayerRequest(noCover, CATALOG, 'REFUSED')).not.toThrow();
+  });
+
   it('caps a Bahamas fortnight at one week on Cozy', () => {
     const state = requestFixture('bahamas-fortnight');
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');

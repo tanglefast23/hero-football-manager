@@ -118,6 +118,39 @@ describe('match button response contract', () => {
     expect(settings).not.toContainSource('pressSfx="match-control"');
   });
 
+  it('survives a coaching press that lands on the final whistle', () => {
+    const match = source('src/render/MatchScreen.tsx');
+
+    // `coachingDisabled` is computed at render time; the engine refuses inputs
+    // the moment its own phase reaches fulltime. The RAF loop and the press
+    // handlers share one thread, so a press in the frame between the tick that
+    // ended the match and the re-render that greys the control reaches a closed
+    // engine — which now throws instead of quietly logging a dead input.
+    expect(match).toContainSource(
+      'const recordCoachingInput = (input: MatchInput): boolean => {',
+    );
+    expect(match).toContainSource('queueInput(match, input);');
+    expect(match).toContainSource(
+      "console.warn('MatchScreen: the engine refused a coaching input', error);",
+    );
+
+    // All three coaching handlers route through it, and none of them announces
+    // a change the engine refused.
+    for (const kind of ['SET_FORMATION', 'SET_MENTALITY', 'SET_ENERGY_USE']) {
+      expect(match).toMatchSource(
+        new RegExp(
+          `const recorded = recordCoachingInput\\(\\{[\\s\\S]*?kind: '${kind}'[\\s\\S]*?\\}\\);\\s*if \\(!recorded\\) return;`,
+        ),
+      );
+    }
+    // The substitution board keeps its own catch and its own message.
+    expect(match).toContainSource(
+      "'MatchScreen: the engine rejected a staged substitution',",
+    );
+    // No bare queueInput call is left on a press path.
+    expect(match.match(/queueInput\(match, \{/g) ?? []).toHaveLength(1);
+  });
+
   it('keeps substitution actions on release, disabled buttons inert, and cancel single-cued', () => {
     const board = source('src/render/SubstitutionBoard.tsx');
 

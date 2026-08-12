@@ -2234,6 +2234,7 @@ export function attemptShot(
       y: 300 * dir,
     },
     by: attributedBy,
+    byPlayerId: requirePlayerAt(state, attributedBy).def.id,
     shotStrengthD64: shotStrength.d64,
     power: shotStrength.displayPower,
     targetX,
@@ -2313,7 +2314,10 @@ export function shotFlightTick(state: MatchState): void {
   }
 
   state.score[shooter.team]++;
-  const scorerId = state.players[attributedPlayerIndex(state, b.by)].def.id;
+  // The id stamped when the shot was struck, not the slot's current occupant:
+  // a substitution inside the flight window owns the slot but not the goal.
+  const scorerId =
+    b.byPlayerId ?? state.players[attributedPlayerIndex(state, b.by)].def.id;
   // No path today makes the scorer his own candidate — taking the ball always
   // displaces the previous holder. The guard is here so a future power that
   // hands the ball back to its passer cannot credit a solo goal as an assist.
@@ -2323,6 +2327,7 @@ export function shotFlightTick(state: MatchState): void {
     kind: 'GOAL',
     by: b.by,
     team: shooter.team,
+    scoredById: scorerId,
     ...(assistedById !== null && assistedById !== scorerId
       ? { assistedById }
       : {}),
