@@ -2687,6 +2687,15 @@ export function MatchScreen({
     0,
     MAX_SUBSTITUTIONS - substitutionsUsed,
   );
+  // A substitute enters at their startingCondition (src/sim/substitutions.ts),
+  // so the board shows that as their energy rather than assuming a full bar.
+  const substitutionBoardBench = bench.map((player) => ({
+    id: player.id,
+    name: player.name,
+    role: player.role,
+    condition: player.startingCondition ?? 100,
+    ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+  }));
   const substitutionBoardField = onFieldIndices.map((index) => {
     const player = match.players[index];
     return {
@@ -3645,7 +3654,7 @@ export function MatchScreen({
       {swapOpen ? (
         <SubstitutionBoard
           field={substitutionBoardField}
-          bench={bench}
+          bench={substitutionBoardBench}
           substitutionsUsed={substitutionsUsed}
           autoSubs={autoSubs}
           guideFieldPlayer={
