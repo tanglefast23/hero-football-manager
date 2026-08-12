@@ -113,7 +113,9 @@ describe('career event target candidates', () => {
           key,
           { minimum: value, maximum: value },
         ]),
-      ) as NonNullable<GameState['market']>['scoutReports'][number]['statRanges'],
+      ) as NonNullable<
+        GameState['market']
+      >['scoutReports'][number]['statRanges'],
       potentialRange: {
         minimum: rival.potential ?? 3,
         maximum: rival.potential ?? 3,
