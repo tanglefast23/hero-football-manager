@@ -31,9 +31,14 @@ describe('squad training two-column layout', () => {
     expect(source).toContainSource('weight: 9');
   });
 
-  it('keeps the guide mt-20 wrapper literal byte-identical', () => {
+  // The mt-20 went with the roster-top TutorialTapCue in 0128bcc4 — the margin
+  // only ever reserved space for that floating bubble, and the branch above
+  // still carries its own. The literal is still asserted byte-identical because
+  // NativeWind reads class names statically: a reflowed or concatenated string
+  // silently styles nothing.
+  it('keeps the guide wrapper literal byte-identical', () => {
     expect(source).toContainSource(
-      "'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'",
+      "'relative border-4 border-blue-dark bg-blue-light p-1'",
     );
   });
 });
