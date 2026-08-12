@@ -40,6 +40,7 @@ import {
 import { difficultyRules } from './difficulty';
 import { divisionAwardPrize } from './division-award-prize';
 import {
+  careerRosterCapacity,
   initializeSeasonYouthIntake,
   reconcileStoryYouthIntake,
 } from './youth-intake';
@@ -226,6 +227,11 @@ export function startNextFullCareerSeason(
     transition.nextSeason,
     state.careerSeed,
     transition.division,
+    careerRosterCapacity({
+      onboarding: state.onboarding,
+      players: lifecycle.activePlayers,
+      userClubId: state.userClubId,
+    }),
   );
   const userLineup = repairUserLineup(
     state.lineups.find((lineup) => lineup.clubId === state.userClubId),
@@ -1058,45 +1064,65 @@ const ACADEMY_NAMES = [
   'Paz',
 ] as const;
 
-/** Keeps the endless career playable even after a whole generation retires. */
+/**
+ * Keeps the endless career playable even after a whole generation retires.
+ *
+ * The refill fills real roster vacancies, never per-role targets on their own:
+ * the market gates on the total roster and not per role, so a full squad can
+ * sit above its target in one role and below it in another. Filling every
+ * shortage there pushed the club past the capacity every other system enforces
+ * and it paid the extra wage forever. Each empty place goes to the role that is
+ * furthest below target.
+ */
 function replenishUserSquad(
   players: readonly CareerPlayer[],
   userClubId: string,
   season: number,
   careerSeed: number,
   division: DivisionLevel,
+  capacity: number,
 ): CareerPlayer[] {
   const result = players.map((player) => ({
     ...player,
     attrs: { ...player.attrs },
   }));
   const existingIds = new Set(result.map((player) => player.id));
-  for (const role of ['GK', 'DEF', 'MID', 'FWD'] as const) {
-    let roleCount = result.filter((player) => player.role === role).length;
-    let intakeNumber = 1;
-    while (roleCount < ACADEMY_ROLE_TARGETS[role]) {
-      let id = `${userClubId}-academy-s${season}-${role.toLowerCase()}-${intakeNumber}`;
-      while (existingIds.has(id)) {
-        intakeNumber += 1;
-        id = `${userClubId}-academy-s${season}-${role.toLowerCase()}-${intakeNumber}`;
-      }
-      existingIds.add(id);
-      const player = academyPlayer(
-        id,
-        userClubId,
-        role,
-        season,
-        careerSeed,
-        intakeNumber,
-        division,
-      );
-      result.push({
-        ...player,
-        lookId: nextDistinctPlayerLook(player, result),
-      });
-      roleCount += 1;
+  const roles = ['GK', 'DEF', 'MID', 'FWD'] as const;
+  const shortages = new Map(
+    roles.map((role) => [
+      role,
+      ACADEMY_ROLE_TARGETS[role] -
+        result.filter((player) => player.role === role).length,
+    ]),
+  );
+  const intakeNumbers = new Map(roles.map((role) => [role, 1]));
+  for (let place = result.length; place < capacity; place += 1) {
+    const role = roles.reduce((worst, candidate) =>
+      shortages.get(candidate)! > shortages.get(worst)! ? candidate : worst,
+    );
+    if (shortages.get(role)! <= 0) break;
+    let intakeNumber = intakeNumbers.get(role)!;
+    let id = `${userClubId}-academy-s${season}-${role.toLowerCase()}-${intakeNumber}`;
+    while (existingIds.has(id)) {
       intakeNumber += 1;
+      id = `${userClubId}-academy-s${season}-${role.toLowerCase()}-${intakeNumber}`;
     }
+    existingIds.add(id);
+    const player = academyPlayer(
+      id,
+      userClubId,
+      role,
+      season,
+      careerSeed,
+      intakeNumber,
+      division,
+    );
+    result.push({
+      ...player,
+      lookId: nextDistinctPlayerLook(player, result),
+    });
+    shortages.set(role, shortages.get(role)! - 1);
+    intakeNumbers.set(role, intakeNumber + 1);
   }
   return result;
 }
