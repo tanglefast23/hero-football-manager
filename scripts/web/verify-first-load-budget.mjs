@@ -7,13 +7,15 @@ const DIST = path.resolve('dist');
 // above the accepted artifact, so ordinary feature growth eventually needs a
 // deliberate re-ratchet and a one-off leak still trips the gate.
 //
-// Re-ratcheted 2026-08-12 off main at 0128bcc4 (5_886_821 raw / 865_222 gzip).
-// The previous mark was set at 0b2fc042 (5_861_753 / 858_160); seven feature
-// commits then added ~25 KB raw / 7 KB gzip spread across the app ring. Checked
-// before moving the number: the QA and Skia marker assertions below both stayed
-// clean, so this is distributed growth, not a renderer or dev-harness leak.
-const RAW_BUDGET = 5_891_821;
-const GZIP_BUDGET = 870_222;
+// Re-ratcheted 2026-08-12 off the club-crests merge at 64e23d44, which took the
+// artifact to 5_895_627 raw / 867_978 gzip and put main over the previous raw
+// mark on its own — the crests ship as inline data across every team-name
+// surface. The previous mark was set at 0128bcc4 (5_886_821 / 865_222), and
+// before that at 0b2fc042 (5_861_753 / 858_160). Checked before moving the
+// number: the QA and Skia marker assertions below both stayed clean, so this is
+// deliberate content growth, not a renderer or dev-harness leak.
+const RAW_BUDGET = 5_900_627;
+const GZIP_BUDGET = 872_978;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
