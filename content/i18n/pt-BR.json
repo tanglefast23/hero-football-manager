@@ -1507,7 +1507,7 @@
     "event.lottery-win.lottery-team-gift.success.headline": "Toda cadeira tem nome",
     "event.lottery-win.lottery-team-gift.success.text": "Eles compram uma sala de recuperação e exigem que cada cadeira tenha um nome.",
     "event.lottery-win.title": "Jogador ganha na loteria",
-    "event.mark-the-hero.body": "Seu zagueiro pediu para passar a semana marcando o herói do próprio clube no treino. O herói achou graça.",
+    "event.mark-the-hero.body": "Um dos seus zagueiros quer passar a semana treinando contra o seu melhor atacante: colado nele o treino inteiro, cortando cada bola. O herói acha a ideia ótima.",
     "event.mark-the-hero.every-session.label": "Todo treino, sem ajuda",
     "event.mark-the-hero.every-session.setback.text": "O herói passa por ele várias vezes diante do elenco durante quatro dias.",
     "event.mark-the-hero.every-session.success.headline": "Na quinta o herói pede para ele parar",
@@ -4052,6 +4052,10 @@
     "storyEvent.requiresSaleCover": "Não é possível vender {player}: mantenha um goleiro reserva e um jogador de linha reserva",
     "storyEvent.rewardLosePlayer": "Perde {player}",
     "storyEvent.rewardLoseSelectedPlayer": "Perde o jogador escolhido",
-    "storyEvent.saleUnavailable": "Este jogador não pode ser vendido agora"
+    "storyEvent.saleUnavailable": "Este jogador não pode ser vendido agora",
+    "seasonEnd.showMeTheMoolah": "Me mostra a GRANAAA!",
+    "clubFinances.incomeRecentEntry": "Semana {week} ${amount}k",
+    "ledger.divisionalWinBonus": "Bônus de vitória da divisão",
+    "squadTraining.a11y.archetype": "Arquétipo: {archetype}. {explainer}"
   }
 }

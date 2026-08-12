@@ -8,7 +8,8 @@ import { recordFanGain } from './fan-growth';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
 import { COACH_BOOST_CAPS, type CoachSpecialty } from './market';
 import { FACILITY_BOOST_CAPS, isFacilityOperational } from './facilities';
-import { FAME_CEILING } from './pyramid';
+import { FAME_CEILING, type DivisionLevel } from './pyramid';
+import { currentUserDivision } from './m2-career';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
@@ -690,6 +691,38 @@ export function applyCoachEventEffect(
   };
 }
 
+/**
+ * Percentage of an authored story TP reward paid at each tier.
+ *
+ * The same favour is worth more where a week's TP income is bigger, so a story
+ * that reads as a fortnight's training in D5 does not read as pocket change in
+ * D1. Sized against the ladder the division award prize already uses — D5 120,
+ * D1 200 — rather than inventing a second, differently shaped curve.
+ */
+const STORY_TP_PERCENT_BY_DIVISION: Readonly<Record<DivisionLevel, number>> = {
+  5: 100,
+  4: 120,
+  3: 140,
+  2: 160,
+  1: 180,
+};
+
+/**
+ * A story's TP reward as this club actually receives it.
+ *
+ * Only rewards scale. A setback that costs TP costs what it was authored to
+ * cost at every tier: climbing the pyramid must never make the same bad call
+ * hurt more than it did in the bottom division.
+ */
+export function storyTrainingPointReward(
+  state: GameState,
+  amount: number,
+): number {
+  if (amount <= 0) return amount;
+  const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  return Math.round((amount * STORY_TP_PERCENT_BY_DIVISION[division]) / 100);
+}
+
 export function applyCareerEventOutcome(
   state: GameState,
   choiceId: string,
@@ -717,7 +750,7 @@ export function applyCareerEventOutcome(
 
   const moneyDelta = safeDelta(application.moneyDelta ?? 0, 'event money');
   const trainingPointDelta = safeDelta(
-    application.trainingPointDelta ?? 0,
+    storyTrainingPointReward(state, application.trainingPointDelta ?? 0),
     'event TP',
   );
   const fanDelta = safeDelta(application.fanDelta ?? 0, 'event fans');

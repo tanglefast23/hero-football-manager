@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import type {
   LayoutChangeEvent,
@@ -30,9 +30,17 @@ import { useTapGuard } from '../use-tap-guard';
 import { PixelText } from '../components/PixelText';
 import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
 import { AgentFinalDemandGate } from '../AgentFinalDemandGate';
+import { AgentFinalDemandWalkOn } from '../AgentFinalDemandWalkOn';
 import { isExpiredContractRevealed } from '../expired-contract-reveal';
 import { useCopy } from '../../i18n';
 import { ClubCrest } from '../components/ClubCrest';
+
+/**
+ * How long the agent's greeting holds before he walks off. Long enough to read
+ * six words at the typewriter's pace, short enough that it never becomes a
+ * gate between the manager and the table he asked for.
+ */
+const AGENT_GREETING_HOLD_MS = 1_400;
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -80,6 +88,10 @@ export function SeasonEndScreen({
   // holding the next player, so an ordinary double-tap would sign a wage the
   // manager never saw.
   const guardTap = useTapGuard();
+  /** The player whose agent is currently on screen, before his table opens. */
+  const [agentGreetingPlayerId, setAgentGreetingPlayerId] = useState<
+    string | null
+  >(null);
   const contract = viewModel.expiredContract;
   /*
    * Three measurements decide whether the renewal queue has been reached, and
@@ -692,8 +704,15 @@ export function SeasonEndScreen({
                             'seasonEnd.a11y.negotiateWithAgent',
                             { player: contract.playerName },
                           )}
-                          onPress={() => onStartRenewal(contract.playerId)}
-                          variant="paper"
+                          // Both routes out of an expiring contract are real
+                          // choices, so both wear the primary blue. The paper
+                          // face read as the lesser option and steered the
+                          // manager into signing without hearing the demand.
+                          onPress={() =>
+                            guardTap(() =>
+                              setAgentGreetingPlayerId(contract.playerId),
+                            )
+                          }
                         />
                       </View>
                       <Text className="mt-2 text-center text-sm text-ink/50">
@@ -761,6 +780,19 @@ export function SeasonEndScreen({
       {/* Root-level, not inside the panel: the overlay fills its parent, and
           the renewal card lives halfway down a scroll view. */}
       <AgentFinalDemandGate negotiation={viewModel.renewalNegotiation} />
+      {/* The agent's own entrance, before the table of numbers he brought. He
+          says his one line and is gone; the negotiation opens behind him. */}
+      {agentGreetingPlayerId === null ? null : (
+        <AgentFinalDemandWalkOn
+          line={t('seasonEnd.showMeTheMoolah')}
+          autoAdvanceMs={AGENT_GREETING_HOLD_MS}
+          onDone={() => {
+            const playerId = agentGreetingPlayerId;
+            setAgentGreetingPlayerId(null);
+            onStartRenewal(playerId);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }

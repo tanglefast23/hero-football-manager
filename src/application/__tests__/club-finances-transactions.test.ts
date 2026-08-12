@@ -226,24 +226,24 @@ describe('club finances immediate transaction history', () => {
     );
 
     expect(rows.get('income-gate')?.history).toEqual([
-      { periodLabel: 'S1 · W4', amount: 600 },
-      { periodLabel: 'S1 · W3', amount: 450 },
-      { periodLabel: 'S1 · W2', amount: 300 },
+      { week: 4, amount: 600 },
+      { week: 3, amount: 450 },
+      { week: 2, amount: 300 },
     ]);
     expect(rows.get('income-stadium-stand')?.history).toEqual([
-      { periodLabel: 'S1 · W4', amount: 200 },
-      { periodLabel: 'S1 · W3', amount: 150 },
-      { periodLabel: 'S1 · W2', amount: 100 },
+      { week: 4, amount: 200 },
+      { week: 3, amount: 150 },
+      { week: 2, amount: 100 },
     ]);
     expect(rows.get('income-fan-shop')?.history).toEqual([
-      { periodLabel: 'S1 · W4', amount: 160 },
-      { periodLabel: 'S1 · W3', amount: 120 },
-      { periodLabel: 'S1 · W2', amount: 80 },
+      { week: 4, amount: 160 },
+      { week: 3, amount: 120 },
+      { week: 2, amount: 80 },
     ]);
     expect(rows.get('income-sponsor')?.history).toEqual([
-      { periodLabel: 'S1 · W4', amount: 800 },
-      { periodLabel: 'S1 · W3', amount: 600 },
-      { periodLabel: 'S1 · W2', amount: 400 },
+      { week: 4, amount: 800 },
+      { week: 3, amount: 600 },
+      { week: 2, amount: 400 },
     ]);
     expect(
       clubFinancesViewModel(initial).incomeGeneration.rows.every(
@@ -319,7 +319,7 @@ describe('club finances immediate transaction history', () => {
       expect.objectContaining({
         periodLabel: 'S1 · W3',
         detail: 'Home league gate',
-        net: baseline + 1_200,
+        net: baseline + 1_260,
       }),
       expect.objectContaining({
         periodLabel: 'S1 · W4',
@@ -334,10 +334,10 @@ describe('club finances immediate transaction history', () => {
       expect.objectContaining({
         periodLabel: 'S1 · W6',
         detail: 'Home Hero Cup gate',
-        net: baseline + 1_200,
+        net: baseline + 1_260,
       }),
     ]);
-    expect(viewModel.operatingOutlook.net).toBe(baseline * 4 + 5_400);
+    expect(viewModel.operatingOutlook.net).toBe(baseline * 4 + 5_520);
     expect(viewModel.operatingOutlook.projectedBalance).toBe(
       viewModel.resources.money + viewModel.operatingOutlook.net,
     );

@@ -7,6 +7,7 @@ export {
   formatIntegerForCopy,
   formatMoney,
   formatMoneyForCopy,
+  formatThousandsForCopy,
 } from './format-number';
 export {
   contentStrings,

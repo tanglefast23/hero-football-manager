@@ -2621,6 +2621,10 @@
     "storyEvent.requiresSaleCover": "Cannot sell {player}: keep a spare goalkeeper and an outfield substitute",
     "storyEvent.rewardLosePlayer": "Lose {player}",
     "storyEvent.rewardLoseSelectedPlayer": "Lose the selected player",
-    "storyEvent.saleUnavailable": "This player cannot be sold right now"
+    "storyEvent.saleUnavailable": "This player cannot be sold right now",
+    "seasonEnd.showMeTheMoolah": "Show me the MOLAAH!",
+    "clubFinances.incomeRecentEntry": "Week {week} ${amount}k",
+    "ledger.divisionalWinBonus": "Divisional Win Bonus",
+    "squadTraining.a11y.archetype": "Archetype: {archetype}. {explainer}"
   }
 }

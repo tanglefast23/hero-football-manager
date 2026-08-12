@@ -37,8 +37,12 @@ export function careerEventTargetPlayers(
         : state.players.filter((player) => player.clubId === state.userClubId);
   return players.filter(
     (player) =>
-      event.trigger.requiresPlayerRole === undefined ||
-      player.role === event.trigger.requiresPlayerRole,
+      (event.trigger.requiresPlayerRole === undefined ||
+        player.role === event.trigger.requiresPlayerRole) &&
+      // A story that stands the hero opposite the chosen player cannot be
+      // handed the hero as that player. Only these stories opt in, so every
+      // other card still offers the whole squad.
+      (event.trigger.excludesHeroes !== true || player.power === undefined),
   );
 }
 

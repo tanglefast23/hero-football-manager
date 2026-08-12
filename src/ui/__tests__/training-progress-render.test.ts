@@ -10,8 +10,11 @@ describe('training stat option rendering', () => {
     );
 
     expect(screen).toContainSource(
-      "import { LazyTrainingDrillModal as TrainingDrillModal } from '../LazyTrainingDrillModal';",
+      "import { LazyTrainingDrillModal as TrainingDrillModal, preloadTrainingDrillModal } from '../LazyTrainingDrillModal';",
     );
+    // Deferred, but fetched as soon as the roster is up: the popup must never
+    // make the manager wait for a download after pressing +.
+    expect(screen).toContainSource('void preloadTrainingDrillModal();');
     expect(screen).toContainSource('<Suspense fallback={null}>');
     expect(screen).not.toContainSource(
       "import { TrainingDrillModal } from '../TrainingDrillModal';",

@@ -17,6 +17,11 @@ export interface AgentFinalDemandWalkOnProps {
   /** The ultimatum, already carrying the figure. */
   line: string;
   reduceMotion?: boolean;
+  /**
+   * Leaves on a timer instead of waiting for a tap. Only for a remark that
+   * carries no number to read — the ultimatum itself always waits.
+   */
+  autoAdvanceMs?: number;
   /** Fires once the manager has heard him out. The panel decides what next. */
   onDone: () => void;
 }
@@ -41,6 +46,7 @@ export interface AgentFinalDemandWalkOnProps {
 export function AgentFinalDemandWalkOn({
   line,
   reduceMotion = false,
+  autoAdvanceMs,
   onDone,
 }: AgentFinalDemandWalkOnProps) {
   const t = useCopy();
@@ -60,8 +66,10 @@ export function AgentFinalDemandWalkOn({
       typewriter
       focusOnMount
       bubbleScale={AGENT_BUBBLE_SCALE}
-      // No auto-advance. He has just told the manager to choose; pulling the
-      // sentence off screen on a timer would take the number with it.
+      // No auto-advance by default. He has just told the manager to choose;
+      // pulling the sentence off screen on a timer would take the number with
+      // it. A caller whose line holds no number may still set one.
+      {...(autoAdvanceMs === undefined ? {} : { autoAdvanceMs })}
       mirrorSprite={false}
       accessibilityLabel={t('market.a11y.agentSays', { line })}
       onDone={onDone}

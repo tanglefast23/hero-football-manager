@@ -1507,7 +1507,7 @@
     "event.lottery-win.lottery-team-gift.success.headline": "Ghế nào cũng có tên",
     "event.lottery-win.lottery-team-gift.success.text": "Họ mua hẳn một phòng hồi phục và nhất quyết mỗi cái ghế phải có tên.",
     "event.lottery-win.title": "Cầu thủ trúng số",
-    "event.mark-the-hero.body": "Hậu vệ của bạn xin dành cả tuần kèm chính anh hùng của CLB trong buổi tập. Anh hùng thấy chuyện này buồn cười.",
+    "event.mark-the-hero.body": "Một hậu vệ của bạn muốn dành cả tuần tập luyện với tiền đạo hay nhất của bạn: bám sát cả buổi, cắt từng đường bóng. Anh hùng thấy đây là ý hay.",
     "event.mark-the-hero.every-session.label": "Mọi buổi, không trợ giúp",
     "event.mark-the-hero.every-session.setback.text": "Người hùng vượt qua cậu ấy hết lần này đến lần khác trước toàn đội suốt bốn ngày.",
     "event.mark-the-hero.every-session.success.headline": "Thứ Năm, anh hùng xin cậu ấy dừng lại",
@@ -4052,6 +4052,10 @@
     "storyEvent.requiresSaleCover": "Không thể bán {player}: cần giữ một thủ môn dự bị và một cầu thủ sân dự bị",
     "storyEvent.rewardLosePlayer": "Mất {player}",
     "storyEvent.rewardLoseSelectedPlayer": "Mất cầu thủ đã chọn",
-    "storyEvent.saleUnavailable": "Hiện không thể bán cầu thủ này"
+    "storyEvent.saleUnavailable": "Hiện không thể bán cầu thủ này",
+    "seasonEnd.showMeTheMoolah": "Đưa tiền đây ĐI!",
+    "clubFinances.incomeRecentEntry": "Tuần {week} ${amount}k",
+    "ledger.divisionalWinBonus": "Thưởng thắng giải",
+    "squadTraining.a11y.archetype": "Nguyên mẫu: {archetype}. {explainer}"
   }
 }

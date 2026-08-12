@@ -341,14 +341,15 @@ describe('career season workflow', () => {
     ).toHaveLength(5);
     // Three weeks have settled by now, each banking the flat baseline.
     expect(settled.trainingPoints).toBe(7 + BASE_WEEKLY_TRAINING_POINTS * 3);
-    // The $1,200 raw gate (500 fans x 60% x $4) takes week 3's seeded roll.
+    // The $1,200 raw gate (500 fans x 60% x $4) carries the 5% home-gate uplift
+    // to $1,260, then takes week 3's seeded roll.
     const gateRoll = matchdayVarianceRoll(
       settled.careerSeed,
       1,
       3,
       'league-gate',
     );
-    const gateAmount = Math.round((1200 * (100 + gateRoll.percent)) / 100);
+    const gateAmount = Math.round((1260 * (100 + gateRoll.percent)) / 100);
     expect(settled.ledgers.at(-1)?.lines).toEqual([
       expect.objectContaining({
         kind: 'tickets',
@@ -363,6 +364,12 @@ describe('career season workflow', () => {
           facilityCount: 0,
         },
       }),
+      // The user club won this week, so the division pays its D5 win bonus.
+      expect.objectContaining({
+        kind: 'prize',
+        label: 'Divisional Win Bonus',
+        amount: 500,
+      }),
       expect.objectContaining({
         kind: 'wages',
         label: 'Weekly wages',
@@ -376,7 +383,8 @@ describe('career season workflow', () => {
     ]);
     expect(
       settled.clubs.find((club) => club.id === state.userClubId)?.cash,
-    ).toBe(20200 + gateAmount);
+      // 20,200 of settled lines, the gate, and the D5 win bonus this week.
+    ).toBe(20200 + gateAmount + 500);
     expect(beforeMatchday.week).toBe(3);
   });
 

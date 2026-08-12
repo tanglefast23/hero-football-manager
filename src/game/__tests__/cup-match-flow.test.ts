@@ -354,8 +354,11 @@ describe('player-controlled Hero Cup match flow', () => {
     const userClub = afterLeague.clubs.find(
       (club) => club.id === afterLeague.userClubId,
     )!;
-    // The raw gate takes this week's seeded cup-gate roll before banking.
-    const rawGate = Math.floor(userClub.fans * 0.6) * userClub.ticketPrice;
+    // The raw gate carries the 5% home-gate uplift, then takes this week's
+    // seeded cup-gate roll before banking.
+    const rawGate = Math.floor(
+      (Math.floor(userClub.fans * 0.6) * userClub.ticketPrice * 105) / 100,
+    );
     const roll = matchdayVarianceRoll(
       afterLeague.careerSeed,
       afterLeague.season,

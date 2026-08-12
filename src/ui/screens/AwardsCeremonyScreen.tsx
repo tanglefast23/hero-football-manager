@@ -14,6 +14,10 @@ import {
   PLAYER_SPRITE_CELL,
   PlayerRunSprite,
 } from '../../render/PlayerRunSprite';
+import {
+  playAwardsCelebrationSfx,
+  stopAwardsCelebrationSfx,
+} from '../../render/management-sfx';
 import { CharacterSpeechOverlay } from '../CharacterSpeechOverlay';
 import { PixelText } from '../components/PixelText';
 import { ClubCrest } from '../components/ClubCrest';
@@ -137,6 +141,24 @@ export function AwardsCeremonyScreen({
   const advance = useCallback(() => {
     setStageIndex((current) => nextStageIndex(stages, current));
   }, [stages]);
+
+  // The club's own flourish, once, as the ceremony opens — and only when one of
+  // the manager's players actually made a podium. `placings` holds the top
+  // three of each board, so a third place counts exactly as the owner asked.
+  const hasOwnPodiumPlacing = useMemo(
+    () =>
+      viewModel.beats.some((entry) =>
+        entry.placings.some((placing) => placing.isUserPlayer),
+      ),
+    [viewModel.beats],
+  );
+  useEffect(() => {
+    if (!hasOwnPodiumPlacing) return undefined;
+    playAwardsCelebrationSfx();
+    // A ceremony skipped in its first seconds must not leave the flourish
+    // ringing over the season review behind it.
+    return stopAwardsCelebrationSfx;
+  }, [hasOwnPodiumPlacing]);
 
   // The clock that plays the ceremony. Keyed on the index as well as the stage
   // so an advance always restarts the hold, and cleared on every change so a

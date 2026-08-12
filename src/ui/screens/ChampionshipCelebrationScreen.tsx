@@ -23,6 +23,10 @@ import {
   stopLeagueChampionsSfx,
 } from '../../render/menu-audio';
 import {
+  playFireworksSfx,
+  stopFireworksSfx,
+} from '../../render/management-sfx';
+import {
   playCelebrationAnthem,
   stopCelebrationAudio,
 } from '../../render/celebration-audio';
@@ -100,6 +104,7 @@ export function ChampionshipCelebrationScreen({
     if (finished.current) return;
     finished.current = true;
     stopLeagueChampionsSfx();
+    stopFireworksSfx();
     stopCelebrationAudio();
     onComplete();
   }, [onComplete]);
@@ -199,6 +204,10 @@ export function ChampionshipCelebrationScreen({
     crowdAnimation.start();
     confettiAnimation.start();
     fireworkAnimation.start();
+    // The shells have a sound now. Started with the animation, not with the
+    // screen, so the Reduce Motion path — which draws no fireworks at all —
+    // stays silent instead of crackling over a still image.
+    playFireworksSfx();
 
     return () => {
       clearTimeout(timeout);
@@ -207,6 +216,7 @@ export function ChampionshipCelebrationScreen({
       crowdAnimation.stop();
       confettiAnimation.stop();
       fireworkAnimation.stop();
+      stopFireworksSfx();
       stopLeagueChampionsSfx();
       stopCelebrationAudio();
     };

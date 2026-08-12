@@ -107,6 +107,7 @@ import {
   allocateSponsorPortfolioPayment,
   nominalSponsorPortfolioIncome,
   sponsorObjectiveProgressFromFixtures,
+  storyTrainingPointReward,
   isFacilityOperational,
   weeklyFacilityUpkeep,
   weeklyAmbientTrainingPoints,
@@ -665,7 +666,7 @@ function recentIncomeHistory(
   state: GameState,
   amountForReview: (lines: readonly LedgerLine[]) => number | undefined,
 ): NonNullable<IncomeGenerationViewModel['rows'][number]['history']> {
-  const history: Array<{ periodLabel: string; amount: number }> = [];
+  const history: Array<{ week: number; amount: number }> = [];
   for (
     let index = state.ledgers.length - 1;
     index >= 0 && history.length < INCOME_HISTORY_LIMIT;
@@ -674,10 +675,10 @@ function recentIncomeHistory(
     const ledger = state.ledgers[index];
     const amount = amountForReview(ledger.lines);
     if (amount === undefined) continue;
-    history.push({
-      periodLabel: `S${ledger.season} · W${ledger.week}`,
-      amount,
-    });
+    // The week alone. The season was dropped from the row on the owner's call:
+    // three entries deep, every one of them is this season or the last, and the
+    // "S1 · " prefix cost more width than it ever explained.
+    history.push({ week: ledger.week, amount });
   }
   return history;
 }
@@ -4190,6 +4191,10 @@ export function squadTrainingViewModel(
                 player.contractPromise.perk,
                 t,
               ),
+              // The id as well as the label: the roster's hover card explains
+              // what the promise obliges the club to do, and the sentence for
+              // that already exists per perk in the negotiating table's copy.
+              contractPromisePerk: player.contractPromise.perk,
             }),
         // Absent while retirement is more than a season away. The squad list
         // deliberately knows less than the negotiating table does.
@@ -5298,9 +5303,14 @@ function eventRewardItems(
     (sum, effect) => (effect.type === 'fans' ? sum + effect.amount : sum),
     0,
   );
-  const trainingPoints = effects.reduce(
-    (sum, effect) => (effect.type === 'tp' ? sum + effect.amount : sum),
-    0,
+  // Scaled exactly as the resolution will pay it, or the card promises a D5
+  // number to a D1 club.
+  const trainingPoints = storyTrainingPointReward(
+    state,
+    effects.reduce(
+      (sum, effect) => (effect.type === 'tp' ? sum + effect.amount : sum),
+      0,
+    ),
   );
   if (money !== 0)
     rewards.push({

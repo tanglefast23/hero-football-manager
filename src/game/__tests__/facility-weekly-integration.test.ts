@@ -353,15 +353,16 @@ describe('facility weekly integration', () => {
       },
     });
 
-    // 500 fans at 60% attendance x $4 tickets is the $1,200 D5 baseline.
-    expect(gateOf(playedHomeWeek)).toBe(1_200);
-    expect(gateOf(withStands(1))).toBe(2_400);
-    expect(gateOf(withStands(2))).toBe(3_600);
-    expect(gateOf(withStands(3))).toBe(4_800);
+    // 500 fans at 60% attendance x $4 tickets is the $1,200 D5 baseline, plus
+    // the 5% home-gate uplift every gate now carries: $1,260.
+    expect(gateOf(playedHomeWeek)).toBe(1_260);
+    expect(gateOf(withStands(1))).toBe(2_520);
+    expect(gateOf(withStands(2))).toBe(3_780);
+    expect(gateOf(withStands(3))).toBe(5_040);
     // Every placed stand contributes, regardless of build order.
-    expect(gateOf(withStands(1, 3))).toBe(6_000);
-    expect(gateOf(withStands(3, 1))).toBe(6_000);
-    expect(gateOf(withStands(1, 1, 1))).toBe(4_800);
+    expect(gateOf(withStands(1, 3))).toBe(6_300);
+    expect(gateOf(withStands(3, 1))).toBe(6_300);
+    expect(gateOf(withStands(1, 1, 1))).toBe(5_040);
   });
 
   test('uses the reduced x1.10/x1.20/x1.30 facility ladder', () => {

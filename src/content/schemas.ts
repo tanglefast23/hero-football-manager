@@ -915,8 +915,15 @@ export const GameEventSchema = z
         requiresPlayerSource: z
           .enum(['YOUTH_OFFERS', 'TRANSFER_TARGETS'])
           .optional(),
-        /** The one keeper story: the picker offers only goalkeepers. */
-        requiresPlayerRole: z.literal('GK').optional(),
+        /** Prose that names a position: the picker offers only that role. */
+        requiresPlayerRole: RoleSchema.optional(),
+        /**
+         * Drops the club's heroes from the picker, for a story whose prose has
+         * the hero standing opposite the chosen player rather than being him.
+         * Without it, a club whose only hero is a defender can be handed a card
+         * asking him to mark himself.
+         */
+        excludesHeroes: z.boolean().optional(),
         /** The card asks the manager to point at the head coach or the assistant. */
         requiresCoach: z.boolean().optional(),
         /** Optional staff-slot restriction for prose that explicitly names one role. */

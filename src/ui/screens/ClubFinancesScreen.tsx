@@ -70,7 +70,11 @@ import {
 } from '../GuidanceDoubleFlash';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
-import { useCopy, type CopyFn } from '../../i18n';
+import {
+  formatThousandsForCopy,
+  useCopy,
+  type CopyFn,
+} from '../../i18n';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;
@@ -1857,6 +1861,23 @@ function TrainingPointIncomeSection({
  * keep a row — greyed, with the worth they WOULD have — because the panel is
  * read as often for "how do I earn more" as for "what do I own".
  */
+/**
+ * One settled receipt: "Week 26 $3.7k".
+ *
+ * No sign — every source in this panel pays the club, so a "+" on all of them
+ * marked nothing. No season either, and the figure is rounded to thousands so
+ * three of them fit one line at any text scale.
+ */
+function incomeHistoryEntryLabel(
+  t: CopyFn,
+  entry: { readonly week: number; readonly amount: number },
+): string {
+  return t('clubFinances.incomeRecentEntry', {
+    week: entry.week,
+    amount: formatThousandsForCopy(t, entry.amount),
+  });
+}
+
 function IncomeGenerationSection({
   income,
 }: {
@@ -1879,10 +1900,7 @@ function IncomeGenerationSection({
               row.history === undefined
                 ? ''
                 : `. ${t('clubFinances.incomeRecent')}: ${row.history
-                    .map(
-                      (entry) =>
-                        `${entry.periodLabel}, ${formatCurrency(t, entry.amount, true)}`,
-                    )
+                    .map((entry) => incomeHistoryEntryLabel(t, entry))
                     .join(', ')}`
             }`}
             className="min-h-11 border-b border-ink/10 px-3 py-2 last:border-b-0"
@@ -1915,15 +1933,14 @@ function IncomeGenerationSection({
                 <PixelText className="text-xs uppercase text-ink/55">
                   {t('clubFinances.incomeRecent')}
                 </PixelText>
-                {row.history.map((entry) => (
-                  <Text
-                    key={`${row.id}-${entry.periodLabel}`}
-                    className="font-mono text-xs text-pitch-dark"
-                  >
-                    {entry.periodLabel} ·{' '}
-                    {formatCurrency(t, entry.amount, true)}
-                  </Text>
-                ))}
+                {/* One text node, comma-separated: these are all receipts, so
+                    the row wants to read as a list rather than as a set of
+                    signed deltas. */}
+                <Text className="font-mono text-xs text-pitch-dark">
+                  {row.history
+                    .map((entry) => incomeHistoryEntryLabel(t, entry))
+                    .join(', ')}
+                </Text>
               </View>
             )}
           </View>

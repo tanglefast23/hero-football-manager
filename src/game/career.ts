@@ -45,6 +45,7 @@ import {
   FAME_CEILING,
 } from './pyramid';
 import type {
+  DivisionLevel,
   NationalCup,
   NationalCupFixture,
   NationalCupResult,
@@ -1038,6 +1039,55 @@ function varianceEligibleSettlement(state: GameState): boolean {
   );
 }
 
+/**
+ * What the division pays the club for a league win, at D5.
+ *
+ * League only, which is what makes it divisional: the Hero Cup crosses every
+ * tier, so a cup win has no division to be paid by. Its own prize money is the
+ * cup's business.
+ */
+export const DIVISIONAL_WIN_BONUS_AT_D5 = 500;
+
+/**
+ * Added per tier climbed: D5 500, D4 750, D3 1,000, D2 1,250, D1 1,500.
+ *
+ * A flat rate would shrink into irrelevance on the way up — by D1 a home gate
+ * is worth several times its D5 self — and a doubling ladder would outrun the
+ * gate it sits beside. Tripling across the whole pyramid puts a win at roughly
+ * the same share of a week's income in every division, which is the property
+ * that makes it feel like the same reward rather than a bigger one.
+ */
+export const DIVISIONAL_WIN_BONUS_PER_TIER = 250;
+
+/** The bonus one league win pays a club playing in `division`. */
+export function divisionalWinBonus(division: DivisionLevel): number {
+  return checkedAdd(
+    DIVISIONAL_WIN_BONUS_AT_D5,
+    checkedMultiply(
+      5 - division,
+      DIVISIONAL_WIN_BONUS_PER_TIER,
+      'divisional win bonus',
+    ),
+    'divisional win bonus',
+  );
+}
+
+/** The user club's league win this week, if it played one and took it. */
+function settledLeagueWin(state: GameState): boolean {
+  const fixture = state.fixtures.find(
+    (candidate) =>
+      candidate.season === state.season &&
+      candidate.week === state.week &&
+      candidate.status === 'played' &&
+      (candidate.homeClubId === state.userClubId ||
+        candidate.awayClubId === state.userClubId),
+  );
+  if (fixture?.score === undefined) return false;
+  return fixture.homeClubId === state.userClubId
+    ? fixture.score.homeGoals > fixture.score.awayGoals
+    : fixture.score.awayGoals > fixture.score.homeGoals;
+}
+
 function settlementLines(
   state: GameState,
   userClub: ClubState,
@@ -1101,6 +1151,17 @@ function settlementLines(
       },
       amount: cupGate.amount,
       ...(cupGate.reveal === undefined ? {} : { reveal: cupGate.reveal }),
+    });
+  }
+
+  if (settledLeagueWin(state)) {
+    lines.push({
+      kind: 'prize',
+      label: 'Divisional Win Bonus',
+      labelKey: 'ledger.divisionalWinBonus',
+      amount: divisionalWinBonus(
+        state.m2 === undefined ? 5 : currentUserDivision(state.m2),
+      ),
     });
   }
 
@@ -1418,9 +1479,22 @@ function gridFanShops(grid: FacilityGridState | undefined): {
   return { level: Math.max(0, Math.round(weighted)), count };
 }
 
+/**
+ * A flat uplift on every home gate — league and cup, every division, all game.
+ *
+ * It sits on the base rather than on the settled total, so the Stadium Stand
+ * multiplier and the weekly variance roll ride on top of it exactly as they
+ * already do for the rest of the gate, and the Financial Report's reveal keeps
+ * showing the same base the club was actually paid on.
+ */
+const HOME_GATE_UPLIFT_PERCENT = 105;
+
 function rawGateBase(userClub: ClubState, label: string): number {
   const attendance = sixtyPercentOf(userClub.fans);
-  return checkedMultiply(attendance, userClub.ticketPrice, label);
+  const gate = checkedMultiply(attendance, userClub.ticketPrice, label);
+  return Math.floor(
+    checkedMultiply(gate, HOME_GATE_UPLIFT_PERCENT, label) / 100,
+  );
 }
 
 function gateIncomeFromBase(

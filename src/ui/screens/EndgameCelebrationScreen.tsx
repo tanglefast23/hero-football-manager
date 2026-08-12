@@ -38,6 +38,10 @@ import {
   stopCelebrationAudio,
 } from '../../render/celebration-audio';
 import {
+  playFireworksSfx,
+  stopFireworksSfx,
+} from '../../render/management-sfx';
+import {
   PLAYER_SPRITE_CELL,
   PlayerRunSprite,
 } from '../../render/PlayerRunSprite';
@@ -377,7 +381,13 @@ function FireworkSky({
       }),
     );
     loop.start();
-    return () => loop.stop();
+    // The sky owns its own sound: a still sky under Reduce Motion is silent,
+    // and the crackle stops with the shells rather than with the screen.
+    playFireworksSfx();
+    return () => {
+      loop.stop();
+      stopFireworksSfx();
+    };
   }, [progress, reduceMotion]);
 
   return (

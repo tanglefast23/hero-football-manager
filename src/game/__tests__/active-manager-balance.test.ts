@@ -116,8 +116,14 @@ describe('active-manager economy rail', () => {
       // measured peaks are now 1,129,549, 1,144,617, and 1,176,448. The
       // approved player-only 10% wage cut moved the sampled worst case to
       // 1,216,228. A 1.25M ceiling retains a narrow guardrail above it.
+      // The approved 5% home-gate uplift moved this seed's peak to 1,269,723;
+      // seeds 0 and 77 still measured under the old 1.25M bound. The Divisional
+      // Win Bonus then moved all three: this rail's manager wins every match it
+      // plays, so it collects the bonus every league week at the tier it has
+      // climbed to, and the sampled peaks are now 1,356,554 / 1,355,579 /
+      // 1,386,723. 1.45M keeps the guardrail narrow over the new worst case.
       expect(Math.max(...balances)).toBeLessThanOrEqual(
-        /* CEILING */ 1_250_000,
+        /* CEILING */ 1_450_000,
       );
       expect(balances.every((b) => Number.isSafeInteger(b))).toBe(true);
       expect(state.trainingPoints).toBeGreaterThanOrEqual(0);

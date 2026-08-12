@@ -38,7 +38,11 @@ describe('M2 deterministic management balance rails', () => {
       // 95,592 / 60,844. Seed 77 is the promoted outlier. 240k keeps almost
       // exactly five percent headroom over that measured peak without turning
       // this into an unmeasured ceiling. If the opening reads rich, start here.
-      expect(summary.maximumBalance).toBeLessThanOrEqual(240_000);
+      // The approved 5% home-gate uplift and the new Divisional Win Bonus
+      // ($500/win at D5, +$250 a tier) moved seed 77's peak to 273,765 — it is
+      // the promoted outlier, so it collects the bonus at rising rates for
+      // several seasons. 290k restores roughly the same 5% headroom.
+      expect(summary.maximumBalance).toBeLessThanOrEqual(290_000);
       expect(summary.minimumWeeklyNet).toBeGreaterThanOrEqual(-15_000);
       expect(summary.maximumWeeklyNet).toBeLessThanOrEqual(40_000);
       expect(Number.isSafeInteger(summary.endingCash)).toBe(true);

@@ -500,6 +500,12 @@ export interface SquadPlayerViewModel {
   weeklyWage: number;
   contractLabel: string;
   contractPromiseLabel?: string;
+  /** The promise itself, so a caller can look up what it obliges the club to. */
+  contractPromisePerk?:
+    | 'GUARANTEED_STARTER'
+    | 'CAPTAINCY'
+    | 'TRAINING_PRIORITY'
+    | 'JERSEY_10';
   /** Set only within one season of the announcement; absent while it is far off. */
   retirementLabel?: string;
   shirtNumber?: number;
@@ -938,7 +944,8 @@ export interface IncomeGenerationViewModel {
     owned: boolean;
     /** Up to three newest settled Weekly Reviews where this source paid. */
     history?: readonly {
-      periodLabel: string;
+      /** Calendar week, unqualified by season — the app ring words it. */
+      week: number;
       /** Authoritative saved income, or the saved facility-only share. */
       amount: number;
     }[];

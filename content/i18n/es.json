@@ -1507,7 +1507,7 @@
     "event.lottery-win.lottery-team-gift.success.headline": "Cada silla tiene nombre",
     "event.lottery-win.lottery-team-gift.success.text": "Compran una sala de recuperación e insisten en que cada silla lleve un nombre.",
     "event.lottery-win.title": "Un jugador gana la lotería",
-    "event.mark-the-hero.body": "Tu defensa ha pedido pasar la semana marcando al héroe del club en los entrenamientos. Al héroe le hace gracia.",
+    "event.mark-the-hero.body": "Uno de tus defensas quiere pasar la semana entrenando contra tu mejor atacante: pegado a él toda la sesión, cortando cada balón. Al héroe le parece una gran idea.",
     "event.mark-the-hero.every-session.label": "Todas las sesiones, sin ayuda",
     "event.mark-the-hero.every-session.setback.text": "El héroe lo supera una y otra vez delante de la plantilla durante cuatro días.",
     "event.mark-the-hero.every-session.success.headline": "El jueves el héroe le pide que pare",
@@ -4052,6 +4052,10 @@
     "storyEvent.requiresSaleCover": "No puedes vender a {player}: conserva un portero suplente y un jugador de campo suplente",
     "storyEvent.rewardLosePlayer": "Pierdes a {player}",
     "storyEvent.rewardLoseSelectedPlayer": "Pierdes al jugador elegido",
-    "storyEvent.saleUnavailable": "Este jugador no se puede vender ahora"
+    "storyEvent.saleUnavailable": "Este jugador no se puede vender ahora",
+    "seasonEnd.showMeTheMoolah": "¡Enséñame la PASTAAA!",
+    "clubFinances.incomeRecentEntry": "Semana {week} ${amount}k",
+    "ledger.divisionalWinBonus": "Bono de victoria divisional",
+    "squadTraining.a11y.archetype": "Arquetipo: {archetype}. {explainer}"
   }
 }

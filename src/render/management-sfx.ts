@@ -22,7 +22,9 @@ type ExplicitManagementSfxKey =
   | 'match-day-fanfare'
   | 'match-control'
   | 'drill-complete'
-  | 'midseason-footsteps';
+  | 'midseason-footsteps'
+  | 'fireworks'
+  | 'awards-celebration';
 
 export type ManagementActionCue =
   | 'select'
@@ -126,6 +128,17 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // the loop boundary clean on iOS and web; appended so every existing cue
   // and rapid-voice index stays stable.
   'midseason-footsteps': require('../../assets/audio/sfx/midseason-footsteps-loop.wav'),
+  // The supplied 36s firework display, cut to the 6s from 0:04 where the bursts
+  // are already dense and steady, with a short fade at each end. Every screen
+  // that puts fireworks on the pitch starts this once when the shells do; the
+  // celebration anthem carries the rest of the scene.
+  // Appended last so every existing cue and rapid-voice index stays stable.
+  fireworks: require('../../assets/audio/sfx/fireworks.m4a'),
+  // The supplied 4.3s celebration phrase, faded out over its last 0.35s. Only
+  // the awards ceremony plays it, and only when one of the club's own players
+  // placed in a top three.
+  // Appended last so every existing cue and rapid-voice index stays stable.
+  'awards-celebration': require('../../assets/audio/sfx/awards-celebration.m4a'),
 };
 
 const DRILL_COMPLETE_GAIN = 0.75;
@@ -376,6 +389,37 @@ export function stopSuperCelebrationSfx(): void {
     players.get('super-celebration')?.pause();
   } catch (error) {
     warnOnce('super celebration stop failed', error);
+  }
+}
+
+/** The shells. Started by every scene that puts fireworks over the pitch. */
+export function playFireworksSfx(): void {
+  playManagementSfx('fireworks');
+}
+
+/**
+ * Fireworks outlive their own scene when the manager taps through, and a
+ * six-second display crackling over the next screen is the same staleness the
+ * SUPER jingle had. Every caller stops it on leave.
+ */
+export function stopFireworksSfx(): void {
+  try {
+    players.get('fireworks')?.pause();
+  } catch (error) {
+    warnOnce('fireworks stop failed', error);
+  }
+}
+
+/** The awards ceremony's own flourish, for a club with someone on a podium. */
+export function playAwardsCelebrationSfx(): void {
+  playManagementSfx('awards-celebration');
+}
+
+export function stopAwardsCelebrationSfx(): void {
+  try {
+    players.get('awards-celebration')?.pause();
+  } catch (error) {
+    warnOnce('awards celebration stop failed', error);
   }
 }
 

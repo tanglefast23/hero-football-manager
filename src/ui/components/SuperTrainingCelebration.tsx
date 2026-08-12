@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
 import {
+  playFireworksSfx,
   playSuperCelebrationSfx,
   playSuperTrainingYaySfx,
+  stopFireworksSfx,
   stopSuperCelebrationSfx,
 } from '../../render/management-sfx';
 import { drillPresentationMs } from '../../render/drill-presentation-timing';
@@ -54,6 +56,7 @@ export function SuperTrainingCelebration({
     // tapped away — and the jingle underneath it ends here rather than ringing
     // on over the screen behind.
     stopSuperCelebrationSfx();
+    stopFireworksSfx();
     playSuperTrainingYaySfx();
     onComplete();
   }).current;
@@ -106,12 +109,17 @@ export function SuperTrainingCelebration({
     });
     confetti.start();
     fireworks.start();
+    // The shells get their own crackle, on the animated path only: Reduce
+    // Motion keeps the payoff without the fireworks, so it keeps the jingle
+    // without their sound.
+    playFireworksSfx();
     title.start();
     const timer = setTimeout(completeOnce, SUPER_CELEBRATION_MS);
     return () => {
       clearTimeout(timer);
       confetti.stop();
       fireworks.stop();
+      stopFireworksSfx();
       title.stop();
     };
   }, [

@@ -190,6 +190,7 @@ export function ClubHomeScreen({
             <View className="border-y-2 border-ink py-4">
               <View className="flex-row items-center justify-between gap-2">
                 <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
+                  <ClubCrest clubName={fixture.homeTeam} size={24} />
                   <PixelText
                     className="min-w-0 text-right text-xl uppercase text-ink"
                     numberOfLines={2}
@@ -198,7 +199,6 @@ export function ClubHomeScreen({
                   >
                     {fixture.homeTeam}
                   </PixelText>
-                  <ClubCrest clubName={fixture.homeTeam} size={24} />
                 </View>
                 <View className="border-2 border-ink bg-ink px-3 py-2">
                   <Text className="font-pixel text-base text-paper">

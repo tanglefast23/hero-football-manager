@@ -94,7 +94,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 10
+                  "amount": 21
                 },
                 {
                   "type": "flag",
@@ -128,7 +128,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 3
+                  "amount": 7
                 }
               ]
             }
@@ -166,7 +166,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 19
                 },
                 {
                   "type": "flag",
@@ -317,7 +317,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 15
                 },
                 {
                   "type": "flag",
@@ -420,7 +420,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 8
                 },
                 {
                   "type": "morale",
@@ -442,7 +442,8 @@
       "trigger": {
         "season": 2,
         "minWeek": 2,
-        "maxWeek": 30
+        "maxWeek": 30,
+        "requiresHero": true
       },
       "choices": [
         {
@@ -534,7 +535,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 12
+                  "amount": 23
                 },
                 {
                   "type": "squadMorale",
@@ -572,7 +573,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 2
+                  "amount": 6
                 }
               ]
             }
@@ -611,7 +612,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 15
                 },
                 {
                   "type": "flag",
@@ -627,7 +628,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 2
+                  "amount": 6
                 }
               ]
             }
@@ -718,7 +719,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 3
+                  "amount": 7
                 }
               ]
             }
@@ -866,7 +867,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 2
+                  "amount": 6
                 }
               ],
               "nextEventId": "rival-bid-deadline-day"
@@ -982,7 +983,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 11
+                  "amount": 22
                 },
                 {
                   "type": "flag",
@@ -1016,7 +1017,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 8
                 }
               ]
             }
@@ -1050,7 +1051,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 19
                 },
                 {
                   "type": "squadMorale",
@@ -1163,7 +1164,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 4
+                  "amount": 8
                 }
               ]
             }
@@ -1784,12 +1785,15 @@
       "rarity": "common",
       "art": "event-marking",
       "title": "Mark The Hero All Week",
-      "body": "Your defender has asked to spend the week marking the club's own hero in training. The hero finds this funny.",
+      "body": "One of your defenders wants to spend the week training against your best attacker: stick to him all session, block every ball. The hero thinks it is a great idea.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
         "maxWeek": 30,
-        "requiresPlayer": true
+        "requiresPlayer": true,
+        "requiresPlayerRole": "DEF",
+        "requiresHero": true,
+        "excludesHeroes": true
       },
       "choices": [
         {
@@ -2567,7 +2571,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }
@@ -2639,7 +2643,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }
@@ -2719,7 +2723,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }
@@ -2868,7 +2872,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }
@@ -2944,7 +2948,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }
@@ -3020,7 +3024,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }
@@ -3102,7 +3106,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }
@@ -3586,7 +3590,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 1
+                  "amount": 5
                 }
               ]
             }

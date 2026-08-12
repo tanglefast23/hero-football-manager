@@ -1507,7 +1507,7 @@
     "event.lottery-win.lottery-team-gift.success.headline": "Tiap kursi punya nama",
     "event.lottery-win.lottery-team-gift.success.text": "Mereka membeli ruang pemulihan dan bersikeras tiap kursi punya nama.",
     "event.lottery-win.title": "Pemain menang lotre",
-    "event.mark-the-hero.body": "Bekmu minta menghabiskan sepekan mengawal pahlawan klub sendiri di latihan. Sang pahlawan merasa itu lucu.",
+    "event.mark-the-hero.body": "Salah satu bekmu ingin menghabiskan sepekan berlatih melawan penyerang terbaikmu: menempel sepanjang sesi, memotong setiap bola. Sang pahlawan merasa itu ide bagus.",
     "event.mark-the-hero.every-session.label": "Tiap sesi, tanpa bantuan",
     "event.mark-the-hero.every-session.setback.text": "Sang pahlawan melewatinya berkali-kali di depan tim selama empat hari.",
     "event.mark-the-hero.every-session.success.headline": "Kamis sang pahlawan minta berhenti",
@@ -4052,6 +4052,10 @@
     "storyEvent.requiresSaleCover": "Tak bisa menjual {player}: simpan kiper cadangan dan pemain lapangan cadangan",
     "storyEvent.rewardLosePlayer": "Kehilangan {player}",
     "storyEvent.rewardLoseSelectedPlayer": "Kehilangan pemain yang dipilih",
-    "storyEvent.saleUnavailable": "Pemain ini tidak dapat dijual sekarang"
+    "storyEvent.saleUnavailable": "Pemain ini tidak dapat dijual sekarang",
+    "seasonEnd.showMeTheMoolah": "Tunjukkan DUITNYAAA!",
+    "clubFinances.incomeRecentEntry": "Pekan {week} ${amount}k",
+    "ledger.divisionalWinBonus": "Bonus Menang Divisi",
+    "squadTraining.a11y.archetype": "Arketipe: {archetype}. {explainer}"
   }
 }

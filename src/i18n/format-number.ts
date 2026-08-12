@@ -69,3 +69,24 @@ export function formatMoneyForCopy(
 ): string {
   return formatMoney(t.locale ?? 'en', value, signed);
 }
+
+/**
+ * Thousands, to one decimal: 3708 reads as "3.7", 927 as "0.9".
+ *
+ * Returns the number alone, because the caller's copy owns the currency and
+ * the "k" — a column of settled receipts wants the same shape in every row far
+ * more than it wants an exact figure, and the exact figure is a tap away in
+ * the Weekly Review.
+ *
+ * The decimal mark is derived from the grouping mark rather than stored beside
+ * it: every locale here uses one or the other, so a second table would only
+ * offer a way for the two to disagree.
+ */
+export function formatThousandsForCopy(t: CopyFn, value: number): string {
+  const locale = t.locale ?? 'en';
+  const decimalMark = localeMeta(locale).groupSeparator === ',' ? '.' : ',';
+  const negative = value < 0;
+  const thousands = (Math.abs(value) / 1000).toFixed(1);
+  const [whole = '0', fraction = '0'] = thousands.split('.');
+  return `${negative ? '-' : ''}${formatInteger(locale, Number(whole))}${decimalMark}${fraction}`;
+}

@@ -80,7 +80,10 @@ import {
   type GuidanceNudgeTarget,
 } from '../GuidanceDoubleFlash';
 import { copyOrEnglish } from '../../application/copy-fallback';
-import { LazyTrainingDrillModal as TrainingDrillModal } from '../LazyTrainingDrillModal';
+import {
+  LazyTrainingDrillModal as TrainingDrillModal,
+  preloadTrainingDrillModal,
+} from '../LazyTrainingDrillModal';
 
 /**
  * The roster reads condition on the same three bands as the drill popup and
@@ -120,6 +123,66 @@ function personalityExplainer(personality: string, t: CopyFn): string {
     PERSONALITY_EXPLAINER[personality.toUpperCase().replace('-', '_')] ??
       'squadTraining.personality.default',
   );
+}
+
+/**
+ * The archetype's strengths and weaknesses as one sentence.
+ *
+ * The row prints the same two phrases abbreviated to fit the column ("+5% ALL
+ * STATS  NO WEAK SPOT"); this is what the tip and the screen reader get.
+ */
+function archetypeExplainer(
+  archetype: ArchetypeDevelopmentSummary | undefined,
+  t: CopyFn,
+): string {
+  if (archetype === undefined) return t('squadTraining.archetype');
+  return `${copyOrEnglish(t, archetype.strengthsKey, archetype.strengths)}. ${copyOrEnglish(t, archetype.weaknessesKey, archetype.weaknesses)}.`;
+}
+
+const PROMISE_DETAIL: Readonly<
+  Record<NonNullable<SquadPlayerViewModel['contractPromisePerk']>, string>
+> = {
+  GUARANTEED_STARTER: 'market.perkStarterDetail',
+  CAPTAINCY: 'market.perkCaptaincyDetail',
+  TRAINING_PRIORITY: 'market.perkTrainingDetail',
+  JERSEY_10: 'market.perkJerseyDetail',
+};
+
+/**
+ * Everything the roster row has to clip, written out.
+ *
+ * The register is a table: every cell in the name column is one line with
+ * `numberOfLines={1}`, so a promise, a captaincy and a power name all end in an
+ * ellipsis on a narrow column. This is the same content unabbreviated, and it
+ * adds the one thing the row could never show — what the promise obliges the
+ * club to do.
+ */
+function rosterRowSummary(player: SquadPlayerViewModel, t: CopyFn): string {
+  const promiseDetail =
+    player.contractPromisePerk === undefined
+      ? undefined
+      : t(PROMISE_DETAIL[player.contractPromisePerk]);
+  return [
+    `${player.name} — ${player.role}`,
+    player.injuryWeeks > 0
+      ? t('squadTraining.outForWeeks', {
+          n: player.injuryWeeks,
+          count: player.injuryWeeks,
+        })
+      : player.isStarter
+        ? t('storyEvent.startingXi')
+        : undefined,
+    player.isCaptain ? t('squadTraining.captain') : undefined,
+    player.shirtNumber === undefined ? undefined : `#${player.shirtNumber}`,
+    player.contractLabel,
+    player.contractPromiseLabel === undefined
+      ? undefined
+      : `${player.contractPromiseLabel}: ${promiseDetail}`,
+    player.powerName === undefined ? undefined : `★ ${player.powerName}`,
+    player.retirementLabel,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
@@ -423,6 +486,12 @@ export function SquadTrainingScreen({
     if (drillPickerRequestToken === undefined) return;
     setDrillPickerOpen(true);
   }, [drillPickerRequestToken]);
+
+  // Fetch the drill popup's bundle while the roster is being read, so pressing
+  // + opens it instead of starting the download.
+  useEffect(() => {
+    void preloadTrainingDrillModal();
+  }, []);
 
   // Keyed to the drill, not the career total, so it fires once and never again
   // on a re-render or a reload.
@@ -953,12 +1022,21 @@ function RosterSection({
                     {player.role}
                   </Text>
                   <View className="flex-1 pr-2">
-                    <Text
-                      className="text-base font-bold text-ink"
-                      numberOfLines={1}
+                    {/* The name carries the row's hover card: every other cell
+                        in this column is clipped to one line, and the card is
+                        the only place the promise is spelled out. */}
+                    <InfoTip
+                      text={rosterRowSummary(player, t)}
+                      accessibilityLabel={rosterRowSummary(player, t)}
+                      onPress={() => onSelectPlayer(player.id)}
                     >
-                      {player.name}
-                    </Text>
+                      <Text
+                        className="text-base font-bold text-ink"
+                        numberOfLines={1}
+                      >
+                        {player.name}
+                      </Text>
+                    </InfoTip>
                     {player.injuryWeeks > 0 ? (
                       <Text
                         className="mt-0.5 font-pixel text-sm uppercase text-red-dark"
@@ -1473,9 +1551,21 @@ function PlayerFileSection({
             {t('squadTraining.archetype')}
           </PixelText>
           <View className="min-w-0 flex-1 items-end">
-            <Text className="text-base font-bold text-ink">
-              {selectedPlayer.archetypeLabel}
-            </Text>
+            {/* Same treatment as Personality below: the strengths and
+                weaknesses under the name are abbreviated to fit the column, so
+                the full sentences live in the tip. */}
+            <InfoTip
+              align="right"
+              text={archetypeExplainer(selectedArchetype, t)}
+              accessibilityLabel={t('squadTraining.a11y.archetype', {
+                archetype: selectedPlayer.archetypeLabel,
+                explainer: archetypeExplainer(selectedArchetype, t),
+              })}
+            >
+              <Text className="text-base font-bold text-ink">
+                {selectedPlayer.archetypeLabel}
+              </Text>
+            </InfoTip>
             <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
               <Text className="font-pixel text-sm text-pitch-ink">
                 {selectedArchetype === undefined

@@ -24,12 +24,14 @@ import {
   playDrillCompleteSfx,
   playDrillGainRevealSfx,
   playDrillProgressSfx,
+  playFireworksSfx,
   playMidseasonFootstepsSfx,
   playPositiveSfx,
   playSuperTrainingYaySfx,
   playTrainingStatDing,
   stopDrillCompleteSfx,
   stopDrillProgressSfx,
+  stopFireworksSfx,
   stopMidseasonFootstepsSfx,
 } from '../../render/management-sfx';
 import {
@@ -126,6 +128,7 @@ export function MidseasonTrainingCelebrationScreen({
     stopDrillProgressSfx();
     stopDrillCompleteSfx();
     stopMidseasonFootstepsSfx();
+    stopFireworksSfx();
   }, []);
 
   const clearCameraCuts = useCallback(() => {
@@ -171,6 +174,9 @@ export function MidseasonTrainingCelebrationScreen({
     playDrillProgressSfx();
     playDrillCompleteSfx();
     playMidseasonFootstepsSfx();
+    // Started with the rest of the animated scene's audio: Reduce Motion
+    // returns above this line and draws no shells.
+    playFireworksSfx();
     reinforcementTimersRef.current = [
       setTimeout(playTrainingStatDing, 700),
       setTimeout(playPositiveSfx, 1_550),

@@ -1507,7 +1507,7 @@
     "event.lottery-win.lottery-team-gift.success.headline": "Jeder Sessel hat einen Namen",
     "event.lottery-win.lottery-team-gift.success.text": "Sie kaufen einen Regenerationsraum, und jeder Sessel bekommt einen Namen.",
     "event.lottery-win.title": "Ein Spieler gewinnt im Lotto",
-    "event.mark-the-hero.body": "Dein Verteidiger will die ganze Woche im Training den Helden des Klubs decken. Der Held findet das lustig.",
+    "event.mark-the-hero.body": "Einer deiner Verteidiger will die ganze Woche gegen deinen besten Angreifer trainieren: die ganze Einheit dicht bei ihm, jeden Ball abfangen. Der Held findet die Idee großartig.",
     "event.mark-the-hero.every-session.label": "Jede Einheit, ohne Hilfe",
     "event.mark-the-hero.every-session.setback.text": "Der Held setzt sich vier Tage lang vor der Mannschaft immer wieder gegen ihn durch.",
     "event.mark-the-hero.every-session.success.headline": "Am Donnerstag bittet der Held um Gnade",
@@ -4052,6 +4052,10 @@
     "storyEvent.requiresSaleCover": "{player} nicht verkaufen: Ersatztorwart und Feldspieler behalten",
     "storyEvent.rewardLosePlayer": "{player} verlieren",
     "storyEvent.rewardLoseSelectedPlayer": "Den gewählten Spieler verlieren",
-    "storyEvent.saleUnavailable": "Dieser Spieler kann derzeit nicht verkauft werden"
+    "storyEvent.saleUnavailable": "Dieser Spieler kann derzeit nicht verkauft werden",
+    "seasonEnd.showMeTheMoolah": "Zeig mir die KOHLEEE!",
+    "clubFinances.incomeRecentEntry": "Woche {week} ${amount}k",
+    "ledger.divisionalWinBonus": "Divisions-Siegprämie",
+    "squadTraining.a11y.archetype": "Archetyp: {archetype}. {explainer}"
   }
 }

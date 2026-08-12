@@ -2147,22 +2147,30 @@ function GameApp() {
       : assistantObjective?.target === 'squad-tab'
         ? 'squad'
         : undefined;
+  /**
+   * A guided navigation is itself a tap, and the shell dismisses floating
+   * guidance on any tap. Every control that carries the manager to the next
+   * step has to say so, or the step it opens arrives already dismissed.
+   */
+  const keepGuidanceThroughThisTap = useCallback(() => {
+    skipNextGuidanceDismissRef.current = true;
+    // A pointer activation bubbles into the shell's tap-to-dismiss handler in
+    // this frame. Keyboard activation does not, so release the one-shot guard
+    // on the next frame rather than swallowing the user's first later tap.
+    requestAnimationFrame(() => {
+      skipNextGuidanceDismissRef.current = false;
+    });
+  }, []);
   const openManagerTipDestination = useCallback(
     (target: ManagerTipDestination) => {
-      skipNextGuidanceDismissRef.current = true;
-      // A pointer activation bubbles into the shell's tap-to-dismiss handler in
-      // this frame. Keyboard activation does not, so release the one-shot guard
-      // on the next frame rather than swallowing the user's first later tap.
-      requestAnimationFrame(() => {
-        skipNextGuidanceDismissRef.current = false;
-      });
+      keepGuidanceThroughThisTap();
       setManagerTipGuideRequest((current) => ({
         target,
         token: (current?.token ?? 0) + 1,
       }));
       store.setActiveTab('squad');
     },
-    [store.setActiveTab],
+    [keepGuidanceThroughThisTap, store.setActiveTab],
   );
   const dismissVisibleTips = useCallback(() => {
     // The match-day card does not eat the press. Let the control under it finish,
@@ -2992,13 +3000,9 @@ function GameApp() {
         activeTab={store.activeTab}
         onTabChange={(tab) => {
           if (assistantObjectiveTargetTab === tab) {
-            // The shell dismisses floating guidance after the pointer release.
             // Keep the next step alive when this tap is the guided navigation
             // itself, so opening Squad reveals the arrow on the exact + button.
-            skipNextGuidanceDismissRef.current = true;
-            requestAnimationFrame(() => {
-              skipNextGuidanceDismissRef.current = false;
-            });
+            keepGuidanceThroughThisTap();
           }
           store.setActiveTab(tab);
           if (useM1Store.getState().activeTab !== tab) return;
@@ -3049,7 +3053,12 @@ function GameApp() {
             ? () => openHomeAlert(guideObjectiveAlert.id)
             : assistantObjectiveTargetTab !== undefined &&
                 assistantObjectiveTargetTab !== store.activeTab
-              ? () => store.setActiveTab(assistantObjectiveTargetTab)
+              ? () => {
+                  // Same guard as the tab press: Bert's job strip is guided
+                  // navigation, so the step it opens must survive its own tap.
+                  keepGuidanceThroughThisTap();
+                  store.setActiveTab(assistantObjectiveTargetTab);
+                }
               : undefined
         }
         guideTarget={
