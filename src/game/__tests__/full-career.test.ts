@@ -9,6 +9,7 @@ import { DIVISION_STRENGTH_BANDS, tuneSquadToStrength } from '../pyramid';
 import { runHeadlessFullCareer } from '../headless';
 import { isSpecialHeroId } from '../special-heroes';
 import { buildCareerTeamDef } from '../squad';
+import { careerRosterCapacity, userCareerRosterCount } from '../youth-intake';
 import type { GameState } from '../types';
 import {
   parseStoredGameState,
@@ -182,6 +183,33 @@ describe('full M2 career clock', () => {
     expect(next.m2?.nationalCups.at(-1)?.season).toBe(2);
     expect(next.youthIntake).toMatchObject({ season: 2, status: 'OPEN' });
     expect(next.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('never replenishes a role-skewed squad past the roster capacity', () => {
+    // The market gates on the TOTAL roster, not per role, so a full squad
+    // holding six MID and four DEF is reachable by signing. The academy refill
+    // used to fill every per-role shortage without ever asking whether the
+    // roster had room, so the club paid a 17th weekly wage forever.
+    const initial = createCareer({ ...createLaunchCareerSetup(78_010) });
+    const spareDefender = initial.players.find(
+      (player) => player.clubId === initial.userClubId && player.role === 'DEF',
+    )!;
+    const skewed = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === spareDefender.id
+          ? { ...player, role: 'MID' as const }
+          : player,
+      ),
+    };
+    expect(userRoleCounts(skewed)).toEqual({ GK: 2, DEF: 4, MID: 6, FWD: 4 });
+    expect(userCareerRosterCount(skewed)).toBe(careerRosterCapacity(skewed));
+
+    const next = startNextSeason(completeSeason(skewed));
+
+    expect(userCareerRosterCount(next)).toBeLessThanOrEqual(
+      careerRosterCapacity(next),
+    );
   });
 
   test('records a promotion permanently after a later relegation', () => {
@@ -520,6 +548,16 @@ describe('full M2 career clock', () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
 });
+
+function userRoleCounts(
+  state: Pick<GameState, 'players' | 'userClubId'>,
+): Record<string, number> {
+  const counts: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+  for (const player of state.players) {
+    if (player.clubId === state.userClubId) counts[player.role] += 1;
+  }
+  return counts;
+}
 
 function completeSeason<T extends ReturnType<typeof createCareer>>(
   state: T,
