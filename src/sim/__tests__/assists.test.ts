@@ -26,6 +26,7 @@ function stampGoal(state: MatchState, shooter: number): void {
     pos: { x: GOAL_CENTER_X, y: 1 },
     vel: { x: 0, y: -100 },
     by: shooter,
+    shooterId: state.players[shooter].def.id,
     shotStrengthD64: 0,
     power: 50,
     targetX: GOAL_CENTER_X,
@@ -84,9 +85,9 @@ describe('assist tracking', () => {
           const event = state.events[read];
           if (event.kind !== 'GOAL' || event.assistedById === undefined)
             continue;
-          // Resolved from live state on the tick the goal landed. A slot map
-          // taken at kickoff goes stale the moment anyone is substituted.
-          expect(event.assistedById).not.toBe(state.players[event.by].def.id);
+          // The engine stamps both ids at their own moments, so the scorer's
+          // stable id is on the event itself rather than resolved from a slot.
+          expect(event.assistedById).not.toBe(event.scoredById);
           checked += 1;
         }
       }

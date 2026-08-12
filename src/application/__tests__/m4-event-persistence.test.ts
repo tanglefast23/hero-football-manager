@@ -94,7 +94,10 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     );
   });
 
-  it('refuses a second resolution of the same pending event', () => {
+  it('ignores a second resolution of the same pending event', () => {
+    // A duplicate tap is a duplicate delivery, not a fault: it must neither
+    // pay out twice nor throw a developer sentence into the error toast —
+    // even when a save/reload lands between the two taps.
     useM1Store.setState({
       career: awakenedCareerAtEvent(456, 'meteor-shard-center-circle'),
       screen: 'event',
@@ -107,10 +110,13 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     });
     useM1Store.getState().chooseEvent('display-meteor');
 
-    expect(useM1Store.getState().error).not.toBeNull();
+    expect(useM1Store.getState().error).toBeNull();
     expect(clubFans(useM1Store.getState().career!)).toBe(clubFans(afterFirst));
     expect(useM1Store.getState().career!.trainingPoints).toBe(
       afterFirst.trainingPoints,
+    );
+    expect(useM1Store.getState().career!.pendingEvent).toEqual(
+      afterFirst.pendingEvent,
     );
   });
 

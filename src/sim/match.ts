@@ -27,6 +27,10 @@ import type {
   TeamDef,
 } from './types';
 
+// m2.2 stamps the scorer's stable id on GOAL events at shot launch, so a
+// substitution landing while the shot is in flight can no longer hand the
+// goal to the slot's new occupant. No RNG or behavior change; the event
+// shape changes, which changes replay logs.
 // m2.1 rates automatic-substitution replacements at their real entry condition
 // with a freshness floor (no more kickoff cascades through a tired bench),
 // feeds replay inputs incrementally so a recorded substitute-of-a-substitute
@@ -46,7 +50,7 @@ import type {
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.1';
+export const ENGINE_VERSION = 'm2.2';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

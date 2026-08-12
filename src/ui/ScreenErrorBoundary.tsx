@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { PixelText } from './components/PixelText';
 import { useCopy } from '../i18n';
+import { reloadBrowserDocument } from '../persistence';
+import { isStaleBundleError } from './stale-bundle';
 
 interface ScreenErrorBoundaryProps {
   children: ReactNode;
@@ -13,14 +15,19 @@ interface ScreenErrorBoundaryProps {
 
 interface ScreenErrorBoundaryState {
   message: string | null;
+  /** The failing screen's code no longer exists on the server (see below). */
+  staleBundle: boolean;
 }
 
 interface ScreenErrorCopy {
   heading: string;
   body: string;
+  updateBody: string;
   technicalDetail: (message: string) => string;
   backToTitle: string;
   returnToTitle: string;
+  reloadGame: string;
+  reloadToLatest: string;
 }
 
 /**
@@ -30,16 +37,20 @@ interface ScreenErrorCopy {
  * referenced by a save written under the old build. Without a boundary that
  * throw escapes React, takes the whole app down, and repeats on every relaunch
  * because the offending state is persisted. Recovery returns to the title so
- * the save is left intact rather than deleted.
+ * the save is left intact rather than deleted — except for a stale web bundle,
+ * where the only real recovery is reloading the document.
  */
 class ScreenErrorBoundaryCatcher extends Component<
   ScreenErrorBoundaryProps & { copy: ScreenErrorCopy },
   ScreenErrorBoundaryState
 > {
-  state: ScreenErrorBoundaryState = { message: null };
+  state: ScreenErrorBoundaryState = { message: null, staleBundle: false };
 
   static getDerivedStateFromError(error: unknown): ScreenErrorBoundaryState {
-    return { message: error instanceof Error ? error.message : String(error) };
+    return {
+      message: error instanceof Error ? error.message : String(error),
+      staleBundle: isStaleBundleError(error),
+    };
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo): void {
@@ -47,8 +58,10 @@ class ScreenErrorBoundaryCatcher extends Component<
   }
 
   render(): ReactNode {
-    const { message } = this.state;
+    const { message, staleBundle } = this.state;
     if (message === null) return this.props.children;
+    // Reloading is only possible (and only needed) in a browser document.
+    const offerReload = staleBundle && typeof window !== 'undefined';
 
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
@@ -57,16 +70,21 @@ class ScreenErrorBoundaryCatcher extends Component<
             {this.props.copy.heading}
           </PixelText>
           <Text className="mt-3 text-sm leading-5 text-ink/70">
-            {this.props.copy.body}
+            {offerReload ? this.props.copy.updateBody : this.props.copy.body}
           </Text>
           <Text className="mt-2 text-xs leading-4 text-ink/50">
             {this.props.copy.technicalDetail(message)}
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={this.props.copy.returnToTitle}
+            accessibilityLabel={
+              offerReload
+                ? this.props.copy.reloadToLatest
+                : this.props.copy.returnToTitle
+            }
             onPress={() => {
-              this.setState({ message: null });
+              if (offerReload && reloadBrowserDocument()) return;
+              this.setState({ message: null, staleBundle: false });
               this.props.onRecover();
             }}
             className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4"
@@ -75,7 +93,9 @@ class ScreenErrorBoundaryCatcher extends Component<
             })}
           >
             <Text className="font-pixel text-sm uppercase text-paper">
-              {this.props.copy.backToTitle}
+              {offerReload
+                ? this.props.copy.reloadGame
+                : this.props.copy.backToTitle}
             </Text>
           </Pressable>
         </View>
@@ -93,10 +113,13 @@ export function ScreenErrorBoundary(props: ScreenErrorBoundaryProps) {
   const copy: ScreenErrorCopy = {
     heading: t('screenErrorBoundary.thisScreenCouldNotOpen'),
     body: t('screenErrorBoundary.body'),
+    updateBody: t('screenErrorBoundary.updateBody'),
     technicalDetail: (message) =>
       t('screenErrorBoundary.technicalDetail', { message }),
     backToTitle: t('screenErrorBoundary.backToTitle'),
     returnToTitle: t('screenErrorBoundary.a11y.returnToTheTitleScreen'),
+    reloadGame: t('screenErrorBoundary.reloadGame'),
+    reloadToLatest: t('screenErrorBoundary.a11y.reloadTheGameToItsLatestVersion'),
   };
   return <ScreenErrorBoundaryCatcher {...props} copy={copy} />;
 }

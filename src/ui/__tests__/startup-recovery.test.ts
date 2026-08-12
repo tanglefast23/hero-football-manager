@@ -35,6 +35,17 @@ describe('startup recovery', () => {
     );
   });
 
+  it('never file-resets a failed discard while a backup is still restorable', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    // The file-level resetCareerDatabase drops every table, backup included.
+    // After a failed repository delete the backup may still load, so the
+    // fallback must check for it (on fresh state) before wiping.
+    expect(app).toMatch(
+      /discardUnreadableSave\(\)\.then\(\(outcome\) => \{\s*if \(outcome !== 'failed'\) return undefined;[\s\S]*?if \(useM1Store\.getState\(\)\.backupSummary !== null\) return undefined;[\s\S]*?resetCareerDatabase\(/,
+    );
+  });
+
   it('lets a player export an unreadable save before deleting it', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
