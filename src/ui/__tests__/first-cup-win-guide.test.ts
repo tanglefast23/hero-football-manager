@@ -14,7 +14,12 @@ describe('first Hero Cup win guide', () => {
     expect(app).toContainSource("store.setActiveTab('league')");
     expect(app).toContainSource('sequenceId="first-cup-round-of-32"');
     expect(app).toContainSource("setConciergeFocus('national-cup')");
-    expect(app).toContainSource("firstCupRoundOf32GuideOwed ? 'cup'");
+    // The duty guard can also send a manager here with no briefing to carry the
+    // focus, so the Cup board is claimed by either route.
+    expect(app).toContainSource('firstCupRoundOf32GuideOwed ||');
+    expect(app).toMatchSource(
+      /firstCupRoundOf32GuideOwed \|\|\s*focusedInboxDutyId === 'national-cup'\s*\? 'cup'/,
+    );
     expect(league).toContainSource(
       'onTouchStart={guideRoundOf32 ? onDismissRoundOf32Guide : undefined}',
     );

@@ -2052,16 +2052,20 @@ function GameApp() {
     store.career === null
       ? null
       : currentAssistantObjective(store.career, store.activeTab);
+  const outstandingDuties =
+    store.career === null ? [] : outstandingInboxDuties(store.career);
+  // Read against the live duty list: a focused job the club has since finished
+  // — or can no longer pay for, place or fit this week — is over, and must stop
+  // greying out Advance Week and holding the strip open on a job nobody owes.
   const focusedInboxDutyId =
-    store.inboxDutyFocus?.mode === 'focused'
+    store.inboxDutyFocus?.mode === 'focused' &&
+    outstandingDuties.includes(store.inboxDutyFocus.dutyId)
       ? store.inboxDutyFocus.dutyId
       : undefined;
   const focusedInboxDutyObjective =
     focusedInboxDutyId === undefined
       ? undefined
       : t(`${inboxDutyCopyStem(focusedInboxDutyId)}.objective`);
-  const outstandingDuties =
-    store.career === null ? [] : outstandingInboxDuties(store.career);
   const blockingInboxDuty = focusedInboxDutyId ?? outstandingDuties[0];
   const assistantBlocksAdvance =
     assistantObjective !== null && assistantObjective.target !== 'advance-week';
@@ -2114,6 +2118,23 @@ function GameApp() {
     if (assistantObjective?.target === 'training-ground-facility')
       setClubOfficeTab('facility');
   }, [assistantObjective?.target]);
+  /**
+   * Same argument, one ring out, for the blue desk jobs.
+   *
+   * A tab press the duty guard redirects lands on the job's tab, but a tab is
+   * not a page: the Club office opens on whichever board was last up, and
+   * landing on the ledger while Bert asks for a build is the wrong page the
+   * guard exists to prevent. Market needs no twin of this — a locked section
+   * already pulls that screen to the job on its own.
+   */
+  useEffect(() => {
+    if (
+      focusedInboxDutyId === 'facility-placement' ||
+      focusedInboxDutyId === 'coaching-office'
+    ) {
+      setClubOfficeTab('facility');
+    }
+  }, [focusedInboxDutyId]);
   const visibleAssistantObjectiveTarget =
     assistantObjectiveKey !== null &&
     assistantObjectiveKey === dismissedAssistantObjectiveKey
@@ -2312,10 +2333,22 @@ function GameApp() {
   const handleAdvanceWeek = useCallback(() => {
     if (advanceWeekGuidanceBlocked) {
       setGuidanceNudgeToken((token) => token + 1);
+      // Bert refuses the week over a job that is usually on another board, and
+      // saying so from wherever the manager happens to be standing left them
+      // hunting for it. The refused press is also the press that takes them
+      // there — focusing the job carries the tab and its sub-board with it.
+      if (blockingInboxDuty !== undefined) {
+        store.focusInboxDuty(blockingInboxDuty);
+      }
       return;
     }
     advanceCareerWithSfx();
-  }, [advanceCareerWithSfx, advanceWeekGuidanceBlocked]);
+  }, [
+    advanceCareerWithSfx,
+    advanceWeekGuidanceBlocked,
+    blockingInboxDuty,
+    store.focusInboxDuty,
+  ]);
 
   useEffect(() => {
     setActiveGuideFocus(undefined);
@@ -2875,7 +2908,13 @@ function GameApp() {
       // before its destination opens, so no intermediate render can change
       // boards without passing the same guard as a later tap.
       const alert = home.alerts.find((candidate) => candidate.id === alertId);
-      if (alert?.mustDoDutyId !== undefined) {
+      // Opening the Cup board IS the Cup job, so this one row is never focused.
+      // Focusing it and then completing it in the same press dropped the whole
+      // focus back to "choose a job", which then refused the League navigation
+      // the press existed to perform: the manager stayed on the desk, Bert
+      // named a different duty, and the Cup row was gone for good.
+      const completedByThisPress = alert?.guideSequenceId === 'national-cup';
+      if (alert?.mustDoDutyId !== undefined && !completedByThisPress) {
         store.focusInboxDuty(alert.mustDoDutyId);
       }
       if (
@@ -3432,7 +3471,15 @@ function GameApp() {
               setConciergeFocus(null);
               store.openCupFixture(fixtureId);
             }}
-            guideSubTab={firstCupRoundOf32GuideOwed ? 'cup' : leagueGuideSubTab}
+            guideSubTab={
+              // The Cup job's own board, not whichever league board was last
+              // open. Bert's briefing brings its own focus; a manager sent here
+              // by the duty guard has none, and used to arrive at the table.
+              firstCupRoundOf32GuideOwed ||
+              focusedInboxDutyId === 'national-cup'
+                ? 'cup'
+                : leagueGuideSubTab
+            }
             onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}
             guideRoundOf32={firstCupRoundOf32HelperVisible}
             onDismissRoundOf32Guide={() => setConciergeFocus(null)}

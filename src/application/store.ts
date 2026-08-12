@@ -589,19 +589,103 @@ function inboxDutyTargetTab(dutyId: OpeningInboxDutyId): ManagementTab {
   return 'market';
 }
 
+/**
+ * The job the focus stands for, read against the live duty list.
+ *
+ * A focused job that has left that list is over — it was completed, or the
+ * club can no longer pay for, place or fit it this week — and a job that is
+ * over must stop locking the chrome. Trusting the stored focus instead is what
+ * let a lapsed job hold the tab bar and Advance Week hostage until the manager
+ * found Back to Inbox. `undefined` means the desk owes nothing and no guard
+ * applies at all.
+ */
+function liveInboxDuty(
+  focus: M1Store['inboxDutyFocus'],
+  duties: readonly OpeningInboxDutyId[],
+): OpeningInboxDutyId | undefined {
+  if (focus === null || duties.length === 0) return undefined;
+  if (focus.mode === 'focused' && duties.includes(focus.dutyId))
+    return focus.dutyId;
+  // Between jobs: the first outstanding duty is the one Bert speaks for.
+  return duties[0];
+}
+
 function blockedInboxDutyForAction(
   state: M1Store,
   allowed: boolean,
 ): OpeningInboxDutyId | undefined {
-  if (state.inboxDutyFocus?.mode === 'focused') {
-    return allowed ? undefined : state.inboxDutyFocus.dutyId;
+  if (state.career === null || state.inboxDutyFocus === null) return undefined;
+  const dutyId = liveInboxDuty(
+    state.inboxDutyFocus,
+    outstandingInboxDuties(state.career),
+  );
+  if (dutyId === undefined) return undefined;
+  // Only a focused job can bless the transaction that finishes it. While the
+  // manager is still choosing, no board is theirs and nothing is spendable.
+  return state.inboxDutyFocus.mode === 'focused' && allowed
+    ? undefined
+    : dutyId;
+}
+
+/**
+ * Where a tab press lands while the desk still owes an opening job.
+ *
+ * The old guard refused the press and left the manager standing on a board
+ * that could not do the job Bert then walked on to demand — the one way to
+ * move was a Back to Inbox strip they had to spot. Three rules replace it,
+ * and none of them can strand anyone:
+ *
+ * Home always opens. It is the desk, it is where the next job is chosen, and
+ * locking the manager away from it is what made the refusal a trap.
+ *
+ * Every outstanding job's own board opens, not just the focused one. The
+ * opening weeks hand out several duties at once and all of them must be done,
+ * so refusing the Club board because the coach job happens to be focused was
+ * refusing a job the manager was on their way to finish.
+ *
+ * Anything else lands on the current job's board with the reminder, so Bert
+ * says "this first" from the one page where "this" can actually be done.
+ */
+function inboxDutyNavigationLanding(
+  state: M1Store,
+  requestedTab: ManagementTab,
+): Partial<M1Store> | undefined {
+  if (state.career === null || state.inboxDutyFocus === null) return undefined;
+  const duties = outstandingInboxDuties(state.career);
+  const dutyId = liveInboxDuty(state.inboxDutyFocus, duties);
+  if (dutyId === undefined) return undefined;
+  if (requestedTab === 'home') {
+    return {
+      activeTab: 'home',
+      screen: 'management',
+      inboxDutyFocus: { mode: 'choosing' },
+      inboxDutyReminder: null,
+      error: null,
+    };
   }
-  if (state.inboxDutyFocus?.mode === 'choosing') {
-    return state.career === null
-      ? undefined
-      : outstandingInboxDuties(state.career)[0];
+  // The current job keeps the board it already shares with the press: Youth
+  // and the coach desk are both Market, and re-pressing Market must not hand
+  // the manager off the intake they are standing in.
+  const dutyOnRequestedTab =
+    inboxDutyTargetTab(dutyId) === requestedTab
+      ? dutyId
+      : duties.find((duty) => inboxDutyTargetTab(duty) === requestedTab);
+  if (dutyOnRequestedTab !== undefined) {
+    return {
+      activeTab: requestedTab,
+      screen: 'management',
+      inboxDutyFocus: { mode: 'focused', dutyId: dutyOnRequestedTab },
+      inboxDutyReminder: null,
+      error: null,
+    };
   }
-  return undefined;
+  return {
+    activeTab: inboxDutyTargetTab(dutyId),
+    screen: 'management',
+    inboxDutyFocus: { mode: 'focused', dutyId },
+    inboxDutyReminder: [dutyId],
+    error: null,
+  };
 }
 
 function inboxDutyProgressPatch(
@@ -1020,24 +1104,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       pendingRivalHeroIntro(current.career) !== undefined
     )
       return;
-    if (current.inboxDutyFocus?.mode === 'choosing' && activeTab !== 'home') {
-      const dutyId =
-        current.career === null
-          ? undefined
-          : outstandingInboxDuties(current.career)[0];
-      if (dutyId !== undefined) {
-        set({ inboxDutyReminder: [dutyId], error: null });
-        return;
-      }
-    }
-    if (
-      current.inboxDutyFocus?.mode === 'focused' &&
-      activeTab !== inboxDutyTargetTab(current.inboxDutyFocus.dutyId)
-    ) {
-      set({
-        inboxDutyReminder: [current.inboxDutyFocus.dutyId],
-        error: null,
-      });
+    const dutyLanding = inboxDutyNavigationLanding(current, activeTab);
+    if (dutyLanding !== undefined) {
+      set(dutyLanding);
       return;
     }
     if (activeTab === 'market') {
@@ -1055,9 +1124,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
     if (career === null || !outstandingInboxDuties(career).includes(dutyId)) {
       return;
     }
+    // Focus and the board it names move together. Leaving the caller to
+    // navigate afterwards meant any career change in between — a guide the
+    // same press completed, for one — could turn that second step into a
+    // refusal, and the manager stayed on the desk staring at a locked tab bar.
     set({
       inboxDutyFocus: { mode: 'focused', dutyId },
       inboxDutyReminder: null,
+      activeTab: inboxDutyTargetTab(dutyId),
+      screen: 'management',
       error: null,
     });
   },

@@ -215,6 +215,7 @@ import {
   openingTrainingPitchRequired,
   outstandingInboxDuties,
   reconcileSatisfiedAssistantGuideSequences,
+  type OpeningInboxDutyId,
 } from './assistant-guide';
 import { eventChoiceUnavailableReason } from './event-selection';
 import { formationRoleForSlot, type FormationId } from '../sim/tactics';
@@ -3444,6 +3445,32 @@ function standaloneInboxGuides(
   );
 }
 
+/**
+ * The rows this week cannot end without.
+ *
+ * A blue job holds Advance Week shut until its own row is opened, so the desk
+ * must always be able to present one. Named per row rather than per job,
+ * because the opening build job rides the Training Pitch product card while
+ * every other job carries a guide of its own.
+ */
+function requiredInboxRowIds(
+  dueGuides: readonly AssistantInboxGuideSequenceId[],
+  productAlerts: readonly ClubAlertViewModel[],
+  mustDoDuties: ReadonlySet<OpeningInboxDutyId>,
+): string[] {
+  const required = dueGuides.filter((sequenceId) => {
+    const duty = openingInboxDutyForGuideSequence(sequenceId);
+    return duty !== undefined && mustDoDuties.has(duty);
+  }) as string[];
+  if (
+    mustDoDuties.has('facility-placement') &&
+    productAlerts.some((alert) => alert.id === 'training-ground')
+  ) {
+    required.push('training-ground');
+  }
+  return required;
+}
+
 export function homeViewModel(
   state: GameState,
   t: CopyFn = englishCopy(),
@@ -3503,6 +3530,7 @@ export function homeViewModel(
       priority: assistantProductPriority(alert, dueGuides),
       oneShot: isOneShotProductAlert(alert.id),
     })),
+    requiredIds: requiredInboxRowIds(dueGuides, productAlerts, mustDoDuties),
   });
   const selectedProductIds = new Set(inboxPlan.productAlertIds);
   const boardGuide = dueGuides.find(
@@ -3618,10 +3646,16 @@ export function homeViewModel(
     ...guideAlerts,
     ...selectedProducts.filter((alert) => productPriority(alert) !== 'urgent'),
   ];
+  // Blue jobs first, and the cap stretches to hold all of them: the scheduler
+  // has already reserved each one a place, and trimming one back off here would
+  // put the week's only way forward behind a row that is merely news.
+  const scheduledMustDo = scheduledCandidates.filter(
+    (alert) => alert.mustDoDutyId !== undefined,
+  );
   const scheduledAlerts = [
-    ...scheduledCandidates.filter((alert) => alert.mustDoDutyId !== undefined),
+    ...scheduledMustDo,
     ...scheduledCandidates.filter((alert) => alert.mustDoDutyId === undefined),
-  ].slice(0, 3);
+  ].slice(0, Math.max(3, scheduledMustDo.length));
   // A quiet week's own contents, in the order they earn attention: the story
   // that landed this week, the shop the club has not found yet, and only if
   // neither applies, the one-week build nudge.
