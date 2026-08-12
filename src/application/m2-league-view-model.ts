@@ -447,7 +447,9 @@ function nextCupMatch(
   clubPositions: ReadonlyMap<string, number>,
   t: CopyFn,
 ): NonNullable<M2NationalCupViewModel['nextMatch']> | undefined {
-  const standingLabel = (clubId: string): { opponentStandingLabel: string } | undefined => {
+  const standingLabel = (
+    clubId: string,
+  ): { opponentStandingLabel: string } | undefined => {
     const division = clubDivisions.get(clubId);
     const position = clubPositions.get(clubId);
     if (division === undefined || position === undefined) return undefined;

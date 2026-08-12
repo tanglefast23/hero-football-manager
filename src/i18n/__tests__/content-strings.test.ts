@@ -138,10 +138,12 @@ describe('the story and glossary screens read the keys that exist', () => {
         for (const field of unkeyed) {
           const value = page[field];
           if (value === undefined) continue;
-          const text = typeof value === 'string' ? value : JSON.stringify(value);
-          expect({ field, keyed: Object.values(strings).includes(text) }).toEqual(
-            { field, keyed: false },
-          );
+          const text =
+            typeof value === 'string' ? value : JSON.stringify(value);
+          expect({
+            field,
+            keyed: Object.values(strings).includes(text),
+          }).toEqual({ field, keyed: false });
         }
       }
     }
