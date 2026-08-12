@@ -21,6 +21,7 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { InfoTip } from '../components/InfoTip';
+import { ClubCrest } from '../components/ClubCrest';
 import {
   HEADER_MAX_FONT_MULTIPLIER,
   LEAGUE_COLUMN_WIDTH,
@@ -269,8 +270,9 @@ export function LeagueTableScreen({
                         {row.position}
                       </Text>
                       <View className="flex-1 flex-row items-center pr-1">
+                        <ClubCrest clubName={row.clubName} />
                         <Text
-                          className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${primaryText}`}
+                          className={`ml-2 flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${primaryText}`}
                           numberOfLines={1}
                         >
                           {row.clubName}

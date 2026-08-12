@@ -19,6 +19,7 @@ import type { TextScale } from '../../persistence';
 import { countUpValue } from '../count-up';
 import { PixelText } from '../components/PixelText';
 import { LedgerRowIcons } from '../components/LedgerRowIcons';
+import { ClubCrest } from '../components/ClubCrest';
 import { useCopy } from '../../i18n';
 import {
   playLedgerSpin,
@@ -169,9 +170,12 @@ export function WeeklyReviewScreen({
             <Text className="mt-1 font-pixel text-[18px] uppercase text-white">
               {viewModel.completedWeekLabel}
             </Text>
-            <Text className="mt-2 font-pixel text-[12px] uppercase text-paper/75">
-              {viewModel.clubName}
-            </Text>
+            <View className="mt-2 flex-row items-center gap-2">
+              <ClubCrest clubName={viewModel.clubName} />
+              <Text className="font-pixel text-[12px] uppercase text-paper/75">
+                {viewModel.clubName}
+              </Text>
+            </View>
           </View>
 
           {viewModel.facilityCompletion ? (

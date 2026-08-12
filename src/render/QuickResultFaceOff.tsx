@@ -33,6 +33,7 @@ import { playerLookId } from './sprites/player-look';
 import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
+import { ClubCrest } from '../ui/components/ClubCrest';
 
 /**
  * The Quick Result face-off: the club's best outfielder, the opponent's best
@@ -404,9 +405,12 @@ export function QuickResultFaceOff({
         <Text style={styles.playerName} numberOfLines={1}>
           {club.playerName}
         </Text>
-        <Text style={styles.clubName} numberOfLines={1}>
-          {club.clubName}
-        </Text>
+        <View style={styles.clubRow}>
+          <ClubCrest clubName={club.clubName} />
+          <Text style={styles.clubName} numberOfLines={1}>
+            {club.clubName}
+          </Text>
+        </View>
       </Animated.View>
 
       <Animated.View
@@ -423,9 +427,12 @@ export function QuickResultFaceOff({
         <Text style={styles.playerName} numberOfLines={1}>
           {opponent.playerName}
         </Text>
-        <Text style={styles.clubName} numberOfLines={1}>
-          {opponent.clubName}
-        </Text>
+        <View style={styles.clubRow}>
+          <ClubCrest clubName={opponent.clubName} />
+          <Text style={styles.clubName} numberOfLines={1}>
+            {opponent.clubName}
+          </Text>
+        </View>
       </Animated.View>
 
       <View pointerEvents="none" style={styles.skipHint}>
@@ -476,11 +483,13 @@ const makeStyles = (faces: LocaleFaces) =>
       textShadowRadius: 0,
     },
     clubName: {
+      flexShrink: 1,
       fontFamily: faces.data,
       fontSize: 11,
       lineHeight: 16,
       color: 'rgba(244, 241, 234, 0.7)',
     },
+    clubRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     skipHint: { position: 'absolute', right: 16, bottom: 20 },
     skipHintText: {
       fontFamily: faces.data,

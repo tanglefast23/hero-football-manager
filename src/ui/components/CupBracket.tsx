@@ -16,6 +16,7 @@ import type {
 } from '../m2-league-models';
 import { PixelText } from './PixelText';
 import { TutorialTapCue } from '../TutorialTapCue';
+import { ClubCrest } from './ClubCrest';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 /**
@@ -106,12 +107,15 @@ export function CupBracket({
           <PixelText className="text-xs uppercase text-ink/60">
             {t('cupBracket.heroCupWinners')}
           </PixelText>
-          <PixelText
-            className="mt-1 text-lg uppercase text-ink"
-            numberOfLines={1}
-          >
-            {championName}
-          </PixelText>
+          <View className="mt-1 flex-row items-center gap-2">
+            <ClubCrest clubName={championName} size={24} />
+            <PixelText
+              className="min-w-0 text-lg uppercase text-ink"
+              numberOfLines={1}
+            >
+              {championName}
+            </PixelText>
+          </View>
         </View>
       )}
     </View>
@@ -322,6 +326,7 @@ function TieSide({
   const styles = usePixelStyles(makeStyles);
   return (
     <View style={styles.sideRow}>
+      {placeholder ? null : <ClubCrest clubName={name} />}
       <Text
         numberOfLines={1}
         style={[
@@ -399,7 +404,12 @@ const makeStyles = (faces: LocaleFaces) =>
     /** Still running: gold, and the only gold fill in the tree. */
     tieUserLive: { borderColor: '#c8862a', backgroundColor: '#f7d894' },
     tieDivider: { height: 1, backgroundColor: '#241f2e22', marginVertical: 2 },
-    sideRow: { flexDirection: 'row', minWidth: 0 },
+    sideRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      minWidth: 0,
+    },
     side: { color: INK, fontSize: 12, lineHeight: 16 },
     sideName: { flex: 1, minWidth: 0 },
     sideDivision: { flexShrink: 0 },

@@ -7,6 +7,7 @@ import type {
 import { PaperPanel } from './Scorecard';
 import { PixelText } from './PixelText';
 import { copyFor, useCopy, type CopyFn } from '../../i18n';
+import { ClubCrest } from './ClubCrest';
 
 let englishCopyFn: CopyFn | undefined;
 
@@ -108,9 +109,15 @@ export function DivisionLeaderBoard({
                 >
                   {entry.playerName}
                 </Text>
-                <Text className="mt-0.5 text-sm text-ink/50" numberOfLines={1}>
-                  {entry.clubName}
-                </Text>
+                <View className="mt-0.5 flex-row items-center gap-1.5">
+                  <ClubCrest clubName={entry.clubName} />
+                  <Text
+                    className="min-w-0 flex-1 text-sm text-ink/50"
+                    numberOfLines={1}
+                  >
+                    {entry.clubName}
+                  </Text>
+                </View>
               </View>
               <PixelText variant="data" className="text-base text-ink">
                 {entry.value}

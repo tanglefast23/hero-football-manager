@@ -24,6 +24,7 @@ import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import type { ManagerTipDestination } from '../../content';
 import { FormStrip } from '../components/FormStrip';
+import { ClubCrest } from '../components/ClubCrest';
 import { useCopy } from '../../i18n';
 import {
   GuidanceDoubleFlash,
@@ -188,27 +189,33 @@ export function ClubHomeScreen({
           >
             <View className="border-y-2 border-ink py-4">
               <View className="flex-row items-center justify-between gap-2">
-                <PixelText
-                  className="flex-1 text-right text-xl uppercase text-ink"
-                  numberOfLines={2}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.65}
-                >
-                  {fixture.homeTeam}
-                </PixelText>
+                <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
+                  <PixelText
+                    className="min-w-0 text-right text-xl uppercase text-ink"
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.65}
+                  >
+                    {fixture.homeTeam}
+                  </PixelText>
+                  <ClubCrest clubName={fixture.homeTeam} size={24} />
+                </View>
                 <View className="border-2 border-ink bg-ink px-3 py-2">
                   <Text className="font-pixel text-base text-paper">
                     {t('app.versus')}
                   </Text>
                 </View>
-                <PixelText
-                  className="flex-1 text-xl uppercase text-ink"
-                  numberOfLines={2}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.65}
-                >
-                  {fixture.awayTeam}
-                </PixelText>
+                <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                  <ClubCrest clubName={fixture.awayTeam} size={24} />
+                  <PixelText
+                    className="min-w-0 text-xl uppercase text-ink"
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.65}
+                  >
+                    {fixture.awayTeam}
+                  </PixelText>
+                </View>
               </View>
               <View className="mt-3 flex-row justify-center gap-2">
                 <StatusChip label={fixture.venueLabel} />
@@ -816,16 +823,19 @@ export function ClubHomeScreen({
                     >
                       {row.position}
                     </Text>
-                    <Text
-                      className={
-                        isUser
-                          ? 'flex-1 text-base font-bold text-ink'
-                          : 'flex-1 text-base text-ink'
-                      }
-                      numberOfLines={1}
-                    >
-                      {row.clubName}
-                    </Text>
+                    <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                      <ClubCrest clubName={row.clubName} />
+                      <Text
+                        className={
+                          isUser
+                            ? 'min-w-0 flex-1 text-base font-bold text-ink'
+                            : 'min-w-0 flex-1 text-base text-ink'
+                        }
+                        numberOfLines={1}
+                      >
+                        {row.clubName}
+                      </Text>
+                    </View>
                     <Text
                       className={
                         isUser

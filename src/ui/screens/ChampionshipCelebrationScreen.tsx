@@ -33,6 +33,7 @@ import {
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { BertFullBody } from '../BertFullBody';
 import { CelebrationCoachRow } from '../components/CelebrationCoachRow';
+import { ClubCrest } from '../components/ClubCrest';
 import type {
   ChampionshipCelebrationPlayerViewModel,
   ChampionshipCelebrationViewModel,
@@ -391,7 +392,8 @@ export function ChampionshipCelebrationScreen({
         >
           YOU WON{`\n`}THE LEAGUE!
         </Text>
-        <View className="mt-3 self-center border-2 border-gold bg-ink/80 px-4 py-2">
+        <View className="mt-3 flex-row items-center gap-2 self-center border-2 border-gold bg-ink/80 px-4 py-2">
+          <ClubCrest clubName={viewModel.clubName} size={24} />
           <Text className="text-center font-pixel text-sm uppercase text-gold">
             {t('championshipCelebration.champions', {
               club: viewModel.clubName,

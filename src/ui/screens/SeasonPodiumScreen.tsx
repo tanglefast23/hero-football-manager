@@ -16,6 +16,7 @@ import type {
   SeasonPodiumViewModel,
 } from '../models';
 import { useCopy } from '../../i18n';
+import { ClubCrest } from '../components/ClubCrest';
 
 /**
  * The medal ceremony for second and third.
@@ -275,7 +276,8 @@ export function SeasonPodiumScreen({
           >
             {viewModel.headline}
           </Text>
-          <View className="mt-2 self-center border-2 border-b-4 border-ink bg-gold px-3 py-1">
+          <View className="mt-2 flex-row items-center gap-2 self-center border-2 border-b-4 border-ink bg-gold px-3 py-1">
+            <ClubCrest clubName={viewModel.clubName} size={24} />
             <Text
               className="text-center font-pixel text-sm uppercase text-ink"
               numberOfLines={1}
@@ -322,8 +324,9 @@ export function SeasonPodiumScreen({
                     {t(ORDINAL_KEYS[place.position])}
                   </Text>
                 </View>
+                <ClubCrest clubName={place.clubName} />
                 <Text
-                  className="flex-1 font-pixel text-sm uppercase text-ink"
+                  className="ml-2 flex-1 font-pixel text-sm uppercase text-ink"
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={0.7}

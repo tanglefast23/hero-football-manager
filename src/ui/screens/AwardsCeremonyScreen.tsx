@@ -16,6 +16,7 @@ import {
 } from '../../render/PlayerRunSprite';
 import { CharacterSpeechOverlay } from '../CharacterSpeechOverlay';
 import { PixelText } from '../components/PixelText';
+import { ClubCrest } from '../components/ClubCrest';
 import { formatCurrency } from '../components/Scorecard';
 import { useReducedMotion } from '../use-reduced-motion';
 import {
@@ -350,9 +351,15 @@ function PodiumRow({
         <Text className={`font-bold text-ink ${nameClass}`} numberOfLines={1}>
           {placing.playerName}
         </Text>
-        <Text className={`mt-0.5 text-ink/50 ${clubClass}`} numberOfLines={1}>
-          {placing.clubName}
-        </Text>
+        <View className="mt-0.5 flex-row items-center gap-1.5">
+          <ClubCrest clubName={placing.clubName} />
+          <Text
+            className={`min-w-0 flex-1 text-ink/50 ${clubClass}`}
+            numberOfLines={1}
+          >
+            {placing.clubName}
+          </Text>
+        </View>
       </View>
       <PixelText variant="data" className="text-base text-ink">
         {placing.value}
