@@ -11,8 +11,11 @@ describe('unfinished Bert job nudge', () => {
     expect(app).toContain(
       'advanceWeekDisabled={store.saving || store.saveBlocked}',
     );
+    // The flash is now the second half of the reply: the blocked press first
+    // takes the manager to the job, so what flashes is on the screen they land
+    // on rather than a control two boards away.
     expect(app).toMatch(
-      /const handleAdvanceWeek = useCallback\(\(\) => \{\s*if \(advanceWeekGuidanceBlocked\) \{\s*setGuidanceNudgeToken\(\(token\) => token \+ 1\);\s*return;/,
+      /const handleAdvanceWeek = useCallback\(\(\) => \{\s*if \(advanceWeekGuidanceBlocked\) \{\s*setGuidanceNudgeToken\(\(token\) => token \+ 1\);/,
     );
     expect(app).toContain(
       'focusedInboxDutyId === undefined ? displayedGuideObjective : undefined',

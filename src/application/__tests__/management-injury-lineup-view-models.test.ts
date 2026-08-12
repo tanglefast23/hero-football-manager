@@ -528,15 +528,18 @@ describe('management injury and lineup presentation', () => {
     const inbox = homeViewModel(initial).alerts;
 
     expect(inbox).toHaveLength(3);
-    // This deliberately stale Week-15 fixture never completed the required
+    // The Hero Cup leads because from Week 5 it is a blue job, and a blue job
+    // holds Advance Week shut until its own card is opened. Deferring it — as
+    // this desk used to, behind three ordinary firsts — left a career that
+    // could not move and no card anywhere to move it.
+    //
+    // Behind it, this deliberately stale Week-15 fixture never completed the
     // first pitch, so its urgent Training Pitch card still carries the
-    // facility-placement guide and pushes scout-mission out of the three slots.
-    // Being urgent is also why it leads: the desk orders on priority, and Bert's
-    // guides queue behind it.
+    // facility-placement guide; the youth intake and scout-mission queue on.
     expect(inbox.map((alert) => alert.guideSequenceId)).toEqual([
+      'national-cup',
       'facility-placement',
       'head-coach-market',
-      'youth-intake',
     ]);
   });
 

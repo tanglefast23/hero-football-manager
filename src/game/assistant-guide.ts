@@ -122,6 +122,17 @@ interface AssistantInboxWeekOptions {
   readonly heldGuideSequenceIds?: readonly AssistantInboxGuideSequenceId[];
   /** Live product alerts. Urgent items outrank guides; normal items follow them. */
   readonly productAlerts?: readonly AssistantInboxProductAlert[];
+  /**
+   * Rows whose absence would stop the week — guide sequence IDs, product alert
+   * IDs, or both.
+   *
+   * A blue desk job holds Advance Week shut until its own row is opened, so a
+   * job crowded off the desk is a career that cannot move: four injuries in one
+   * week took all three slots, and the Hero Cup job blocked a week whose card
+   * had nowhere to land. These outrank every other row and are never sliced
+   * away, even past the three-item cap.
+   */
+  readonly requiredIds?: readonly string[];
 }
 
 interface AssistantInboxWeekPlan {
@@ -433,10 +444,13 @@ export function dismissAssistantInboxProductPermanently(
 }
 
 /**
- * Produces the persisted weekly inbox tranche. At most three items are visible:
- * urgent product alerts first, then Bert firsts, then ordinary product notices.
- * A fourth guide remains queued for a later week even if this week's three are
+ * Produces the persisted weekly inbox tranche. Three items are visible: urgent
+ * product alerts first, then Bert firsts, then ordinary product notices. A
+ * fourth guide remains queued for a later week even if this week's three are
  * opened immediately. Newly arriving urgent alerts may displace a guide.
+ *
+ * `requiredIds` is the one thing that can push past three, and only because the
+ * alternative is a career that cannot advance — see the option's own note.
  */
 export function scheduleAssistantInboxWeek(
   inputState: GameState,
@@ -518,41 +532,64 @@ export function scheduleAssistantInboxWeek(
     deliveredFlags.has(productDeliveryFlag(state.season, state.week, alert.id)),
   );
 
+  const required = new Set(options.requiredIds ?? []);
+  const undeliveredGuides = queuedGuides.filter(
+    (sequenceId) =>
+      !deliveredFlags.has(
+        guideDeliveryFlag(state.season, state.week, sequenceId),
+      ),
+  );
+  const undeliveredNormalProducts = normalProducts.filter(
+    (alert) =>
+      !deliveredFlags.has(
+        productDeliveryFlag(state.season, state.week, alert.id),
+      ),
+  );
+  // A required row is not competing for this week's remaining slots — it is the
+  // only thing that can free the week — so it is held out of the slot budget
+  // and rejoins the pool below at a rank nothing else can beat.
+  const requiredUndelivered = [
+    ...undeliveredGuides
+      .filter((sequenceId) => required.has(sequenceId))
+      .map((sequenceId, order) => guideCandidate(sequenceId, order, required)),
+    ...undeliveredNormalProducts
+      .filter((alert) => required.has(alert.id))
+      .map((alert, order) => productCandidate(alert, order, required)),
+  ];
   const ordinaryUndelivered = [
-    ...queuedGuides
-      .filter(
-        (sequenceId) =>
-          !deliveredFlags.has(
-            guideDeliveryFlag(state.season, state.week, sequenceId),
-          ),
-      )
+    ...undeliveredGuides
+      .filter((sequenceId) => !required.has(sequenceId))
       .map((sequenceId, order) => guideCandidate(sequenceId, order)),
-    ...normalProducts
-      .filter(
-        (alert) =>
-          !deliveredFlags.has(
-            productDeliveryFlag(state.season, state.week, alert.id),
-          ),
-      )
+    ...undeliveredNormalProducts
+      .filter((alert) => !required.has(alert.id))
       .map((alert, order) => productCandidate(alert, order)),
   ].slice(0, remainingNewSlots);
 
   const candidates = [
-    ...urgentProducts.map((alert, order) => productCandidate(alert, order)),
+    ...urgentProducts.map((alert, order) =>
+      productCandidate(alert, order, required),
+    ),
     ...activeDeliveredGuides.map((sequenceId, order) =>
-      guideCandidate(sequenceId, order),
+      guideCandidate(sequenceId, order, required),
     ),
     ...activeDeliveredProducts.map((alert, order) =>
-      productCandidate(alert, order),
+      productCandidate(alert, order, required),
     ),
+    ...requiredUndelivered,
     ...ordinaryUndelivered,
   ];
   const uniqueCandidates = uniqueInboxCandidates(candidates).sort(
     (left, right) => left.rank - right.rank || left.order - right.order,
   );
+  // The cap stretches rather than drops a required row: three ordinary items
+  // plus a blue job the week cannot end without is a fuller desk than usual,
+  // and far better than a desk the manager cannot act on at all.
+  const requiredSelectedCount = uniqueCandidates.filter(
+    (candidate) => candidate.rank === REQUIRED_INBOX_RANK,
+  ).length;
   const selected = uniqueCandidates.slice(
     0,
-    MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK,
+    Math.max(MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK, requiredSelectedCount),
   );
 
   const deliveryFlags = selected.map((candidate) =>
@@ -685,21 +722,36 @@ type InboxCandidate = InboxCandidateBase &
     | { readonly kind: 'product'; readonly id: string }
   );
 
+/** Above urgent product news: nothing else on the desk can unblock the week. */
+const REQUIRED_INBOX_RANK = -1;
+const EMPTY_REQUIRED_IDS: ReadonlySet<string> = new Set<string>();
+
 function guideCandidate(
   sequenceId: AssistantInboxGuideSequenceId,
   order: number,
+  required: ReadonlySet<string> = EMPTY_REQUIRED_IDS,
 ): InboxCandidate {
-  return { kind: 'guide', id: sequenceId, rank: 1, order };
+  return {
+    kind: 'guide',
+    id: sequenceId,
+    rank: required.has(sequenceId) ? REQUIRED_INBOX_RANK : 1,
+    order,
+  };
 }
 
 function productCandidate(
   alert: AssistantInboxProductAlert,
   order: number,
+  required: ReadonlySet<string> = EMPTY_REQUIRED_IDS,
 ): InboxCandidate {
   return {
     kind: 'product',
     id: alert.id,
-    rank: alert.priority === 'urgent' ? 0 : 2,
+    rank: required.has(alert.id)
+      ? REQUIRED_INBOX_RANK
+      : alert.priority === 'urgent'
+        ? 0
+        : 2,
     order,
   };
 }

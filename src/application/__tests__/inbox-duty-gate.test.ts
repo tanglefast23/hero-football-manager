@@ -9,6 +9,7 @@ import {
   outstandingInboxDuties,
 } from '../assistant-guide';
 import { useM1Store } from '../store';
+import { homeViewModel } from '../view-models';
 
 function coachingOfficeDutyCareer(state: GameState): GameState {
   const withHeadCoach = {
@@ -206,8 +207,8 @@ describe('opening blue inbox jobs', () => {
     useM1Store.setState({ career: due, activeTab: 'home' });
 
     expect(outstandingInboxDuties(due)).toContain('national-cup');
-    useM1Store.getState().focusInboxDuty('national-cup');
-    // App.tsx completes the duty in the same button handler that navigates.
+    // App.tsx completes the duty in the same button handler that navigates,
+    // and so never focuses it: see the Cup note in openHomeAlert.
     useM1Store.getState().completeAssistantGuide('national-cup');
     useM1Store.getState().setActiveTab('league');
     expect(useM1Store.getState().activeTab).toBe('league');
@@ -218,18 +219,47 @@ describe('opening blue inbox jobs', () => {
     expect(useM1Store.getState().inboxDutyFocus).toBeNull();
   });
 
-  it('blocks normal navigation but offers a deliberate Back to Inbox escape', () => {
+  it('still opens League when the Cup is not the only job owed', () => {
+    // Focusing the Cup and completing it in the same press used to drop the
+    // whole focus to "choose a job", which then refused the League navigation
+    // that press existed to perform: the manager stayed on the desk, Bert
+    // named the coach job instead, and the Cup row was gone for good.
+    const due = {
+      ...assistantCoachDutyCareer(useM1Store.getState().career!),
+      week: 5,
+    };
+    useM1Store.setState({ career: due, activeTab: 'home' });
+    expect(outstandingInboxDuties(due)).toEqual([
+      'assistant-coach-hire',
+      'national-cup',
+    ]);
+
+    useM1Store.getState().completeAssistantGuide('national-cup');
+    useM1Store.getState().setActiveTab('league');
+    expect(useM1Store.getState().activeTab).toBe('league');
+    expect(useM1Store.getState().inboxDutyReminder).toBeNull();
+  });
+
+  it('sends a stray tab press to the job instead of refusing it', () => {
     buildOpeningPitch();
     useM1Store.getState().focusInboxDuty('head-coach-market');
-    useM1Store.getState().setActiveTab('market');
+    expect(useM1Store.getState().activeTab).toBe('market');
 
+    // The desk is never locked away: Home hands the job back to the inbox.
     useM1Store.getState().setActiveTab('home');
     expect(useM1Store.getState()).toMatchObject({
+      activeTab: 'home',
+      inboxDutyFocus: { mode: 'choosing' },
+      inboxDutyReminder: null,
+    });
+
+    // Squad is nobody's job this week, so Bert says so from the board that is.
+    // Refusing the press instead left the manager on a page that could not do
+    // what he was asking for, with every other tab shut as well.
+    useM1Store.getState().setActiveTab('squad');
+    expect(useM1Store.getState()).toMatchObject({
       activeTab: 'market',
-      inboxDutyFocus: {
-        mode: 'focused',
-        dutyId: 'head-coach-market',
-      },
+      inboxDutyFocus: { mode: 'focused', dutyId: 'head-coach-market' },
       inboxDutyReminder: ['head-coach-market'],
     });
 
@@ -239,12 +269,78 @@ describe('opening blue inbox jobs', () => {
       inboxDutyFocus: { mode: 'choosing' },
       inboxDutyReminder: null,
     });
+  });
 
+  it('opens any outstanding job board, not only the focused one', () => {
+    // Week one hands out the pitch and the head coach together, and both must
+    // be done. Locking the Club board because the coach happened to be focused
+    // refused a job the manager was on their way to finish.
+    useM1Store.getState().focusInboxDuty('head-coach-market');
+    expect(useM1Store.getState().activeTab).toBe('market');
+
+    useM1Store.getState().setActiveTab('club');
+    expect(useM1Store.getState()).toMatchObject({
+      activeTab: 'club',
+      inboxDutyFocus: { mode: 'focused', dutyId: 'facility-placement' },
+      inboxDutyReminder: null,
+    });
+
+    // And the board that opened can do its own job straight away.
+    buildOpeningPitch();
+    expect(
+      useM1Store.getState().career?.facilities.grid?.construction,
+    ).toMatchObject({ type: 'training-pitch' });
+  });
+
+  it('keeps every blocking job on the desk when the news crowds in', () => {
+    // Four injuries in one week took all three desk slots. Both blue jobs went
+    // on holding Advance Week shut with no card to open, and the Hero Cup one
+    // has no completion but its own card — so that career could never move.
+    const base = assistantCoachDutyCareer(useM1Store.getState().career!);
+    let injured = 0;
+    const career = {
+      ...base,
+      week: 5,
+      players: base.players.map((player) => {
+        if (player.clubId !== base.userClubId || injured >= 4) return player;
+        injured += 1;
+        return { ...player, injuryWeeks: 3 };
+      }),
+    };
+    const blocking = outstandingInboxDuties(career);
+    expect(blocking).toEqual(['assistant-coach-hire', 'national-cup']);
+
+    const rows = homeViewModel(career).alerts;
+    expect(rows.filter((row) => row.mustDoDutyId !== undefined)).toHaveLength(
+      blocking.length,
+    );
+    for (const duty of blocking) {
+      expect(rows.some((row) => row.mustDoDutyId === duty)).toBe(true);
+    }
+  });
+
+  it('releases a job the club can no longer do', () => {
+    const due = coachingOfficeDutyCareer(useM1Store.getState().career!);
+    useM1Store.setState({ career: due, activeTab: 'home' });
+    useM1Store.getState().focusInboxDuty('coaching-office');
+    expect(useM1Store.getState().activeTab).toBe('club');
+
+    // The office is suddenly unaffordable, so it is no longer this week's job.
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        clubs: career.clubs.map((club) =>
+          club.id === career.userClubId ? { ...club, cash: 0 } : club,
+        ),
+      },
+    });
+    expect(outstandingInboxDuties(useM1Store.getState().career!)).toEqual([]);
+
+    // A stale focus must not keep holding the tab bar shut behind it.
     useM1Store.getState().setActiveTab('squad');
-    expect(useM1Store.getState().activeTab).toBe('home');
-    expect(useM1Store.getState().inboxDutyReminder).toEqual([
-      'head-coach-market',
-    ]);
+    expect(useM1Store.getState().activeTab).toBe('squad');
+    expect(useM1Store.getState().inboxDutyReminder).toBeNull();
   });
 
   it('rejects the wrong transaction and releases focus after completion', () => {
