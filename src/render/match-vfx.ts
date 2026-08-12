@@ -1,7 +1,12 @@
 import type { Vec } from '../sim/geometry';
 
 export const MATCH_VFX_REVISION = 1 as const;
-export const MATCH_VFX_STEP_MS = 334 as const;
+/**
+ * Halved from 334ms: the impact bursts read instantly and then sat on the pitch
+ * long after the moment they were marking. The phase count is untouched, so the
+ * animation still plays in full — it just plays twice as fast.
+ */
+export const MATCH_VFX_STEP_MS = 167 as const;
 export const MATCH_VFX_PHASE_COUNT = 4 as const;
 export const MATCH_VFX_DURATION_MS = MATCH_VFX_STEP_MS * MATCH_VFX_PHASE_COUNT;
 export const MATCH_VFX_TICK_MS = 100 as const;
@@ -59,6 +64,18 @@ export interface MatchVfxGeometry {
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * How opaque a burst is at a given age step, so it leaves rather than vanishes.
+ *
+ * Quantised to the step it already animates on, not to the millisecond: the
+ * renderer batches every mark of one colour into a single path, and a
+ * continuous per-emitter alpha would need a node per emitter. One bucket per
+ * step keeps the batching and still reads as a fade.
+ */
+export function matchVfxFadeOpacity(ageStep: number): number {
+  return clamp01((MATCH_VFX_PHASE_COUNT - ageStep) / MATCH_VFX_PHASE_COUNT);
 }
 
 function stableHash(value: string): number {

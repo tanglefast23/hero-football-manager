@@ -61,15 +61,14 @@ describe('full M2 career clock', () => {
 
     expect(strengths.get(full.userClubId)).toBe(40);
     expect(Math.min(...strengths.values())).toBe(40);
-    // 52, not the 50 the pinning tuned it to. Two sharpenings land on the same
-    // club, and it was already the hardest of the five, so both raise the peak
-    // rather than reshaping the curve: the opening fixture gets +5 on each of
-    // that club's position attributes, worth about a point of squad strength,
-    // and the strongest rival in the division now fields Larry Alan, worth
-    // another.
-    expect(Math.max(...strengths.values())).toBe(52);
+    // 51, not the 50 the pinning tuned it to. One sharpening is left: the
+    // strongest rival in the division fields Larry Alan, worth about a point of
+    // squad strength. The opening fixture's own +5 on each of that club's
+    // position attributes was removed by the owner on 2026-08-12, which is the
+    // point this number dropped from 52.
+    expect(Math.max(...strengths.values())).toBe(51);
     expect(openingOpponents).toEqual([
-      { strength: 52, userIsHome: true },
+      { strength: 51, userIsHome: true },
       { strength: 45, userIsHome: false },
       { strength: 46, userIsHome: true },
       { strength: 43, userIsHome: false },

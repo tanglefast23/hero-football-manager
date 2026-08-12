@@ -127,6 +127,12 @@ export interface M2NationalCupViewModel {
     readonly roundLabel: string;
     readonly opponentName?: string;
     readonly venue?: 'HOME' | 'AWAY';
+    /**
+     * Where the opponent sits, written out — the cup crosses all five tiers, so
+     * the club name alone says nothing about how hard the tie is. Absent until
+     * the draw names an opponent.
+     */
+    readonly opponentStandingLabel?: string;
   };
   readonly championName?: string;
 }

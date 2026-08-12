@@ -9,6 +9,7 @@ import {
   activeMatchVfxEmitters,
   appendMatchVfxEmitter,
   isHardShotPower,
+  matchVfxFadeOpacity,
   prepareMatchVfxEmitter,
   sampleMatchVfxGeometry,
   type MatchVfxKind,
@@ -36,10 +37,22 @@ function emitter(kind: MatchVfxKind, eventTick = 10) {
 }
 
 describe('procedural match VFX recipes', () => {
-  it('uses four 334ms phases for one exact 1,336ms lifetime', () => {
-    expect(MATCH_VFX_STEP_MS).toBe(334);
+  it('uses four 167ms phases for one exact 668ms lifetime', () => {
+    // Halved from 334ms. All four phases still play; they play twice as fast,
+    // so the burst leaves with the moment instead of sitting on the pitch.
+    expect(MATCH_VFX_STEP_MS).toBe(167);
     expect(MATCH_VFX_PHASE_COUNT).toBe(4);
-    expect(MATCH_VFX_DURATION_MS).toBe(1_336);
+    expect(MATCH_VFX_DURATION_MS).toBe(668);
+  });
+
+  it('fades a burst out over its life instead of cutting it', () => {
+    expect(matchVfxFadeOpacity(0)).toBe(1);
+    expect(matchVfxFadeOpacity(1)).toBeCloseTo(0.75);
+    expect(matchVfxFadeOpacity(2)).toBeCloseTo(0.5);
+    expect(matchVfxFadeOpacity(3)).toBeCloseTo(0.25);
+    // Never negative, however far past its life it is sampled.
+    expect(matchVfxFadeOpacity(MATCH_VFX_PHASE_COUNT)).toBe(0);
+    expect(matchVfxFadeOpacity(99)).toBe(0);
   });
 
   it('prepares stable semantic seeds and normalizes direction', () => {
@@ -108,8 +121,8 @@ describe('procedural match VFX recipes', () => {
 
   it('expires emitters at the exact duration', () => {
     const prepared = emitter('hard-shot', 0);
-    expect(activeMatchVfxEmitters([prepared], 13.35)).toEqual([prepared]);
-    expect(activeMatchVfxEmitters([prepared], 13.36)).toEqual([]);
+    expect(activeMatchVfxEmitters([prepared], 6.67)).toEqual([prepared]);
+    expect(activeMatchVfxEmitters([prepared], 6.68)).toEqual([]);
   });
 
   it('classifies 55 as hard and excludes 54', () => {
@@ -134,8 +147,13 @@ describe('procedural match VFX renderer contract', () => {
     'utf8',
   );
 
-  it('uses five fixed hard-edged paths and the shared pixel snapper', () => {
-    expect(source).toContain('PROCEDURAL_MATCH_VFX_RENDER_NODE_COUNT = 5');
+  it('uses a fixed grid of hard-edged paths and the shared pixel snapper', () => {
+    // Five colours x four age steps. Fixed, and independent of how many
+    // emitters are live — that independence is the batching guarantee, not the
+    // number itself. A colour needs one path per age step because the burst
+    // fades and a path carries one opacity.
+    expect(source).toContain('PROCEDURAL_MATCH_VFX_RENDER_NODE_COUNT = 20');
+    expect(source).toContain('opacity={matchVfxFadeOpacity(step)}');
     expect(source).toContain(
       "'ink',\n  'cream',\n  'grass',\n  'blue',\n  'gold'",
     );

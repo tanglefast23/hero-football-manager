@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -8,6 +14,8 @@ import {
 } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { hasHoverPointer } from '../pointer-capability';
+import { useGuideAnchor } from '../use-guide-anchor';
+import type { TutorialAnchorLayout } from '../tutorial-cue-position';
 
 /**
  * Long enough that an unhurried tap still counts as a tap. RN suppresses
@@ -26,6 +34,104 @@ const TIP_WIDTH = 208;
 /** Below this the bubble stops being a column-width popover and spans the screen. */
 const NARROW_SCREEN_MAX_WIDTH = 600;
 const NARROW_SCREEN_GUTTER = 16;
+
+/** Clear of the anchor without losing the visual tie to it. */
+const BUBBLE_ANCHOR_GAP = 4;
+
+interface OpenInfoTip {
+  text: string;
+  anchor: TutorialAnchorLayout;
+  align: 'left' | 'right';
+  bubbleWidth: number;
+  narrow: boolean;
+}
+
+/*
+ * One open tip, published to a layer that renders last.
+ *
+ * Raising the anchor's own z-index was the previous fix and it cannot work: a
+ * child's z-index is resolved inside its parent's stacking context, so a later
+ * *sibling of the parent* — the contract block under the morale row — still
+ * paints over the bubble no matter how high the anchor is raised. The only
+ * placement that is unconditionally on top is one outside every card, which is
+ * what this layer is.
+ *
+ * ponytail: module-scope singleton rather than a context. One window, one
+ * pointer, one finger — exactly one tip can be open. Make it a context if a
+ * second independent surface ever needs its own layer.
+ */
+let openTip: OpenInfoTip | null = null;
+let openTipOwner: object | null = null;
+const openTipListeners = new Set<() => void>();
+
+function publishOpenTip(owner: object, tip: OpenInfoTip): void {
+  openTipOwner = owner;
+  openTip = tip;
+  for (const listener of openTipListeners) listener();
+}
+
+function retractOpenTip(owner: object): void {
+  // A newer tip already took the layer; its owner clears it, not this one.
+  if (openTipOwner !== owner) return;
+  openTipOwner = null;
+  openTip = null;
+  for (const listener of openTipListeners) listener();
+}
+
+function subscribeToOpenTip(listener: () => void): () => void {
+  openTipListeners.add(listener);
+  return () => {
+    openTipListeners.delete(listener);
+  };
+}
+
+const readOpenTip = () => openTip;
+
+/**
+ * Renders whichever InfoTip is open, above every screen.
+ *
+ * Mount exactly once, as the last child of the app's root view, so it paints
+ * after all of it. It never takes a pointer event, so the control the tip
+ * describes keeps working underneath.
+ */
+export function InfoTipLayer() {
+  const tip = useSyncExternalStore(
+    subscribeToOpenTip,
+    readOpenTip,
+    readOpenTip,
+  );
+  const { width } = useWindowDimensions();
+  if (tip === null) return null;
+  // Hangs from the anchor's near edge, then is pulled back on screen whole. A
+  // tip on the last column would otherwise run off the right of a phone.
+  const preferredLeft =
+    tip.align === 'right'
+      ? tip.anchor.x + tip.anchor.width - tip.bubbleWidth
+      : tip.anchor.x;
+  const left = Math.max(
+    NARROW_SCREEN_GUTTER,
+    Math.min(preferredLeft, width - tip.bubbleWidth - NARROW_SCREEN_GUTTER),
+  );
+  return (
+    <View pointerEvents="none" style={styles.layer}>
+      <View
+        style={[
+          styles.bubble,
+          {
+            width: tip.bubbleWidth,
+            left,
+            top: tip.anchor.y + tip.anchor.height + BUBBLE_ANCHOR_GAP,
+          },
+          tip.narrow ? styles.bubbleNarrow : null,
+        ]}
+      >
+        <Text style={[styles.text, tip.narrow ? styles.textNarrow : null]}>
+          {tip.text}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export interface InfoTipProps {
   /** What the thing under the pointer actually means, in one sentence. */
@@ -114,12 +220,30 @@ export function InfoTip({
     ? Math.max(160, Math.min(TIP_WIDTH, width - NARROW_SCREEN_GUTTER * 2))
     : TIP_WIDTH;
 
+  // Stable identity for this tip's claim on the shared layer.
+  const layerOwner = useRef({}).current;
+  const publish = useCallback(
+    (anchor: TutorialAnchorLayout | null) => {
+      if (anchor === null) {
+        retractOpenTip(layerOwner);
+        return;
+      }
+      publishOpenTip(layerOwner, { text, anchor, align, bubbleWidth, narrow });
+    },
+    [align, bubbleWidth, layerOwner, narrow, text],
+  );
+  const { anchorRef, scheduleMeasurement } = useGuideAnchor(shown, publish);
+  useEffect(() => () => retractOpenTip(layerOwner), [layerOwner]);
+
   return (
     <View
-      // The bubble's own z-index cannot outrank a later sibling when its anchor
-      // stays in the ordinary paint order. Raise the whole anchor while open so
-      // roster rows, panels and adjacent columns never draw through the tip.
-      style={[styles.anchor, style, shown ? styles.anchorShown : null]}
+      // Measured, not laid out relative to: the bubble is drawn by InfoTipLayer
+      // outside every card, which is the only way it can be above all of them.
+      // `collapsable={false}` keeps a real host node for measureInWindow.
+      ref={anchorRef}
+      collapsable={false}
+      onLayout={scheduleMeasurement}
+      style={[styles.anchor, style]}
       className={className}
     >
       <Pressable
@@ -152,45 +276,37 @@ export function InfoTip({
       >
         {children}
       </Pressable>
-      {shown ? (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.bubble,
-            { width: bubbleWidth },
-            // Near a screen edge the bubble hangs from the far side, so a tip on
-            // the last column cannot run off the right of a phone.
-            align === 'right' ? styles.bubbleRight : styles.bubbleLeft,
-            narrow ? styles.bubbleNarrow : null,
-          ]}
-        >
-          <Text style={[styles.text, narrow ? styles.textNarrow : null]}>
-            {text}
-          </Text>
-        </View>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   anchor: { position: 'relative' },
-  anchorShown: { zIndex: 1000, elevation: 20 },
+  /**
+   * Covers the window and paints last. `pointerEvents="none"` on the layer is
+   * what keeps the control underneath usable — without it this would swallow
+   * every tap on the app.
+   */
+  layer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 1000,
+    elevation: 20,
+  },
   bubble: {
     position: 'absolute',
-    top: '100%',
-    marginTop: 4,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: '#241f2e',
+    // Fully opaque, and nothing behind it can reach through: the layer above is
+    // the last thing painted in the app.
     backgroundColor: '#3f6fb5',
-    zIndex: 50,
-    elevation: 12,
   },
-  bubbleLeft: { left: 0 },
-  bubbleRight: { right: 0 },
   /** Roomier on a phone: it is a tap target's answer, not a hover whisper. */
   bubbleNarrow: { paddingHorizontal: 12, paddingVertical: 10 },
   text: {

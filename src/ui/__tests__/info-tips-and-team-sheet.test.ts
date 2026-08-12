@@ -36,17 +36,34 @@ describe('column and personality explanations', () => {
     expect(tip).toContainSource('bubbleNarrow:');
   });
 
-  it('raises each tooltip host above later rows and neighboring panels', () => {
+  it('draws the stat tip outside every card, not inside its anchor', () => {
     const infoTip = read('src/ui/components/InfoTip.tsx');
+    const app = read('App.tsx');
+
+    // Raising the anchor's z-index was the old fix and it cannot work: a child's
+    // z-index resolves inside its parent's stacking context, so a later sibling
+    // of the *parent* still paints over the bubble. The morale tip was covered
+    // by the contract block directly beneath it. So the bubble is drawn by a
+    // layer mounted last at the app root, and the anchor is only measured.
+    expect(infoTip).not.toContainSource('anchorShown');
+    expect(infoTip).toContainSource('export function InfoTipLayer()');
+    expect(infoTip).toContainSource('useGuideAnchor(shown, publish)');
+    expect(infoTip).toContainSource('ref={anchorRef}');
+    // Without a real host node measureInWindow has nothing to measure.
+    expect(infoTip).toContainSource('collapsable={false}');
+    // The layer covers the window, so it MUST let every pointer event through.
+    expect(infoTip).toMatchSource(
+      /<View pointerEvents="none" style=\{styles\.layer\}>/,
+    );
+    // Last child of the root view: mounted anywhere earlier and a later sibling
+    // paints over it, which is the bug this replaced.
+    expect(app).toMatchSource(/<InfoTipLayer \/>\s*<\/View>/);
+  });
+
+  it('raises each hover tip host above later rows and neighboring panels', () => {
     const hoverTip = read('src/ui/components/SfxPressable.tsx');
     const managementShell = read('src/ui/ManagementShell.tsx');
 
-    // A high z-index on only the bubble stays trapped in its parent's paint
-    // order. The whole active anchor must rise while the tip is visible.
-    expect(infoTip).toContainSource('shown ? styles.anchorShown : null');
-    expect(infoTip).toContainSource(
-      'anchorShown: { zIndex: 1000, elevation: 20 }',
-    );
     expect(hoverTip).toContainSource('showTip ? hoverTipTopLayer : undefined');
     expect(hoverTip).toContainSource(
       'style={showTip ? hoverTipTopLayer : hoverTipAnchor}',

@@ -4,6 +4,7 @@ import {
   powerCopySlug,
   proseSlug,
 } from '../content-strings';
+import { briefingBeats } from '../../ui/bert-briefing-beats';
 import { copyFor } from '../use-copy';
 import { resolveCopy } from '../resolve';
 import { loadLaunchContent } from '../../content';
@@ -114,6 +115,60 @@ describe('the story and glossary screens read the keys that exist', () => {
       expect(strings[`bert.guide.${sequence.id}.inbox.detail`]).toBe(
         sequence.inbox.detail,
       );
+    }
+  });
+
+  test('nothing renders the guide-page fields that are deliberately unkeyed', () => {
+    /**
+     * `kicker`, `title`, `objective`, `buttonLabel` and `navItems` survive in
+     * assistant-guide.json from the framed window the walk-on replaced. They are
+     * not in `contentStrings()`, by the decision recorded there — roughly 110
+     * sentences nobody can see.
+     *
+     * That decision is only safe while it stays true. The day a screen draws
+     * `page.buttonLabel`, Bert ships an English button to six languages and no
+     * gate notices, because an unkeyed string cannot fail a coverage floor. So
+     * assert the premise rather than the conclusion: these fields have no
+     * reader. If one gains a reader, key it in `content-strings.ts` first.
+     */
+    const unkeyed = ['kicker', 'objective', 'buttonLabel', 'navItems'] as const;
+    const strings = contentStrings();
+    for (const sequence of loadLaunchContent().assistantGuide.sequences) {
+      for (const page of sequence.pages) {
+        for (const field of unkeyed) {
+          const value = page[field];
+          if (value === undefined) continue;
+          const text =
+            typeof value === 'string' ? value : JSON.stringify(value);
+          expect({
+            field,
+            keyed: Object.values(strings).includes(text),
+          }).toEqual({ field, keyed: false });
+        }
+      }
+    }
+    // The reader-side half. `briefingBeats` is the only door a guide page goes
+    // through on its way to a screen, so it is the only place a newly-rendered
+    // field can appear. Every beat must still be a body paragraph and nothing
+    // else — a beat that started carrying a kicker or a button label would show
+    // up here as text no `page.body` contains.
+    for (const sequence of loadLaunchContent().assistantGuide.sequences) {
+      const bodies = new Set(sequence.pages.flatMap((page) => page.body));
+      for (const beat of briefingBeats(
+        loadLaunchContent().assistantGuide,
+        sequence.id,
+      )) {
+        expect({
+          sequence: sequence.id,
+          fromBody: bodies.has(beat.text),
+        }).toEqual({ sequence: sequence.id, fromBody: true });
+        expect(Object.keys(beat).sort()).toEqual([
+          'focus',
+          'kind',
+          'pageIndex',
+          'text',
+        ]);
+      }
     }
   });
 
