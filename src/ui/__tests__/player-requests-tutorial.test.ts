@@ -23,8 +23,6 @@ describe('first player request tutorial', () => {
     expect(guide).toContainSource(
       "if (state.playerRequests?.pending !== undefined) {\n    due.push('player-requests');",
     );
-    expect(guide).not.toContainSource(
-      "state.week >= requestTuning.startWeek",
-    );
+    expect(guide).not.toContainSource('state.week >= requestTuning.startWeek');
   });
 });
