@@ -75,7 +75,8 @@ export function careerEventsCareer(): GameState {
   const rival = state.players.find(
     (player) => player.clubId !== state.userClubId,
   );
-  if (rival === undefined) throw new Error('harness career has no rival player');
+  if (rival === undefined)
+    throw new Error('harness career has no rival player');
   const range = (value: number) => ({ minimum: value, maximum: value });
   state = {
     ...state,

@@ -34,9 +34,7 @@ export function careerEventTargetPlayers(
             const target = careerTransferTarget(state, report.playerId);
             return target === undefined ? [] : [target.player];
           })
-        : state.players.filter(
-            (player) => player.clubId === state.userClubId,
-          );
+        : state.players.filter((player) => player.clubId === state.userClubId);
   return players.filter(
     (player) =>
       event.trigger.requiresPlayerRole === undefined ||
