@@ -1682,10 +1682,13 @@ export function MatchScreen({
         )
           snap = true;
         if (e.kind === 'GOAL') {
+          // Resolve the stable scorer id against the full team def: a scorer
+          // substituted while his shot flew is no longer in s.players.
+          const teamDef = s.teams[e.team];
           const scorerName =
-            e.by >= 0 && e.by < BASE_PLAYER_COUNT
-              ? s.players[e.by].def.name
-              : 'Unknown';
+            [...teamDef.players, ...(teamDef.bench ?? [])].find(
+              (def) => def.id === e.scoredById,
+            )?.name ?? 'Unknown';
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
             // '⚡' and '⚠' below are pictograms, not words: they stay in the
@@ -3441,7 +3444,12 @@ export function MatchScreen({
                 inverted
               />
               <View style={styles.coachCopy}>
-                <Text style={styles.coachLabel}>
+                <Text
+                  style={styles.coachLabel}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
                   {t('matchScreen.formation')}
                 </Text>
                 <Text style={styles.coachValue}>{displayedFormation}</Text>

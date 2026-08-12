@@ -167,15 +167,9 @@ export function createFixtureResolver(
 }
 
 /**
- * Who scored, resolved at the moment of each goal.
- *
- * A GOAL event names a lineup SLOT, not a player, and substitutes inherit the
- * slot they come on into. Reading the slot's occupant from the starting TeamDef
- * credited a substitute's goal to the player he replaced; reading it from the
- * final state makes the mirrored mistake, handing a starter's first-half goal
- * to whoever came on for him later. Substitutions record the outgoing player,
- * so rewinding them from the final state puts every slot back to the player who
- * held it when the ball went in.
+ * Who scored each goal. GOAL events carry the scorer's stable id, stamped at
+ * shot launch, because a substitution can change a slot's occupant while the
+ * shot is still in flight.
  */
 export function goalsFrom(match: MatchState): MatchGoal[] {
   const names = new Map<string, string>();
@@ -183,31 +177,18 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
     for (const def of [...team.players, ...(team.bench ?? [])])
       names.set(def.id, def.name);
   }
-  const slotOwners = new Map<number, string>();
-  match.players.forEach((player, slot) => {
-    slotOwners.set(slot, player.def.id);
-    names.set(player.def.id, player.def.name);
-  });
+  for (const player of match.players) names.set(player.def.id, player.def.name);
 
   const goals: MatchGoal[] = [];
-  for (let index = match.events.length - 1; index >= 0; index--) {
-    const event = match.events[index];
-    if (event.kind === 'GOAL') {
-      const playerId = slotOwners.get(event.by);
-      if (playerId !== undefined) {
-        goals.push({
-          playerId,
-          name: names.get(playerId) ?? playerId,
-          tick: event.t,
-        });
-      }
-      continue;
-    }
-    // Rewind: before this swap the shirt belonged to the player going off.
-    if (event.kind === 'SUBSTITUTION')
-      slotOwners.set(event.player, event.outPlayerId);
+  for (const event of match.events) {
+    if (event.kind !== 'GOAL') continue;
+    goals.push({
+      playerId: event.scoredById,
+      name: names.get(event.scoredById) ?? event.scoredById,
+      tick: event.t,
+    });
   }
-  return goals.reverse();
+  return goals;
 }
 
 function fixtureResultFromMatch(

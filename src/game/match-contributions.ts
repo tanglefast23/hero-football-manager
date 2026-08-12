@@ -12,12 +12,12 @@ type Countable =
 /**
  * Every countable action in a finished match, resolved to stable player ids.
  *
- * Walks backwards for the same reason `goalsFrom` does: a GOAL, SAVE, TACKLE or
- * PASS names a lineup SLOT, and substitutes inherit the slot they come on into.
- * Reading slot owners from the starting lineup credits a substitute's goal to
- * the player he replaced; reading from the final state makes the mirrored
- * mistake. Substitutions record the outgoing player, so rewinding them from the
- * final state puts every slot back to whoever held it at the time.
+ * Walks backwards because a SAVE, TACKLE or PASS names a lineup SLOT, and
+ * substitutes inherit the slot they come on into. Reading slot owners from the
+ * starting lineup credits a substitute's action to the player he replaced;
+ * reading from the final state makes the mirrored mistake. Substitutions
+ * record the outgoing player, so rewinding them from the final state puts
+ * every slot back to whoever held it at the time.
  *
  * Decoy clones are rewound the same way. They are entities 22 and 23, which own
  * no slot, so a clone's tackle or pass would otherwise be credited to nobody.
@@ -26,8 +26,9 @@ type Countable =
  * standing at full time and rewinding each pop maps every clone action to the
  * player it was copied from.
  *
- * Assists are exempt from all of that — the engine stamps a stable id precisely
- * because the assisting touch can precede the goal by a substitution.
+ * Goals and assists are exempt from all of that — the engine stamps stable
+ * ids (`scoredById`, `assistedById`) precisely because a substitution can
+ * land between the touch and the ball crossing the line.
  */
 export function contributionsFrom(
   match: MatchState,
@@ -59,10 +60,9 @@ export function contributionsFrom(
   for (let index = match.events.length - 1; index >= 0; index -= 1) {
     const event = match.events[index];
     if (event.kind === 'GOAL') {
-      // `shot.by` is pre-attributed by the engine, so a clone's goal already
-      // names its source slot and must not be resolved a second time.
-      const scorer = slotOwners.get(event.by);
-      if (scorer !== undefined) bump(scorer, 'goals');
+      // Stable id stamped at shot launch: a substitution during the shot's
+      // flight must not hand the goal to the slot's new occupant.
+      bump(event.scoredById, 'goals');
       if (event.assistedById !== undefined) bump(event.assistedById, 'assists');
     } else if (event.kind === 'SAVE') {
       // Only a keeper saves, and a clone is never one: `by` is slot 0 or 11.

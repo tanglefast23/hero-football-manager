@@ -247,6 +247,12 @@ export type BallState =
       pos: Vec;
       vel: Vec;
       by: number;
+      /**
+       * Stable id of the player who launched the shot. The flight lasts many
+       * ticks and a substitution can land in between, so resolving `by`'s
+       * occupant at goal time would credit the wrong player.
+       */
+      shooterId: string;
       /** Keeper-facing fixed-point execution strength; display `power` never feeds resolution. */
       shotStrengthD64: number;
       power: number;
@@ -296,6 +302,13 @@ export type MatchEvent =
       kind: 'GOAL';
       by: number;
       team: 0 | 1;
+      /**
+       * Stable id of the scorer, stamped when the shot launched. Like
+       * `assistedById`, an id rather than a slot: the shot flies for many
+       * ticks, so a substitution can change the slot's occupant before the
+       * ball crosses the line.
+       */
+      scoredById: string;
       /**
        * Stable id of the teammate who held the ball immediately before the
        * scorer. A stable id rather than a slot because the assisting touch

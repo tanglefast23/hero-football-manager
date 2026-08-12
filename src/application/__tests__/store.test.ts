@@ -1516,7 +1516,9 @@ describe('M1 app store integration', () => {
     await useM1Store.getState().exportUnreadableSave(async () => {
       throw new Error('second share was dismissed');
     });
-    await useM1Store.getState().discardUnreadableSave();
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe(
+      'deleted',
+    );
 
     expect(shared).toEqual(['hero-football-manager-raw-schema-1.json', raw]);
     expect(deleteCalls).toBe(1);
@@ -1557,7 +1559,9 @@ describe('M1 app store integration', () => {
     });
     await useM1Store.getState().initializePersistence(careerRepository);
 
-    await useM1Store.getState().discardUnreadableSave();
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe(
+      'blocked',
+    );
 
     expect(deleteCalls).toBe(0);
   });
@@ -1573,11 +1577,44 @@ describe('M1 app store integration', () => {
     });
     await useM1Store.getState().initializePersistence(careerRepository);
 
-    await useM1Store.getState().discardUnreadableSave();
+    // 'failed' tells the app shell to fall back to the file-level
+    // resetCareerDatabase escape hatch instead of looping on this screen.
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('failed');
 
     expect(useM1Store.getState().persistenceLoadError).toContain(
       'disk is on fire',
     );
+  });
+
+  it('leaves the backup restorable after a failed discard', async () => {
+    // A failed delete rolls back, so the backup generation is still on disk.
+    // The app shell must not fall through to the file-level wipe while this
+    // Restore path still works (it gates on backupSummary), and the store must
+    // not have damaged it.
+    const backup = careerWithPendingAwakening(55_501);
+    const careerRepository = stubCareerRepository({
+      async load() {
+        throw new Error('career save is corrupt');
+      },
+      async delete() {
+        throw new Error('cannot start a transaction within a transaction');
+      },
+      async backupSummary() {
+        return { season: 2, week: 7 };
+      },
+      async restoreBackup() {
+        return backup;
+      },
+    });
+    await useM1Store.getState().initializePersistence(careerRepository);
+
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('failed');
+    expect(useM1Store.getState().backupSummary).toEqual({ season: 2, week: 7 });
+
+    await useM1Store.getState().restoreBackupSave();
+
+    expect(useM1Store.getState().persistenceLoadError).toBeNull();
+    expect(useM1Store.getState().career).not.toBeNull();
   });
 
   it('warns while progress is unsaved and pauses the season after repeated failures', async () => {

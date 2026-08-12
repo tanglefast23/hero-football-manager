@@ -3735,7 +3735,7 @@ export function homeViewModel(
             competition: careerDivisionLabel(state, t),
             homeTeam: userClub.name,
             awayTeam: t('seasonEnd.seasonReview'),
-            venueLabel: 'Boardroom',
+            venueLabel: t('clubHome.venueBoardroom'),
             opponentHeroCount: 0,
             opponentHeroes: [],
             matchdayReady: false,
@@ -5092,7 +5092,7 @@ function fixtureViewModel(
     competition,
     homeTeam: clubName(state, fixture.homeClubId),
     awayTeam: clubName(state, fixture.awayClubId),
-    venueLabel: isHome ? 'Home' : 'Away',
+    venueLabel: t(isHome ? 'm2League.venueHome' : 'm2League.venueAway'),
     // The tutorial suppresses powers in the match, but Barry is still at the
     // opponent club. Report the character who is there so this team sheet
     // agrees with the rival introduction that just played.

@@ -473,6 +473,7 @@ describe('M4 twelve-power catalog', () => {
           pos: { x: 3400, y: 9800 },
           vel: { x: 0, y: 300 },
           by: opponent,
+          shooterId: match.players[opponent].def.id,
           shotStrengthD64: 0,
           power: 40,
           targetX: 3400,

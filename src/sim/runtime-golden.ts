@@ -6,13 +6,14 @@ import { ROVERS, UNITED } from './teams';
 // enough to run in both Node CI and the app's Hermes boot path.
 // Rebaselined deliberately for m2.1 (auto-substitution entry-condition rating +
 // freshness floor, incremental replay-input feeding, FIRE_WHEN_READY default).
-// The golden matches themselves are byte-identical to m2.0 — they use explicit
-// policies, no bench, and no inputs — so only the hashed version string moved.
+// m2.2 rebaseline: GOAL events now carry the scorer's stable id (scoredById),
+// which changes the hashed event payloads. Ball physics, RNG consumption and
+// scores are unchanged from m2.1.
 // Earlier deliberate rebaselines: m2.0 (scale-invariant contest/execution
 // domains, career condition carryover, fixed-point PAC/STA movement), m1.29
 // (presser standoff ring; PAC-widened duel spacing), m1.25 (five named subs,
 // immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
-const EXPECTED_RUNTIME_GOLDEN = '3b42d227';
+const EXPECTED_RUNTIME_GOLDEN = '7d48fa26';
 
 // Seed 42 finishes 0-0, so neither this hash nor parity-replay's snapshot has
 // ever contained a GOAL payload — adding assistedById to that event moved
@@ -21,7 +22,7 @@ const EXPECTED_RUNTIME_GOLDEN = '3b42d227';
 // unassisted (which covers the omitted-field branch too). Kept as a second
 // baseline rather than folded into the first so a regression stays readable as
 // "the goalless one still passes, the scoring one moved".
-const EXPECTED_GOAL_GOLDEN = '88806f69';
+const EXPECTED_GOAL_GOLDEN = '15e4df15';
 
 const GOAL_GOLDEN_SEED = 81;
 

@@ -121,11 +121,10 @@ describe('quickResultForFixture', () => {
   });
 
   test('credits each goal to whoever held the shirt when it went in', () => {
-    // A GOAL event names a lineup SLOT, so a substitution makes both ends of the
-    // match wrong in opposite directions: resolving against the starting XI gave
-    // the substitute's goal to the starter, and resolving against the final
-    // state gave the starter's goal to the substitute. Slot 1 scores once before
-    // the swap and once after it, so only time-correct attribution passes.
+    // GOAL events carry the scorer's stable id, stamped at shot launch, so a
+    // substitution between two goals from the same slot cannot smear either
+    // goal onto the wrong player. Slot 1 scores once before the swap and once
+    // after it, so only time-correct attribution passes.
     const substitute = {
       ...ROVERS.players[1],
       id: 'rovers-substitute',
@@ -134,7 +133,13 @@ describe('quickResultForFixture', () => {
     const state = fakeFulltimeMatch(
       [2, 1],
       [
-        { t: 10, kind: 'GOAL', by: 1, team: 0 },
+        {
+          t: 10,
+          kind: 'GOAL',
+          by: 1,
+          team: 0,
+          scoredById: ROVERS.players[1].id,
+        },
         {
           t: 15,
           kind: 'SUBSTITUTION',
@@ -143,8 +148,14 @@ describe('quickResultForFixture', () => {
           outPlayerId: ROVERS.players[1].id,
           inPlayerId: substitute.id,
         },
-        { t: 20, kind: 'GOAL', by: 1, team: 0 },
-        { t: 30, kind: 'GOAL', by: 12, team: 1 },
+        { t: 20, kind: 'GOAL', by: 1, team: 0, scoredById: substitute.id },
+        {
+          t: 30,
+          kind: 'GOAL',
+          by: 12,
+          team: 1,
+          scoredById: UNITED.players[1].id,
+        },
       ],
     );
     state.players[1] = { ...state.players[1], def: substitute };
@@ -182,7 +193,13 @@ describe('quickResultForFixture', () => {
     const state = fakeFulltimeMatch(
       [1, 0],
       [
-        { t: 10, kind: 'GOAL', by: 1, team: 0 },
+        {
+          t: 10,
+          kind: 'GOAL',
+          by: 1,
+          team: 0,
+          scoredById: ROVERS.players[1].id,
+        },
         {
           t: 15,
           kind: 'SUBSTITUTION',

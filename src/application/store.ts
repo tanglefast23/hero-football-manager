@@ -470,7 +470,14 @@ interface M1Store {
     repository: CareerRepository,
     replayRepository?: ReplayRepository,
   ) => Promise<void>;
-  discardUnreadableSave: () => Promise<void>;
+  /**
+   * 'failed' means the repository-level delete could not run (e.g. a malformed
+   * file left the connection mid-transaction). The caller may fall back to the
+   * file-level resetCareerDatabase escape hatch, but only when no backup is
+   * restorable — the failed delete rolled back, so a readable backup may still
+   * be on disk and the wipe would destroy it.
+   */
+  discardUnreadableSave: () => Promise<'deleted' | 'blocked' | 'failed'>;
   exportUnreadableSave: (
     share: (fileName: string, contents: string) => Promise<void>,
   ) => Promise<void>;
@@ -828,12 +835,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
       rawExportRequired,
       rawExportSucceeded,
     } = get();
-    if (repository === null || persistenceLoadError === null) return;
+    if (repository === null || persistenceLoadError === null) return 'blocked';
     if (rawExportRequired && !rawExportSucceeded) {
       set({
         persistenceLoadError: t('store.rawExportUnfinished'),
       });
-      return;
+      return 'blocked';
     }
     try {
       // One transaction across both generations, so no queue-jumping save may
@@ -845,7 +852,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           reason: errorMessage(error),
         }),
       });
-      return;
+      return 'failed';
     }
     // The slot was just wiped; no save queued for the old career may refill it.
     retireCareerLineage();
@@ -869,6 +876,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       pendingPostFaceOffScreen: null,
       error: null,
     });
+    return 'deleted';
   },
 
   /**

@@ -367,7 +367,7 @@ export function SettingsOverlay({
                   })}
                   className="mb-4 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2"
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.difficulty.title')}
                   </Text>
                   <Text className="font-pixel text-base text-gold-dark">
@@ -390,7 +390,7 @@ export function SettingsOverlay({
                         : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
                     }
                   >
-                    <Text className="font-pixel text-sm uppercase text-ink">
+                    <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                       {t('settings.developerMode.label')}
                     </Text>
                     <Text className="font-pixel text-base text-ink">
@@ -409,7 +409,7 @@ export function SettingsOverlay({
                       : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
                   }
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.reduceMotion.label')}
                   </Text>
                   <Text className="font-pixel text-base text-ink">
@@ -423,7 +423,7 @@ export function SettingsOverlay({
                     onPress={onRetry3x}
                     className="min-h-12 flex-row items-center justify-between border-2 border-blue-dark bg-blue-light px-3 py-2"
                   >
-                    <Text className="font-pixel text-sm uppercase text-ink">
+                    <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                       {t('settings.performance.label')}
                     </Text>
                     <Text className="font-pixel text-sm text-blue-dark">
@@ -442,7 +442,7 @@ export function SettingsOverlay({
                       : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
                   }
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.haptics.label')}
                   </Text>
                   <Text className="font-pixel text-base text-ink">
@@ -457,7 +457,7 @@ export function SettingsOverlay({
                   onPress={onCycleTextScale}
                   className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.textSize.label')}
                   </Text>
                   <Text className="font-pixel text-base text-blue-dark">
@@ -484,7 +484,7 @@ export function SettingsOverlay({
                     onPress={onCycleLanguage}
                     className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                   >
-                    <Text className="font-pixel text-sm uppercase text-ink">
+                    <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                       {t('settings.language.title')}
                     </Text>
                     <Text
@@ -515,7 +515,7 @@ export function SettingsOverlay({
                         : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
                     }
                   >
-                    <Text className="font-pixel text-sm uppercase text-ink">
+                    <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                       {t('settings.assistant.label')}
                     </Text>
                     <Text className="font-pixel text-base uppercase text-blue-dark">
@@ -538,7 +538,7 @@ export function SettingsOverlay({
                       : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
                   }
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.highContrast.label')}
                   </Text>
                   <Text className="font-pixel text-base text-ink">
@@ -556,7 +556,7 @@ export function SettingsOverlay({
                       : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
                   }
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.colorSafeKits.label')}
                   </Text>
                   <Text className="font-pixel text-base text-ink">
@@ -575,7 +575,7 @@ export function SettingsOverlay({
                   onPress={onToggleCutInMode}
                   className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.powerLabels.label')}
                   </Text>
                   <Text className="font-pixel text-base uppercase text-blue-dark">
@@ -598,7 +598,7 @@ export function SettingsOverlay({
                   onPress={onToggleHudSide}
                   className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.matchInfo.label')}
                   </Text>
                   <Text className="font-pixel text-base uppercase text-blue-dark">
@@ -611,7 +611,7 @@ export function SettingsOverlay({
                   onPress={() => onGlossaryOpenChange(true)}
                   className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.glossary.label')}
                   </Text>
                   <Text className="font-pixel text-base text-blue-dark">
@@ -624,7 +624,7 @@ export function SettingsOverlay({
                   onPress={() => onPrivacySupportOpenChange(true)}
                   className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                     {t('settings.privacy.label')}
                   </Text>
                   <Text className="font-pixel text-base text-blue-dark">
@@ -642,7 +642,7 @@ export function SettingsOverlay({
                     onPress={() => onHallOfFameOpenChange?.(true)}
                     className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                   >
-                    <Text className="font-pixel text-sm uppercase text-ink">
+                    <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
                       {t('settings.hallOfFame.label')}
                     </Text>
                     {/* Says which it is before it is opened, and opens either way:

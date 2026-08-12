@@ -75,6 +75,16 @@ const DIFFICULTY_LABEL_KEY: Record<DifficultyMode, string> = {
 };
 
 /**
+ * CHAIRMAN/COZY are persisted enum values, never shown raw: the display name
+ * comes from the same catalog keys the settings screen uses, so the two
+ * surfaces cannot drift apart.
+ */
+const DIFFICULTY_NAME_KEY: Record<DifficultyMode, string> = {
+  CHAIRMAN: 'settings.difficulty.chairman',
+  COZY: 'settings.difficulty.cozy',
+};
+
+/**
  * The stat's name, and the three-letter code the rest of the game prints.
  *
  * The name used to be a source literal so it could be split at the third
@@ -302,7 +312,7 @@ export function CharacterCreationScreen({
       <PaperPanel
         kicker={t('characterCreation.a11y.careerPressure')}
         title={t('characterCreation.chooseDifficulty')}
-        stamp={difficulty}
+        stamp={t(DIFFICULTY_NAME_KEY[difficulty])}
         className="mt-5"
       >
         {/* A radio reports its state as `checked`, not `selected` — the latter
@@ -317,13 +327,14 @@ export function CharacterCreationScreen({
               Cozy remains the explicit lower-pressure alternative. */}
           {(['CHAIRMAN', 'COZY'] as const).map((mode) => {
             const label = t(DIFFICULTY_LABEL_KEY[mode]);
+            const name = t(DIFFICULTY_NAME_KEY[mode]);
             const selected = difficulty === mode;
             return (
               <Pressable
                 key={mode}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: selected }}
-                accessibilityLabel={`${mode} (${label})`}
+                accessibilityLabel={`${name} (${label})`}
                 onPress={() => {
                   setDifficulty(mode);
                 }}
@@ -351,7 +362,7 @@ export function CharacterCreationScreen({
                         : 'font-pixel text-base text-ink'
                     }
                   >
-                    {mode} ({label})
+                    {name} ({label})
                   </Text>
                 </View>
               </Pressable>
@@ -470,7 +481,7 @@ export function CharacterCreationScreen({
             : 'text-center font-pixel text-sm uppercase text-white/80'
         }
       >
-        left
+        {t('characterCreation.left')}
       </Text>
     </View>
   );
@@ -648,7 +659,10 @@ export function CharacterCreationScreen({
               >
                 {t('characterCreation.yourFirst')}
               </Text>
-              <StickerWord text="hire" wide={wide} />
+              <StickerWord
+                text={t('characterCreation.masthead.hire')}
+                wide={wide}
+              />
             </View>
           </View>
           {pointsChip}

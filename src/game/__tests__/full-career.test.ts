@@ -97,7 +97,6 @@ describe('full M2 career clock', () => {
 
   test.each([
     { label: 'Week 5 management', week: 5, phase: 'manage' as const },
-    { label: 'matchday', week: 3, phase: 'matchday' as const },
     { label: 'season end', week: 30, phase: 'season-end' as const },
   ])(
     're-provisions a resumed save during $label with an expired intake',
@@ -115,6 +114,25 @@ describe('full M2 career clock', () => {
       });
     },
   );
+
+  test('keeps an open intake when a save resumes mid-matchday inside the window', () => {
+    // A save written during a week 1-4 matchday still holds live academy
+    // offers. Closing them here is what used to delete the offers on the first
+    // reload and brick the save on the second (see youth-intake-reload.test).
+    const resumedFrom = createCareer(createLaunchCareerSetup(77_001));
+    const openOffers = resumedFrom.youthIntake?.offers.length ?? 0;
+    expect(openOffers).toBeGreaterThan(0);
+
+    const upgraded = enableFullCareer({
+      ...resumedFrom,
+      week: 3,
+      phase: 'matchday',
+    });
+
+    expect(upgraded.careerMode).toBe('full');
+    expect(upgraded.youthIntake).toMatchObject({ status: 'OPEN' });
+    expect(upgraded.youthIntake?.offers.length).toBe(openOffers);
+  });
 
   test('closes stale open offers when an already-upgraded save resumes after Week 4', () => {
     const full = createCareer({ ...createLaunchCareerSetup(77_002) });

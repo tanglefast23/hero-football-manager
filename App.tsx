@@ -2496,7 +2496,36 @@ function GameApp() {
         message={store.persistenceLoadError}
         onRetry={() => setBootAttempt((attempt) => attempt + 1)}
         onStartFresh={() => {
-          void store.discardUnreadableSave();
+          void store.discardUnreadableSave().then((outcome) => {
+            if (outcome !== 'failed') return undefined;
+            // A failed delete rolls back, so a readable backup may still be on
+            // disk and its Restore button still works. The file-level reset
+            // below would destroy that backup along with everything else, so
+            // it only runs when there is nothing left to restore. Read fresh
+            // state, not the render snapshot the closure captured.
+            if (useM1Store.getState().backupSummary !== null) return undefined;
+            // A malformed file can leave the live connection unable to run the
+            // repository-level delete (observed on web: "cannot start a
+            // transaction within a transaction", then a retry loop). Fall back
+            // to the same file-level escape hatch the boot branch uses.
+            return resetCareerDatabase({
+              openDatabase: () => openDatabaseAsync(DATABASE_NAME),
+              deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
+            })
+              .then(() => {
+                // On web only a fresh document rebuilds the cached SQLite VFS.
+                if (reloadBrowserDocument()) return;
+                setBootAttempt((attempt) => attempt + 1);
+              })
+              .catch((error) =>
+                setBootError(
+                  t('store.saveDeleteFailed', {
+                    reason:
+                      error instanceof Error ? error.message : String(error),
+                  }),
+                ),
+              );
+          });
         }}
         onExportRaw={() => {
           void store.exportUnreadableSave(async (fileName, contents) => {
@@ -2573,7 +2602,10 @@ function GameApp() {
         hasSavedCareer={store.hasSavedCareer}
         savedCareerLabel={
           store.career
-            ? `Season ${store.career.season} · Week ${store.career.week}`
+            ? t('newGameWelcome.seasonWeek', {
+                season: store.career.season,
+                week: store.career.week,
+              })
             : undefined
         }
         showOpeningBrief={shouldShowOpeningBrief(store.career)}

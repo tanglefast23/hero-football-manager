@@ -2228,6 +2228,7 @@ export function attemptShot(
   );
   state.ball = {
     kind: 'shot',
+    shooterId: state.players[attributedBy].def.id,
     pos: { ...shooter.pos },
     vel: {
       x: Math.trunc((targetX - shooter.pos.x) / Math.max(1, distToGoal / 300)),
@@ -2313,7 +2314,7 @@ export function shotFlightTick(state: MatchState): void {
   }
 
   state.score[shooter.team]++;
-  const scorerId = state.players[attributedPlayerIndex(state, b.by)].def.id;
+  const scorerId = b.shooterId;
   // No path today makes the scorer his own candidate — taking the ball always
   // displaces the previous holder. The guard is here so a future power that
   // hands the ball back to its passer cannot credit a solo goal as an assist.
@@ -2323,6 +2324,7 @@ export function shotFlightTick(state: MatchState): void {
     kind: 'GOAL',
     by: b.by,
     team: shooter.team,
+    scoredById: scorerId,
     ...(assistedById !== null && assistedById !== scorerId
       ? { assistedById }
       : {}),

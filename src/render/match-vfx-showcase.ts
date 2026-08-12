@@ -114,6 +114,7 @@ function arrangeSave(match: MatchState): void {
     pos: { x: PITCH_W / 2 + 500, y: PITCH_H - 650 },
     vel: { x: 0, y: 180 },
     by: SHOOTER,
+    shooterId: match.players[SHOOTER].def.id,
     shotStrengthD64: -64_000,
     power: 55,
     targetX: PITCH_W / 2 + 500,
