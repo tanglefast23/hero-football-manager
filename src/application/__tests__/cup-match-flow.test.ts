@@ -264,6 +264,7 @@ describe('Hero Cup app routing', () => {
         // The post-match screen rejects a double tap at the store boundary.
         useM1Store.getState().quickResult();
       }
+      expect(useM1Store.getState().error).toBeNull();
 
       const prizeLines = useM1Store
         .getState()

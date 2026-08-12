@@ -80,6 +80,15 @@ describe('first-hire screen copy', () => {
     expect(source).not.toContainSource('Name on the shirt');
   });
 
+  it('enforces the printed name limit even when a platform skips maxLength', () => {
+    expect(source).toContainSource(
+      'setName(value.slice(0, TYPED_NAME_MAX_LENGTH))',
+    );
+    expect(source).toContainSource(
+      'setClubName(value.slice(0, TYPED_NAME_MAX_LENGTH))',
+    );
+  });
+
   it('announces the current value on every stepper button', () => {
     const strings = loadCatalog('en').strings;
     for (const key of [
@@ -237,6 +246,12 @@ describe('roster rename sheet', () => {
     );
     // The name it dropped stays visible, so nothing is lost by tapping in.
     expect(source).toContainSource('placeholder={player.name}');
+  });
+
+  it('enforces the printed name limit even when a platform skips maxLength', () => {
+    expect(source).toContainSource(
+      '[player.id]: value.slice(0, TYPED_NAME_MAX_LENGTH)',
+    );
   });
 
   it('keeps a blank field s original name and reports only real changes', () => {

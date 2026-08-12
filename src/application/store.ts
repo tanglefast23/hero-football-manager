@@ -1692,13 +1692,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   finishWatchedMatch(result) {
     guarded(set, () => {
-      const before = requireCareer(get());
-      const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const watchedMatch = get().watchedMatch;
       // A second `onDone` for a match already settled is a duplicate delivery,
       // not a fault: the first call cleared the context. Surfacing it threw a
       // developer sentence into the player's error toast on a working game.
       if (watchedMatch === null) return;
+      const before = requireCareer(get());
+      const { kind, fixture, fixtures, teams } = currentMatchday(before);
       if (watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
       }
@@ -2100,6 +2100,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         if (reconciled !== career) queueCareerSave(get, set, reconciled);
         return;
       }
+      if (reconciled.pendingEvent.resolvedChoiceId !== undefined) return;
       // Bert's safe-or-risky card is a one-time explanation, and picking a
       // choice is the proof it was read. Marking it here rather than only on
       // the way out means a career that is closed between the choice and the
@@ -2152,8 +2153,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
       const career = requireCareer(get());
       const pending = career.pendingEvent;
-      if (pending?.resolvedChoiceId === undefined)
-        throw new Error('resolve the event before continuing');
+      if (pending?.resolvedChoiceId === undefined) return;
       const guidedCareer = career.eventFlags.includes('m4:event-guide-seen')
         ? career
         : {

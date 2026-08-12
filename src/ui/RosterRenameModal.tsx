@@ -165,7 +165,7 @@ export function RosterRenameModal({
                       onChangeText={(value) => {
                         setDrafts((current) => ({
                           ...current,
-                          [player.id]: value,
+                          [player.id]: value.slice(0, TYPED_NAME_MAX_LENGTH),
                         }));
                       }}
                       // The first tap clears the field; later taps leave what

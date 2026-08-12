@@ -227,16 +227,18 @@ export function M2LeagueScreen({
                 label={t('m2League.averageClubStrength')}
                 value={String(summary.averageStrength)}
               />
+            </View>
+            <View className="mt-2 flex-row gap-2">
               <Metric
                 label={t('m2League.clubStrengthRange')}
                 value={summary.strengthRangeLabel}
               />
-            </View>
-            <View className="mt-2 flex-row gap-2">
               <Metric
                 label={t('m2League.yourSquadStrength')}
                 value={String(summary.userSquadStrength)}
               />
+            </View>
+            <View className="mt-2 flex-row">
               <Metric
                 label={t('m2League.comparison')}
                 value={summary.comparisonLabel}

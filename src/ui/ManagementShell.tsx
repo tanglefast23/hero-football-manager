@@ -153,6 +153,7 @@ function ResourceChip({
     <InfoTip
       text={explainer}
       align="right"
+      className="min-w-0 flex-shrink"
       accessibilityLabel={
         onPress === undefined
           ? spoken
@@ -530,9 +531,10 @@ export function ManagementShell({
             />
           ) : null}
           {!developerControlsVisible ? (
-            <View className="flex-row items-center gap-2">
+            <View className="min-w-0 flex-shrink flex-row items-center gap-2">
               {onOpenLedger ? (
                 <Pressable
+                  className="min-w-0 flex-shrink"
                   accessibilityRole="button"
                   accessibilityLabel={t(
                     'managementShell.a11y.openTheClubLedger',
@@ -870,11 +872,12 @@ export function ManagementShell({
                   <PixelText
                     className={
                       selected
-                        ? 'mt-1 text-sm uppercase text-ink'
-                        : 'mt-1 text-sm uppercase text-ink/50'
+                        ? 'mt-1 text-[11px] uppercase text-ink'
+                        : 'mt-1 text-[11px] uppercase text-ink/50'
                     }
                     numberOfLines={1}
                     adjustsFontSizeToFit
+                    maxFontSizeMultiplier={1.2}
                   >
                     {tabLabel}
                   </PixelText>

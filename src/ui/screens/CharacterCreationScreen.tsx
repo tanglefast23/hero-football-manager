@@ -370,12 +370,14 @@ export function CharacterCreationScreen({
           id={NAME_FIELD_ID}
           accessibilityLabel={t('characterCreation.a11y.createdPlayerName')}
           value={name}
-          onChangeText={setName}
+          onChangeText={(value) =>
+            setName(value.slice(0, TYPED_NAME_MAX_LENGTH))
+          }
           placeholder={t('characterCreation.typeAPlayerName')}
           placeholderTextColor="#6b6675"
           autoCapitalize="words"
           autoCorrect={false}
-          maxLength={24}
+          maxLength={TYPED_NAME_MAX_LENGTH}
           className="min-h-14 border-2 border-ink bg-paper-dark px-3 py-3 text-xl font-bold text-ink"
         />
         {/* The chip and the terms need 397px of Silkscreen on a 325px card, so
@@ -398,7 +400,9 @@ export function CharacterCreationScreen({
             id={CLUB_FIELD_ID}
             accessibilityLabel={t('characterCreation.a11y.teamName')}
             value={clubName}
-            onChangeText={setClubName}
+            onChangeText={(value) =>
+              setClubName(value.slice(0, TYPED_NAME_MAX_LENGTH))
+            }
             placeholder={defaultClubName}
             placeholderTextColor="#6b6675"
             autoCapitalize="words"

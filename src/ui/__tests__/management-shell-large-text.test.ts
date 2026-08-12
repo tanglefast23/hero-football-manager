@@ -33,9 +33,15 @@ describe('management shell at accessibility text sizes', () => {
 
     const actions = shell.slice(
       shell.indexOf('<ActionButton'),
-      shell.indexOf('const styles'),
+      shell.indexOf('ref={navigationGuideAnchor.anchorRef}'),
     );
     expect(actions).not.toContain('maxFontSizeMultiplier');
     expect(shell).toContain('Player actions below are not capped');
+    expect(shell.match(/className="min-w-0 flex-shrink"/g)).toHaveLength(2);
+    expect(shell).toContain(
+      'className="min-w-0 flex-shrink flex-row items-center gap-2"',
+    );
+    expect(shell.match(/maxFontSizeMultiplier=\{1\.2\}/g)).toHaveLength(3);
+    expect(shell).toContain("'mt-1 text-[11px] uppercase text-ink'");
   });
 });

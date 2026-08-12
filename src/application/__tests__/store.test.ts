@@ -372,6 +372,44 @@ describe('M1 app store integration', () => {
     });
   });
 
+  it('ignores repeated choice and Continue taps on a story', () => {
+    startAwakenedCareer(456);
+    const career = useM1Store.getState().career!;
+    const selectedPlayer = career.players.find(
+      (player) => player.clubId === career.userClubId && player.role !== 'GK',
+    )!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        phase: 'manage',
+        week: 8,
+        pendingEvent: {
+          eventId: 'rival-bid-arrives',
+          selectedPlayerId: selectedPlayer.id,
+          playerLocked: true,
+        },
+      },
+      screen: 'event',
+    });
+
+    useM1Store.getState().chooseEvent('listen-to-the-rival-bid');
+    const resolved = useM1Store.getState().career;
+    useM1Store.getState().chooseEvent('listen-to-the-rival-bid');
+    expect(useM1Store.getState()).toMatchObject({
+      career: resolved,
+      error: null,
+    });
+
+    useM1Store.getState().continueAfterEvent();
+    const followUp = useM1Store.getState().career;
+    useM1Store.getState().continueAfterEvent();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'event',
+      career: followUp,
+      error: null,
+    });
+  });
+
   it('ends a chain whose follow-up event this build no longer ships', () => {
     startAwakenedCareer(457);
     const career = useM1Store.getState().career!;

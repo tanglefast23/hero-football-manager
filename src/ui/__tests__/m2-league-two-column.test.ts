@@ -27,4 +27,16 @@ describe('national league two-column layout', () => {
     expect(source).toContain('guideSubTab');
     expect(source).not.toContain('scrollTo');
   });
+
+  it('keeps division metrics to two columns on a phone', () => {
+    const summary = source.slice(
+      source.indexOf('kicker={\n              summary.userDivision'),
+      source.indexOf(
+        "summary.userDivision\n                ? t('m2League.youCurrentlyPlayHere')",
+      ),
+    );
+    expect(
+      summary.match(/<View className="(?:mt-2 )?flex-row(?: gap-2)?">/g),
+    ).toHaveLength(3);
+  });
 });
