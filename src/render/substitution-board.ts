@@ -37,6 +37,8 @@ export interface SubstitutionBenchPlayer {
   readonly id: string;
   readonly name: string;
   readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  /** The energy they would enter with — the engine's startingCondition. */
+  readonly condition: number;
   readonly lookId?: string;
 }
 

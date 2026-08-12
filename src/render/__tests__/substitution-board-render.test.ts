@@ -320,9 +320,12 @@ describe('substitution board layout', () => {
   it('shows the bench on the same energy scale as the field', () => {
     const source = board();
 
-    // A bare "100%" beside a row of bars asks the eye to compare a number with
-    // a bar; the bench draws its own full green track instead.
-    expect(source).toContainSource('backgroundColor: ENERGY_FILL_COLORS.green');
+    // The engine puts a substitute on at their real startingCondition
+    // (src/sim/substitutions.ts), so the bench card must draw that condition,
+    // never an assumed full bar.
+    expect(source).toContainSource('energyBand(entry.sub.condition)');
+    expect(source).not.toContainSource("reason ?? '100%'");
+    expect(source).not.toContainSource('ENERGY_FILL_COLORS.green');
     expect(source.match(/styles\.energyTrack/g)?.length).toBe(2);
   });
 
