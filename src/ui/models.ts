@@ -213,6 +213,18 @@ export interface MatchDayPlayerViewModel {
 export interface LineupPlayerViewModel extends MatchDayPlayerViewModel {
   /** The positional line owned by this player's current formation slot. */
   formationRole: Role;
+  /** Current growth grade, matching the player file's Potential column. */
+  potentialGrade: PotentialGrade;
+  /** The complete card values; goalkeepers draw REF in SHO's place. */
+  attributes: Readonly<{
+    PAC: number;
+    SHO: number;
+    PAS: number;
+    DEF: number;
+    TEC: number;
+    STA: number;
+    REF: number;
+  }>;
 }
 
 export interface BenchPlayerViewModel extends MatchDayPlayerViewModel {

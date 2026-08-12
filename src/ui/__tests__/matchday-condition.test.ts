@@ -19,6 +19,16 @@ function player(id: string, condition: number): LineupPlayerViewModel {
     isHero: false,
     overall: 50,
     condition,
+    potentialGrade: 'C',
+    attributes: {
+      PAC: 50,
+      SHO: 50,
+      PAS: 50,
+      DEF: 50,
+      TEC: 50,
+      STA: 50,
+      REF: 50,
+    },
   };
 }
 

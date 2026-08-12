@@ -85,8 +85,9 @@ describe('player-facing acceptance audit regressions', () => {
     expect(strings['managementShell.a11y.openSquad']).toBe('open Squad');
     expect(strings['managementShell.a11y.returnHome']).toBe('return Home');
     expect(squad).toContainSource(
-      "'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'",
+      "'relative border-4 border-blue-dark bg-blue-light p-1'",
     );
+    expect(squad).toContainSource("label={t('squadTraining.tapHere')}");
     expect(club).toContainSource(
       "'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'",
     );

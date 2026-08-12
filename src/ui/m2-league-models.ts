@@ -120,6 +120,14 @@ export interface M2NationalCupViewModel {
   readonly rounds: readonly M2CupRoundViewModel[];
   /** Retained for compact consumers; the League screen renders `rounds`. */
   readonly history: readonly M2CupRoundHistoryViewModel[];
+  /** The user's next live-season tie; a bye can leave the opponent undrawn. */
+  readonly nextMatch?: {
+    readonly week: number;
+    readonly weekLabel: string;
+    readonly roundLabel: string;
+    readonly opponentName?: string;
+    readonly venue?: 'HOME' | 'AWAY';
+  };
   readonly championName?: string;
 }
 

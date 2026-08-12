@@ -2395,6 +2395,7 @@
     "m2League.hosts": "Tu reçois",
     "m2League.matchesComplete": "{done}/{total} matchs joués",
     "m2League.matchesCount": "{count} matchs",
+    "m2League.nextCupMatch": "Prochain match de {cup}",
     "m2League.noneRecordedYetThisSeason": "Pas encore {metric} cette saison",
     "m2League.outcome.advanced": "Qualifié",
     "m2League.outcome.bye": "Exempt",

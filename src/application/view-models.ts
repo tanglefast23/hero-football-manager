@@ -3968,6 +3968,16 @@ export function matchDayViewModel(
         isHero: player.power !== undefined,
         overall: overall(player.role, player.attrs),
         condition: player.condition ?? 100,
+        potentialGrade: playerGrowthGrade(player),
+        attributes: {
+          PAC: displayedAttributeValue(player, 'pac'),
+          SHO: displayedAttributeValue(player, 'sho'),
+          PAS: displayedAttributeValue(player, 'pas'),
+          DEF: displayedAttributeValue(player, 'def'),
+          TEC: displayedAttributeValue(player, 'tec'),
+          STA: displayedAttributeValue(player, 'sta'),
+          REF: displayedAttributeValue(player, 'ref'),
+        },
       };
     }),
     bench: roster

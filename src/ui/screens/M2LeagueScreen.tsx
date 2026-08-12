@@ -527,6 +527,33 @@ export function M2LeagueScreen({
             </PaperPanel>
           ) : (
             <>
+              {viewModel.cup.nextMatch ? (
+                <View className="mb-4 border-2 border-b-4 border-gold-dark bg-gold-light p-3">
+                  <Text className="font-pixel text-sm uppercase text-gold-dark">
+                    {t('m2League.nextCupMatch', {
+                      cup: t('m2League.heroCup'),
+                    })}
+                  </Text>
+                  <View className="mt-2 flex-row items-center justify-between gap-3">
+                    <Text className="font-pixel text-xl uppercase text-ink">
+                      {viewModel.cup.nextMatch.weekLabel}
+                    </Text>
+                    <StatusChip
+                      label={viewModel.cup.nextMatch.roundLabel}
+                      tone="hero"
+                    />
+                  </View>
+                  <Text className="mt-2 text-sm font-bold text-ink/70">
+                    {viewModel.cup.nextMatch.opponentName === undefined
+                      ? t('m2League.roundStatusAwaitingDraw')
+                      : `${t(
+                          viewModel.cup.nextMatch.venue === 'HOME'
+                            ? 'm2League.hosts'
+                            : 'm2League.visits',
+                        )} ${viewModel.cup.nextMatch.opponentName}`}
+                  </Text>
+                </View>
+              ) : null}
               {viewModel.cup.championName ? (
                 <View className="mb-4 border-2 border-b-4 border-gold-dark bg-gold-light p-4">
                   <Text className="font-pixel text-sm uppercase text-gold-dark">

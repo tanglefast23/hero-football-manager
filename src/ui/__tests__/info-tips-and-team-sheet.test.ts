@@ -39,6 +39,7 @@ describe('column and personality explanations', () => {
   it('raises each tooltip host above later rows and neighboring panels', () => {
     const infoTip = read('src/ui/components/InfoTip.tsx');
     const hoverTip = read('src/ui/components/SfxPressable.tsx');
+    const managementShell = read('src/ui/ManagementShell.tsx');
 
     // A high z-index on only the bubble stays trapped in its parent's paint
     // order. The whole active anchor must rise while the tip is visible.
@@ -52,6 +53,12 @@ describe('column and personality explanations', () => {
     );
     expect(hoverTip).toContainSource(
       'const hoverTipTopLayer: ViewStyle = { zIndex: 1000, elevation: 20 };',
+    );
+    // The money, TP and fans tips sit inside the HUD. The whole HUD must outrank
+    // its later content sibling or that pane still paints over the bubbles.
+    expect(managementShell).toContainSource('styles.hudTopLayer');
+    expect(managementShell).toContainSource(
+      "hudTopLayer: { position: 'relative', zIndex: 1000, overflow: 'visible' }",
     );
   });
 
@@ -141,6 +148,35 @@ describe('starting eleven team sheet', () => {
     );
     expect(portrait).toContainSource('height={pixel}');
     expect(portrait).not.toContainSource('height={PIXEL_PORTRAIT_SCALE}');
+  });
+
+  it('shows every relevant starter stat on hover and on a selected touch card', () => {
+    const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
+    const models = read('src/ui/models.ts');
+    const viewModels = read('src/application/view-models.ts');
+
+    expect(models).toContainSource('potentialGrade: PotentialGrade;');
+    for (const attribute of ['PAC', 'SHO', 'PAS', 'DEF', 'TEC', 'STA', 'REF']) {
+      expect(models).toContainSource(`${attribute}: number;`);
+      expect(viewModels).toContainSource(
+        `${attribute}: displayedAttributeValue(player, '${attribute.toLowerCase()}')`,
+      );
+    }
+    expect(viewModels).toContainSource(
+      'potentialGrade: playerGrowthGrade(player)',
+    );
+    expect(screen).toContainSource(
+      'hoveredStarterId === player.id || (!pointer && selected)',
+    );
+    expect(screen).toContainSource(
+      'onHoverIn={() => setHoveredStarterId(player.id)}',
+    );
+    expect(screen).toContainSource(
+      '<StarterStatsPanel player={player} wide={wide} />',
+    );
+    expect(screen).toContainSource(
+      "label: player.role === 'GK' ? 'REF' : 'SHO'",
+    );
   });
 });
 

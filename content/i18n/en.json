@@ -1170,6 +1170,7 @@
     "m2League.hosts": "Hosts",
     "m2League.matchesComplete": "{done}/{total} matches complete",
     "m2League.matchesCount": "{count} matches",
+    "m2League.nextCupMatch": "Next {cup} match",
     "m2League.noneRecordedYetThisSeason": "No {metric} recorded yet this season",
     "m2League.outcome.advanced": "Advanced",
     "m2League.outcome.bye": "Bye",

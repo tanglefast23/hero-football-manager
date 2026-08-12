@@ -15,20 +15,27 @@ describe('first training guidance', () => {
       join(process.cwd(), 'content/assistant-guide.json'),
       'utf8',
     );
+    const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
     // Instant training: one guided beat — tap any +, the drill happens now.
     expect(source).toContainSource('const guidePlayers = guideTraining;');
     expect(source).toContainSource(
-      "'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'",
+      "'relative border-4 border-blue-dark bg-blue-light p-1'",
     );
-    expect(source).toContainSource("label={t('squadTraining.tapPlus')}");
+    expect(source).toContainSource("label={t('squadTraining.tapHere')}");
     expect(source).toContainSource("detail={t('squadTraining.trainAPlayer')}");
     expect(source).toContainSource('onTouchStart={rememberPlayerGuideTouch}');
     expect(source).toContainSource('onTouchMove={dismissPlayerGuideAfterDrag}');
     expect(source).toContainSource(
-      '{guidePlayers && !playerGuideDismissed ? (',
+      '{glowAssignmentButton && !playerGuideDismissed ? (',
     );
     expect(source).toContainSource('setDrillPickerOpen(true)');
+    expect(appSource).toContainSource(
+      'if (assistantObjectiveTargetTab === tab)',
+    );
+    expect(appSource).toContainSource(
+      'skipNextGuidanceDismissRef.current = true;',
+    );
     expect(source).not.toContainSource('slotNumber');
     expect(source).not.toContainSource('label="Tap the number"');
     // Position is a labelled, sortable column again — "Pos" fits the role cell
@@ -53,6 +60,11 @@ describe('first training guidance', () => {
     expect(source).toContainSource('player.id === viewModel.createdPlayerId');
     expect(source).toContainSource('&& !trainingCueUsed');
     expect(source).toContainSource('setTrainingCueUsed(true);');
+    expect(source).toContainSource('onSelectPlayer(playerId);');
+    expect(source).toContainSource('setDrillPickerOpen(true);');
+    expect(source).toContainSource(
+      '(glowAssignmentButton && !playerGuideDismissed)',
+    );
     expect(source).not.toContainSource(
       'const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;',
     );

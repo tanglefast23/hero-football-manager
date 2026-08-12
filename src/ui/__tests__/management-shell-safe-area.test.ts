@@ -22,8 +22,9 @@ describe('management shell safe-area chrome', () => {
     expect(shell).toContain(
       'className="border-b-2 border-ink bg-paper-dark px-3 pb-2.5"',
     );
+    expect(shell).toContain('styles.hudTopLayer');
     expect(shell).toContain(
-      'style={{ paddingTop: insets.top + HUD_TOP_BREATHING_ROOM }}',
+      '{ paddingTop: insets.top + HUD_TOP_BREATHING_ROOM }',
     );
   });
 

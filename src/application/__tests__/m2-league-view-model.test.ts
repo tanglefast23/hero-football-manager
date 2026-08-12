@@ -296,9 +296,74 @@ describe('m2LeagueViewModel', () => {
       status: 'SCHEDULED',
       playableNow: true,
     });
+    expect(view.cup.nextMatch).toMatchObject({
+      week: CUP_SETTLEMENT_WEEKS[0],
+      weekLabel: `Week ${CUP_SETTLEMENT_WEEKS[0]}`,
+      roundLabel: 'Play-in',
+      opponentName:
+        userFixture?.userSide === 'home'
+          ? userFixture.awayClubName
+          : userFixture?.homeClubName,
+      venue: userFixture?.userSide === 'home' ? 'HOME' : 'AWAY',
+    });
     expect(
       view.cup.currentRoundFixtures.filter((fixture) => fixture.playableNow),
     ).toHaveLength(1);
+  });
+
+  it('shows the next round week after the user wins while the draw is pending', () => {
+    let career: M2CareerState | undefined;
+    for (let seed = 1; seed <= 50 && career === undefined; seed += 1) {
+      const candidate = startM2NationalCup(
+        initializeM2Career({ careerSeed: seed, userClub: USER_CLUB }),
+        1,
+      );
+      const userFixture = candidate.nationalCups[0].rounds[0].fixtures.find(
+        (fixture) =>
+          fixture.homeClubId === USER_CLUB.id ||
+          fixture.awayClubId === USER_CLUB.id,
+      );
+      if (userFixture !== undefined) {
+        career = {
+          ...candidate,
+          nationalCups: candidate.nationalCups.map((cup) => ({
+            ...cup,
+            rounds: cup.rounds.map((round) => ({
+              ...round,
+              fixtures: round.fixtures.map((fixture) =>
+                fixture.id !== userFixture.id
+                  ? fixture
+                  : {
+                      ...fixture,
+                      status: 'played' as const,
+                      score:
+                        userFixture.homeClubId === USER_CLUB.id
+                          ? { homeGoals: 1, awayGoals: 0 }
+                          : { homeGoals: 0, awayGoals: 1 },
+                      winnerClubId: USER_CLUB.id,
+                    },
+              ),
+            })),
+          })),
+        };
+      }
+    }
+    if (career === undefined)
+      throw new Error('expected a deterministic user play-in tie');
+
+    const view = m2LeagueViewModel({
+      career,
+      season: 1,
+      week: 3,
+      phase: 'manage',
+      activeStandings: standings(career),
+    });
+
+    expect(view.cup.nextMatch).toEqual({
+      week: CUP_SETTLEMENT_WEEKS[1],
+      weekLabel: `Week ${CUP_SETTLEMENT_WEEKS[1]}`,
+      roundLabel: 'Round of 32',
+    });
   });
 
   it('shows a champion and preserves completed cup seasons in the selector', () => {

@@ -2395,6 +2395,7 @@
     "m2League.hosts": "Recebe",
     "m2League.matchesComplete": "{done}/{total} jogos feitos",
     "m2League.matchesCount": "{count} jogos",
+    "m2League.nextCupMatch": "Próximo jogo da {cup}",
     "m2League.noneRecordedYetThisSeason": "Ainda sem {metric} nesta temporada",
     "m2League.outcome.advanced": "Avançou",
     "m2League.outcome.bye": "Folga",

@@ -8,7 +8,7 @@ import {
   StageSection,
 } from '../components/ChalkboardStage';
 import { SettingsButton } from '../SettingsOverlay';
-import type { MatchDayViewModel } from '../models';
+import type { LineupPlayerViewModel, MatchDayViewModel } from '../models';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
@@ -18,6 +18,7 @@ import {
   type MatchdayConditionStatus,
 } from '../matchday-condition';
 import { useCopy } from '../../i18n';
+import { hasHoverPointer } from '../pointer-capability';
 
 /**
  * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
@@ -98,6 +99,85 @@ function MatchdayConditionStamp({
   );
 }
 
+function StarterStatsPanel({
+  player,
+  wide,
+}: {
+  player: LineupPlayerViewModel;
+  wide: boolean;
+}) {
+  const t = useCopy();
+  const cells = [
+    { label: t('col.squad.overall'), value: player.overall },
+    { label: t('col.squad.potential'), value: player.potentialGrade },
+    { label: t('col.squad.condition'), value: player.condition },
+    { label: 'PAC', value: player.attributes.PAC },
+    {
+      label: player.role === 'GK' ? 'REF' : 'SHO',
+      value:
+        player.role === 'GK' ? player.attributes.REF : player.attributes.SHO,
+    },
+    { label: 'PAS', value: player.attributes.PAS },
+    { label: 'DEF', value: player.attributes.DEF },
+    { label: 'TEC', value: player.attributes.TEC },
+    { label: 'STA', value: player.attributes.STA },
+  ] as const;
+
+  return (
+    <View
+      accessible={false}
+      className={`${wide ? 'h-[91px] w-[76px]' : 'h-[62px] w-[52px]'} border-2 border-paper bg-white p-px`}
+    >
+      {[0, 3, 6].map((start) => (
+        <View key={start} className="min-h-0 flex-1 flex-row">
+          {cells.slice(start, start + 3).map((cell) => (
+            <View
+              key={cell.label}
+              className="min-w-0 flex-1 items-center justify-center"
+            >
+              <Text
+                maxFontSizeMultiplier={1}
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                className={`${wide ? 'text-[7px]' : 'text-[5px]'} font-mono font-bold uppercase text-blue-dark`}
+              >
+                {cell.label}
+              </Text>
+              <Text
+                maxFontSizeMultiplier={1}
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                className={`${wide ? 'text-[9px]' : 'text-[7px]'} font-mono font-bold text-ink`}
+              >
+                {cell.value}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function starterStatsAccessibilityLabel(
+  player: LineupPlayerViewModel,
+  t: ReturnType<typeof useCopy>,
+): string {
+  return [
+    `${t('col.squad.overall')} ${player.overall}`,
+    `${t('col.squad.potential')} ${player.potentialGrade}`,
+    `${t('col.squad.condition')} ${player.condition}`,
+    `PAC ${player.attributes.PAC}`,
+    player.role === 'GK'
+      ? `REF ${player.attributes.REF}`
+      : `SHO ${player.attributes.SHO}`,
+    `PAS ${player.attributes.PAS}`,
+    `DEF ${player.attributes.DEF}`,
+    `TEC ${player.attributes.TEC}`,
+    `STA ${player.attributes.STA}`,
+  ].join(', ');
+}
+
 export function FixtureMatchDayScreen({
   viewModel,
   onBack,
@@ -111,11 +191,13 @@ export function FixtureMatchDayScreen({
 }: FixtureMatchDayScreenProps) {
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
+  const pointer = hasHoverPointer();
   const fixture = viewModel.fixture;
   const licensedCount = viewModel.heroes.filter((hero) => hero.licensed).length;
   const [selectedStarterId, setSelectedStarterId] = useState<string | null>(
     null,
   );
+  const [hoveredStarterId, setHoveredStarterId] = useState<string | null>(null);
   const selectedStarter = viewModel.lineup.find(
     (player) => player.id === selectedStarterId,
   );
@@ -137,6 +219,7 @@ export function FixtureMatchDayScreen({
   useEffect(() => {
     handedOffRef.current = false;
     setHandedOff(false);
+    setHoveredStarterId(null);
   }, [fixture.id]);
   // A settled fixture unmounts this screen, so the pending re-arm below never
   // runs. Clearing it on the way out keeps that true even if the unmount is slow.
@@ -294,31 +377,43 @@ export function FixtureMatchDayScreen({
                           ? 'w-28 items-center border-2 border-transparent p-2'
                           : 'min-w-0 max-w-24 flex-1 items-center border-2 border-transparent px-0.5 py-1';
 
+                const spokenStats = starterStatsAccessibilityLabel(player, t);
+                const showStats =
+                  hoveredStarterId === player.id || (!pointer && selected);
                 return (
                   <Pressable
                     key={player.id}
                     accessibilityRole="button"
-                    accessibilityLabel={t('fixtureMatchDay.a11y.starterCard', {
-                      player: player.name,
-                      position:
-                        player.role === player.formationRole
-                          ? t('fixtureMatchDay.a11y.startingRole', {
-                              role: player.formationRole,
-                            })
-                          : t('fixtureMatchDay.a11y.naturalStartingRole', {
-                              role: player.role,
-                              formationRole: player.formationRole,
-                            }),
-                      shirt: player.shirtNumber,
-                      condition: player.condition,
-                      // The separator is punctuation, not copy; the label it
-                      // introduces still comes from matchday-condition.
-                      status:
-                        conditionStatus === null
-                          ? ''
-                          : `, ${conditionStatus.label}`,
-                    })}
+                    accessibilityLabel={`${t(
+                      'fixtureMatchDay.a11y.starterCard',
+                      {
+                        player: player.name,
+                        position:
+                          player.role === player.formationRole
+                            ? t('fixtureMatchDay.a11y.startingRole', {
+                                role: player.formationRole,
+                              })
+                            : t('fixtureMatchDay.a11y.naturalStartingRole', {
+                                role: player.role,
+                                formationRole: player.formationRole,
+                              }),
+                        shirt: player.shirtNumber,
+                        condition: player.condition,
+                        // The separator is punctuation, not copy; the label it
+                        // introduces still comes from matchday-condition.
+                        status:
+                          conditionStatus === null
+                            ? ''
+                            : `, ${conditionStatus.label}`,
+                      },
+                    )} ${spokenStats}`}
                     accessibilityState={{ selected }}
+                    onHoverIn={() => setHoveredStarterId(player.id)}
+                    onHoverOut={() =>
+                      setHoveredStarterId((current) =>
+                        current === player.id ? null : current,
+                      )
+                    }
                     onPress={() =>
                       setSelectedStarterId((current) =>
                         current === player.id ? null : player.id,
@@ -329,24 +424,28 @@ export function FixtureMatchDayScreen({
                       opacity: pressed ? 0.7 : undefined,
                     })}
                   >
-                    <View
-                      className={
-                        player.isHero
-                          ? 'border-2 border-gold bg-blue-light'
-                          : 'border-2 border-paper bg-blue-light'
-                      }
-                    >
-                      <PixelPortrait
-                        playerId={player.id}
-                        role={player.role}
-                        lookId={player.lookId}
-                        scale={
-                          wide
-                            ? PITCH_PORTRAIT_SCALE
-                            : PITCH_PORTRAIT_COMPACT_SCALE
+                    {showStats ? (
+                      <StarterStatsPanel player={player} wide={wide} />
+                    ) : (
+                      <View
+                        className={
+                          player.isHero
+                            ? 'border-2 border-gold bg-blue-light'
+                            : 'border-2 border-paper bg-blue-light'
                         }
-                      />
-                    </View>
+                      >
+                        <PixelPortrait
+                          playerId={player.id}
+                          role={player.role}
+                          lookId={player.lookId}
+                          scale={
+                            wide
+                              ? PITCH_PORTRAIT_SCALE
+                              : PITCH_PORTRAIT_COMPACT_SCALE
+                          }
+                        />
+                      </View>
+                    )}
                     <Text
                       className={
                         selected

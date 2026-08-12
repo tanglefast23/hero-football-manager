@@ -2951,6 +2951,15 @@ function GameApp() {
         reduceMotion={reduceMotion}
         activeTab={store.activeTab}
         onTabChange={(tab) => {
+          if (assistantObjectiveTargetTab === tab) {
+            // The shell dismisses floating guidance after the pointer release.
+            // Keep the next step alive when this tap is the guided navigation
+            // itself, so opening Squad reveals the arrow on the exact + button.
+            skipNextGuidanceDismissRef.current = true;
+            requestAnimationFrame(() => {
+              skipNextGuidanceDismissRef.current = false;
+            });
+          }
           store.setActiveTab(tab);
           if (useM1Store.getState().activeTab !== tab) return;
           setConciergeFocus(null);

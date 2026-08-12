@@ -2395,6 +2395,7 @@
     "m2League.hosts": "Gegen",
     "m2League.matchesComplete": "{done}/{total} Spiele fertig",
     "m2League.matchesCount": "{count} Spiele",
+    "m2League.nextCupMatch": "Nächstes Spiel im {cup}",
     "m2League.noneRecordedYetThisSeason": "Noch keine {metric} in dieser Saison",
     "m2League.outcome.advanced": "Weiter",
     "m2League.outcome.bye": "Freilos",

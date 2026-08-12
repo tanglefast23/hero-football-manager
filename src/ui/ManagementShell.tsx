@@ -505,7 +505,10 @@ export function ManagementShell({
           inset is padding on this bar, so the notch strip is HUD-coloured. */}
       <View
         className="border-b-2 border-ink bg-paper-dark px-3 pb-2.5"
-        style={{ paddingTop: insets.top + HUD_TOP_BREATHING_ROOM }}
+        style={[
+          styles.hudTopLayer,
+          { paddingTop: insets.top + HUD_TOP_BREATHING_ROOM },
+        ]}
         onLayout={moneyGuideAnchor.scheduleMeasurement}
       >
         <View className="flex-row items-center gap-2">
@@ -884,6 +887,10 @@ export function ManagementShell({
 }
 
 const styles = StyleSheet.create({
+  // The content pane is the HUD's later sibling. Without a layer on the HUD
+  // itself, that pane paints over every resource InfoTip, even though the
+  // active InfoTip anchor has its own high z-index.
+  hudTopLayer: { position: 'relative', zIndex: 1000, overflow: 'visible' },
   advanceCue: { left: '50%', marginLeft: -73, top: -78 },
   tabCue: { bottom: 54, left: '50%', marginLeft: -73 },
 });

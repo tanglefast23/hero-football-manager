@@ -2395,6 +2395,7 @@
     "m2League.hosts": "Tiếp đón",
     "m2League.matchesComplete": "{done}/{total} trận đã xong",
     "m2League.matchesCount": "{count} trận",
+    "m2League.nextCupMatch": "Trận {cup} tiếp theo",
     "m2League.noneRecordedYetThisSeason": "Chưa có {metric} mùa này",
     "m2League.outcome.advanced": "Đi tiếp",
     "m2League.outcome.bye": "Miễn",

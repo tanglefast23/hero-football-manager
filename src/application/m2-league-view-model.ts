@@ -349,6 +349,13 @@ function cupViewModel(
     roundIsPlayable,
     t,
   );
+  const nextMatch = nextCupMatch(
+    selectedCup,
+    currentRound,
+    source,
+    clubNames,
+    t,
+  );
 
   return {
     available: true,
@@ -393,7 +400,54 @@ function cupViewModel(
           ...history
         }) => history,
       ),
+    ...(nextMatch === undefined ? {} : { nextMatch }),
     ...(championName === undefined ? {} : { championName }),
+  };
+}
+
+function nextCupMatch(
+  cup: NationalCup,
+  currentRound: NationalCupRound,
+  source: M2LeagueViewModelSource,
+  clubNames: ReadonlyMap<string, string>,
+  t: CopyFn,
+): NonNullable<M2NationalCupViewModel['nextMatch']> | undefined {
+  if (cup.season !== source.season || cup.championClubId !== undefined)
+    return undefined;
+
+  const userClubId = source.career.userClubId;
+  const userFixture = currentRound.fixtures.find(
+    (fixture) =>
+      fixture.homeClubId === userClubId || fixture.awayClubId === userClubId,
+  );
+  const currentWeek = CUP_SETTLEMENT_WEEKS[currentRound.number - 1];
+  if (userFixture?.status === 'scheduled' && currentWeek !== undefined) {
+    const userIsHome = userFixture.homeClubId === userClubId;
+    const opponentId = userIsHome
+      ? userFixture.awayClubId
+      : userFixture.homeClubId;
+    return {
+      week: currentWeek,
+      weekLabel: t('m2League.weekLabel', { week: currentWeek }),
+      roundLabel: cupRoundLabel(currentRound.label, t),
+      opponentName: requireClubName(clubNames, opponentId),
+      venue: userIsHome ? 'HOME' : 'AWAY',
+    };
+  }
+
+  const stillAliveWithoutDraw =
+    currentRound.byeClubIds.includes(userClubId) ||
+    userFixture?.winnerClubId === userClubId;
+  if (!stillAliveWithoutDraw) return undefined;
+  const nextStage = CUP_ROAD.find(
+    (stage) => stage.number === currentRound.number + 1,
+  );
+  const nextWeek = CUP_SETTLEMENT_WEEKS[currentRound.number];
+  if (nextStage === undefined || nextWeek === undefined) return undefined;
+  return {
+    week: nextWeek,
+    weekLabel: t('m2League.weekLabel', { week: nextWeek }),
+    roundLabel: cupRoundLabel(nextStage.label, t),
   };
 }
 

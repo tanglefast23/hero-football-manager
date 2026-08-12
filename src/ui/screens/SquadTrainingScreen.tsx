@@ -319,7 +319,7 @@ export function SquadTrainingScreen({
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
   /**
    * The Train glow outlives the tap cue on purpose: scrolling dismisses the
-   * floating "Tap +" arrow, but the button keeps glowing until it is actually
+   * floating "Tap here" arrow, but the button keeps glowing until it is actually
    * pressed, so the one thing the manager still owes the guide stays lit.
    */
   const [trainingCueUsed, setTrainingCueUsed] = useState(false);
@@ -749,24 +749,13 @@ function RosterSection({
       />
       <View
         className={
-          guidePlayers
-            ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
-            : conditionCueShowing || showSortHint
-              ? 'relative mt-20 border-2 border-ink bg-white'
+          conditionCueShowing || showSortHint
+            ? 'relative mt-20 border-2 border-ink bg-white'
+            : guidePlayers
+              ? 'relative border-4 border-blue-dark bg-blue-light p-1'
               : 'border-2 border-ink bg-white'
         }
       >
-        {guidePlayers && !playerGuideDismissed ? (
-          <TutorialTapCue
-            label={t('squadTraining.tapPlus')}
-            detail={t('squadTraining.trainAPlayer')}
-            style={{
-              left: '50%',
-              marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-              top: -72,
-            }}
-          />
-        ) : null}
         {/* Raised above the rows beneath it. A column tip is an absolutely
             positioned bubble hanging out of this row, and z-index only ranks
             an element against its own siblings — the anchor's own z-index
@@ -902,7 +891,9 @@ function RosterSection({
                         : 'flex-row items-center border-b border-ink/10 px-2 py-2'
                 }
                 style={
-                  guideConciergePlayer || guideQuickTrainPlayer
+                  guideConciergePlayer ||
+                  guideQuickTrainPlayer ||
+                  (glowAssignmentButton && !playerGuideDismissed)
                     ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
                     : undefined
                 }
@@ -1099,6 +1090,17 @@ function RosterSection({
                     glowAssignmentButton ? styles.assignmentButtonGlow : null,
                   ]}
                 >
+                  {glowAssignmentButton && !playerGuideDismissed ? (
+                    <TutorialTapCue
+                      label={t('squadTraining.tapHere')}
+                      detail={t('squadTraining.trainAPlayer')}
+                      style={{
+                        left: '50%',
+                        marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                        top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                      }}
+                    />
+                  ) : null}
                   <GuidanceDoubleFlash
                     trigger={
                       guidanceNudgeTarget === 'training-plan' &&
