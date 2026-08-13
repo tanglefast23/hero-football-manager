@@ -202,14 +202,35 @@ describe('opening sentinel', () => {
     // Updated 2026-08-10 for the approved 7 TP and +3 Tier 1 drill. The coached
     // 42 TP opening bank now buys six taps, while the uncoached 32 TP bank buys
     // four. The previous uncoached draw returns to a loss.
+    // REBASELINED 2026-08-13, and this one is a reversal rather than a drift.
+    //
+    // The opener was a scripted loss: 56 of 56 across seven arms and eight
+    // seeds, because the schedule pinned the division's STRONGEST club to match
+    // one and that club fields Larry Alan. An owner review of a real Season 1
+    // found the cost — that career lost its opening match 0-13 and finished the
+    // season with eleven draws in eighteen.
+    //
+    // Two changes land together: the pin now opens on the division's upper-mid
+    // club and eases (see `pinOpeningLeagueOpponents`), and the user's opening
+    // squad strength went 40 -> 42. The opener is now winnable — 20 wins, 10
+    // draws, 26 losses out of 56 — which is the intended outcome, not a
+    // regression.
+    //
+    // Nothing in the story depends on losing it: `completeFirstOnboardingMatch`
+    // gates on the fixture being PLAYED, so the collapse-and-awaken beat fires
+    // after a win exactly as it does after a defeat. Verified before rebaselining.
+    //
+    // The old direction-of-contract note ("at most 5% wins, at least 90%
+    // losses") is deliberately retired with it. Eight seeds still cannot measure
+    // a rate; this is a fingerprint, not a win-rate rail.
     expect(digests).toEqual({
-      ordinary: 'LLLLLLLL',
-      'smart-breadth': 'LLLLLLLL',
-      'smart-extra-fwd': 'LLLLLLLL',
-      'smart-concentration': 'LLLLLLLL',
-      'joe-observed-coach': 'LLLLLLLL',
-      'joe-observed-no-coach': 'LLLLLLLL',
-      'no-training': 'LLLLLLLL',
+      ordinary: 'LDLWLLWW',
+      'smart-breadth': 'LWDWLLWW',
+      'smart-extra-fwd': 'LWDWLLWW',
+      'smart-concentration': 'DLLLWLWL',
+      'joe-observed-coach': 'WLLWDLLW',
+      'joe-observed-no-coach': 'LLDLWWLL',
+      'no-training': 'DDDLWLWD',
     });
   });
 });

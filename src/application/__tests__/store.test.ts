@@ -13,6 +13,10 @@ import {
   type ReplayRepository,
 } from '../../persistence';
 import type { ReplayEnvelope } from '../../sim/types';
+import {
+  controlledMatchOptions,
+  queueControlledAutoSubstitution,
+} from '../../game/match-policy';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
 import {
   buildCareerFacility,
@@ -110,10 +114,13 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState()).toMatchObject({ screen: 'matchday' });
     expect(useM1Store.getState().career?.phase).toBe('matchday');
 
-    expect(pendingRivalHeroIntro(useM1Store.getState().career!)).toMatchObject({
-      heroId: 'special-f171',
-    });
-    useM1Store.getState().completeRivalHeroIntro('special-f171');
+    // No rival-hero teaser on the opener since 2026-08-13. The schedule pin
+    // used to put the division's strongest club — Larry Alan's — in match one,
+    // so his scene gated this flow; it now fires on the week that fixture
+    // arrives instead. `rival-hero-intro-store.test.ts` owns that path.
+    expect(
+      pendingRivalHeroIntro(useM1Store.getState().career!),
+    ).toBeUndefined();
 
     useM1Store.getState().quickResult();
     // The career's very first match settles behind the face-off exactly like
@@ -1554,9 +1561,7 @@ describe('M1 app store integration', () => {
     await useM1Store.getState().exportUnreadableSave(async () => {
       throw new Error('second share was dismissed');
     });
-    expect(await useM1Store.getState().discardUnreadableSave()).toBe(
-      'deleted',
-    );
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('deleted');
 
     expect(shared).toEqual(['hero-football-manager-raw-schema-1.json', raw]);
     expect(deleteCalls).toBe(1);
@@ -1597,9 +1602,7 @@ describe('M1 app store integration', () => {
     });
     await useM1Store.getState().initializePersistence(careerRepository);
 
-    expect(await useM1Store.getState().discardUnreadableSave()).toBe(
-      'blocked',
-    );
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('blocked');
 
     expect(deleteCalls).toBe(0);
   });
@@ -2292,27 +2295,26 @@ describe('M1 app store integration', () => {
     expect(userTeam.players.every((player) => player.power === undefined)).toBe(
       true,
     );
+    // Both sides are powerless on the opener since 2026-08-13. The schedule pin
+    // used to put the division's strongest club here, and that club fields
+    // Larry Alan, so this used to assert he appeared and fired SUPER_SPEED in
+    // the replay. The opener is now an upper-mid club with no hero, which makes
+    // it a bare-stat contest on both sides. Powered replay is still covered by
+    // the sim ring's golden replay and by `rival-hero-intro-store.test.ts`.
     expect(
-      rivalTeam.players.find((player) => player.id === 'special-f171'),
-    ).toMatchObject({ name: 'Larry Alan', power: 'SUPER_SPEED' });
+      rivalTeam.players.every((player) => player.power === undefined),
+    ).toBe(true);
+    // The envelope must still replay to the identical scoreline it recorded.
     const replayed = runReplay(saved[0].envelope);
-    const larryHomeIndex = saved[0].envelope.home.players.findIndex(
-      (player) => player.id === 'special-f171',
-    );
-    const larryIndex =
-      larryHomeIndex >= 0
-        ? larryHomeIndex
-        : 11 +
-          saved[0].envelope.away.players.findIndex(
-            (player) => player.id === 'special-f171',
-          );
-    expect(replayed.events).toContainEqual(
-      expect.objectContaining({
-        kind: 'POWER_FIRED',
-        player: larryIndex,
-        power: 'SUPER_SPEED',
-      }),
-    );
+    const savedFixture = useM1Store
+      .getState()
+      .career?.fixtures.find(
+        (candidate) => candidate.id === saved[0].fixtureId,
+      );
+    expect(replayed.score).toEqual([
+      savedFixture?.score?.homeGoals,
+      savedFixture?.score?.awayGoals,
+    ]);
   });
 
   it('keeps the user controllable in an away fixture and maps the score back to league order', () => {
@@ -2597,17 +2599,23 @@ describe('financial report reveals', () => {
     parkOnNextHomeMatchday(20260806);
     useM1Store.getState().watchMatch();
     const watched = useM1Store.getState().watchedMatch!;
+    // Built with the SAME options Quick Result uses — `controlledMatchOptions`
+    // plus auto-subs — or the two arms are not the same match and the ledgers
+    // have no reason to agree. This used to pass `{ controlledTeam }` alone,
+    // dropping the formation and every substitution; it agreed only because
+    // both arms lost. Once the opener became winnable (2026-08-13) the arms
+    // diverged and the watched one banked a Divisional Win Bonus the quick one
+    // never saw. That was this test's own construction, not a product bug.
     const match = createMatch(
       watched.fixture.matchSeed,
       watched.home,
       watched.away,
-      {
-        controlledTeam: watched.controlledTeam,
-      },
+      controlledMatchOptions(watched.controlledTeam, '4-4-2'),
     );
     let guard = 0;
     while (match.phase !== 'fulltime') {
       if (guard++ > 100_000) throw new Error('watched match never finished');
+      queueControlledAutoSubstitution(match, true);
       tick(match);
     }
     useM1Store.getState().finishWatchedMatch(match);

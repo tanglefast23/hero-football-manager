@@ -142,7 +142,7 @@ describe('generateSeasonFixtures', () => {
     expect(otherSeason).not.toEqual(base);
   });
 
-  test('pins a venue-aware first-five curve without the weak-then-hard rebound', () => {
+  test('opens mid-table and eases, keeping the hardest club out of the first five', () => {
     const strengths = new Map(
       CLUB_IDS.map((clubId, index) => [clubId, 40 + index]),
     );
@@ -160,10 +160,12 @@ describe('generateSeasonFixtures', () => {
       return { strength: strengths.get(opponentId), userIsHome };
     });
 
+    // Strictly descending: the division's bottom five, strongest first. The
+    // hardest rival (49) is deliberately absent — it now lands after match five.
     expect(opening).toEqual([
-      { strength: 49, userIsHome: true },
-      { strength: 44, userIsHome: false },
       { strength: 45, userIsHome: true },
+      { strength: 44, userIsHome: false },
+      { strength: 43, userIsHome: true },
       { strength: 42, userIsHome: false },
       { strength: 41, userIsHome: true },
     ]);
