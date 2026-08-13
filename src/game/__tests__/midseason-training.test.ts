@@ -10,6 +10,7 @@ import {
   midseasonTrainingCompleteFlag,
   midseasonTrainingGainForDivision,
   midseasonTrainingStatus,
+  MIDSEASON_TRAINING_CONDITION_COST,
 } from '../midseason-training';
 import type { DivisionLevel, PyramidClub } from '../pyramid';
 import type { GameState } from '../types';
@@ -70,7 +71,7 @@ describe('Week 19 mid-season team trip', () => {
     [2, 4],
     [1, 5],
   ] as const)(
-    'spends all TP and gives D%s players +%s to every stat',
+    'spends all TP, costs 10 condition, and gives D%s players +%s to every stat',
     (division, gain) => {
       const state = weekNineteen(division);
       const userBefore = state.players.filter(
@@ -95,6 +96,12 @@ describe('Week 19 mid-season team trip', () => {
             Math.min(MAX_PLAYER_ATTRIBUTE, before.attrs[key] + gain),
           );
         }
+        expect(after.condition).toBe(
+          Math.max(
+            0,
+            (before.condition ?? 100) - MIDSEASON_TRAINING_CONDITION_COST,
+          ),
+        );
       }
       expect(
         accepted.players.find((player) => player.id === rivalBefore.id),
@@ -120,6 +127,25 @@ describe('Week 19 mid-season team trip', () => {
       accepted.players.find((player) => player.id === userId)?.attrs,
     ).toMatchObject({ pac: 999, ref: 999 });
     expect(acceptMidseasonTraining(accepted)).toBe(accepted);
+  });
+
+  it('clamps the trip condition cost at zero', () => {
+    const state = weekNineteen();
+    const userId = state.players.find(
+      (player) => player.clubId === state.userClubId,
+    )!.id;
+    const tired = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === userId ? { ...player, condition: 4 } : player,
+      ),
+    };
+
+    expect(
+      acceptMidseasonTraining(tired).players.find(
+        (player) => player.id === userId,
+      )?.condition,
+    ).toBe(0);
   });
 
   it('keeps an accepted celebration resumable until explicit completion', () => {

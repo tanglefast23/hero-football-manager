@@ -1,6 +1,6 @@
 import * as simMatch from '../sim/match';
 import type { FormationId } from '../sim/tactics';
-import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
+import type { MatchState, PowerId, ReplayEnvelope, TeamDef } from '../sim/types';
 import { contributionsFrom } from './match-contributions';
 import {
   controlledMatchOptions,
@@ -112,6 +112,8 @@ interface MatchGoal {
   readonly name: string;
   /** Tick the goal went in, for a match-clock label. */
   readonly tick: number;
+  /** The scorer's power when it launched this shot. */
+  readonly power?: PowerId;
 }
 
 /**
@@ -179,14 +181,40 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
   }
   for (const player of match.players) names.set(player.def.id, player.def.name);
 
+  const slotOwners = match.teams.flatMap((team) =>
+    team.players.map((player) => player.id),
+  );
+  const readyPower = new Map<string, PowerId>();
+  const shotPower = new Map<string, PowerId>();
   const goals: MatchGoal[] = [];
   for (const event of match.events) {
-    if (event.kind !== 'GOAL') continue;
-    goals.push({
-      playerId: event.scoredById,
-      name: names.get(event.scoredById) ?? event.scoredById,
-      tick: event.t,
-    });
+    if (event.kind === 'SUBSTITUTION') {
+      slotOwners[event.player] = event.inPlayerId;
+    } else if (event.kind === 'POWER_FIRED') {
+      const owner = slotOwners[event.player];
+      if (owner !== undefined) readyPower.set(owner, event.power);
+    } else if (event.kind === 'SHOT') {
+      const owner = slotOwners[event.by];
+      const power = owner === undefined ? undefined : readyPower.get(owner);
+      if (owner !== undefined) {
+        if (power === undefined) shotPower.delete(owner);
+        else shotPower.set(owner, power);
+        readyPower.delete(owner);
+      }
+    } else if (event.kind === 'GOAL') {
+      const power = shotPower.get(event.scoredById);
+      goals.push({
+        playerId: event.scoredById,
+        name: names.get(event.scoredById) ?? event.scoredById,
+        tick: event.t,
+        ...(power === undefined ? {} : { power }),
+      });
+      readyPower.clear();
+      shotPower.clear();
+    } else if (event.kind === 'MISS' || event.kind === 'SAVE') {
+      readyPower.clear();
+      shotPower.clear();
+    }
   }
   return goals;
 }

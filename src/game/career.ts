@@ -1434,12 +1434,37 @@ export function currentActualMonthlySponsorIncome(
 }
 
 /**
- * Extra seats and matchday spend from each Stadium Stand level. It multiplies
- * the ordinary gate, so it rides the division scaling in `divisionFans` and
- * `divisionTicketPrice` instead of bypassing it: the same stand is worth far
- * more in D1 than in D5, which is what makes it the club's climb investment.
+ * Extra seats and matchday spend from Stadium Stands. Level 1 adds the full
+ * ordinary gate and upgrades add half. It rides the division scaling in
+ * `divisionFans` and `divisionTicketPrice` instead of bypassing it.
  */
-const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 100;
+export const STADIUM_STAND_UPGRADE_GATE_BONUS_PERCENT = 50;
+export const FAN_SHOP_UPGRADE_INCOME_PERCENT = 50;
+
+/**
+ * Commercial buildings open at full strength, then each upgrade adds half as
+ * much. Building another shop or stand stays a real layout choice; repeatedly
+ * upgrading the same one no longer repays itself within a few weeks.
+ */
+function commercialLevelPercent(
+  level: number,
+  count: number,
+  upgradePercent: number,
+  label: string,
+): number {
+  const safeLevel = requireSafeInteger(level, label);
+  const safeCount = requireSafeInteger(count, `${label} building count`);
+  if (safeLevel <= 0 || safeCount <= 0) return 0;
+  return checkedAdd(
+    checkedMultiply(safeCount, 100, `${label} buildings`),
+    checkedMultiply(
+      Math.max(0, safeLevel - safeCount),
+      upgradePercent,
+      `${label} upgrades`,
+    ),
+    label,
+  );
+}
 
 /** Combined operational Stadium Stand level and building count across up to three stands. */
 function gridStadiumStands(grid: FacilityGridState | undefined): {
@@ -1478,8 +1503,8 @@ export function gridStadiumStandLevel(
  * What the club's money buildings are currently worth, as multipliers.
  *
  * The accounts office shows these as percentages rather than cash: a Stand is
- * not worth a fixed cash amount, it is worth the full base gate again, and what that pays
- * depends on the division the club is in when it is read. One derivation,
+ * not worth a fixed cash amount, and what its multiplier pays depends on the
+ * division the club is in when it is read. One derivation,
  * reused by the panel that explains them, so the copy can never drift from the
  * settlement above it.
  */
@@ -1490,6 +1515,8 @@ export interface CommercialFacilitySummary {
   readonly gateBonusPercent: number;
   readonly shopLevel: number;
   readonly shopCount: number;
+  /** Merchandise multiplier as a percentage of one Level-1 shop. */
+  readonly shopIncomePercent: number;
   /** The adjacency bonus already earned on merchandise; 0 when none is active. */
   readonly merchAdjacencyPercent: number;
 }
@@ -1503,9 +1530,20 @@ export function commercialFacilitySummary(
   return {
     standLevel: stands.level,
     standCount: stands.count,
-    gateBonusPercent: stands.level * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
+    gateBonusPercent: commercialLevelPercent(
+      stands.level,
+      stands.count,
+      STADIUM_STAND_UPGRADE_GATE_BONUS_PERCENT,
+      'stand-gate-bonus',
+    ),
     shopLevel: shops.level,
     shopCount: shops.count,
+    shopIncomePercent: commercialLevelPercent(
+      shops.level,
+      shops.count,
+      FAN_SHOP_UPGRADE_INCOME_PERCENT,
+      'fan-shop-income',
+    ),
     merchAdjacencyPercent:
       grid === undefined || shops.level === 0
         ? 0
@@ -1560,12 +1598,18 @@ function gateIncomeFromBase(
   state: GameState,
   base: number,
 ): { amount: number; standLevel: number } {
-  const standLevel = gridStadiumStandLevel(state.facilities.grid);
+  const stands = gridStadiumStands(state.facilities.grid);
+  const standLevel = stands.level;
   if (standLevel === 0) return { amount: base, standLevel };
   const bonus = Math.floor(
     checkedMultiply(
       base,
-      standLevel * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
+      commercialLevelPercent(
+        standLevel,
+        stands.count,
+        STADIUM_STAND_UPGRADE_GATE_BONUS_PERCENT,
+        'stand-gate-bonus',
+      ),
       'Stadium Stand gate bonus',
     ) / 100,
   );
@@ -1613,15 +1657,20 @@ function homeGateIncomeWithReveal(
       variancePercent: roll.percent,
       surge: roll.surge,
       multiplierPercent:
-        100 + standLevel * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
+        100 +
+        commercialLevelPercent(
+          standLevel,
+          count,
+          STADIUM_STAND_UPGRADE_GATE_BONUS_PERCENT,
+          'stand-gate-bonus',
+        ),
       facilityCount: count,
     },
   };
 }
 
 function rawMerchPerLevel(userClub: ClubState): number {
-  // One merchandise unit per two fans per shop level makes the income building
-  // repay itself within the opening season at the D5 supporter floor.
+  // One Level-1 merchandise unit per two fans. Upgrades scale this base below.
   return Math.floor(requireSafeInteger(userClub.fans, 'club fans') / 2);
 }
 
@@ -1631,18 +1680,33 @@ function merchandiseIncomeFromPerLevel(
 ): {
   amount: number;
   level: number;
+  incomePercent: number;
   adjacencyPercent: number;
   adjacencyAmount: number;
 } {
   const grid = state.facilities.grid;
-  const { level } = gridFanShops(grid);
+  const { level, count } = gridFanShops(grid);
   if (grid === undefined || level === 0) {
-    return { amount: 0, level, adjacencyPercent: 0, adjacencyAmount: 0 };
+    return {
+      amount: 0,
+      level,
+      incomePercent: 0,
+      adjacencyPercent: 0,
+      adjacencyAmount: 0,
+    };
   }
-  const afterMultiplier = checkedMultiply(
-    perLevel,
+  const incomePercent = commercialLevelPercent(
     level,
-    'Fan Shop merchandise base',
+    count,
+    FAN_SHOP_UPGRADE_INCOME_PERCENT,
+    'fan-shop-income',
+  );
+  const afterMultiplier = Math.floor(
+    checkedMultiply(
+      perLevel,
+      incomePercent,
+      'Fan Shop merchandise base',
+    ) / 100,
   );
   const adjacencyPercent = facilityEffects(grid).merchIncomeBonusPercent;
   const adjacencyAmount = Math.floor(
@@ -1659,6 +1723,7 @@ function merchandiseIncomeFromPerLevel(
       'Fan Shop merchandise income',
     ),
     level,
+    incomePercent,
     adjacencyPercent,
     adjacencyAmount,
   };
@@ -1700,6 +1765,7 @@ function weeklyMerchandiseIncomeWithReveal(
       variancePercent: roll.percent,
       surge: roll.surge,
       multiplierTimes: result.level,
+      multiplierPercent: result.incomePercent,
       facilityCount: count,
       adjacencyPercent: result.adjacencyPercent,
       adjacencyAmount: result.adjacencyAmount,

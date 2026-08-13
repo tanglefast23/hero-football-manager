@@ -193,7 +193,9 @@ export function surgeBonusAmount(row: MachineRow): number {
   if (reveal === undefined || !reveal.surge) return 0;
   const raw = Math.round((reveal.base * 100) / (100 + reveal.variancePercent));
   if (reveal.source === 'merch') {
-    const zeroAfterMultiplier = raw * reveal.multiplierTimes;
+    const zeroAfterMultiplier = Math.floor(
+      (raw * merchMultiplierPercent(reveal)) / 100,
+    );
     const zeroAmount =
       zeroAfterMultiplier +
       Math.floor((zeroAfterMultiplier * reveal.adjacencyPercent) / 100);
@@ -216,7 +218,7 @@ function hasMultiplierBeat(row: MachineRow): boolean {
   const reveal = row.reveal;
   if (reveal === undefined) return false;
   return reveal.source === 'merch'
-    ? reveal.multiplierTimes > 1
+    ? merchMultiplierPercent(reveal) > 100
     : reveal.multiplierPercent > 100;
 }
 
@@ -233,8 +235,15 @@ function baseValue(row: MachineRow): number {
 function multipliedValue(row: MachineRow): number {
   const reveal = row.reveal;
   if (reveal === undefined) return row.amount;
-  if (reveal.source === 'merch') return reveal.base * reveal.multiplierTimes;
+  if (reveal.source === 'merch')
+    return Math.floor((reveal.base * merchMultiplierPercent(reveal)) / 100);
   return row.amount;
+}
+
+function merchMultiplierPercent(
+  reveal: Extract<LedgerLineReveal, { source: 'merch' }>,
+): number {
+  return reveal.multiplierPercent ?? reveal.multiplierTimes * 100;
 }
 
 export function createMachine(config: MachineConfig): MachineState {

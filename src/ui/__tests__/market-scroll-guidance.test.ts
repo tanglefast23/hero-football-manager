@@ -12,6 +12,9 @@ describe('market scroll guidance', () => {
     expect(source).toContainSource("if (guideFocus === 'transfer-list') {");
     expect(source).toContainSource("dismissScrollGuide('transfer-list');");
     expect(source).toContainSource('onScroll={handleScroll}');
+    expect(source).toContainSource(
+      'if (guideDealsTab) scheduleDealsGuideMeasurement();',
+    );
     expect(source).toContainSource('guideFocus={visibleGuideFocus}');
   });
 

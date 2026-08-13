@@ -119,6 +119,21 @@ describe('ledger reveal sanitization', () => {
     );
   });
 
+  it('round-trips the reduced upgrade multiplier used by new Fan Shop income', () => {
+    const restored = parseWithLines([
+      merchLine(
+        { multiplierPercent: 250, adjacencyAmount: 62 },
+        { amount: 687 },
+      ),
+    ]);
+    expect(loadedLine(restored, 0).reveal).toMatchObject({
+      source: 'merch',
+      multiplierTimes: 3,
+      multiplierPercent: 250,
+      adjacencyAmount: 62,
+    });
+  });
+
   const stripCases: readonly [string, Record<string, unknown>][] = [
     ['a merch reveal on a tickets line', gateLine({ source: 'merch' })],
     [
@@ -140,6 +155,7 @@ describe('ledger reveal sanitization', () => {
       merchLine({ adjacencyAmount: 76 }, { amount: 826 }),
     ],
     ['a zero multiplierTimes', merchLine({ multiplierTimes: 0 })],
+    ['a sub-base multiplierPercent', merchLine({ multiplierPercent: 99 })],
     ['a non-object reveal', { ...gateLine(), reveal: 'garbage' }],
     [
       'a multiplication overflow',

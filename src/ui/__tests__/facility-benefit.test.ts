@@ -40,10 +40,10 @@ describe('facilityBenefit', () => {
 
   it('states the repeatable income-building rule on both commercial facilities', () => {
     expect(facilityBenefit('fan-shop')).toMatch(
-      /Build up to 3.*every Shop and Level/i,
+      /Level 1 counts fully.*each upgrade adds half.*Build up to 3/i,
     );
     expect(facilityBenefit('stadium-stand')).toMatch(
-      /Build up to 3.*every Stand and Level/i,
+      /Level 1 adds \+100%.*each upgrade adds \+50%.*Build up to 3/i,
     );
   });
 });

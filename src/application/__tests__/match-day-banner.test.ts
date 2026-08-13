@@ -204,6 +204,16 @@ describe('matchDayBannerViewModel', () => {
     );
   });
 
+  it('clears the old season banner when the next season starts', () => {
+    const store = readFileSync(
+      join(process.cwd(), 'src/application/store.ts'),
+      'utf8',
+    );
+    expect(store).toMatchSource(
+      /const next = reconcilePendingClubLegends\(startNextSeason\(guidedCareer\)\);[\s\S]{0,500}matchDayBanner: null/,
+    );
+  });
+
   it('keys the card to the week, so one week can only announce itself once', () => {
     let state = career(1);
     const first = matchDayBannerViewModel(state);

@@ -18,6 +18,7 @@ import {
   isStoryYouthUnlocked,
   maxCareerFacilityLevel,
   STORY_COACHING_OFFICE_GUIDE_WEEK,
+  STORY_FACILITY_UPGRADE_GUIDE_WEEK,
   type AssistantInboxGuideSequenceId,
   type AssistantGuideSequenceId,
   type GameState,
@@ -113,7 +114,7 @@ export function dueAssistantInboxGuideSequences(
     state.players.filter((player) => player.clubId === state.userClubId)
       .length >= careerRosterCapacity(state);
   const playerSalesUnlocked =
-    !isStoryFeaturePacingActive(state) || (scoutingUnlocked && rosterFull);
+    !isStoryFeaturePacingActive(state) || scoutingUnlocked;
 
   if (state.phase === 'manage') {
     if (highestDivisionReached(state) <= 4 && !completed('sponsor-desk')) {
@@ -186,7 +187,9 @@ export function dueAssistantInboxGuideSequences(
     isTransferWindowOpen(state.week)
   ) {
     due.push(
-      isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list',
+      isStoryFeaturePacingActive(state) && rosterFull
+        ? 'roster-cap'
+        : 'transfer-list',
     );
   }
 
@@ -262,15 +265,15 @@ export function dueAssistantInboxGuideSequences(
    * The upgrade lesson is the only guide nothing is waiting on: the pitch
    * already works, and levelling it is a choice the club can make any week.
    * Taught the week the first pitch opened it read as "you just built that —
-   * build it again", so it holds until the story season is over (which is also
-   * the only cheap proof the grounds have been standing a while) and until the
-   * desk has no other first on it. Product alerts are checked where they are
-   * built, one ring out.
+   * build it again", so the story season holds it until Week 8 and until the
+   * desk has no other first on it. Later seasons can teach it in any quiet week.
+   * Product alerts are checked where they are built, one ring out.
    */
   if (
     upgradeReachable &&
     pending.length === 0 &&
-    !isStoryFeaturePacingActive(state) &&
+    (!isStoryFeaturePacingActive(state) ||
+      state.week >= STORY_FACILITY_UPGRADE_GUIDE_WEEK) &&
     !completed('facility-upgrade')
   ) {
     pending.push('facility-upgrade');
@@ -556,6 +559,13 @@ export function reconcileSatisfiedAssistantGuideSequences(
   ) {
     next = completeAssistantGuideSequence(next, 'scout-mission');
   }
+  if (
+    state.cashTransactions?.some(
+      (transaction) => transaction.kind === 'transfer-buy',
+    )
+  ) {
+    next = completeAssistantGuideSequence(next, 'transfer-negotiation');
+  }
 
   const premature: AssistantInboxGuideSequenceId[] = [];
   if (!hasOperationalCoachingOffice) premature.push('assistant-coach-hire');
@@ -584,9 +594,11 @@ export function reconcileSatisfiedAssistantGuideSequences(
   if (!hasCoachingOffice && next.week < STORY_COACHING_OFFICE_GUIDE_WEEK) {
     premature.push('coaching-office');
   }
-  // Heals the saves that were handed the upgrade lesson days after paying for
-  // their first build. It returns on its own once the story season is over.
-  premature.push('facility-upgrade');
+  // Heals saves handed the upgrade lesson days after their first build. The
+  // lesson becomes valid once the story reaches its planned Week 8 slot.
+  if (next.week < STORY_FACILITY_UPGRADE_GUIDE_WEEK) {
+    premature.push('facility-upgrade');
+  }
   if (!isStoryYouthUnlocked(next)) premature.push('youth-intake');
   if (!isStoryCupGuideUnlocked(next)) premature.push('national-cup');
   if (

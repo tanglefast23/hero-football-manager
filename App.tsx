@@ -3377,22 +3377,12 @@ function GameApp() {
                 detail: [
                   t('confirm.sponsor.contract', {
                     slot: slot.slotLabel,
-                    fee: formatCurrency(t, offer.nominalMonthlyFee),
+                    fee: formatCurrency(t, offer.actualMonthlyFee),
                   }),
-                  offer.actualMonthlyFee === offer.nominalMonthlyFee
-                    ? undefined
-                    : t('confirm.sponsor.chairmanFee', {
-                        fee: formatCurrency(t, offer.actualMonthlyFee),
-                      }),
                   t('confirm.sponsor.objective', {
                     objective: offer.objectiveLabel,
-                    bonus: formatCurrency(t, offer.nominalBonus),
+                    bonus: formatCurrency(t, offer.actualBonus),
                   }),
-                  offer.actualBonus === offer.nominalBonus
-                    ? undefined
-                    : t('confirm.sponsor.chairmanBonus', {
-                        bonus: formatCurrency(t, offer.actualBonus),
-                      }),
                 ]
                   .filter((sentence) => sentence !== undefined)
                   .join(' '),

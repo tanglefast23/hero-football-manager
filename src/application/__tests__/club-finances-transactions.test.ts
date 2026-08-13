@@ -43,7 +43,7 @@ describe('club finances immediate transaction history', () => {
     ).toMatchObject({
       'training-pitch': '+12 TP per level +10% DEF Training',
       'coaching-office': 'Unlock Assistant Coach',
-      'fan-shop': '+$$$ Merchandise boost. Scales with Fans.',
+      'fan-shop': 'Merchandise income · upgrades add +50%',
       'stadium-stand': '+100% home gate income',
       'medical-bay': 'Recovery -1 week',
       dorm: '+3 condition recovery weekly',
@@ -407,6 +407,7 @@ describe('club finances immediate transaction history', () => {
 
     const viewModel = clubFinancesViewModel(fiveWeeks);
 
+    expect(viewModel.periodLabel).toBe('S1 · W6');
     // Five settled, four shown: week 1 has aged out.
     expect(viewModel.ledger).toHaveLength(8);
     expect(viewModel.ledger[0]).toMatchObject({

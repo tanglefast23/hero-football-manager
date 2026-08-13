@@ -124,10 +124,13 @@ describe('Club Business phone and accessibility contracts', () => {
     expect(strings['confirm.sponsor.objective']).toBe(
       'Objective: {objective}. Target bonus {bonus}.',
     );
-    expect(app).toContainSource("t('confirm.sponsor.chairmanFee'");
-    expect(strings['confirm.sponsor.chairmanFee']).toContain(
-      'On Chairman, the club receives',
+    expect(app).toContainSource(
+      'fee: formatCurrency(t, offer.actualMonthlyFee)',
     );
+    expect(app).toContainSource(
+      'bonus: formatCurrency(t, offer.actualBonus)',
+    );
+    expect(app).not.toContainSource("t('confirm.sponsor.chairmanFee'");
   });
 
   it('shows both target outcomes and the actual Week 30 cash before season rollover', () => {

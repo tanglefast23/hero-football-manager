@@ -308,6 +308,32 @@ describe('quickResultForFixture', () => {
     ]);
   });
 
+  test('marks only a shot launched with the scorer\'s power', () => {
+    const scorer = ROVERS.players[9];
+    const teammate = ROVERS.players[10];
+    const state = fakeFulltimeMatch(
+      [2, 0],
+      [
+        {
+          t: 10,
+          kind: 'POWER_FIRED',
+          player: 9,
+          power: 'FIRE_TORCH',
+          strength: 0.85,
+        },
+        { t: 11, kind: 'SHOT', by: 9, power: 80, trajectory: 'driven' },
+        { t: 12, kind: 'GOAL', by: 9, team: 0, scoredById: scorer.id },
+        { t: 20, kind: 'SHOT', by: 10, power: 40, trajectory: 'driven' },
+        { t: 21, kind: 'GOAL', by: 10, team: 0, scoredById: teammate.id },
+      ],
+    );
+
+    expect(goalsFrom(state)).toEqual([
+      { playerId: scorer.id, name: scorer.name, tick: 12, power: 'FIRE_TORCH' },
+      { playerId: teammate.id, name: teammate.name, tick: 21 },
+    ]);
+  });
+
   test('validates fixture state, match seed, and both teams', () => {
     expect(() =>
       quickResultForFixture({ ...fixture('played'), status: 'played' }, TEAMS),

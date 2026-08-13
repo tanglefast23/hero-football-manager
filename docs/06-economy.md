@@ -16,7 +16,7 @@ Money is lumpy and stressful; TP flows steadily from investments in staff and gr
 3. **Prize money** — all 10 league places receive a season-end purse, with a steep taper below the promotion places, plus per-round cup prizes. D5 pays $20,000 / $10,000 / $6,000 / $5,000 / $4,000 / $3,000 / $2,000 / $1,500 / $1,000 / $500 from first to tenth. Each higher division raises the whole ladder, up to D1's $60,000 / $30,000 / $18,000 / $14,500 / $11,500 / $9,000 / $6,500 / $5,000 / $3,000 / $2,000.
 4. **Player sales** — doc 05. The "training facilities print money" loop.
 
-Post-match, the **Financial Report** shows every line (tickets, sponsor fee, prize, merch trickle − wages) — Pocket League Story's transparent readout, kept, now revealed as slot reels with the facility math shown as base × multiplier. Fan Shop merchandise computes per level: `floor(fans / 2)` per combined shop level, times the combined level, plus the adjacency bonus — so the on-screen ×N chip is exact, not approximate.
+Post-match, the **Financial Report** shows every line (tickets, sponsor fee, prize, merch trickle − wages) — Pocket League Story's transparent readout, kept, now revealed as slot reels with the facility math shown as base × multiplier. A Level-1 Fan Shop earns `floor(fans / 2)`; each upgrade adds 50% of that base. Separate Level-1 shops each add the full base. The adjacency bonus applies after that commercial multiplier.
 
 ## Expenses
 
@@ -47,7 +47,7 @@ Numbers rule; the mini-game influences (user spec: helps, never fully decides).
 
 ## Facilities (the club grounds grid)
 
-An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, and Stadium Stand tiers. The club may build up to **three Fan Shops and three Stadium Stands**; every other facility is limited to one. Each placed building is upgraded individually to Lv3 and pays its own weekly upkeep. Every Shop and Stand level adds its full income effect to the club total. Each Stadium Stand level adds **+100% of the base home gate**. The bonuses add rather than multiply: a $100 base gate becomes $200 with one total Stand level and $300 with two.
+An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, and Stadium Stand tiers. The club may build up to **three Fan Shops and three Stadium Stands**; every other facility is limited to one. Each placed building is upgraded individually to Lv3 and pays its own weekly upkeep. A Level-1 Shop or Stand adds its full income effect. Each upgrade adds **50%** of that base effect. Separate buildings still add fully: a $100 base gate becomes $200 with one Level-1 Stand, $250 when that Stand reaches Level 2, and $300 with two separate Level-1 Stands.
 
 Facility quality is partly promotion-gated: Levels 1 and 2 are available from D5, and reaching D2 permanently unlocks Level 3. Level 2 used to wait for D4 and was moved down after measurement — locking the club's main training accelerator behind the promotion it was needed to earn produced 0 promotions across 6 careers × 10 seasons. Existing higher-level buildings from older saves remain operational, but further upgrades follow the earned ceiling.
 

@@ -244,7 +244,7 @@ describe('marketViewModel', () => {
       (coach) => coach.unlockLabel !== undefined,
     );
 
-    expect(teacher?.unlockLabel).toBe('Teaches 4-3-3');
+    expect(teacher?.unlockLabel).toBe('Unlocks 4-3-3 in Settings');
   });
 
   it('never presents more than three coach choices', () => {

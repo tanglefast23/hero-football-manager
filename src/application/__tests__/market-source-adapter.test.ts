@@ -151,7 +151,19 @@ describe('career market view-model source adapter', () => {
   });
 
   it('maps current reports into buy listings and eligible user players into sell listings', () => {
-    const state = fullCareer(913);
+    const full = fullCareer(913);
+    const starters = new Set(
+      full.lineups.find((lineup) => lineup.clubId === full.userClubId)!
+        .playerIds,
+    );
+    const spare = full.players.find(
+      (player) =>
+        player.clubId === full.userClubId && !starters.has(player.id),
+    )!;
+    const state = {
+      ...full,
+      players: full.players.filter((player) => player.id !== spare.id),
+    };
     const target = state.players.find(
       (player) => player.clubId !== state.userClubId,
     )!;

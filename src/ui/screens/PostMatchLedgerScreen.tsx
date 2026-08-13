@@ -39,6 +39,7 @@ import {
   playRivalHeroLaugh,
   stopRivalHeroLaugh,
 } from '../../render/rival-hero-voice';
+import { powerCutInPresentation } from '../../render/power-cut-in';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -157,34 +158,48 @@ export function PostMatchLedgerScreen({
               title={t('postMatchLedger.highlights')}
             />
             <View className="gap-2">
-              {viewModel.highlights.map((highlight) => (
-                <Pressable
-                  key={highlight.id}
-                  accessibilityRole={onReplayHighlight ? 'button' : 'text'}
-                  accessibilityLabel={`${highlight.minuteLabel}. ${highlight.description}`}
-                  disabled={!onReplayHighlight}
-                  onPress={() => onReplayHighlight?.(highlight.id)}
-                  className="min-h-12 flex-row items-center border border-ink/25 bg-white px-3 py-2"
-                  style={({ pressed }) => ({
-                    opacity: pressed ? 0.68 : undefined,
-                  })}
-                >
-                  <Text className="w-12 font-mono text-base text-gold-dark">
-                    {highlight.minuteLabel}
-                  </Text>
-                  <Text
-                    className="flex-1 text-ink"
-                    style={scaledBody(textScale)}
+              {viewModel.highlights.map((highlight) => {
+                const power =
+                  highlight.power === undefined
+                    ? undefined
+                    : powerCutInPresentation(highlight.power, t);
+                return (
+                  <Pressable
+                    key={highlight.id}
+                    accessibilityRole={onReplayHighlight ? 'button' : 'text'}
+                    accessibilityLabel={`${highlight.minuteLabel}. ${highlight.description}${power === undefined ? '' : `. ${power.name}`}`}
+                    disabled={!onReplayHighlight}
+                    onPress={() => onReplayHighlight?.(highlight.id)}
+                    className="min-h-12 flex-row items-center border border-ink/25 bg-white px-3 py-2"
+                    style={({ pressed }) => ({
+                      opacity: pressed ? 0.68 : undefined,
+                    })}
                   >
-                    {highlight.description}
-                  </Text>
-                  {onReplayHighlight ? (
-                    <Text className="font-mono text-base text-blue-dark">
-                      ▶
+                    <Text className="w-12 font-mono text-base text-gold-dark">
+                      {highlight.minuteLabel}
                     </Text>
-                  ) : null}
-                </Pressable>
-              ))}
+                    <Text
+                      className="flex-1 text-ink"
+                      style={scaledBody(textScale)}
+                    >
+                      {highlight.description}
+                    </Text>
+                    {power === undefined ? null : (
+                      <Text
+                        accessibilityElementsHidden
+                        className="min-w-8 text-center font-mono text-lg text-blue-dark"
+                      >
+                        {power.glyph}
+                      </Text>
+                    )}
+                    {onReplayHighlight ? (
+                      <Text className="font-mono text-base text-blue-dark">
+                        ▶
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         ) : null}

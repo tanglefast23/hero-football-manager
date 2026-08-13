@@ -152,14 +152,13 @@ function merchReconstructs(line: LedgerLine): void {
   if (reveal === undefined || reveal.source !== 'merch')
     throw new Error('expected a merch reveal');
   expect(reveal.base).toBeGreaterThan(0);
+  const multiplierPercent =
+    reveal.multiplierPercent ?? reveal.multiplierTimes * 100;
+  const multiplied = Math.floor((reveal.base * multiplierPercent) / 100);
   expect(reveal.adjacencyAmount).toBe(
-    Math.floor(
-      (reveal.base * reveal.multiplierTimes * reveal.adjacencyPercent) / 100,
-    ),
+    Math.floor((multiplied * reveal.adjacencyPercent) / 100),
   );
-  expect(line.amount).toBe(
-    reveal.base * reveal.multiplierTimes + reveal.adjacencyAmount,
-  );
+  expect(line.amount).toBe(multiplied + reveal.adjacencyAmount);
 }
 
 describe('settlement reveals', () => {
@@ -205,6 +204,7 @@ describe('settlement reveals', () => {
     expect(line?.reveal?.variancePercent).toBe(roll.percent);
     if (line?.reveal?.source === 'merch') {
       expect(line.reveal.multiplierTimes).toBe(3); // three Lv1 shops
+      expect(line.reveal.multiplierPercent).toBe(300);
       expect(line.reveal.facilityCount).toBe(3);
     }
     merchReconstructs(line!);
@@ -385,7 +385,7 @@ describe('settlement reveals', () => {
     if (line?.reveal === undefined || line.reveal.source === 'merch') {
       throw new Error('expected a gate reveal');
     }
-    expect(line.reveal.multiplierPercent).toBe(300); // one Lv2 stand
+    expect(line.reveal.multiplierPercent).toBe(250); // one Lv2 stand
     expect(line.reveal.facilityCount).toBe(1);
     gateReconstructs(line);
   });

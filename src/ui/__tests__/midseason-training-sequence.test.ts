@@ -14,7 +14,7 @@ describe('Week 19 team training presentation', () => {
       "Boss, can we take a mid season trip Green Bull Sports Star Performance Center? Let's get the team strong!",
     );
     expect(catalog.strings['midseasonTraining.spendAllTp']).toBe(
-      'Spend {tp} TP to train your team?',
+      'Spend {tp} TP to train your team? Every player also loses {condition} condition.',
     );
   });
 

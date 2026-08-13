@@ -176,6 +176,7 @@ export function MarketScreen({
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const currentOffset = event.nativeEvent.contentOffset.y;
     latestScrollOffsetRef.current = currentOffset;
+    if (guideDealsTab) scheduleDealsGuideMeasurement();
     if (guideFocus === 'transfer-list') {
       dismissScrollGuide('transfer-list');
       return;
