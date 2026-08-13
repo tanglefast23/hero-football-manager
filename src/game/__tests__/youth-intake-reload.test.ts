@@ -1,4 +1,7 @@
-import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../application/launch';
+import {
+  createLaunchCareerSetup,
+  reconcileLaunchRoster,
+} from '../../application/launch';
 import {
   parseStoredGameState,
   serializeGameState,

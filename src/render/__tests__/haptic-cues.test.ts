@@ -35,12 +35,18 @@ describe('match haptic cues', () => {
   });
 
   it('uses different goal feedback for scoring and conceding', () => {
-    expect(hapticCueForEvent({ t: 3, kind: 'GOAL', by: 7, team: 0, scoredById: 'p7' }, 0)).toBe(
-      'goal',
-    );
-    expect(hapticCueForEvent({ t: 3, kind: 'GOAL', by: 18, team: 1, scoredById: 'p18' }, 0)).toBe(
-      'conceded',
-    );
+    expect(
+      hapticCueForEvent(
+        { t: 3, kind: 'GOAL', by: 7, team: 0, scoredById: 'p7' },
+        0,
+      ),
+    ).toBe('goal');
+    expect(
+      hapticCueForEvent(
+        { t: 3, kind: 'GOAL', by: 18, team: 1, scoredById: 'p18' },
+        0,
+      ),
+    ).toBe('conceded');
   });
 
   it('makes both Gust beats tangible for the owning team', () => {
