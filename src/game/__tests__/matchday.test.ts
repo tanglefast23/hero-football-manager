@@ -1,3 +1,6 @@
+import { attemptShot, shotFlightTick } from '../../sim/engine';
+import { GOAL_CENTER_X } from '../../sim/geometry';
+import { performSubstitution } from '../../sim/substitutions';
 import * as simMatch from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
 import type { MatchEvent, MatchState, TeamDef } from '../../sim/types';
@@ -180,6 +183,90 @@ describe('quickResultForFixture', () => {
       createMatch.mockRestore();
       envelopeFrom.mockRestore();
     }
+  });
+
+  test('credits the shooter when the ball crossed after his replacement came on', () => {
+    // Seed 23: the shot was struck at tick 135, the substitute came on at 136,
+    // and the ball crossed at 144 — so the slot walk, which can only see where
+    // the ball ENDED, gave the goal to a man who was on the bench when it was
+    // hit. Engine m2.2 stamps the shooter's own id at the strike; it wins.
+    const substitute = {
+      ...ROVERS.players[1],
+      id: 'rovers-substitute',
+      name: 'Sub Striker',
+    };
+    const state = fakeFulltimeMatch(
+      [1, 0],
+      [
+        {
+          t: 136,
+          kind: 'SUBSTITUTION',
+          team: 0,
+          player: 1,
+          outPlayerId: ROVERS.players[1].id,
+          inPlayerId: substitute.id,
+        },
+        {
+          t: 144,
+          kind: 'GOAL',
+          by: 1,
+          team: 0,
+          scoredById: ROVERS.players[1].id,
+        },
+      ],
+    );
+    state.players[1] = { ...state.players[1], def: substitute };
+
+    expect(goalsFrom(state)).toEqual([
+      {
+        playerId: ROVERS.players[1].id,
+        name: ROVERS.players[1].name,
+        tick: 144,
+      },
+    ]);
+  });
+
+  test('a real mid-flight substitution does not steal the goal end to end', () => {
+    // The two tests above hand-build a GOAL event carrying `scoredById`, so
+    // they only prove the READER. If the engine stopped stamping the shooter's
+    // id they would both stay green while every player-visible surface — the
+    // highlight, the scorer list, the season top-scorer table — went back to
+    // crediting the substitute. This drives the real engine instead: strike a
+    // shot, swap the shooter out while the ball is still travelling, and read
+    // the id the settled fixture actually banks.
+    const substitute = {
+      ...ROVERS.players[1],
+      id: 'rovers-late-sub',
+      name: 'Late Sub',
+    };
+    const state = simMatch.createMatch(
+      23,
+      { ...ROVERS, bench: [substitute] },
+      UNITED,
+      { controlledTeam: 0 },
+    );
+    const slot = 10;
+    const shooterId = state.players[slot].def.id;
+
+    attemptShot(state, slot, 2000);
+    if (state.ball.kind !== 'shot') throw new Error('no shot was produced');
+    // keeperChecked skips the save roll, so no RNG decides whether this test
+    // sees a GOAL at all.
+    state.ball.targetX = GOAL_CENTER_X;
+    state.ball.pos = { x: GOAL_CENTER_X, y: 300 };
+    state.ball.vel = { x: 0, y: -300 };
+    state.ball.z = 0;
+    state.ball.vz = 0;
+    state.ball.keeperChecked = true;
+
+    expect(performSubstitution(state, 0, slot, substitute.id)).toBe(true);
+    expect(state.players[slot].def.id).toBe(substitute.id);
+    shotFlightTick(state);
+
+    const scored = goalsFrom(state);
+    expect(scored).toHaveLength(1);
+    expect(scored[0].playerId).toBe(shooterId);
+    expect(scored[0].playerId).not.toBe(substitute.id);
   });
 
   test('names the scorer even after he has left the pitch', () => {

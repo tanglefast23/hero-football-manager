@@ -653,14 +653,35 @@ export const RENEWAL_HERO_MULTIPLIER = 4;
  *
  * One function, two call sites: the quote on the card and the ask the agent
  * actually opens with can no longer drift apart.
+ *
+ * The base the multipliers price off is the greater of the player's last wage
+ * and what he would cost on the open market TODAY.
+ *
+ * `renewalContractAsk` is a pure product of multipliers on the player's OWN
+ * last wage — growth, fame, loyalty, personality — with a ceiling and no
+ * floor. For anyone under about 100 fame that product is below 1, so every
+ * renewal is a pay cut, and the next one is a multiple of the cut. Measured on
+ * the negotiation the panel itself teaches: a launch reserve on 129 a week
+ * walks 129 -> 75 -> 44 -> 26 -> 15 -> 9 -> 5 -> 3 -> 2 -> 1 in ten renewals,
+ * and the wage bill is the economy's main sink.
+ *
+ * Anchoring the BASE rather than clamping the ask is what keeps the rest of
+ * the design intact: every multiplier still applies, so loyalty and
+ * personality still move the price the way the player card promises, and the
+ * `MAX_RENEWAL_ASK_MULTIPLE` ceiling still governs the top. `state.m2` is
+ * absent only on pre-M2 saves, which are all in the bottom division.
  */
 export function careerRenewalWeeklyAsk(
   state: GameState,
   player: CareerPlayer,
 ): number {
+  const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
   return renewalContractAsk(
     {
-      weeklyWage: player.weeklyWage,
+      weeklyWage: Math.max(
+        player.weeklyWage,
+        generatedPlayerWeeklyWage(player.attrs, division),
+      ),
       personality: marketPersonality(player.personality),
       ...(player.power === undefined ? {} : { power: player.power }),
       onHeroWage: player.onHeroWage,
@@ -1010,7 +1031,7 @@ export function listCareerPlayer(
       (listing) => listing.playerId === playerId,
     )
   ) {
-    throw new Error(`${player.name} is already transfer-listed.`);
+    throw new Error(`${player.name} is already transfer-listed`);
   }
   // Validate that accepting a future bid cannot strand the starting eleven.
   replaceTransferredStarter(state, player);
@@ -1293,12 +1314,12 @@ export function hireCareerCoach(
     );
   }
   if (currentCoach?.id === candidate.id) {
-    throw new Error(`${candidate.name} already fills that coaching role.`);
+    throw new Error(`${candidate.name} already fills that coaching role`);
   }
   const division = highestDivisionReached(state);
   const fame = careerClubFame(state, market);
   if (!isCoachCandidateEligible(candidate, division, fame)) {
-    throw new Error(`${candidate.name} is not eligible for this club.`);
+    throw new Error(`${candidate.name} is not eligible for this club`);
   }
   const weeklyWage = coachWeeklyWageForRole(candidate, role);
   if (userClub(state).cash < weeklyWage) {

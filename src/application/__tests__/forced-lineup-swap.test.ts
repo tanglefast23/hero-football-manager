@@ -1,6 +1,9 @@
 import { createLaunchCareerSetup } from '../launch';
 import { createCareer } from '../../game/career';
-import { applyCareerEventOutcome, offerCareerEvent } from '../../game/career-events';
+import {
+  applyCareerEventOutcome,
+  offerCareerEvent,
+} from '../../game/career-events';
 import { forcedLineupSwap } from '../store';
 import type { GameState } from '../../game/types';
 

@@ -48,13 +48,14 @@ describe('developer save repository', () => {
     ]);
   });
 
-  it('starts a new career at weekly slot 1 and never loads another career through it', async () => {
+  it('starts a new career at weekly slot 1 without erasing the first career', async () => {
     const repository = await createDeveloperSaveRepository(
       new FakePersistenceDatabase(),
     );
     const first = createCareer(createLaunchCareerSetup(111));
     const second = createCareer(createLaunchCareerSetup(222));
     await repository.saveNextWeek(atMoment(first, 2, 11));
+    await repository.saveManual('A', atMoment(first, 9, 19));
 
     await expect(repository.load('1', second.careerSeed)).resolves.toBeNull();
     await repository.saveNextWeek(atMoment(second, 4, 22));
@@ -62,7 +63,16 @@ describe('developer save repository', () => {
     await expect(repository.list(second.careerSeed)).resolves.toEqual([
       { slot: '1', kind: 'AUTO', season: 1, week: 4 },
     ]);
-    await expect(repository.load('1', first.careerSeed)).resolves.toBeNull();
+    // Every read filters by career, so the slots have to be keyed by career
+    // too: starting a second career to reproduce something used to overwrite
+    // the first career's checkpoints outright, and `list()` answered [].
+    await expect(repository.list(first.careerSeed)).resolves.toEqual([
+      { slot: '1', kind: 'AUTO', season: 1, week: 2 },
+      { slot: 'A', kind: 'MANUAL', season: 1, week: 9 },
+    ]);
+    await expect(repository.load('1', first.careerSeed)).resolves.toMatchObject(
+      { week: 2, trainingPoints: 11 },
+    );
   });
 });
 

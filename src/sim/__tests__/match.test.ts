@@ -523,14 +523,116 @@ describe('validateEnvelope', () => {
   });
 });
 
-describe('envelopeFrom does not leak the test-only blindAutoHome flag', () => {
-  it('omits blindAutoHome from a serialized envelope even when the match used it', () => {
+describe('envelopeFrom refuses a blindAutoHome match', () => {
+  // serializeReplayOpts deliberately drops the test-only flag, so an envelope
+  // taken here would replay a DIFFERENT match while every determinism
+  // assertion still passed. Refusing is the only honest answer.
+  it('throws instead of handing back an envelope that replays a different match', () => {
     const m = createMatch(9, ROVERS, UNITED, {
       homePolicy: 'FIRE_WHEN_READY',
       blindAutoHome: true,
     });
+    expect(() => envelopeFrom(m)).toThrow('has no replay');
+  });
+
+  it('still serializes an ordinary match, dropping nothing it needs', () => {
+    const m = createMatch(9, ROVERS, UNITED, {
+      homePolicy: 'FIRE_WHEN_READY',
+    });
     const env = envelopeFrom(m);
     expect(env.opts?.blindAutoHome).toBeUndefined();
-    expect(env.opts?.homePolicy).toBe('FIRE_WHEN_READY'); // production opts still carried
+    expect(env.opts?.homePolicy).toBe('FIRE_WHEN_READY');
+  });
+});
+
+describe('createMatch rejects ids shared across the two squads', () => {
+  // The engine treats a player id as globally unique — observePossession
+  // compares the holder's id against state.ballHolderId — so a collision makes
+  // a turnover between the two invisible and misnames the team in possession.
+  const clash = (id: string) => ({
+    ...UNITED,
+    players: UNITED.players.map((p, i) => (i === 9 ? { ...p, id } : p)),
+  });
+
+  it('rejects an id shared between the two starting elevens', () => {
+    expect(() => createMatch(1, ROVERS, clash('r9'))).toThrow(
+      'share player id r9',
+    );
+  });
+
+  it('rejects an away starter colliding with a home bench player', () => {
+    const home = {
+      ...ROVERS,
+      bench: [
+        {
+          id: 'shared',
+          name: 'Bench Twin',
+          role: 'FWD' as const,
+          attrs: {
+            pac: 50,
+            sho: 50,
+            pas: 50,
+            def: 50,
+            tec: 50,
+            sta: 50,
+            ref: 50,
+          },
+        },
+      ],
+    };
+    expect(() => createMatch(1, home, clash('shared'))).toThrow(
+      'share player id shared',
+    );
+  });
+
+  it('still accepts the ordinary, legal pairing', () => {
+    expect(() => createMatch(1, ROVERS, UNITED)).not.toThrow();
+  });
+});
+
+describe('queueInput bounds', () => {
+  it('rejects an input queued after full time instead of logging one the sim will never run', () => {
+    const m = createMatch(9, ROVERS, UNITED, { controlledTeam: 0 });
+    while (m.phase !== 'fulltime') tick(m);
+    const logged = m.inputLog.length;
+    expect(() =>
+      queueInput(m, {
+        tick: m.tick + 1,
+        kind: 'SET_MENTALITY',
+        mentality: 'ATTACK',
+      }),
+    ).toThrow('the match is over');
+    expect(m.inputLog).toHaveLength(logged);
+    expect(m.pendingInputs).toHaveLength(0);
+  });
+
+  it('rejects an input past the replay cap the envelope validator enforces', () => {
+    const m = createMatch(9, ROVERS, UNITED, { controlledTeam: 0 });
+    // MAX_REPLAY_INPUTS is module-private; fill the log directly so the test
+    // does not depend on its exact value, only on queueInput honouring it.
+    const flood: MatchInput = {
+      tick: 1,
+      kind: 'SET_MENTALITY',
+      mentality: 'ATTACK',
+    };
+    for (let i = 0; i < 2050; i++) m.inputLog.push({ ...flood });
+    expect(() =>
+      queueInput(m, { ...flood, tick: m.tick + 1, mentality: 'PROTECT' }),
+    ).toThrow('input log is full');
+    expect(m.inputLog).toHaveLength(2050);
+    // …and the envelope validator would have rejected the log this prevents.
+    m.inputLog.push({ ...flood });
+    expect(() => validateEnvelope(envelopeFrom(m))).toThrow('too many inputs');
+  });
+
+  it('still accepts an ordinary in-play input', () => {
+    const m = createMatch(9, ROVERS, UNITED, { controlledTeam: 0 });
+    tick(m);
+    queueInput(m, {
+      tick: m.tick + 1,
+      kind: 'SET_MENTALITY',
+      mentality: 'ATTACK',
+    });
+    expect(m.inputLog).toHaveLength(1);
   });
 });

@@ -175,12 +175,12 @@ export function assertContractTermFitsCareer(
       : maxSigningTermSeasons(player, careerSeed);
   if (cap === 0) {
     throw new Error(
-      `${player.name} has announced their retirement and cannot re-sign.`,
+      `${player.name} has announced their retirement and cannot re-sign`,
     );
   }
   if (termSeasons > cap) {
     throw new Error(
-      `${player.name} only has ${cap} season${cap === 1 ? '' : 's'} left and cannot sign for ${termSeasons}.`,
+      `${player.name} only has ${cap} season${cap === 1 ? '' : 's'} left and cannot sign for ${termSeasons}`,
     );
   }
 }

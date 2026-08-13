@@ -289,7 +289,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       ) {
         throw new Error('invalid fake developer save upsert parameters');
       }
-      this.developerSaveRows.set(slot, {
+      this.developerSaveRows.set(developerSaveKey(savedCareerSeed, slot), {
         slot,
         kind,
         schema_version: schemaVersion,
@@ -445,8 +445,10 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       if (typeof slot !== 'string' || typeof careerSeed !== 'number') {
         throw new Error('invalid fake developer save load parameters');
       }
-      const row = this.developerSaveRows.get(slot);
-      return row === undefined || row.saved_career_seed !== careerSeed
+      const row = this.developerSaveRows.get(
+        developerSaveKey(careerSeed, slot),
+      );
+      return row === undefined
         ? null
         : ({
             schema_version: row.schema_version,
@@ -645,6 +647,11 @@ function arrayParams(
 
 function replayKey(careerId: string, fixtureId: string): string {
   return `${careerId}\u0000${fixtureId}`;
+}
+
+/** Mirrors the developer_saves primary key: one slot set per career. */
+function developerSaveKey(careerSeed: number, slot: string): string {
+  return `${careerSeed}\u0000${slot}`;
 }
 
 function compareReplayRows(left: FakeReplayRow, right: FakeReplayRow): number {

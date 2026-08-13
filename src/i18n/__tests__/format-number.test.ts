@@ -60,4 +60,18 @@ describe('formatMoney', () => {
     expect(formatMoney('de', 1240, true)).toBe('+$1.240');
     expect(formatMoney('de', 0, true)).toBe('$0');
   });
+
+  test('a non-finite or exponential value never gets grouped as text', () => {
+    // The grouping loop walks `String(value)` three CHARACTERS at a time, which
+    // is digit grouping only while the string is all digits. "Infinity" came
+    // out as "In,fin,ity" and `formatMoney` wrapped it as "+$In,fin,ity"; past
+    // 1e21 `String()` switches to exponential and "1e+21" became "1e,+21". Both
+    // in every locale.
+    expect(formatInteger('en', Number.POSITIVE_INFINITY)).toBe('0');
+    expect(formatInteger('de', Number.NEGATIVE_INFINITY)).toBe('0');
+    expect(formatInteger('fr', Number.NaN)).toBe('0');
+    expect(formatMoney('en', Number.POSITIVE_INFINITY)).toBe('$0');
+    expect(formatInteger('en', 1e21)).toBe('1e+21');
+    expect(formatInteger('de', 1e21)).toBe('1e+21');
+  });
 });

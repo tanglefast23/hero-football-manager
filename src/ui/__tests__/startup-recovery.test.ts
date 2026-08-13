@@ -16,6 +16,36 @@ describe('startup recovery', () => {
     );
   });
 
+  it('offers a reload when the screen could not load its own code', () => {
+    // Screens are lazy chunks on web. A tab left open across a deploy keeps the
+    // old index.html, the host 404s that build's chunks, and the boundary's only
+    // action — Back to title — returns to the same career, the same fixture and
+    // the same 404. Fetching the current build is the one thing that fixes it.
+    const boundary = readFileSync(
+      join(process.cwd(), 'src/ui/ScreenErrorBoundary.tsx'),
+      'utf8',
+    );
+
+    // The reload is offered only for a stale bundle, and only where there is a
+    // document to reload. Native ships its JS inside the app: no deploy skew.
+    expect(boundary).toContainSource(
+      "const offerReload = staleBundle && typeof window !== 'undefined';",
+    );
+    expect(boundary).toContainSource(
+      'if (offerReload && reloadBrowserDocument()) return;',
+    );
+
+    // The half that is easy to lose in a refactor: an ORDINARY crash must still
+    // reach onRecover. That call is what records the crash in the store, and
+    // the record is the only reason Continue routes past the screen that threw
+    // instead of walking straight back into it. A stale bundle skips it on
+    // purpose — the reload restarts the process, so an in-memory flag would not
+    // survive to be read anyway.
+    expect(boundary).toMatch(
+      /if \(offerReload && reloadBrowserDocument\(\)\) return;\s*this\.setState\(\{ message: null, staleBundle: false \}\);\s*this\.props\.onRecover\(\);/,
+    );
+  });
+
   it('does not reconcile the assistant inbox again for its own career update', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
@@ -31,8 +61,15 @@ describe('startup recovery', () => {
       /browserDatabaseLock[\s\S]*?isBrowserDatabaseLockError\(bootError\)/,
     );
     expect(app).toMatch(
-      /browserDatabaseLock && reloadBrowserDocument\(\)[\s\S]*?onStartFresh={\s*browserDatabaseLock\s*\?\s*undefined/,
+      /noteBootRetry\(\);\s*if \(reloadBrowserDocument\(\)\) return;[\s\S]*?onStartFresh={\s*browserDatabaseLock\s*\?\s*undefined/,
     );
+    // Suppressing Start Fresh is right only while Retry can still work. Retry
+    // here reloads the document, so a lock that never clears left the screen
+    // with one button that had already failed and no second action, forever.
+    // The counter must outlive the reload, so it cannot be component state.
+    expect(app).toContainSource('bootRetryCount() < BOOT_RETRY_LIMIT');
+    expect(app).toContainSource("const BOOT_RETRY_KEY = 'hfm.bootRetries';");
+    expect(app).toContainSource('clearBootRetries();');
   });
 
   it('never file-resets a failed discard while a backup is still restorable', () => {

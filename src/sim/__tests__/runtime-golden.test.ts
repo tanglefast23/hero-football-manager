@@ -20,4 +20,18 @@ describe('runtime golden replay', () => {
     expect(assisted.length).toBeGreaterThan(0);
     expect(unassisted.length).toBeGreaterThan(0);
   });
+
+  // scoredById is the m2.2 addition. Assert the golden actually hashes it, so a
+  // future rebaseline onto a seed without goals cannot quietly stop covering it.
+  it('stamps every golden goal with the shooter stable id', () => {
+    const goals = goalGoldenMatch().events.filter(
+      (event) => event.kind === 'GOAL',
+    );
+    expect(goals.length).toBeGreaterThan(0);
+    for (const goal of goals) {
+      if (goal.kind !== 'GOAL') continue;
+      expect(typeof goal.scoredById).toBe('string');
+      expect(goal.scoredById).toMatch(goal.team === 0 ? /^r/ : /^u/);
+    }
+  });
 });

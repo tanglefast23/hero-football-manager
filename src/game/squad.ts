@@ -184,11 +184,44 @@ export function buildCareerMatchTeamDef(
  * selection preserves the starter's role when possible, never introduces an
  * unlicensed hero, and validates the repaired eleven through the same match
  * boundary used on match day.
+ *
+ * **Never throws for the user club.** Weekly settlement and match day both call
+ * this, so a squad with no fit cover used to brick the save — Advance Week and
+ * Play Match failing with the same internal error, forever, in a game that
+ * promises warnings and a forced sale but never a game over. When the bench is
+ * genuinely empty the academy sends the same emergency youth a board-forced
+ * sale gets. Callers who would rather NOT take that relief — a drill deciding
+ * whether it may injure, a leave request deciding whether it may be granted —
+ * ask `tryRepairCareerLineupForInjuries` and decline instead.
  */
 export function repairCareerLineupForInjuries(
   state: GameState,
   clubId = state.userClubId,
 ): GameState {
+  const repaired = repairLineupForInjuries(state, clubId, true);
+  if (repaired === undefined) {
+    throw new Error(`club ${clubId} has no eligible lineup replacement`);
+  }
+  return repaired;
+}
+
+/**
+ * The same repair restricted to players already on the books: `undefined` when
+ * the squad cannot cover the outage, so the caller can decline the thing that
+ * would have caused it rather than conjuring a replacement.
+ */
+export function tryRepairCareerLineupForInjuries(
+  state: GameState,
+  clubId = state.userClubId,
+): GameState | undefined {
+  return repairLineupForInjuries(state, clubId, false);
+}
+
+function repairLineupForInjuries(
+  state: GameState,
+  clubId: string,
+  allowRelief: boolean,
+): GameState | undefined {
   const lineup = state.lineups.find((candidate) => candidate.clubId === clubId);
   if (lineup === undefined)
     throw new Error(`missing lineup for club ${clubId}`);
@@ -198,6 +231,9 @@ export function repairCareerLineupForInjuries(
   const playerIds = [...lineup.playerIds];
   const selected = new Set(playerIds);
   const heroLimit = careerHeroLimit(state);
+  // Emergency academy call-ups, only ever minted for the user club — the
+  // generated divisions have no academy and no lineup edits to repair.
+  const relief: CareerPlayer[] = [];
 
   for (let slot = 0; slot < playerIds.length; slot += 1) {
     const starter = playerById.get(playerIds[slot]);
@@ -227,20 +263,45 @@ export function repairCareerLineupForInjuries(
         return compareIds(left.id, right.id);
       })[0];
     if (replacement === undefined) {
-      throw new Error(
-        `injured starter ${starter.id} has no eligible lineup replacement`,
+      if (!allowRelief || clubId !== state.userClubId) return undefined;
+      const youth = createEmergencyYouthReplacement(
+        { ...state, players: [...state.players, ...relief] },
+        slot === 0 ? 'GK' : starter.role,
+        starter.id,
       );
+      relief.push(youth);
+      playerById.set(youth.id, youth);
+      playerIds[slot] = youth.id;
+      selected.add(youth.id);
+      continue;
     }
     playerIds[slot] = replacement.id;
     selected.add(replacement.id);
   }
 
-  const repaired: GameState = playerIds.every(
-    (playerId, index) => playerId === lineup.playerIds[index],
-  )
+  const unchanged =
+    relief.length === 0 &&
+    playerIds.every((playerId, index) => playerId === lineup.playerIds[index]);
+  const repaired: GameState = unchanged
     ? state
     : {
         ...state,
+        players:
+          relief.length === 0 ? state.players : [...state.players, ...relief],
+        clubs:
+          relief.length === 0
+            ? state.clubs
+            : state.clubs.map((club) =>
+                club.id === clubId
+                  ? {
+                      ...club,
+                      weeklyWages: relief.reduce(
+                        (sum, youth) => sum + youth.weeklyWage,
+                        club.weeklyWages,
+                      ),
+                    }
+                  : club,
+              ),
         lineups: state.lineups.map((candidate) =>
           candidate.clubId === clubId ? { ...candidate, playerIds } : candidate,
         ),

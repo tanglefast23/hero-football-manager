@@ -122,10 +122,64 @@ export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
   };
 }
 
-/** Trims, collapses runs of spaces, and holds the length rule. */
+/**
+ * What the one shipped pixel face can actually draw.
+ *
+ * The game has a single type family for every locale — Silkscreen, extended by
+ * hand with the Vietnamese precomposed set — and every name the manager types
+ * is drawn in it: league table, scoreboard, squad register, match HUD. Anything
+ * outside its cmap renders as a tofu box, in all seven languages, and
+ * validation checked LENGTH only. `Łukasz`, `Çalhanoğlu`, `Ολυμπιακός`,
+ * `Зенит`, `中村俊輔` and `🏆` were all accepted; any Polish, Turkish, Greek,
+ * Cyrillic or CJK keyboard reaches this, and so does the emoji key.
+ *
+ * Derived from the face itself — `glyphSet(faceFile(...))` in
+ * `src/i18n/glyph-coverage.ts` reports 328 codepoints — narrowed to what
+ * belongs in a name. This ring is pure TypeScript and cannot read a TTF at
+ * runtime, so the ranges are written out rather than computed.
+ *
+ *   - ASCII letters, digits, space, and the three name punctuators `. ' -`
+ *   - Latin-1 letters (`À`–`ÿ`, minus the `×` and `÷` sitting inside that block)
+ *   - the extras the face carries: `Ăă Đđ Ĩĩ Œœ Šš Ũũ Ÿ Žž Ơơ Ưư`
+ *   - the Vietnamese precomposed block `Ạ`–`ỹ` (U+1EA0–U+1EF9)
+ *
+ * Braces are excluded on their own account as well: a name containing `{count}`
+ * used to knock translated sentences back to English (`copyOrEnglish`). So is
+ * U+202E RIGHT-TO-LEFT OVERRIDE, which is not a glyph at all — it reverses
+ * every character drawn after it, so `Bob<U+202E>htimS` renders as `Bob Smith`
+ * on a scoreboard and as itself in a save file.
+ */
+const DRAWABLE_NAME = /^[A-Za-z0-9 .'\-À-ÖØ-öø-ÿĂăĐđĨĩŒœŠšŨũŸŽžƠơƯưẠ-ỹ]+$/;
+
+/**
+ * What an iOS keyboard types where the face has a plain glyph.
+ *
+ * Smart Punctuation is ON by default on iOS, so an apostrophe arrives as U+2019
+ * and a hyphen typed twice arrives as an en/em dash. `O’Neill` from an iPhone
+ * would otherwise be refused as undrawable while the source literal `O'Neill`
+ * passed every test — the exact shape of bug a test that types ASCII can never
+ * see. Folding is deliberately one-way and tiny: these are the substitutions the
+ * keyboard makes on its own, not a general transliteration.
+ */
+const KEYBOARD_SUBSTITUTIONS: readonly (readonly [RegExp, string])[] = [
+  [/[‘’ʼ]/g, "'"],
+  [/[–—−]/g, '-'],
+  [/[“”]/g, '"'],
+  [/…/g, '...'],
+  [/[   ]/g, ' '],
+];
+
+/** Trims, collapses runs of spaces, and holds the length and glyph rules. */
 export function validateTypedName(value: string, subject: string): string {
   if (typeof value !== 'string') throw new Error(`${subject} must be text`);
-  const name = value.trim().replace(/\s+/g, ' ');
+  // NFC first: a Vietnamese name typed with combining marks decomposes, and the
+  // face carries the precomposed block, so the composed form is the drawable
+  // one even though both look identical on screen.
+  let name = value.normalize('NFC');
+  for (const [pattern, plain] of KEYBOARD_SUBSTITUTIONS) {
+    name = name.replace(pattern, plain);
+  }
+  name = name.trim().replace(/\s+/g, ' ');
   if (
     name.length < TYPED_NAME_MIN_LENGTH ||
     name.length > TYPED_NAME_MAX_LENGTH
@@ -133,6 +187,9 @@ export function validateTypedName(value: string, subject: string): string {
     throw new Error(
       `${subject} must contain ${TYPED_NAME_MIN_LENGTH} to ${TYPED_NAME_MAX_LENGTH} characters`,
     );
+  }
+  if (!DRAWABLE_NAME.test(name)) {
+    throw new Error(`${subject} uses characters the game cannot display`);
   }
   return name;
 }

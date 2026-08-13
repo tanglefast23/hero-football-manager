@@ -684,8 +684,12 @@ export function TrainingDrillModal({
                         if (unaffordable) {
                           playManagementActionSfx('warning');
                           setNotice({
-                            title: 'Not enough TP',
-                            detail: `${option.drillName} costs ${option.tpCost} TP and you have ${trainingPoints}. Advance the week to earn more.`,
+                            title: t('trainingDrill.notEnoughTp'),
+                            detail: t('trainingDrill.notEnoughTpDetail', {
+                              drill: option.drillName,
+                              cost: option.tpCost,
+                              available: trainingPoints,
+                            }),
                           });
                           return;
                         }

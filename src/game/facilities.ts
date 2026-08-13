@@ -456,7 +456,7 @@ export function buildFacility(
   validateSpendableCash(availableCash);
   const definition = definitionFor(type);
   if (!definition.available)
-    throw new Error(`${definition.name} is not unlocked.`);
+    throw new Error(`${definition.name} is not unlocked`);
   const copiesBuilt = grid.buildings.filter(
     (building) => building.type === type,
   ).length;

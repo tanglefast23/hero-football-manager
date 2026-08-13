@@ -54,4 +54,20 @@ describe('resolveCopy', () => {
       resolveCopy('en', { 'a.x': 'fee {fee}' }, en, 'a.x', { fee: 1240 }),
     ).toBe('fee 1240');
   });
+
+  test('an inherited property name is a hole, not a value', () => {
+    // `params[name]` without `hasOwn` resolves `{constructor}` to
+    // `function Object() { [native code] }` and prints it into the sentence.
+    // `lookup()` has guarded against exactly this since it was written, with a
+    // comment saying saved data reaches it — and `labelParams` comes out of a
+    // save the same way `labelKey` does.
+    expect(
+      resolveCopy('en', { 'a.x': 'who {constructor}' }, en, 'a.x', {
+        other: 1,
+      }),
+    ).toBe('who {constructor}');
+    expect(
+      resolveCopy('en', { 'a.x': 'who {toString}' }, en, 'a.x', { other: 1 }),
+    ).toBe('who {toString}');
+  });
 });

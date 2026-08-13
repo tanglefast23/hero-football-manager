@@ -119,7 +119,9 @@ export function ScreenErrorBoundary(props: ScreenErrorBoundaryProps) {
     backToTitle: t('screenErrorBoundary.backToTitle'),
     returnToTitle: t('screenErrorBoundary.a11y.returnToTheTitleScreen'),
     reloadGame: t('screenErrorBoundary.reloadGame'),
-    reloadToLatest: t('screenErrorBoundary.a11y.reloadTheGameToItsLatestVersion'),
+    reloadToLatest: t(
+      'screenErrorBoundary.a11y.reloadTheGameToItsLatestVersion',
+    ),
   };
   return <ScreenErrorBoundaryCatcher {...props} copy={copy} />;
 }

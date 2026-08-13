@@ -40,6 +40,7 @@ export {
   PersistenceResetError,
   UnsupportedDatabaseVersionError,
   UnsupportedGameSchemaError,
+  UnsupportedReplayEngineError,
   UnsupportedReplaySchemaError,
 } from './errors';
 export { migrateDatabase, PERSISTENCE_SCHEMA_VERSION } from './migrations';

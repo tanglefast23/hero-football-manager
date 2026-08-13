@@ -615,6 +615,11 @@ export function CharacterCreationScreen({
             ? t('characterCreation.a11y.finishCreatingPlayer')
             : t('characterCreation.a11y.finishCreatingPlayerBlocked')
         }
+        // Not `disabled`: the press is what raises the reason it is blocked, so
+        // the button must stay pressable while looking unavailable. Without it a
+        // blocked SIGN THE ROOKIE kept its full-strength blue and managers
+        // tapped it over and over waiting for something to happen.
+        visuallyDisabled={!canSubmit}
         pressSfx={canSubmit ? 'positive' : 'click'}
         onPress={() => {
           if (!canSubmit) {

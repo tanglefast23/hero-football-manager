@@ -6,6 +6,8 @@ import {
 } from 'react-native-safe-area-context';
 import {
   ActionButton,
+  compactHudMoney,
+  formatCompactHudNumber,
   formatCompactNumber,
   formatCurrency,
 } from './components/Scorecard';
@@ -26,7 +28,7 @@ import { useCountUpNumber } from './use-count-up-number';
 import { IdleAttract } from './components/IdleAttract';
 import { ClubCrest } from './components/ClubCrest';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
-import { useCopy, type CopyFn } from '../i18n';
+import { useCopy } from '../i18n';
 import {
   GuidanceDoubleFlash,
   type GuidanceNudgeTarget,
@@ -93,15 +95,6 @@ const TAB_BAR_BOTTOM_INSET_TRIM = 14;
 const DEVELOPER_AUTO_SLOT_LABELS = ['1', '2', '3', '4', '5'] as const;
 const DEVELOPER_MANUAL_SLOT_LABELS = ['A', 'B', 'C', 'D', 'E'] as const;
 
-/** Compact top-bar numerals: commas under 10k, then k / M so three fit on one row. */
-function abbrev(t: CopyFn, n: number): string {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000)
-    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (abs >= 10_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
-  return formatCompactNumber(t, n);
-}
-
 function ResourceChip({
   glyph,
   icon,
@@ -144,6 +137,10 @@ function ResourceChip({
   // rolling value is presentation, not the number the player is being told.
   const shownValue = useCountUpNumber(value, reduceMotion);
   const negativeMoney = money && shownValue < 0;
+  // Money keeps its sign in front of the currency mark, so the painted chip
+  // reads the same way as the spoken label below.
+  const chip =
+    money && glyph !== undefined ? compactHudMoney(t, glyph, shownValue) : null;
   const spoken = t('managementShell.a11y.resourceChip', {
     name,
     value: money ? formatCurrency(t, value) : formatCompactNumber(t, value),
@@ -181,7 +178,7 @@ function ResourceChip({
                   : 'font-pixel text-xs text-blue-dark'
             }
           >
-            {glyph}
+            {chip?.glyph ?? glyph}
           </Text>
         )}
         <Text
@@ -196,7 +193,7 @@ function ResourceChip({
                 : 'font-mono text-sm text-ink'
           }
         >
-          {abbrev(t, shownValue)}
+          {chip?.amount ?? formatCompactHudNumber(t, shownValue)}
         </Text>
       </View>
     </InfoTip>

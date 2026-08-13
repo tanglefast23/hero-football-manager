@@ -113,11 +113,21 @@ describe('Club Business phone and accessibility contracts', () => {
   });
 
   it('uses a phone-safe signing label while the dialog carries the full terms', () => {
-    expect(app).toContainSource("confirmLabel: 'Sign deal'");
-    expect(app).toContainSource(
-      'Objective: ${offer.objectiveLabel}. Target bonus',
+    // Catalogued, not inline: these four sentences shipped in English to six of
+    // the seven languages while they were literals in `App.tsx`. The dialog is
+    // assembled from whole sentences so no translation has to carry a leading
+    // space, so the terms are asserted key by key.
+    const strings = loadCatalog('en').strings;
+    expect(app).toContainSource("confirmLabel: t('confirm.sponsor.confirm')");
+    expect(strings['confirm.sponsor.confirm']).toBe('Sign deal');
+    expect(app).toContainSource("t('confirm.sponsor.objective'");
+    expect(strings['confirm.sponsor.objective']).toBe(
+      'Objective: {objective}. Target bonus {bonus}.',
     );
-    expect(app).toContainSource('On Chairman, the club receives');
+    expect(app).toContainSource("t('confirm.sponsor.chairmanFee'");
+    expect(strings['confirm.sponsor.chairmanFee']).toContain(
+      'On Chairman, the club receives',
+    );
   });
 
   it('shows both target outcomes and the actual Week 30 cash before season rollover', () => {

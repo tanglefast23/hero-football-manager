@@ -61,7 +61,7 @@ describe('player-facing acceptance audit regressions', () => {
 
     // Full-bleed across a desktop monitor disagreed with the columns under it.
     expect(app).toContainSource('w-full max-w-[1180px] border-2 px-4 py-3');
-    expect(app).toContainSource('absolute left-4 right-4 top-16 items-center');
+    expect(app).toContainSource('absolute left-4 right-4 top-32 items-center');
   });
 
   test('keeps facility accessibility copy equal to the visible build facts', () => {

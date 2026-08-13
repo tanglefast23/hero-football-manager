@@ -1041,8 +1041,7 @@ function benchedUserStarter(state: GameState): boolean {
   if (lineup === undefined) return false;
   return state.players.some(
     (player) =>
-      lineup.playerIds.includes(player.id) &&
-      !isAvailableForSelection(player),
+      lineup.playerIds.includes(player.id) && !isAvailableForSelection(player),
   );
 }
 

@@ -25,7 +25,10 @@ describe('persistent haptics gate', () => {
   it('silences match and management feedback when disabled', () => {
     setHapticsEnabled(false);
     playManagementHaptic('success');
-    playHapticForEvent({ t: 1, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' }, 0);
+    playHapticForEvent(
+      { t: 1, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' },
+      0,
+    );
 
     expect(mockSelectionAsync).not.toHaveBeenCalled();
     expect(mockImpactAsync).not.toHaveBeenCalled();

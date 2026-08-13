@@ -16,7 +16,7 @@ import type { GlossaryCatalog } from '../../content';
 import { GlossaryPanel } from '../GlossaryPanel';
 import { TitlePlayerPopScene } from '../components/TitlePlayerPopScene';
 import { PixelText } from '../components/PixelText';
-import { layoutModeForWidth } from '../layout/layout-mode';
+import { layoutModeForWidth, titleMascotFits } from '../layout/layout-mode';
 import { PrivacySupportPanel } from '../PrivacySupportPanel';
 import { ChunkyControl } from '../components/ChunkyControl';
 import { TYPE_ART_EXCEPTION, TYPE_SIZE } from '../ui-tokens';
@@ -46,6 +46,9 @@ export function TitleLandingScreen({
   const t = useCopy();
   const { width, height } = useWindowDimensions();
   const isWide = layoutModeForWidth(width) === 'twoColumn' && height >= 600;
+  // The two-column title puts the mascot beside the wordmark rather than over
+  // it, so only the one-column layout has to earn the room.
+  const showMascot = isWide || titleMascotFits(height);
 
   return (
     <SafeAreaView
@@ -139,10 +142,18 @@ export function TitleLandingScreen({
             </View>
           </View>
 
-          <View className={isWide ? 'w-[430px] pt-28' : 'mt-32'}>
+          {/* The gap exists to hold the mascot's overhang. With no mascot to
+              hold it is dead pitch, and on the short screens that drop him it is
+              the room STORY and CONTINUE need to stay above the fold. */}
+          <View
+            className={
+              isWide ? 'w-[430px] pt-28' : showMascot ? 'mt-32' : 'mt-10'
+            }
+          >
             <TitleMenu
               hasSavedCareer={hasSavedCareer}
               reduceMotion={reduceMotion}
+              showMascot={showMascot}
               onStory={onStory}
               onSettings={onSettings}
               language={language}
@@ -158,6 +169,7 @@ export function TitleLandingScreen({
 function TitleMenu({
   hasSavedCareer,
   reduceMotion,
+  showMascot,
   onStory,
   onSettings,
   language,
@@ -165,6 +177,8 @@ function TitleMenu({
 }: {
   readonly hasSavedCareer: boolean;
   readonly reduceMotion: boolean;
+  /** False where the viewport cannot hold the overhang — see titleMascotFits. */
+  readonly showMascot: boolean;
   readonly onStory: () => void;
   readonly onSettings: () => void;
   readonly language: Locale;
@@ -173,12 +187,14 @@ function TitleMenu({
   const t = useCopy();
   return (
     <View className="relative z-20">
-      <View
-        pointerEvents="none"
-        className="absolute -top-[250px] left-0 right-0 z-20 h-[252px]"
-      >
-        <TitlePlayerPopScene reduceMotion={reduceMotion} />
-      </View>
+      {showMascot ? (
+        <View
+          pointerEvents="none"
+          className="absolute -top-[250px] left-0 right-0 z-20 h-[252px]"
+        >
+          <TitlePlayerPopScene reduceMotion={reduceMotion} />
+        </View>
+      ) : null}
       <View className="z-10 gap-2 border-[3px] border-ink bg-paper p-3">
         <View className="mb-1 flex-row items-center justify-between">
           <Text

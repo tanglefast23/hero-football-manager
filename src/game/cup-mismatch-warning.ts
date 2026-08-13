@@ -1,6 +1,7 @@
 import type { Role } from '../sim/types';
 import { activeCareerMatchday } from './career';
 import { compareIds } from './ordering';
+import type { PyramidClub } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
 const CUP_MISMATCH_WARNING_FLAG_PREFIX = 'story:bert:cup-mismatch-warning:';
@@ -121,8 +122,8 @@ export function cupMismatchWarning(
   const divisionGap = userDivision - opponentDivision;
   if (divisionGap < 2) return undefined;
 
-  const opponent = state.clubs.find((club) => club.id === opponentClubId);
-  if (opponent === undefined) return undefined;
+  const opponentName = cupOpponentName(state, opponentClubId);
+  if (opponentName === undefined) return undefined;
   const tier: 2 | 3 | 4 = divisionGap >= 4 ? 4 : divisionGap === 3 ? 3 : 2;
   const copy = WARNING_COPY_BY_TIER[tier];
   const star = shouldNameStar(matchday.fixture.matchSeed)
@@ -131,9 +132,9 @@ export function cupMismatchWarning(
 
   const bodyLines: CupMismatchWarningLine[] = [
     {
-      text: copy.body(opponent.name),
+      text: copy.body(opponentName),
       textKey: cupMismatchCopyKey(tier, 'body'),
-      textParams: { opponent: opponent.name },
+      textParams: { opponent: opponentName },
     },
     ...(star === undefined
       ? []
@@ -188,6 +189,38 @@ function shouldNameStar(matchSeed: number): boolean {
 }
 
 /**
+ * The two places a Cup opponent can live.
+ *
+ * `state.clubs` holds ONLY the ten clubs of the user's active division, so a
+ * tie two or more tiers away — the only kind this whole feature exists for —
+ * is never in it. The match itself already knows this: `buildCareerMatchTeamDef`
+ * falls back to the pyramid to build the opposition. Reading `state.clubs`
+ * alone meant every qualifying tie was silently rejected here while the
+ * matching post-win giant-killing speech still fired.
+ */
+function pyramidClub(
+  state: GameState,
+  clubId: string,
+): PyramidClub | undefined {
+  return state.m2?.pyramid.divisions
+    .flatMap((division) => division.clubs)
+    .find((club) => club.id === clubId);
+}
+
+function cupOpponentName(
+  state: GameState,
+  opponentClubId: string,
+): string | undefined {
+  return (
+    state.clubs.find((club) => club.id === opponentClubId)?.name ??
+    pyramidClub(state, opponentClubId)?.name
+  );
+}
+
+/** Everything the star callout needs, from an active-division or a pyramid squad. */
+type ScorerCandidate = Pick<CareerPlayer, 'id' | 'name' | 'role' | 'attrs'>;
+
+/**
  * Names a starter, never a benched headline. Shooting owns most of the score;
  * technique and pace settle close calls, then attacking roles and the stable ID
  * order keep the answer deterministic on Hermes and V8.
@@ -195,19 +228,8 @@ function shouldNameStar(matchSeed: number): boolean {
 function likeliestOpponentScorer(
   state: GameState,
   opponentClubId: string,
-): CareerPlayer | undefined {
-  const lineup = state.lineups.find(
-    (candidate) => candidate.clubId === opponentClubId,
-  );
-  if (lineup === undefined) return undefined;
-  const starters = new Set(lineup.playerIds);
-  return state.players
-    .filter(
-      (player) =>
-        player.clubId === opponentClubId &&
-        starters.has(player.id) &&
-        player.role !== 'GK',
-    )
+): ScorerCandidate | undefined {
+  return opponentOutfieldStarters(state, opponentClubId)
     .slice()
     .sort(
       (left, right) =>
@@ -217,7 +239,33 @@ function likeliestOpponentScorer(
     )[0];
 }
 
-function scoringThreat(player: CareerPlayer): number {
+function opponentOutfieldStarters(
+  state: GameState,
+  opponentClubId: string,
+): readonly ScorerCandidate[] {
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === opponentClubId,
+  );
+  if (lineup !== undefined) {
+    const starters = new Set(lineup.playerIds);
+    return state.players.filter(
+      (player) =>
+        player.clubId === opponentClubId &&
+        starters.has(player.id) &&
+        player.role !== 'GK',
+    );
+  }
+  // `state.lineups` is active-division-only too. A pyramid club's eleven is the
+  // first player of each role in squad order — the same slice
+  // `buildCareerMatchTeamDef`'s `take(...)` will pick on match day.
+  const club = pyramidClub(state, opponentClubId);
+  if (club === undefined) return [];
+  const take = (role: Role, count: number) =>
+    club.squad.filter((player) => player.role === role).slice(0, count);
+  return [...take('DEF', 4), ...take('MID', 4), ...take('FWD', 2)];
+}
+
+function scoringThreat(player: ScorerCandidate): number {
   return player.attrs.sho * 4 + player.attrs.tec * 2 + player.attrs.pac;
 }
 

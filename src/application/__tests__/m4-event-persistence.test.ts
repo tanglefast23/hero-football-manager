@@ -110,6 +110,10 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     });
     useM1Store.getState().chooseEvent('display-meteor');
 
+    // A second delivery of the same choice is a duplicate press, not a fault:
+    // the reward must not be paid twice, and the player must not be shown an
+    // error for a card they already answered. Asserting an error here used to
+    // lock in a developer sentence appearing in the banner on a double tap.
     expect(useM1Store.getState().error).toBeNull();
     expect(clubFans(useM1Store.getState().career!)).toBe(clubFans(afterFirst));
     expect(useM1Store.getState().career!.trainingPoints).toBe(

@@ -21,8 +21,10 @@ describe('persistence migrations', () => {
     expect(database.backupSeedColumnExists).toBe(true);
     expect(database.developerSaveTableExists).toBe(true);
     expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
-    expect(database.migrationTransactions).toBe(6);
-    expect(database.createTableExecutions).toBe(5);
+    expect(database.migrationTransactions).toBe(7);
+    // Six creates for five tables: rung 7 recreates developer_saves under its
+    // real key, `(saved_career_seed, slot)`.
+    expect(database.createTableExecutions).toBe(6);
   });
 
   it('is idempotent after the current migration is applied', async () => {
@@ -32,8 +34,8 @@ describe('persistence migrations', () => {
     await migrateDatabase(database);
 
     expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
-    expect(database.migrationTransactions).toBe(6);
-    expect(database.createTableExecutions).toBe(5);
+    expect(database.migrationTransactions).toBe(7);
+    expect(database.createTableExecutions).toBe(6);
   });
 
   it('migrates a version-1 career database without changing its save row', async () => {
@@ -43,12 +45,12 @@ describe('persistence migrations', () => {
 
     await migrateDatabase(database);
 
-    expect(database.userVersion).toBe(6);
+    expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
     expect(database.replayTableExists).toBe(true);
     expect(database.preferencesTableExists).toBe(true);
     expect(database.backupTableExists).toBe(true);
     expect(database.careerRow).toEqual(existingRow);
-    expect(database.migrationTransactions).toBe(5);
+    expect(database.migrationTransactions).toBe(6);
   });
 
   it('adds the backup table to a version-3 database and leaves the save alone', async () => {
@@ -61,8 +63,8 @@ describe('persistence migrations', () => {
     expect(database.backupTableExists).toBe(true);
     expect(database.backupRow).toBeNull();
     expect(database.careerRow).toEqual(existingRow);
-    expect(database.userVersion).toBe(6);
-    expect(database.migrationTransactions).toBe(3);
+    expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
+    expect(database.migrationTransactions).toBe(4);
   });
 
   it('names the career on a backup written before the seed column existed', async () => {

@@ -325,8 +325,15 @@ describe('the opening fixture', () => {
     const ranked = state.clubs
       .map((club) => ({ id: club.id, mean: meanFor(club.id) }))
       .sort((left, right) => right.mean - left.mean);
-    expect(ranked[0].id).toBe(run.opener.opponentClubId);
-    expect(ranked[ranked.length - 1].id).toBe(state.userClubId);
+    // The opener is deliberately NOT the strongest club any more. The schedule
+    // pin opens on the division's upper-mid club and eases from there, so the
+    // strongest rival is met later in the season.
+    expect(ranked[0].id).not.toBe(run.opener.opponentClubId);
+    const openerRank = ranked.findIndex(
+      (club) => club.id === run.opener.opponentClubId,
+    );
+    expect(openerRank).toBeGreaterThanOrEqual(3);
+    expect(openerRank).toBeLessThanOrEqual(5);
   });
 
   it('is power-free, so the opener is a bare-stat contest', () => {

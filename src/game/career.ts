@@ -105,6 +105,7 @@ import {
   type LedgerLine,
   type LedgerLineReveal,
   type FinancialSafetyState,
+  type WeeklyLedger,
   type WeeklySettlementAward,
   type WeeklySettlementAwards,
 } from './types';
@@ -609,6 +610,32 @@ function bankHatTrickMilestone(
   };
 }
 
+/**
+ * How many seasons of weekly ledgers a save keeps.
+ *
+ * The same retention rule the Hero Cup brackets already have
+ * (`RETAINED_CUP_BRACKET_SEASONS`), for the slice that outgrew them: ledgers
+ * were append-only for the life of the career, so a season-100 save reached
+ * 2.07 MB with 69% of it ledgers, re-stringified into SQLite at every
+ * settlement. The cups are flat because they prune; nothing pruned these.
+ *
+ * Twenty rather than the cups' ten because a ledger is read further back than
+ * a bracket is: the longest measurement rail in the repo drives fifteen
+ * seasons and scans career-wide ledger totals at the end of it, and the
+ * Financial Report, the season recap and the award idempotency scan all sit
+ * far inside that. Nothing in the game or the harnesses reads a ledger twenty
+ * seasons old.
+ */
+export const RETAINED_LEDGER_SEASONS = 20;
+
+function retainedLedgers(
+  ledgers: readonly WeeklyLedger[],
+  season: number,
+): WeeklyLedger[] {
+  const oldestRetained = season - RETAINED_LEDGER_SEASONS + 1;
+  return ledgers.filter((ledger) => ledger.season >= oldestRetained);
+}
+
 function settleCurrentWeek(
   state: GameState,
   options: SettleCurrentWeekOptions = {},
@@ -812,15 +839,18 @@ function settleWeekResults(
         }
       : club,
   );
-  const ledgers = [
-    ...state.ledgers,
-    {
-      season: state.season,
-      week: state.week,
-      lines: settledLines,
-      balanceAfter,
-    },
-  ];
+  const ledgers = retainedLedgers(
+    [
+      ...state.ledgers,
+      {
+        season: state.season,
+        week: state.week,
+        lines: settledLines,
+        balanceAfter,
+      },
+    ],
+    state.season,
+  );
 
   const injuryWeeksBeforeSettlement = new Map(
     state.players.map((player) => [player.id, player.injuryWeeks]),
@@ -1244,6 +1274,36 @@ function settlementLines(
   return lines;
 }
 
+/**
+ * The season-end prize line, named after the place it was actually won in.
+ *
+ * `position` leaves the ring RAW, never as "9th": ordinal suffixes are the
+ * catalog's problem, not this ring's, and `src/game` cannot read `src/i18n`.
+ */
+function leaguePrizeLabel(position: number): {
+  label: string;
+  labelKey: string;
+  labelParams?: Readonly<Record<string, number>>;
+} {
+  if (position === 1) {
+    return {
+      label: 'League champion prize',
+      labelKey: 'ledger.leagueChampionPrize',
+    };
+  }
+  if (position === 2) {
+    return {
+      label: 'League runner-up prize',
+      labelKey: 'ledger.leagueRunnerUpPrize',
+    };
+  }
+  return {
+    label: `League prize · #${position}`,
+    labelKey: 'ledger.leaguePlacePrize',
+    labelParams: { position },
+  };
+}
+
 function settlementAwards(
   state: GameState,
   userClub: ClubState,
@@ -1309,16 +1369,15 @@ function settlementAwards(
     const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
     const prize =
       position === undefined ? 0 : leaguePrizeMoney(division, position);
-    if (prize > 0) {
+    if (position !== undefined && prize > 0) {
       awards.push({
         line: {
           kind: 'prize',
-          label:
-            position === 1 ? 'League champion prize' : 'League runner-up prize',
-          labelKey:
-            position === 1
-              ? 'ledger.leagueChampionPrize'
-              : 'ledger.leagueRunnerUpPrize',
+          // The prize table pays all ten places; this label only had two
+          // branches, so 3rd through 10th all banked a "League runner-up
+          // prize" — "Prämie für den Zweiten" to a German manager who finished
+          // 9th. Anything off the top two gets its own neutral, placed line.
+          ...leaguePrizeLabel(position),
           amount: prize,
           idempotencyKey: weeklySettlementAwardKeys.leaguePrize(
             state.userClubId,
@@ -2012,14 +2071,22 @@ function resolveFinancialSafety(
     } else {
       forcedSale = boardForcedSaleAtDeadline(state, boardUltimatum);
       if (forcedSale === undefined) {
-        const refreshed = createBoardUltimatum(state);
-        boardUltimatum =
-          refreshed === undefined
-            ? { ...boardUltimatum, weeksRemaining: 1 }
-            : {
-                ...refreshed,
-                id: `${boardUltimatum.id}-refresh-s${state.season}-w${state.week}`,
-              };
+        // The deadline came and the board could not sell anyone.
+        //
+        // Parking the old ultimatum at one week meant re-entering this same
+        // dead end every settlement: a squad trimmed to the starting eleven has
+        // no eligible candidate at all, so the desk showed "Board deadline · 1
+        // week" forever, the sale never happened, and only the next season's
+        // squad refill ended it — up to thirty weeks of a threat that could not
+        // fire. Fail-soft means the threat stops, not that it lies. A squad
+        // that can still offer a list gets a fresh round; one that cannot is
+        // left alone until it can, and the cash floor keeps carrying the club.
+        //
+        // `createBoardUltimatum` already mints `board-ultimatum-s{season}-
+        // w{week}`, which the season and week make unique. Prefixing it with
+        // the previous id grew a persisted string by ~18 characters per failed
+        // round (22 -> 40 -> 58 -> 76 in sixteen weeks) for no gain.
+        boardUltimatum = createBoardUltimatum(state);
       } else {
         // The player's NAME, not their id. Both halves carried the raw
         // `p-…` id, so the statement read "Board-enforced sale · p-abc123" —

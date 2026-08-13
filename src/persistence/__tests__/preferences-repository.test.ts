@@ -365,6 +365,37 @@ describe('app preferences repository', () => {
     expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
+  it('keeps a migrated row in memory when the disk refuses the rewrite', async () => {
+    const database = new FakePersistenceDatabase();
+    const stored = {
+      schema_version: 9,
+      preferences_json: JSON.stringify({
+        ...V9_ROW_LITERAL,
+        masterVolume: 0.25,
+        textScale: 1.3,
+        highContrast: true,
+        climbCompleted: true,
+      }),
+    };
+    database.preferencesRow = { ...stored };
+
+    const repository = await createPreferencesRepository(database);
+    // A device out of space, or a browser refusing an OPFS write. The rewrite
+    // is opportunistic; letting it throw made `loadPreferencesFailSoft` unable
+    // to tell it from an unreadable row, so an upgrade reset the player's
+    // language, contrast, text scale and volume — over a row that reads fine.
+    database.writesFail = true;
+    const loaded = await repository.load();
+
+    expect(loaded.masterVolume).toBe(0.25);
+    expect(loaded.textScale).toBe(1.3);
+    expect(loaded.highContrast).toBe(true);
+    expect(loaded.climbCompleted).toBe(true);
+    expect(loaded.language).toBe('en');
+    // The good row is untouched, so the next launch simply migrates again.
+    expect(database.preferencesRow).toEqual(stored);
+  });
+
   it('rejects a language tag we do not ship rather than quietly keeping it', async () => {
     const database = new FakePersistenceDatabase();
     database.preferencesRow = {
