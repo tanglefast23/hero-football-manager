@@ -15,8 +15,8 @@ test('classifies chunk-load failures as stale bundle', () => {
 });
 
 test('ordinary view-model throws are not stale bundles', () => {
-  expect(isStaleBundleError(new Error('power PHANTOM_DASH not in catalog'))).toBe(
-    false,
-  );
+  expect(
+    isStaleBundleError(new Error('power PHANTOM_DASH not in catalog')),
+  ).toBe(false);
   expect(isStaleBundleError('anything else')).toBe(false);
 });

@@ -23,7 +23,9 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'KICKOFF', half: 1 })).toEqual([
       'kickoff-whistle',
     ]);
-    expect(filesForEvent({ t: 0, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' })).toEqual([
+    expect(
+      filesForEvent({ t: 0, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' }),
+    ).toEqual([
       'goal-net-hit',
       'goal-fanfare',
       'goal-celebration',
