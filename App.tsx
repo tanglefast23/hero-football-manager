@@ -174,6 +174,7 @@ import {
   EndgameCelebrationScreen,
   MatchDayBanner,
   MidseasonTrainingCelebrationScreen,
+  PenaltyShootout,
   QuickResultFaceOff,
   RivalHeroIntroScreen,
   StoryEventScreen,
@@ -1324,18 +1325,18 @@ function GameApp() {
   ]);
 
   /**
-   * The face-off is decoration, and decoration must never be able to strand a
-   * settled match. `quickResult` only ever sets this screen in the same `set()`
-   * that supplies the scene, so the pair below is unreachable by construction —
-   * this is a self-heal for a state that should not exist, not a flow. It hands
-   * straight on to the screen the result was going to open (`completeFaceOff`
-   * falls back to the post-match ledger when even that was lost).
+   * Post-match presentations are decoration, and decoration must never strand
+   * a settled match. Each route supplies its view model in the same `set()` as
+   * its screen, so these pairs are unreachable by construction. They self-heal
+   * to the result flow if ephemeral state is ever lost.
    */
   useEffect(() => {
     if (store.screen === 'faceoff' && store.faceOff === null)
       store.completeFaceOff();
+    if (store.screen === 'shootout' && store.shootout === null)
+      store.completeShootout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.screen, store.faceOff]);
+  }, [store.screen, store.faceOff, store.shootout]);
 
   useEffect(() => {
     if (store.screen !== 'season-end' || store.career === null) return;
@@ -2820,6 +2821,14 @@ function GameApp() {
         />
       );
     }
+  } else if (store.screen === 'shootout' && store.shootout !== null) {
+    screen = (
+      <PenaltyShootout
+        shootout={store.shootout}
+        reduceMotion={reduceMotion}
+        onDone={store.completeShootout}
+      />
+    );
   } else if (store.screen === 'faceoff' && store.faceOff !== null) {
     screen = (
       <QuickResultFaceOff
@@ -3737,6 +3746,7 @@ function GameApp() {
   // directly instead of remaining mounted through the ordinary dissolve.
   const screenRequiresHardCut =
     screenKey === MatchScreen ||
+    screenKey === PenaltyShootout ||
     screenKey === QuickResultFaceOff ||
     screenKey === RivalHeroIntroScreen ||
     screenKey === MidseasonTrainingCelebrationScreen;
@@ -3761,6 +3771,7 @@ function GameApp() {
             !store.persistenceReady ||
             store.persistenceLoadError !== null ||
             store.screen === 'watched' ||
+            store.screen === 'shootout' ||
             store.screen === 'faceoff' ||
             store.screen === 'awakening' ||
             store.screen === 'midseason-training' ||

@@ -1,5 +1,6 @@
 /** Native keeps the full Skia surfaces eager; web replaces this module. */
 export { QuickResultFaceOff } from '../render/QuickResultFaceOff';
+export { PenaltyShootout } from '../render/PenaltyShootout';
 export { RivalHeroIntroScreen } from './RivalHeroIntroScreen';
 export { MatchDayBanner } from './components/MatchDayBanner';
 export { AwakeningCutsceneScreen } from './screens/AwakeningCutsceneScreen';

@@ -110,6 +110,13 @@ describe('non-match music ownership', () => {
     );
   });
 
+  it('keeps the opening theme running under the penalty shootout', () => {
+    expect(menuThemeForScreen('shootout', 1)).toBe('opening');
+    expect(menuThemeForScreen('shootout', 1)).toBe(
+      menuThemeForScreen('postmatch', 1),
+    );
+  });
+
   it('uses the opening theme for the full-time report, then restores the office theme', () => {
     const fulltimeTheme = menuThemeForScreen('postmatch', 1);
     const officeTheme = menuThemeForScreen('management', 1);

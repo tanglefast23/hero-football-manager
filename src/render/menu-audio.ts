@@ -23,7 +23,8 @@ export function menuThemeForScreen(
     screen === 'welcome' ||
     screen === 'matchday' ||
     screen === 'postmatch' ||
-    screen === 'faceoff'
+    screen === 'faceoff' ||
+    screen === 'shootout'
   ) {
     return 'opening';
   }

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { QuickResultFaceOffProps } from '../render/QuickResultFaceOff';
+import type { PenaltyShootoutProps } from '../render/PenaltyShootout';
 import type { RivalHeroIntroScreenProps } from './RivalHeroIntroScreen';
 import type { MatchDayBannerProps } from './components/MatchDayBanner';
 import type { AwakeningCutsceneScreenProps } from './screens/AwakeningCutsceneScreen';
@@ -33,6 +34,12 @@ const DeferredQuickResultFaceOff = lazy(async () => {
   await loadSkia();
   const module = await import('./SkiaSurfaceImplementations');
   return { default: module.QuickResultFaceOff };
+});
+
+const DeferredPenaltyShootout = lazy(async () => {
+  await loadSkia();
+  const module = await import('./SkiaSurfaceImplementations');
+  return { default: module.PenaltyShootout };
 });
 
 const DeferredRivalHeroIntroScreen = lazy(async () => {
@@ -81,6 +88,14 @@ export function QuickResultFaceOff(props: QuickResultFaceOffProps) {
   return (
     <Suspense fallback={<LoadingSurface />}>
       <DeferredQuickResultFaceOff {...props} />
+    </Suspense>
+  );
+}
+
+export function PenaltyShootout(props: PenaltyShootoutProps) {
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <DeferredPenaltyShootout {...props} />
     </Suspense>
   );
 }

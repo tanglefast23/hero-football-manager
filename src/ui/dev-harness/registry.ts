@@ -20,6 +20,7 @@ import { squadSortHintEntry } from './entries/squad-sort-hint';
 import { liveMatchControlsEntry } from './entries/live-match-controls';
 import { matchVfxEntry } from './entries/match-vfx';
 import { midseasonTrainingEntry } from './entries/midseason-training';
+import { penaltyShootoutEntry } from './entries/penalty-shootout';
 import type { DevHarnessRoutableEntry } from './route';
 
 /**
@@ -77,6 +78,7 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   boardUltimatumEntry,
   cupMismatchWarningEntry,
   cupGiantKillingEntry,
+  penaltyShootoutEntry,
   promotionTransitionEntry,
   retirementLegacyEntry,
   // The order a season closes in: the podium, then the boards.
