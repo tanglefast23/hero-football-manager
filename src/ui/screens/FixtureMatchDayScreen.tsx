@@ -100,15 +100,17 @@ function MatchdayConditionStamp({
   );
 }
 
-function StarterStatsPanel({
-  player,
-  wide,
-}: {
-  player: LineupPlayerViewModel;
-  wide: boolean;
-}) {
-  const t = useCopy();
-  const cells = [
+/**
+ * The nine numbers a manager checks before kick-off, in reading order.
+ *
+ * Shared by the phone's in-cell grid and the desktop's right-column file, so
+ * the two surfaces cannot drift into showing different stats.
+ */
+function starterStatCells(
+  player: LineupPlayerViewModel,
+  t: ReturnType<typeof useCopy>,
+) {
+  return [
     { label: t('col.squad.overall'), value: player.overall },
     { label: t('col.squad.potential'), value: player.potentialGrade },
     { label: t('col.squad.condition'), value: player.condition },
@@ -123,6 +125,17 @@ function StarterStatsPanel({
     { label: 'TEC', value: player.attributes.TEC },
     { label: 'STA', value: player.attributes.STA },
   ] as const;
+}
+
+function StarterStatsPanel({
+  player,
+  wide,
+}: {
+  player: LineupPlayerViewModel;
+  wide: boolean;
+}) {
+  const t = useCopy();
+  const cells = starterStatCells(player, t);
 
   return (
     <View
@@ -156,6 +169,71 @@ function StarterStatsPanel({
           ))}
         </View>
       ))}
+    </View>
+  );
+}
+
+/**
+ * The desktop's answer to the phone's in-cell stat grid.
+ *
+ * A 76x91 box squeezed into a pitch cell is the phone's compromise, and it
+ * costs the player their own face while they read it. A wide window has a
+ * whole second column doing nothing until a starter is picked, so the file
+ * goes there at a size that can be read, and the pitch keeps its portraits.
+ */
+function StarterDetailPanel({ player }: { player: LineupPlayerViewModel }) {
+  const t = useCopy();
+  const cells = starterStatCells(player, t);
+  return (
+    <View className="mb-6">
+      <StageSection
+        eyebrow={t('fixtureMatchDay.playerFile')}
+        title={player.name}
+        right={<StatusChip label={player.formationRole} selected />}
+      />
+      <PaperPanel>
+        <View className="flex-row items-center gap-3">
+          <View
+            className={
+              player.isHero
+                ? 'border-2 border-gold bg-blue-light'
+                : 'border-2 border-paper bg-blue-light'
+            }
+          >
+            <PixelPortrait
+              playerId={player.id}
+              role={player.role}
+              lookId={player.lookId}
+              scale={PITCH_PORTRAIT_SCALE}
+            />
+          </View>
+          <View className="min-w-0 flex-1">
+            <PixelText className="text-base uppercase text-ink">
+              {player.name}
+            </PixelText>
+            <Text className="mt-1 font-mono text-[12px] text-ink/60">
+              {t('fixtureMatchDay.playerLine', {
+                role: player.role,
+                rating: player.overall,
+                condition: player.condition,
+              })}
+            </Text>
+            <MatchdayConditionStamp condition={player.condition} compact />
+          </View>
+        </View>
+        <View className="mt-3 flex-row flex-wrap">
+          {cells.map((cell) => (
+            <View key={cell.label} className="w-1/3 py-1">
+              <Text className="font-mono text-[11px] font-bold uppercase text-blue-dark">
+                {cell.label}
+              </Text>
+              <Text className="font-mono text-base font-bold text-ink">
+                {cell.value}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </PaperPanel>
     </View>
   );
 }
@@ -202,6 +280,15 @@ export function FixtureMatchDayScreen({
   const selectedStarter = viewModel.lineup.find(
     (player) => player.id === selectedStarterId,
   );
+  // Whose file the desktop column is showing. A pick wins over a hover: once a
+  // starter is chosen the column is mid-substitution, and sliding the mouse
+  // across the pitch on the way to the bench must not swap the file out from
+  // under the manager.
+  const inspectedStarter =
+    selectedStarter ??
+    (wide
+      ? viewModel.lineup.find((player) => player.id === hoveredStarterId)
+      : undefined);
 
   useEffect(() => {
     if (selectedStarterId !== null && selectedStarter === undefined)
@@ -385,8 +472,11 @@ export function FixtureMatchDayScreen({
                           : 'min-w-0 max-w-24 flex-1 items-center border-2 border-transparent px-0.5 py-1';
 
                 const spokenStats = starterStatsAccessibilityLabel(player, t);
+                // Desktop reads the file in the right column instead, so the
+                // pitch never trades a face for a 76pt table there.
                 const showStats =
-                  hoveredStarterId === player.id || (!pointer && selected);
+                  !wide &&
+                  (hoveredStarterId === player.id || (!pointer && selected));
                 return (
                   <Pressable
                     key={player.id}
@@ -714,6 +804,9 @@ export function FixtureMatchDayScreen({
               {teamSheet}
             </View>
             <View className="flex-1 pt-1">
+              {inspectedStarter === undefined ? null : (
+                <StarterDetailPanel player={inspectedStarter} />
+              )}
               {bench}
               {heroLicenses}
             </View>

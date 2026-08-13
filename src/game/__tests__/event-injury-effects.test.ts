@@ -1,6 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
 import { applyCareerEventOutcome, offerCareerEvent } from '../career-events';
+import { buildCareerTeamDef } from '../squad';
 import type { GameState } from '../types';
 
 /**
@@ -69,6 +70,53 @@ describe('event injury effects', () => {
   it('applies a setback and a heal in the order the story tells them', () => {
     // The sequel's losing branch: a fresh setback, then the specialist's help.
     expect(injuryAfter(1, { injuryWeeks: 3, injuryWeeksDelta: -1 })).toBe(2);
+  });
+
+  it('benches a starter the story just injured', () => {
+    // Left in the Starting XI, an injured starter made the state invalid until
+    // match day, where the engine threw `unavailable player <id> must be
+    // replaced in the lineup` at the player — raw, untranslated, with an
+    // internal id in it. Every other benching path already repaired here.
+    const base = createCareer(createLaunchCareerSetup());
+    const lineup = base.lineups.find(
+      (candidate) => candidate.clubId === base.userClubId,
+    )!;
+    const starterId = lineup.playerIds[5];
+    const offered = offerCareerEvent(base, 'test-event');
+
+    const resolved = applyCareerEventOutcome(offered, 'a-choice', 'Ouch.', {
+      playerEffect: { playerId: starterId, injuryWeeks: 3 },
+    });
+
+    const repaired = resolved.lineups.find(
+      (candidate) => candidate.clubId === base.userClubId,
+    )!;
+    expect(repaired.playerIds).not.toContain(starterId);
+    expect(repaired.playerIds).toHaveLength(lineup.playerIds.length);
+    expect(() => buildCareerTeamDef(resolved, base.userClubId)).not.toThrow();
+  });
+
+  it('leaves the eleven alone when the story injures nobody in it', () => {
+    const base = createCareer(createLaunchCareerSetup());
+    const lineup = base.lineups.find(
+      (candidate) => candidate.clubId === base.userClubId,
+    )!;
+    const benchId = base.players.find(
+      (player) =>
+        player.clubId === base.userClubId &&
+        !lineup.playerIds.includes(player.id),
+    )!.id;
+    const offered = offerCareerEvent(base, 'test-event');
+
+    const resolved = applyCareerEventOutcome(offered, 'a-choice', 'Ouch.', {
+      playerEffect: { playerId: benchId, injuryWeeks: 3 },
+    });
+
+    expect(
+      resolved.lineups.find(
+        (candidate) => candidate.clubId === base.userClubId,
+      )!.playerIds,
+    ).toEqual(lineup.playerIds);
   });
 
   it('refuses a setback spelled negative or a heal spelled positive', () => {

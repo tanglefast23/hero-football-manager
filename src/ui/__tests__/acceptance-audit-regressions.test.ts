@@ -32,13 +32,36 @@ describe('player-facing acceptance audit regressions', () => {
   test('makes transient notices temporary and produces one clean spoken sentence', () => {
     const app = source('App.tsx');
 
-    expect(app).toContainSource("if (tone === 'error') return undefined;");
+    // Errors used to be the exception and sat there until tapped. A tap is not
+    // a reliable exit — anything drawn over the banner eats it — so every tone
+    // now retires itself on the same timer.
+    expect(app).not.toContainSource("if (tone === 'error') return undefined;");
     expect(app).toContainSource('setTimeout(onDismiss, 4_000)');
+    expect(app).toContainSource('}, [message, onDismiss]);');
     expect(app).toContainSource('feedbackNoticeAccessibilityLabel(message, t)');
     expect(loadCatalog('en').strings['app.a11y.tapToDismiss']).toBe(
       '{sentence} Tap to dismiss.',
     );
     expect(app).toContainSource('/[.!?]$/.test(trimmed)');
+  });
+
+  test('keeps the feedback notice tappable and at the two-column measure', () => {
+    const app = source('App.tsx');
+
+    // Nested under the screen, the banner sat beneath every overlay that
+    // renders after it — a Bert walk-on, an inbox reminder — and those are
+    // full-screen pressables, so they ate the tap meant to dismiss it. Last
+    // child but for the tip layer is the only place nothing can cover it.
+    const notice = app.indexOf('onDismiss={store.clearError}');
+    const confirmation = app.indexOf('<ConfirmationSheet');
+    const tips = app.indexOf('<InfoTipLayer />');
+    expect(confirmation).toBeGreaterThan(-1);
+    expect(notice).toBeGreaterThan(confirmation);
+    expect(tips).toBeGreaterThan(notice);
+
+    // Full-bleed across a desktop monitor disagreed with the columns under it.
+    expect(app).toContainSource('w-full max-w-[1180px] border-2 px-4 py-3');
+    expect(app).toContainSource('absolute left-4 right-4 top-32 items-center');
   });
 
   test('keeps facility accessibility copy equal to the visible build facts', () => {
