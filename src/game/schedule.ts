@@ -109,11 +109,18 @@ export function generateSeasonFixtures(
 
 /**
  * Places five rivals in the rotation slots that produce a steadily easing
- * opening run. The user's venues alternate home/away, so the third opponent is
- * one raw point stronger than the second: at home it is still the gentler
- * fixture. The weakest rival waits until match five instead of creating an
- * early dip followed by a difficulty rebound. Other clubs retain stable ID
- * order so the result is deterministic for the same division.
+ * opening run: the division's bottom five, strongest of them first.
+ *
+ * Match one used to be the single HARDEST club in the division, on the theory
+ * that the run should ease from a peak. Measured against the shipped launch
+ * division that peak is a wall — the user club opens 11 rating points below its
+ * first opponent and a real career lost that fixture 0-13. The opener is now
+ * upper-mid instead, and the hardest club falls back into the unpinned pool so
+ * it lands somewhere after match five.
+ *
+ * The user's venues alternate home/away, so each opponent is a raw point
+ * weaker than the last while the venue swings the other way. Other clubs retain
+ * stable ID order so the result is deterministic for the same division.
  */
 export function pinOpeningLeagueOpponents(
   clubIds: readonly string[],
@@ -135,12 +142,12 @@ export function pinOpeningLeagueOpponents(
       (left, right) =>
         right.strength - left.strength || compareIds(left.clubId, right.clubId),
     );
-  const hardest = opponents[0].clubId;
   const upperMid = opponents[4].clubId;
   const lowerMid = opponents[5].clubId;
+  const midLow = opponents[6].clubId;
   const secondWeakest = opponents[7].clubId;
   const weakest = opponents[8].clubId;
-  const pinned = new Set([hardest, upperMid, lowerMid, secondWeakest, weakest]);
+  const pinned = new Set([upperMid, lowerMid, midLow, secondWeakest, weakest]);
   const remaining = opponents
     .map((opponent) => opponent.clubId)
     .filter((clubId) => !pinned.has(clubId))
@@ -150,9 +157,9 @@ export function pinOpeningLeagueOpponents(
     ...remaining,
     weakest,
     secondWeakest,
-    upperMid,
+    midLow,
     lowerMid,
-    hardest,
+    upperMid,
   ];
 }
 

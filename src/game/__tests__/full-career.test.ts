@@ -31,7 +31,7 @@ describe('full M2 career clock', () => {
     expect(full.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('starts the user at the bottom of D5 with a venue-aware first-five curve', () => {
+  test('starts the user level with the weakest D5 club on an easing first-five curve', () => {
     const full = createCareer({ ...createLaunchCareerSetup(77_003) });
     const strengths = new Map(
       full.clubs.map(
@@ -60,18 +60,24 @@ describe('full M2 career clock', () => {
       };
     });
 
-    expect(strengths.get(full.userClubId)).toBe(40);
-    expect(Math.min(...strengths.values())).toBe(40);
+    // 42, raised from 40 by the owner on 2026-08-13: the user is now level with
+    // the division's weakest club instead of alone below it.
+    expect(strengths.get(full.userClubId)).toBe(42);
+    expect(Math.min(...strengths.values())).toBe(42);
     // 51, not the 50 the pinning tuned it to. One sharpening is left: the
     // strongest rival in the division fields Larry Alan, worth about a point of
     // squad strength. The opening fixture's own +5 on each of that club's
     // position attributes was removed by the owner on 2026-08-12, which is the
     // point this number dropped from 52.
     expect(Math.max(...strengths.values())).toBe(51);
+    // Strictly descending since 2026-08-13. The opener used to be 51 — the
+    // division's strongest club, Larry Alan's included — which produced a 0-13
+    // in a real career. The pin now opens on the upper-mid club and eases, so
+    // 51 is met later in the season instead of in match one.
     expect(openingOpponents).toEqual([
-      { strength: 51, userIsHome: true },
-      { strength: 45, userIsHome: false },
       { strength: 46, userIsHome: true },
+      { strength: 45, userIsHome: false },
+      { strength: 44, userIsHome: true },
       { strength: 43, userIsHome: false },
       { strength: 42, userIsHome: true },
     ]);

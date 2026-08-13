@@ -81,14 +81,26 @@ const CREATION: CreationRatings = {
 const MAXIMUM_KEEPER_LEVERAGE_RATIO = 10;
 
 /**
- * A keeper-only opening must still lose most of the time.
+ * A keeper-only opening must still lose more often than it does anything else.
  *
- * Set below the opener's own 90% contract on purpose: this rail guards the
- * training path, and the opener contract is guarded where it belongs, by
- * `real-player-opening-probe`. A single path should not be able to drag the
- * opening match out of a defeat on its own.
+ * WEAKENED 2026-08-13, from 0.6, and the reason matters. This number was set
+ * "below the opener's own 90% contract" — and that contract no longer exists.
+ * The opener used to be a scripted defeat (56 losses from 56 in
+ * `opening-sentinel`); the schedule now opens mid-table and the user starts on
+ * 42 instead of 40, so the same eight seeds return 20 wins, 10 draws and 26
+ * losses. A rail anchored to the old contract cannot be re-used by moving it a
+ * few points; it has to be re-derived against the new opener or dropped.
+ *
+ * Re-derived: the general opener loses about 46% of the time. The keeper-only
+ * arm measures 52%, so the keeper path still loses MORE than the field average
+ * and the thing this rail exists to catch — one training path dragging the
+ * opening match out of a defeat by itself — is still caught. The floor sits at
+ * 0.45, just under the general rate, so the rail fails the moment keeper
+ * training starts outperforming an average opening rather than lagging it.
+ *
+ * If this needs to move again, re-measure the general rate first. Do not nudge.
  */
-const MINIMUM_KEEPER_ARM_LOSS_RATE = 0.6;
+const MINIMUM_KEEPER_ARM_LOSS_RATE = 0.45;
 
 const KIT = { coach: 'none' as const, buildTrainingPitch: false };
 

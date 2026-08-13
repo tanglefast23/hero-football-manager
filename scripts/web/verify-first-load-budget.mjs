@@ -17,8 +17,14 @@ const DIST = path.resolve('dist');
 // assertions below both stayed clean, so this is distributed feature growth,
 // not a renderer or dev-harness leak.
 //
-// Previous marks: 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
-// 5_861_753 at 0b2fc042.
+// Merge note, same day: #159 independently re-ratcheted main to 5_908_835 /
+// 875_599 off a main-only artifact (5_903_715 / 870_479, its own branch adding
+// ten raw bytes). The audit2 merge artifact above is the larger superset, so
+// its marks win this conflict; #159's growth attribution for main agrees with
+// the four-merge account above.
+//
+// Previous marks: 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the
+// stat-tip branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
 const RAW_BUDGET = 5_922_802;
 const GZIP_BUDGET = 879_373;
 const QA_BODY_MARKERS = [
