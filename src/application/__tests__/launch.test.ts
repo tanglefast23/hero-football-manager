@@ -79,6 +79,26 @@ describe('launch career adapter', () => {
     ).toMatchObject({ name: 'Larry Alan', lookId: 'f171' });
   });
 
+  it('repairs the old default club name in the saved pyramid', () => {
+    const current = createCareer(createLaunchCareerSetup());
+    const renamed = {
+      ...current,
+      clubs: current.clubs.map((club) =>
+        club.id === current.userClubId
+          ? { ...club, name: 'Thistle Town' }
+          : club,
+      ),
+    };
+
+    const reconciled = reconcileLaunchRoster(renamed);
+    const pyramidClub = reconciled.m2?.pyramid.divisions
+      .flatMap((division) => division.clubs)
+      .find((club) => club.id === reconciled.userClubId);
+
+    expect(pyramidClub?.name).toBe('Thistle Town');
+    expect(reconcileLaunchRoster(reconciled)).toStrictEqual(reconciled);
+  });
+
   it('derives club wage totals from the content roster', () => {
     const content = loadLaunchContent();
     const setup = createLaunchCareerSetup(7, DEFAULT_USER_CLUB_ID, content);

@@ -86,6 +86,21 @@ describe('i18n gates', () => {
     }
   });
 
+  test('every Bert line is translated in every non-English locale', () => {
+    const source = englishAll();
+    const keys = Object.keys(source).filter((key) => key.startsWith('bert.'));
+    expect(keys.length).toBeGreaterThan(0);
+
+    for (const locale of translated()) {
+      const strings = loadCatalog(locale).strings;
+      expect({
+        locale,
+        missing: keys.filter((key) => strings[key] === undefined),
+        untranslated: keys.filter((key) => strings[key] === source[key]),
+      }).toEqual({ locale, missing: [], untranslated: [] });
+    }
+  });
+
   test('gate 3 — every translation is inside its character budget', () => {
     // A copy rule, not a layout guarantee: Silkscreen is proportional, so
     // character count is a poor proxy for pixel width. Layout safety comes from

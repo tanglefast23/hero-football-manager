@@ -225,6 +225,24 @@ export function addCreatedPlayer(
           }
         : club,
     ),
+    ...(state.m2 === undefined || clubName === undefined
+      ? {}
+      : {
+          m2: {
+            ...state.m2,
+            pyramid: {
+              ...state.m2.pyramid,
+              divisions: state.m2.pyramid.divisions.map((division) => ({
+                ...division,
+                clubs: division.clubs.map((club) =>
+                  club.id === state.userClubId
+                    ? { ...club, name: clubName }
+                    : club,
+                ),
+              })),
+            },
+          },
+        }),
     players: [
       ...state.players.map((player) => {
         const assigned = assignedById.get(player.id)!;

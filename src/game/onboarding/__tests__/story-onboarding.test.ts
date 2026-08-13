@@ -1,5 +1,6 @@
 import type { GameState } from '../../types';
 import { createClubBusinessState } from '../../club-business';
+import { initializeM2Career } from '../../m2-career';
 import {
   completePostMatchAwakening,
   resolvePostMatchAwakening,
@@ -222,15 +223,34 @@ describe('story onboarding state machine', () => {
   });
 
   it('renames the club and the squad the manager typed over', () => {
-    const created = addCreatedPlayer(beginStoryOnboarding(state()), {
-      name: 'Jo Rook',
-      ratings: DEFAULT_CREATION_RATINGS,
-      // Untidy on purpose: the engine trims and collapses whatever a keyboard
-      // produced, the same way it does for the rookie's own name.
-      clubName: '  Thistle  Town ',
-      rosterNames: { 'old-hero': 'Nia Bell', 'forward-two': '   ' },
-    });
+    const begun = beginStoryOnboarding(state());
+    const created = addCreatedPlayer(
+      {
+        ...begun,
+        m2: initializeM2Career({
+          careerSeed: begun.careerSeed,
+          userClub: {
+            id: begun.userClubId,
+            name: 'Rovers',
+            squadStrength: 50,
+          },
+        }),
+      },
+      {
+        name: 'Jo Rook',
+        ratings: DEFAULT_CREATION_RATINGS,
+        // Untidy on purpose: the engine trims and collapses whatever a keyboard
+        // produced, the same way it does for the rookie's own name.
+        clubName: '  Thistle  Town ',
+        rosterNames: { 'old-hero': 'Nia Bell', 'forward-two': '   ' },
+      },
+    );
     expect(created.clubs[0].name).toBe('Thistle Town');
+    expect(
+      created.m2?.pyramid.divisions
+        .flatMap((division) => division.clubs)
+        .find((club) => club.id === created.userClubId)?.name,
+    ).toBe('Thistle Town');
     expect(
       created.players.find((player) => player.id === 'old-hero')?.name,
     ).toBe('Nia Bell');

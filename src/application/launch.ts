@@ -587,6 +587,9 @@ function reconcileCareerPlayerLooks(state: GameState): GameState {
   const activeLookById = new Map(
     players.map((player) => [player.id, player.lookId]),
   );
+  const userClubName = state.clubs.find(
+    (club) => club.id === state.userClubId,
+  )?.name;
   const retiredPlayers =
     state.retiredPlayers === undefined
       ? undefined
@@ -626,15 +629,20 @@ function reconcileCareerPlayerLooks(state: GameState): GameState {
   let pyramidChanged = false;
   const divisions = state.m2?.pyramid.divisions.map((division) => ({
     ...division,
-    clubs: division.clubs.map((club) => ({
-      ...club,
-      squad: club.squad.map((player) => {
-        const lookId = activeLookById.get(player.id) ?? player.lookId;
-        if (lookId === undefined || lookId === player.lookId) return player;
-        pyramidChanged = true;
-        return { ...player, lookId };
-      }),
-    })),
+    clubs: division.clubs.map((club) => {
+      const name = club.id === state.userClubId ? userClubName : undefined;
+      if (name !== undefined && name !== club.name) pyramidChanged = true;
+      return {
+        ...club,
+        ...(name === undefined ? {} : { name }),
+        squad: club.squad.map((player) => {
+          const lookId = activeLookById.get(player.id) ?? player.lookId;
+          if (lookId === undefined || lookId === player.lookId) return player;
+          pyramidChanged = true;
+          return { ...player, lookId };
+        }),
+      };
+    }),
   }));
 
   if (
