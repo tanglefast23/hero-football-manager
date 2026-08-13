@@ -10,6 +10,8 @@ import { COACH_BOOST_CAPS, type CoachSpecialty } from './market';
 import { FACILITY_BOOST_CAPS, isFacilityOperational } from './facilities';
 import { FAME_CEILING, type DivisionLevel } from './pyramid';
 import { currentUserDivision } from './m2-career';
+import { isAvailableForSelection } from './lineup';
+import { repairCareerLineupForInjuries } from './squad';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
@@ -824,7 +826,18 @@ export function applyCareerEventOutcome(
           amount: moneyDelta,
           referenceId: state.pendingEvent.eventId,
         });
-  return recordCareerMilestones(recordFanGain(recorded, fans - club.fans));
+  // A story that injures a starter used to leave him in the Starting XI. The
+  // state stayed invalid until match day, where buildCareerTeamDef threw
+  // `unavailable player <id> must be replaced in the lineup` — an engine
+  // string, shown to the player, naming an internal id. Every other path that
+  // can bench someone repairs here (weekly settlement, training, a granted
+  // leave request); the story path was the one that did not.
+  const settled = recordCareerMilestones(
+    recordFanGain(recorded, fans - club.fans),
+  );
+  return benchedUserStarter(settled)
+    ? repairCareerLineupForInjuries(settled)
+    : settled;
 }
 
 /**
@@ -1011,6 +1024,26 @@ function applyPlayerEffect(
             ),
           },
   };
+}
+
+/**
+ * Is a user starter unavailable right now?
+ *
+ * Asked before repairing rather than repairing unconditionally: the repair
+ * revalidates the whole eleven through the match boundary, and a story outcome
+ * is the wrong place to start throwing on unrelated lineup problems it did not
+ * cause.
+ */
+function benchedUserStarter(state: GameState): boolean {
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined) return false;
+  return state.players.some(
+    (player) =>
+      lineup.playerIds.includes(player.id) &&
+      !isAvailableForSelection(player),
+  );
 }
 
 function safeDelta(value: number, label: string): number {

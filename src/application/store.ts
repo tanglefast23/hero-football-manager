@@ -466,6 +466,14 @@ interface M1Store {
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
   notice: StoreNotice | null;
+  /**
+   * The starter a story just knocked out, and who took the shirt.
+   *
+   * Deliberately not persisted. The lineup is already valid on disk by the
+   * time this is set, so a reload costs the manager one card explaining a swap
+   * they can still see and still change on the Squad screen.
+   */
+  lineupChange: LineupChangeNotice | null;
   initializePersistence: (
     repository: CareerRepository,
     replayRepository?: ReplayRepository,
@@ -586,6 +594,44 @@ interface M1Store {
   notify: (message: string, tone?: StoreNoticeTone) => void;
   clearError: () => void;
   clearNotice: () => void;
+  clearLineupChange: () => void;
+}
+
+/** One forced team-sheet swap, ready for the card that explains it. */
+export interface LineupChangeNotice {
+  readonly outName: string;
+  readonly inName: string;
+  /** The story's own outcome prose — why the player is unavailable. */
+  readonly reason: string;
+}
+
+/**
+ * Which starter a story replaced, by comparing the eleven either side of it.
+ *
+ * Reading the diff beats having the pure ring report it: the repair already
+ * lives in `src/game`, and threading a report back out would mean a new return
+ * shape on a function four other callers share.
+ */
+export function forcedLineupSwap(
+  before: GameState,
+  after: GameState,
+  reason: string,
+): LineupChangeNotice | null {
+  const was = before.lineups.find(
+    (lineup) => lineup.clubId === before.userClubId,
+  )?.playerIds;
+  const now = after.lineups.find(
+    (lineup) => lineup.clubId === after.userClubId,
+  )?.playerIds;
+  if (was === undefined || now === undefined) return null;
+  const slot = now.findIndex((playerId, index) => playerId !== was[index]);
+  if (slot < 0) return null;
+  const named = (playerId: string): string | undefined =>
+    after.players.find((player) => player.id === playerId)?.name;
+  const outName = named(was[slot]);
+  const inName = named(now[slot]);
+  if (outName === undefined || inName === undefined) return null;
+  return { outName, inName, reason };
 }
 
 function inboxDutyTargetTab(dutyId: OpeningInboxDutyId): ManagementTab {
@@ -746,6 +792,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   selectedContractTerm: 1,
   error: null,
   notice: null,
+  lineupChange: null,
 
   async initializePersistence(repository, replayRepository) {
     // Boot replaces whatever career an earlier lifetime of this store held, so
@@ -792,7 +839,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         persistenceReady: true,
         backupSummary: await backupSummaryFailSoft(repository),
         persistenceLoadError: t('store.saveLoadFailed', {
-          reason: errorMessage(error),
+          reason: rawErrorMessage(error),
           // Glued rather than authored with a leading space: no catalog entry
           // carries edge whitespace, and a translator cannot be asked to keep it.
           damage: damaged ? ` ${t('store.saveDatabaseDamaged')}` : '',
@@ -817,7 +864,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     } catch (error) {
       set({
         persistenceLoadError: t('store.rawExportFailed', {
-          reason: errorMessage(error),
+          reason: rawErrorMessage(error),
         }),
       });
       return;
@@ -849,7 +896,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     } catch (error) {
       set({
         persistenceLoadError: t('store.saveDeleteFailed', {
-          reason: errorMessage(error),
+          reason: rawErrorMessage(error),
         }),
       });
       return 'failed';
@@ -897,7 +944,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     } catch (error) {
       set({
         persistenceLoadError: t('store.backupRestoreFailed', {
-          reason: errorMessage(error),
+          reason: rawErrorMessage(error),
         }),
       });
       return;
@@ -2038,7 +2085,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         event === undefined ||
         !careerEventTargetCandidates(career, event).playerIds.includes(playerId)
       ) {
-        throw new Error('that player is not eligible for this story');
+        throw new Error(t('store.targetNotEligible'));
       }
       const eligiblePlayerIds = careerEventTargetCandidates(
         career,
@@ -2062,7 +2109,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         event === undefined ||
         !careerEventTargetCandidates(career, event).coachRoles.includes(role)
       ) {
-        throw new Error('that coach is not eligible for this story');
+        throw new Error(t('store.targetNotEligible'));
       }
       const next = selectCareerEventCoach(career, role);
       set({ career: next, error: null });
@@ -2084,7 +2131,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           buildingId,
         )
       ) {
-        throw new Error('that facility is not eligible for this story');
+        throw new Error(t('store.targetNotEligible'));
       }
       const next = selectCareerEventFacility(career, buildingId);
       set({ career: next, error: null });
@@ -2128,7 +2175,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
           choiceId,
           t,
         );
-        set({ career: next, error: null });
+        // The story may have knocked a starter out, in which case the engine
+        // has already benched them. Say so, in the story's own words, rather
+        // than letting the manager find a changed eleven on match day.
+        const swap = forcedLineupSwap(
+          seen,
+          next,
+          next.pendingEvent?.outcomeText ?? '',
+        );
+        set({
+          career: next,
+          error: null,
+          ...(swap === null ? {} : { lineupChange: swap }),
+        });
         queueCareerSave(get, set, next);
       } catch (error) {
         if (!(error instanceof InvalidCareerEventTargetError)) throw error;
@@ -3175,6 +3234,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
   clearNotice() {
     set({ notice: null });
   },
+
+  clearLineupChange() {
+    set({ lineupChange: null });
+  },
 }));
 
 function currentMatchday(state: GameState) {
@@ -3601,7 +3664,7 @@ function queueNewCareerSave(
             notice: {
               tone: 'info',
               message: t('store.replayCleanupFailed', {
-                reason: errorMessage(error),
+                reason: rawErrorMessage(error),
               }),
             },
           });
@@ -3668,7 +3731,7 @@ function enqueueSave(
     .catch((error) => {
       onError?.(error);
       if (ticket === latestSaveTicket) set({ saving: false });
-      set({ error: `${errorPrefix}: ${errorMessage(error)}` });
+      set({ error: `${errorPrefix}: ${rawErrorMessage(error)}` });
     });
 }
 
@@ -3693,7 +3756,7 @@ function guarded(
 
 /** Turns every player-reachable facility refusal into Bert-ready copy. */
 export function facilityTransactionErrorCopy(error: unknown): string {
-  const raw = errorMessage(error);
+  const raw = rawErrorMessage(error);
   if (/ is not unlocked$/.test(raw)) return t('facilityError.locked');
   if (/ is already built;| limit reached;/.test(raw)) {
     return t('facilityError.buildLimit');
@@ -3743,10 +3806,10 @@ export function facilityTransactionErrorCopy(error: unknown): string {
 
 /** Turns the pressable-but-unaffordable transfer refusal into player copy. */
 export function transferTransactionErrorCopy(error: unknown): string {
-  const raw = errorMessage(error);
+  const raw = rawErrorMessage(error);
   return raw === 'transfer fee exceeds current cash'
     ? t('market.notEnoughCash')
-    : raw;
+    : playerFacingErrorText(raw);
 }
 
 export function assertTransferCashAvailable(cash: number, fee: number): void {
@@ -3760,9 +3823,44 @@ function guardedTransfer(
   guarded(set, action, transferTransactionErrorCopy);
 }
 
-function errorMessage(error: unknown): string {
+/**
+ * The message exactly as the engine threw it.
+ *
+ * The tone mappers below match on engine text, so they read this rather than
+ * `errorMessage` — the net would have replaced their needle with the generic
+ * apology before they got to compare it.
+ */
+function rawErrorMessage(error: unknown): string {
   if (error instanceof ContractPromiseBlockedError) {
     return copyOrEnglish(t, error.key, error.message, error.params);
   }
   return error instanceof Error ? error.message : String(error);
+}
+
+function errorMessage(error: unknown): string {
+  return playerFacingErrorText(rawErrorMessage(error));
+}
+
+/**
+ * The last gate before an engine string reaches the player.
+ *
+ * `src/game` and `src/sim` throw for two different audiences. Refusals written
+ * FOR the manager read as sentences: "The replacement must come from the
+ * bench." Invariant failures are notes to a programmer and read as fragments:
+ * "unavailable player bramble-rovers-created-player must be replaced in the
+ * lineup". That second kind reached the red banner verbatim, internal id and
+ * all, and the manager could do nothing with it.
+ *
+ * Final sentence punctuation is the marker, checked at runtime rather than at
+ * the throw site: a refusal starting with `${player.name}` is only capitalised
+ * once a real name is in it. So a player-facing throw earns its full stop, and
+ * anything without one is treated as a bug and shown as the generic apology —
+ * with the raw text kept in the console for whoever has to fix it.
+ */
+export function playerFacingErrorText(raw: string): string {
+  const trimmed = raw.trim();
+  if (/[.!?]$/.test(trimmed)) return trimmed;
+  // eslint-disable-next-line no-console
+  console.error(`[engine] ${trimmed}`);
+  return t('store.somethingWentWrong');
 }

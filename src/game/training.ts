@@ -230,9 +230,9 @@ export function trainPlayerInstantly(
   // the Medical Bay shortens it — and can only wait out leave, so collapsing
   // them would throw away the one useful thing the error says.
   if (player.injuryWeeks > 0)
-    throw new Error(`${player.name} is injured and cannot train`);
+    throw new Error(`${player.name} is injured and cannot train.`);
   if ((player.awayWeeks ?? 0) > 0)
-    throw new Error(`${player.name} is away and cannot train`);
+    throw new Error(`${player.name} is away and cannot train.`);
   // A TRAINING_PRIORITY promise is a debt: the promised player owns the next
   // drills until their countdown drains. They remind the manager; an injured
   // holder pauses the debt instead of deadlocking training.
@@ -249,7 +249,7 @@ export function trainPlayerInstantly(
   const drill = resolveTrainingDrillForPath(state, pathId);
   if (drill.tpCost > state.trainingPoints) {
     throw new Error(
-      `training needs ${drill.tpCost} TP but only ${state.trainingPoints} are available`,
+      `This drill needs ${drill.tpCost} TP and you have ${state.trainingPoints}.`,
     );
   }
 

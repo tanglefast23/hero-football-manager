@@ -259,13 +259,16 @@ describe('M1 app store integration', () => {
     });
 
     useM1Store.getState().selectEventPlayer(nonKeeper.id);
-    expect(useM1Store.getState().error).toContain('not eligible');
+    expect(useM1Store.getState().error).toContain('not an eligible pick');
     expect(useM1Store.getState().career?.pendingEvent).toEqual({
       eventId: 'the-penalty-gauntlet',
     });
     useM1Store.getState().skipUnavailableEvent();
-    expect(useM1Store.getState().error).toContain(
-      'still has an eligible target',
+    // A developer guard, not a refusal written for the manager: Skip only
+    // appears when no legal target exists, so reaching this is a bug. The
+    // engine fragment goes to the console and the banner gets the apology.
+    expect(useM1Store.getState().error).toBe(
+      'That did not work. Nothing has changed — try again.',
     );
 
     const assistant = career.market!.coachCandidates[0]!;
@@ -276,7 +279,7 @@ describe('M1 app store integration', () => {
     };
     useM1Store.setState({ career: staffed, screen: 'event', error: null });
     useM1Store.getState().selectEventCoach('HEAD');
-    expect(useM1Store.getState().error).toContain('not eligible');
+    expect(useM1Store.getState().error).toContain('not an eligible pick');
     useM1Store.getState().selectEventCoach('ASSISTANT');
     expect(useM1Store.getState().career?.pendingEvent).toMatchObject({
       selectedCoachRole: 'ASSISTANT',
@@ -307,7 +310,7 @@ describe('M1 app store integration', () => {
     };
     useM1Store.setState({ career: withGym, screen: 'event', error: null });
     useM1Store.getState().selectEventFacility('missing-building');
-    expect(useM1Store.getState().error).toContain('not eligible');
+    expect(useM1Store.getState().error).toContain('not an eligible pick');
     useM1Store.getState().selectEventFacility('store-test-gym');
     expect(useM1Store.getState().career?.pendingEvent).toMatchObject({
       selectedFacilityId: 'store-test-gym',

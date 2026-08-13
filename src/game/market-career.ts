@@ -1010,7 +1010,7 @@ export function listCareerPlayer(
       (listing) => listing.playerId === playerId,
     )
   ) {
-    throw new Error(`${player.name} is already transfer-listed`);
+    throw new Error(`${player.name} is already transfer-listed.`);
   }
   // Validate that accepting a future bid cannot strand the starting eleven.
   replaceTransferredStarter(state, player);
@@ -1293,12 +1293,12 @@ export function hireCareerCoach(
     );
   }
   if (currentCoach?.id === candidate.id) {
-    throw new Error(`${candidate.name} already fills that coaching role`);
+    throw new Error(`${candidate.name} already fills that coaching role.`);
   }
   const division = highestDivisionReached(state);
   const fame = careerClubFame(state, market);
   if (!isCoachCandidateEligible(candidate, division, fame)) {
-    throw new Error(`${candidate.name} is not eligible for this club`);
+    throw new Error(`${candidate.name} is not eligible for this club.`);
   }
   const weeklyWage = coachWeeklyWageForRole(candidate, role);
   if (userClub(state).cash < weeklyWage) {

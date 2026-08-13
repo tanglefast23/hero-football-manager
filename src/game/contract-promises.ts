@@ -63,7 +63,7 @@ export function applyCareerContractPromise(
     ).length;
     if (licensedCount >= (heroLimit ?? contractPromiseHeroLimit(state))) {
       throw new Error(
-        `${player.name}'s starting promise requires an available Hero License`,
+        `${player.name}'s starting promise requires an available Hero License.`,
       );
     }
   }
@@ -214,7 +214,7 @@ export function assertCareerLineupHonorsContractPromises(
   ];
   for (const player of enforceable) {
     if (!selected.has(player.id)) {
-      throw new Error(`${player.name} was promised a place in the starting XI`);
+      throw new Error(`${player.name} was promised a place in the starting XI.`);
     }
   }
 }

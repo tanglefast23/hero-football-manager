@@ -866,7 +866,7 @@ export function isClubLegend(
 
 export function createLegendLegacy(legend: PyramidPlayer): LegendLegacy {
   if (!isClubLegend(legend))
-    throw new Error(`${legend.name} is not eligible for a club-legend legacy`);
+    throw new Error(`${legend.name} is not eligible for a club-legend legacy.`);
   return {
     choice: 'coach-candidate',
     coachCandidate: {

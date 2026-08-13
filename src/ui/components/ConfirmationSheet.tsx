@@ -16,6 +16,13 @@ export interface ConfirmationRequest {
   readonly title: string;
   readonly detail: string;
   readonly confirmLabel: string;
+  /** Overrides "Confirm club decision" when the sheet is not asking to commit. */
+  readonly kicker?: string;
+  /**
+   * Overrides "Cancel" when backing out is itself a choice rather than an
+   * escape — "Keep Nora Vale" reads as an answer; "Cancel" reads as a mistake.
+   */
+  readonly cancelLabel?: string;
   readonly tone?: 'normal' | 'danger' | 'hero';
   readonly confirmDisabled?: boolean;
   /** Stable focus target when the triggering control disappears on confirm. */
@@ -181,7 +188,7 @@ export function ConfirmationSheet({
           {...webDialogLabelProps()}
         >
           <Text className="font-pixel text-sm uppercase text-red-dark">
-            {t('confirmationSheet.confirmClubDecision')}
+            {confirmation?.kicker ?? t('confirmationSheet.confirmClubDecision')}
           </Text>
           <Text
             ref={headingRef}
@@ -198,8 +205,11 @@ export function ConfirmationSheet({
           <View className="mt-5 flex-row gap-3">
             <View className="flex-1">
               <ActionButton
-                label={t('clubFinances.cancel')}
-                accessibilityLabel={t('confirmationSheet.a11y.cancelDecision')}
+                label={confirmation?.cancelLabel ?? t('clubFinances.cancel')}
+                accessibilityLabel={
+                  confirmation?.cancelLabel ??
+                  t('confirmationSheet.a11y.cancelDecision')
+                }
                 variant="paper"
                 pressSfx="click"
                 onPress={cancel}

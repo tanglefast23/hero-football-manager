@@ -3693,26 +3693,6 @@ function GameApp() {
                   onRetry={store.retrySave}
                 />
               )}
-              {rivalHeroIntro === undefined &&
-                (developerSaveError ? (
-                  <FeedbackNotice
-                    message={developerSaveError}
-                    tone="error"
-                    onDismiss={() => setDeveloperSaveError(null)}
-                  />
-                ) : store.error && !facilityErrorBertVisible ? (
-                  <FeedbackNotice
-                    message={store.error}
-                    tone="error"
-                    onDismiss={store.clearError}
-                  />
-                ) : store.notice && store.notice.speaker !== 'bert' ? (
-                  <FeedbackNotice
-                    message={store.notice.message}
-                    tone={store.notice.tone}
-                    onDismiss={store.clearNotice}
-                  />
-                ) : null)}
               <SettingsOverlay
                 open={globalSettingsOpen}
                 glossary={content.glossary}
@@ -4216,6 +4196,62 @@ function GameApp() {
               action?.();
             }}
           />
+          {/* Held back until the story screen is gone. The card explains a swap
+              the engine already made, so it belongs after the outcome the
+              manager is still reading, not on top of it. */}
+          <ConfirmationSheet
+            confirmation={
+              store.lineupChange === null || store.screen === 'event'
+                ? null
+                : {
+                    kicker: t('lineupChange.kicker'),
+                    title: t('lineupChange.title', {
+                      player: store.lineupChange.outName,
+                    }),
+                    detail: `${store.lineupChange.reason}\n\n${t(
+                      'lineupChange.replacedBy',
+                      { replacement: store.lineupChange.inName },
+                    )}`,
+                    cancelLabel: t('lineupChange.keep', {
+                      replacement: store.lineupChange.inName,
+                    }),
+                    confirmLabel: t('lineupChange.pickAnother'),
+                    onConfirm: () => {},
+                  }
+            }
+            reduceMotion={reduceMotion}
+            onCancel={store.clearLineupChange}
+            onConfirm={() => {
+              store.clearLineupChange();
+              store.setActiveTab('squad');
+            }}
+          />
+          {/* Out here with the modals, not inside the screen, because a notice
+              nested under the screen sat BENEATH every overlay that renders
+              after it — a Bert walk-on, an inbox reminder, a confirmation
+              sheet. They are full-screen pressables, so they ate the tap that
+              was meant to dismiss the banner and the player was stuck reading
+              "Not enough Cash" with no way to close it. */}
+          {rivalHeroIntro === undefined &&
+            (developerSaveError ? (
+              <FeedbackNotice
+                message={developerSaveError}
+                tone="error"
+                onDismiss={() => setDeveloperSaveError(null)}
+              />
+            ) : store.error && !facilityErrorBertVisible ? (
+              <FeedbackNotice
+                message={store.error}
+                tone="error"
+                onDismiss={store.clearError}
+              />
+            ) : store.notice && store.notice.speaker !== 'bert' ? (
+              <FeedbackNotice
+                message={store.notice.message}
+                tone={store.notice.tone}
+                onDismiss={store.clearNotice}
+              />
+            ) : null)}
           {/* Last child on purpose. Stat tips are drawn here, after every card
               and panel, so nothing can paint through them. */}
           <InfoTipLayer />
@@ -4495,11 +4531,13 @@ function FeedbackNotice({
   onDismiss: () => void;
 }) {
   const t = useCopy();
+  // Every tone retires itself, errors included. A refusal the player has read
+  // is just a red bar in the way, and tapping it must not be the only exit —
+  // the timer is the exit that works when something is covering the banner.
   useEffect(() => {
-    if (tone === 'error') return undefined;
     const timer = setTimeout(onDismiss, 4_000);
     return () => clearTimeout(timer);
-  }, [message, onDismiss, tone]);
+  }, [message, onDismiss]);
 
   const palette =
     tone === 'success'
@@ -4509,19 +4547,29 @@ function FeedbackNotice({
         : 'border-stamp bg-red-light';
   const symbol = tone === 'success' ? '✓' : tone === 'info' ? 'i' : '!';
   return (
-    <Pressable
-      accessibilityRole={tone === 'error' ? 'alert' : 'button'}
-      accessibilityLiveRegion={tone === 'error' ? 'assertive' : 'polite'}
-      accessibilityLabel={feedbackNoticeAccessibilityLabel(message, t)}
-      onPress={onDismiss}
-      className={`absolute left-4 right-4 top-16 border-2 px-4 py-3 shadow-lg shadow-black/40 ${palette}`}
+    // Clamped to the two-column measure and centred, like every other panel:
+    // a full-bleed red bar across a 2000px monitor disagrees with the columns
+    // under it. box-none so only the banner itself catches taps.
+    <View
+      pointerEvents="box-none"
+      className="absolute left-4 right-4 top-16 items-center"
     >
-      <View className="flex-row items-start gap-3">
-        <Text className="font-mono text-base font-bold text-ink">{symbol}</Text>
-        <Text className="flex-1 text-sm font-bold text-ink">{message}</Text>
-        <Text className="font-mono text-sm text-ink/50">×</Text>
-      </View>
-    </Pressable>
+      <Pressable
+        accessibilityRole={tone === 'error' ? 'alert' : 'button'}
+        accessibilityLiveRegion={tone === 'error' ? 'assertive' : 'polite'}
+        accessibilityLabel={feedbackNoticeAccessibilityLabel(message, t)}
+        onPress={onDismiss}
+        className={`w-full max-w-[1180px] border-2 px-4 py-3 shadow-lg shadow-black/40 ${palette}`}
+      >
+        <View className="flex-row items-start gap-3">
+          <Text className="font-mono text-base font-bold text-ink">
+            {symbol}
+          </Text>
+          <Text className="flex-1 text-sm font-bold text-ink">{message}</Text>
+          <Text className="font-mono text-sm text-ink/50">×</Text>
+        </View>
+      </Pressable>
+    </View>
   );
 }
 

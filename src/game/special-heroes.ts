@@ -344,7 +344,7 @@ export function validateSpecialHeroRoster(): void {
     looks.add(hero.lookId);
     if (!powerIsCompatibleWithRole(hero.power, hero.role)) {
       throw new Error(
-        `${hero.name} cannot carry ${hero.power} as a ${hero.role}`,
+        `${hero.name} cannot carry ${hero.power} as a ${hero.role}.`,
       );
     }
   }
