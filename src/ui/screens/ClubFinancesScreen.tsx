@@ -70,11 +70,7 @@ import {
 } from '../GuidanceDoubleFlash';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
-import {
-  formatThousandsForCopy,
-  useCopy,
-  type CopyFn,
-} from '../../i18n';
+import { formatThousandsForCopy, useCopy, type CopyFn } from '../../i18n';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;

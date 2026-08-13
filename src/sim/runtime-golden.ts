@@ -4,17 +4,15 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for m2.2 (GOAL events now carry scoredById, the
-// shooter's stable id stamped when the ball left his foot, so a substitution
-// inside the flight window cannot steal the goal). Seed 42 finishes 0-0 and
-// has no GOAL event at all, so only the hashed version string moved it; the
-// scoring seed 81 golden below moved for the real reason.
-// Earlier deliberate rebaselines: m2.1 (auto-substitution entry-condition
-// rating + freshness floor, incremental replay-input feeding, FIRE_WHEN_READY
-// default), m2.0 (scale-invariant contest/execution domains, career condition
-// carryover, fixed-point PAC/STA movement), m1.29 (presser standoff ring;
-// PAC-widened duel spacing), m1.25 (five named subs, immediate red-energy
-// auto-coaching), m1.26-m1.28 (see git history).
+// Rebaselined deliberately for m2.1 (auto-substitution entry-condition rating +
+// freshness floor, incremental replay-input feeding, FIRE_WHEN_READY default).
+// m2.2 rebaseline: GOAL events now carry the scorer's stable id (scoredById),
+// which changes the hashed event payloads. Ball physics, RNG consumption and
+// scores are unchanged from m2.1.
+// Earlier deliberate rebaselines: m2.0 (scale-invariant contest/execution
+// domains, career condition carryover, fixed-point PAC/STA movement), m1.29
+// (presser standoff ring; PAC-widened duel spacing), m1.25 (five named subs,
+// immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
 const EXPECTED_RUNTIME_GOLDEN = '7d48fa26';
 
 // Seed 42 finishes 0-0, so neither this hash nor parity-replay's snapshot has

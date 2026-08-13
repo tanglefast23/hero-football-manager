@@ -1682,10 +1682,13 @@ export function MatchScreen({
         )
           snap = true;
         if (e.kind === 'GOAL') {
+          // Resolve the stable scorer id against the full team def: a scorer
+          // substituted while his shot flew is no longer in s.players.
+          const teamDef = s.teams[e.team];
           const scorerName =
-            e.by >= 0 && e.by < BASE_PLAYER_COUNT
-              ? s.players[e.by].def.name
-              : 'Unknown';
+            [...teamDef.players, ...(teamDef.bench ?? [])].find(
+              (def) => def.id === e.scoredById,
+            )?.name ?? 'Unknown';
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
             // '⚡' and '⚠' below are pictograms, not words: they stay in the
@@ -2687,6 +2690,15 @@ export function MatchScreen({
     0,
     MAX_SUBSTITUTIONS - substitutionsUsed,
   );
+  // A substitute enters at their startingCondition (src/sim/substitutions.ts),
+  // so the board shows that as their energy rather than assuming a full bar.
+  const substitutionBoardBench = bench.map((player) => ({
+    id: player.id,
+    name: player.name,
+    role: player.role,
+    condition: player.startingCondition ?? 100,
+    ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+  }));
   const substitutionBoardField = onFieldIndices.map((index) => {
     const player = match.players[index];
     return {
@@ -3468,7 +3480,12 @@ export function MatchScreen({
                 inverted
               />
               <View style={styles.coachCopy}>
-                <Text style={styles.coachLabel}>
+                <Text
+                  style={styles.coachLabel}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
                   {t('matchScreen.formation')}
                 </Text>
                 <Text style={styles.coachValue}>{displayedFormation}</Text>
@@ -3672,7 +3689,7 @@ export function MatchScreen({
       {swapOpen ? (
         <SubstitutionBoard
           field={substitutionBoardField}
-          bench={bench}
+          bench={substitutionBoardBench}
           substitutionsUsed={substitutionsUsed}
           autoSubs={autoSubs}
           guideFieldPlayer={

@@ -40,9 +40,12 @@ function row(
 }
 
 describe('contributionsFrom', () => {
-  it('credits a goal to the slot occupant', () => {
+  it('credits a goal to the stamped scorer id', () => {
     const rows = contributionsFrom(
-      matchWith([{ t: 10, kind: 'GOAL', by: 9, team: 0 }], SLOTS),
+      matchWith(
+        [{ t: 10, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' }],
+        SLOTS,
+      ),
     );
     expect(rows).toEqual([row('p9', { goals: 1 })]);
   });
@@ -50,7 +53,16 @@ describe('contributionsFrom', () => {
   it('credits an assist to the stamped id, not a slot', () => {
     const rows = contributionsFrom(
       matchWith(
-        [{ t: 10, kind: 'GOAL', by: 9, team: 0, assistedById: 'p7' }],
+        [
+          {
+            t: 10,
+            kind: 'GOAL',
+            by: 9,
+            team: 0,
+            scoredById: 'p9',
+            assistedById: 'p7',
+          },
+        ],
         SLOTS,
       ),
     );
@@ -131,7 +143,7 @@ describe('contributionsFrom', () => {
     const rows = contributionsFrom(
       matchWith(
         [
-          { t: 10, kind: 'GOAL', by: 9, team: 0 },
+          { t: 10, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' },
           {
             t: 50,
             kind: 'SUBSTITUTION',
@@ -140,7 +152,7 @@ describe('contributionsFrom', () => {
             inPlayerId: 'sub1',
             team: 0,
           },
-          { t: 80, kind: 'GOAL', by: 9, team: 0 },
+          { t: 80, kind: 'GOAL', by: 9, team: 0, scoredById: 'sub1' },
         ],
         SLOTS.map((id, slot) => (slot === 9 ? 'sub1' : id)),
       ),

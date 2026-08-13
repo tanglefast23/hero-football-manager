@@ -502,10 +502,7 @@ export interface SquadPlayerViewModel {
   contractPromiseLabel?: string;
   /** The promise itself, so a caller can look up what it obliges the club to. */
   contractPromisePerk?:
-    | 'GUARANTEED_STARTER'
-    | 'CAPTAINCY'
-    | 'TRAINING_PRIORITY'
-    | 'JERSEY_10';
+    'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10';
   /** Set only within one season of the announcement; absent while it is far off. */
   retirementLabel?: string;
   shirtNumber?: number;

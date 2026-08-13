@@ -26,19 +26,23 @@ describe('startup recovery', () => {
       'utf8',
     );
 
-    expect(boundary).toContainSource('window.location.reload();');
-    expect(boundary).toContainSource('{canReloadDocument() ? (');
-    // Native ships its JS inside the app: no deploy skew, no window to reload.
+    // The reload is offered only for a stale bundle, and only where there is a
+    // document to reload. Native ships its JS inside the app: no deploy skew.
     expect(boundary).toContainSource(
-      "return Platform.OS === 'web' && typeof window !== 'undefined';",
+      "const offerReload = staleBundle && typeof window !== 'undefined';",
     );
-    // Reused rather than newly authored: this label already ships in all seven
-    // locales for the match's graphics-recovery card.
-    expect(boundary).toContainSource("reload: t('graphics.reload'),");
-    // Back to title keeps first place — it is the only action that records the
-    // crash, so Continue can route past the screen that threw.
-    expect(boundary.indexOf('copy.backToTitle')).toBeLessThan(
-      boundary.indexOf('copy.reload}'),
+    expect(boundary).toContainSource(
+      'if (offerReload && reloadBrowserDocument()) return;',
+    );
+
+    // The half that is easy to lose in a refactor: an ORDINARY crash must still
+    // reach onRecover. That call is what records the crash in the store, and
+    // the record is the only reason Continue routes past the screen that threw
+    // instead of walking straight back into it. A stale bundle skips it on
+    // purpose — the reload restarts the process, so an in-memory flag would not
+    // survive to be read anyway.
+    expect(boundary).toMatch(
+      /if \(offerReload && reloadBrowserDocument\(\)\) return;\s*this\.setState\(\{ message: null, staleBundle: false \}\);\s*this\.props\.onRecover\(\);/,
     );
   });
 
@@ -66,6 +70,17 @@ describe('startup recovery', () => {
     expect(app).toContainSource('bootRetryCount() < BOOT_RETRY_LIMIT');
     expect(app).toContainSource("const BOOT_RETRY_KEY = 'hfm.bootRetries';");
     expect(app).toContainSource('clearBootRetries();');
+  });
+
+  it('never file-resets a failed discard while a backup is still restorable', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    // The file-level resetCareerDatabase drops every table, backup included.
+    // After a failed repository delete the backup may still load, so the
+    // fallback must check for it (on fresh state) before wiping.
+    expect(app).toMatch(
+      /discardUnreadableSave\(\)\.then\(\(outcome\) => \{\s*if \(outcome !== 'failed'\) return undefined;[\s\S]*?if \(useM1Store\.getState\(\)\.backupSummary !== null\) return undefined;[\s\S]*?resetCareerDatabase\(/,
+    );
   });
 
   it('lets a player export an unreadable save before deleting it', () => {

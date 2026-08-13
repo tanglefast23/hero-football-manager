@@ -350,6 +350,7 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
         // horizontal save. The real ball reaches the same catch point.
         vel: { x: 40, y: 120 },
         by: 21,
+        shooterId: match.players[21].def.id,
         shotStrengthD64: 0,
         power: 55,
         targetX: PITCH_W / 2 + 520,

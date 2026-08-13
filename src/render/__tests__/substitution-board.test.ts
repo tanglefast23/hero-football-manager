@@ -34,7 +34,7 @@ function substitute(
   id: string,
   role: SubstitutionBenchPlayer['role'] = 'MID',
 ): SubstitutionBenchPlayer {
-  return { id, name: `Sub ${id}`, role };
+  return { id, name: `Sub ${id}`, role, condition: 100 };
 }
 
 const KEEPER = starter(0, 96, 'GK');

@@ -194,7 +194,7 @@ export function reconcileStoryYouthIntake(state: GameState): GameState {
     return { ...state, youthIntake: closedYouthIntake(state.season) };
   }
   if (
-    state.week <= 4 &&
+    isYouthIntakeWindowOpen(state) &&
     (intake === undefined ||
       (intake.status === 'CLOSED' &&
         intake.offers.length === 0 &&
@@ -206,13 +206,20 @@ export function reconcileStoryYouthIntake(state: GameState): GameState {
   return expireYouthIntakeWindow(state);
 }
 
-/** Clears stale offers as soon as the career moves beyond pre-season Week 4. */
+/**
+ * Clears stale offers as soon as the career moves beyond pre-season Week 4.
+ *
+ * The check is week-based, not window-based: a save made mid-matchday in a
+ * week <=4 persists phase 'matchday', and expiring on phase would delete the
+ * open offers on the first reload and brick the save on the second (the
+ * recreate branch asserts the manage phase).
+ */
 function expireYouthIntakeWindow(state: GameState): GameState {
   const intake = state.youthIntake;
   if (
     intake === undefined ||
     intake.status === 'CLOSED' ||
-    isYouthIntakeWindowOpen(state)
+    isWithinPreseasonWeeks(state)
   ) {
     return state;
   }
@@ -603,8 +610,13 @@ function assertPreseasonManagePhase(state: GameState): void {
 function isYouthIntakeWindowOpen(
   state: Pick<GameState, 'phase' | 'season' | 'week'>,
 ): boolean {
+  return state.phase === 'manage' && isWithinPreseasonWeeks(state);
+}
+
+function isWithinPreseasonWeeks(
+  state: Pick<GameState, 'season' | 'week'>,
+): boolean {
   return (
-    state.phase === 'manage' &&
     Number.isSafeInteger(state.season) &&
     state.season >= 1 &&
     Number.isSafeInteger(state.week) &&

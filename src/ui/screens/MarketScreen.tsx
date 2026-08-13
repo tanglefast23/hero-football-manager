@@ -811,7 +811,12 @@ function ScoutingDesk({
                   <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                     {report.role} · {report.ageLabel}
                   </Text>
-                  <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
+                  <Text
+                    className="mt-1 font-pixel text-sm uppercase text-gold-dark"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
                     {t('market.potentialValue', {
                       grade: report.potentialLabel,
                     })}
@@ -1013,7 +1018,12 @@ function TransferDesk({
                       age: listing.age,
                     })}
                   </Text>
-                  <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
+                  <Text
+                    className="mt-1 font-pixel text-sm uppercase text-gold-dark"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
                     {t('market.potentialValue', {
                       grade: listing.potentialLabel,
                     })}

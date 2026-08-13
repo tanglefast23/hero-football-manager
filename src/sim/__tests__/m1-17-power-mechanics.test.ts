@@ -1354,6 +1354,7 @@ describe('m1.18 authored one-moment powers', () => {
         pos: { x: 3400, y: 9800 },
         vel: { x: 0, y: 300 },
         by: 20,
+        shooterId: match.players[20].def.id,
         shotStrengthD64: 0,
         power: 1,
         targetX: 3400,

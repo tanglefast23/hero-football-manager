@@ -248,13 +248,11 @@ export type BallState =
       vel: Vec;
       by: number;
       /**
-       * Stable id of the player who struck it, captured at `attemptShot`. The
-       * ball spends ~9 ticks in the air, so a substitution can land in flight
-       * and `by` (a lineup slot) would then resolve to the man who came on.
-       * Optional only so hand-built showcase balls stay valid; the engine
-       * always stamps it.
+       * Stable id of the player who launched the shot. The flight lasts many
+       * ticks and a substitution can land in between, so resolving `by`'s
+       * occupant at goal time would credit the wrong player.
        */
-      byPlayerId?: string;
+      shooterId: string;
       /** Keeper-facing fixed-point execution strength; display `power` never feeds resolution. */
       shotStrengthD64: number;
       power: number;
@@ -305,19 +303,19 @@ export type MatchEvent =
       by: number;
       team: 0 | 1;
       /**
+       * Stable id of the scorer, stamped when the shot launched. Like
+       * `assistedById`, an id rather than a slot: the shot flies for many
+       * ticks, so a substitution can change the slot's occupant before the
+       * ball crosses the line.
+       */
+      scoredById: string;
+      /**
        * Stable id of the teammate who held the ball immediately before the
        * scorer. A stable id rather than a slot because the assisting touch
        * precedes the goal by many ticks, so a substitution can land in between
        * and a slot would resolve to the wrong player.
        */
       assistedById?: string;
-      /**
-       * Stable id of the player who struck the shot, stamped when it left his
-       * foot. `by` is the lineup slot, resolved at the moment the ball crossed
-       * the line, so a substitution during the ~9-tick flight makes the slot
-       * name the substitute. Optional for replays recorded before m2.2.
-       */
-      scoredById?: string;
     }
   | { t: number; kind: 'POWER_READY'; player: number }
   | {

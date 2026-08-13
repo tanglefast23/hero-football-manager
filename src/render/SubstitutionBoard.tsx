@@ -643,7 +643,7 @@ export function SubstitutionBoard({
                 {t('substitutionBoard.benchColumn')}
               </Text>
               <Text style={styles.columnHint}>
-                {t('substitutionBoard.freshLegsEnterFull')}
+                {t('substitutionBoard.benchEnergyShown')}
               </Text>
               {rows.length === 0 ? (
                 <Text style={styles.emptyBench}>
@@ -690,10 +690,14 @@ export function SubstitutionBoard({
                           registerCard={registerCard}
                           {...dragProps}
                           accessibilityLabel={t(
-                            'substitutionBoard.a11y.benchPlayerFresh',
+                            // Same key as the field cards: the phrasing is
+                            // neutral in every locale, and a bench player's
+                            // energy reads on the same scale as a starter's.
+                            'substitutionBoard.a11y.starterEnergy',
                             {
                               name: entry.sub.name,
                               role: entry.sub.role,
+                              percent: Math.round(entry.sub.condition),
                             },
                           )}
                           accessibilityHint={
@@ -721,18 +725,21 @@ export function SubstitutionBoard({
                                   : styles.metaBlocked
                               }
                             >
-                              {reason ?? '100%'}
+                              {reason ?? `${Math.round(entry.sub.condition)}%`}
                             </Text>
-                            {/* A full green bar, so a bench player reads against
-                                the field on the same scale instead of asking you
-                                to compare a bar with a bare number. */}
+                            {/* The energy they would actually enter with — the
+                                engine starts a substitute at their real
+                                condition, not at full. */}
                             <View style={styles.energyTrack}>
                               <View
                                 style={[
                                   styles.energyFill,
                                   {
-                                    backgroundColor: ENERGY_FILL_COLORS.green,
-                                    width: '100%',
+                                    backgroundColor:
+                                      ENERGY_FILL_COLORS[
+                                        energyBand(entry.sub.condition)
+                                      ],
+                                    width: `${Math.max(0, Math.min(100, entry.sub.condition))}%`,
                                   },
                                 ]}
                               />
