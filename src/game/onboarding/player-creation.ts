@@ -149,8 +149,7 @@ export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
  * every character drawn after it, so `Bob<U+202E>htimS` renders as `Bob Smith`
  * on a scoreboard and as itself in a save file.
  */
-const DRAWABLE_NAME =
-  /^[A-Za-z0-9 .'\-À-ÖØ-öø-ÿĂăĐđĨĩŒœŠšŨũŸŽžƠơƯưẠ-ỹ]+$/;
+const DRAWABLE_NAME = /^[A-Za-z0-9 .'\-À-ÖØ-öø-ÿĂăĐđĨĩŒœŠšŨũŸŽžƠơƯưẠ-ỹ]+$/;
 
 /**
  * What an iOS keyboard types where the face has a plain glyph.

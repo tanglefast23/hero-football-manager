@@ -38,9 +38,9 @@ describe('currency formatting', () => {
       glyph: '-$',
       amount: '3,178',
     });
-    expect(`${compactHudMoney(en, '$', -3_178).glyph}${compactHudMoney(en, '$', -3_178).amount}`).toBe(
-      formatCurrency(en, -3_178),
-    );
+    expect(
+      `${compactHudMoney(en, '$', -3_178).glyph}${compactHudMoney(en, '$', -3_178).amount}`,
+    ).toBe(formatCurrency(en, -3_178));
     expect(compactHudMoney(en, '$', 3_178)).toEqual({
       glyph: '$',
       amount: '3,178',

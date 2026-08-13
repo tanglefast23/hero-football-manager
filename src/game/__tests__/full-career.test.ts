@@ -592,7 +592,8 @@ describe('full M2 career clock', () => {
         reserve.role !== 'GK' &&
         roster.some(
           (player) =>
-            player.role === reserve.role && lineup.playerIds.includes(player.id),
+            player.role === reserve.role &&
+            lineup.playerIds.includes(player.id),
         ),
     )!.role;
     const retiring = roster.find(

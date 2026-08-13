@@ -3319,10 +3319,7 @@ function GameApp() {
                           })
                     : t('confirm.facilityClose.detailStaffed', {
                         coach: staffedOffice.assistantName,
-                        refund: formatCurrency(
-                          t,
-                          staffedOffice.facilityRefund,
-                        ),
+                        refund: formatCurrency(t, staffedOffice.facilityRefund),
                         severance: formatCurrency(
                           t,
                           staffedOffice.severanceCost,
@@ -3486,8 +3483,7 @@ function GameApp() {
                     })
                   : t('confirm.transferList.title', {
                       player:
-                        listing?.playerName ??
-                        t('confirm.fallback.thisPlayer'),
+                        listing?.playerName ?? t('confirm.fallback.thisPlayer'),
                     }),
                 detail: acceptingBid
                   ? t('confirm.transferAccept.detail', {
@@ -4129,10 +4125,7 @@ function GameApp() {
                 sequenceId="first-fans"
                 customMessage={{
                   title: t('bert.firstFans.title'),
-                  body: [
-                    t('bert.firstFans.body1'),
-                    t('bert.firstFans.body2'),
-                  ],
+                  body: [t('bert.firstFans.body1'), t('bert.firstFans.body2')],
                 }}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}

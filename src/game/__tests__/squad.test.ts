@@ -570,9 +570,7 @@ describe('career squad integration', () => {
     expect(relief.injuryWeeks).toBe(0);
     expect(() => buildCareerTeamDef(repaired, CLUB_IDS[0])).not.toThrow();
     // The wage bill still agrees with the roster it pays.
-    expect(
-      repaired.clubs.find((c) => c.id === CLUB_IDS[0])!.weeklyWages,
-    ).toBe(
+    expect(repaired.clubs.find((c) => c.id === CLUB_IDS[0])!.weeklyWages).toBe(
       initial.clubs.find((c) => c.id === CLUB_IDS[0])!.weeklyWages +
         relief.weeklyWage,
     );

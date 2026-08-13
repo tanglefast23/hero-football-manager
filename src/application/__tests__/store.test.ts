@@ -1567,9 +1567,7 @@ describe('M1 app store integration', () => {
     await useM1Store.getState().exportUnreadableSave(async () => {
       throw new Error('second share was dismissed');
     });
-    expect(await useM1Store.getState().discardUnreadableSave()).toBe(
-      'deleted',
-    );
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('deleted');
 
     expect(shared).toEqual(['hero-football-manager-raw-schema-1.json', raw]);
     expect(deleteCalls).toBe(1);
@@ -1610,9 +1608,7 @@ describe('M1 app store integration', () => {
     });
     await useM1Store.getState().initializePersistence(careerRepository);
 
-    expect(await useM1Store.getState().discardUnreadableSave()).toBe(
-      'blocked',
-    );
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('blocked');
 
     expect(deleteCalls).toBe(0);
   });

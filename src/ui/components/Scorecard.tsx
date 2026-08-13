@@ -37,7 +37,8 @@ export function formatCompactHudNumber(t: CopyFn, value: number): string {
   const abs = Math.abs(value);
   if (abs >= 1_000_000)
     return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (abs >= 10_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  if (abs >= 10_000)
+    return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
   return formatCompactNumber(t, value);
 }
 

@@ -3887,12 +3887,24 @@ const PLAYER_REACHABLE_REFUSALS: readonly RefusalRule[] = [
   [/^unknown coach candidate /, 'store.coachUnavailable'],
   [/^choose a club bid before accepting the transfer$/, 'store.chooseBidFirst'],
   [/^Scouting unlocks in Week /, 'store.scoutingLocked'],
-  [/^expired players can only leave at season end$/, 'store.releaseAtSeasonEnd'],
-  [/^renewal talks require the season-end phase$/, 'store.renewalSeasonEndOnly'],
+  [
+    /^expired players can only leave at season end$/,
+    'store.releaseAtSeasonEnd',
+  ],
+  [
+    /^renewal talks require the season-end phase$/,
+    'store.renewalSeasonEndOnly',
+  ],
   [/ is not on the user club$/, 'store.playerNotOnClub'],
-  [/^Both lineup players must belong to your club\.$/, 'store.lineupOwnPlayersOnly'],
+  [
+    /^Both lineup players must belong to your club\.$/,
+    'store.lineupOwnPlayersOnly',
+  ],
   [/^only heroes can receive a license$/, 'store.heroesOnlyLicense'],
-  [/ uses characters the game cannot display$/, 'store.nameHasUnsupportedCharacters'],
+  [
+    / uses characters the game cannot display$/,
+    'store.nameHasUnsupportedCharacters',
+  ],
   // These two carry numbers and a name the player needs. Dropping them into the
   // generic line would answer "why can't I?" with "you can't", so the capture
   // groups are forwarded as params rather than thrown away.

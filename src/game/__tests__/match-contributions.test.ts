@@ -183,7 +183,9 @@ describe('contributionsFrom', () => {
       ),
     );
     expect(rows).toContainEqual(row('p9', { goals: 1 }));
-    expect(rows.find((candidate) => candidate.playerId === 'sub1')).toBeUndefined();
+    expect(
+      rows.find((candidate) => candidate.playerId === 'sub1'),
+    ).toBeUndefined();
   });
 
   /**

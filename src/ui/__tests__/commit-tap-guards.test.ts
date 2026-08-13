@@ -56,7 +56,9 @@ describe('committing taps are guarded', () => {
     expect(sheet).toContainSource('}, [guardTap, onConfirm]);');
     // The cancel path stays unguarded: backing out twice is harmless, and a
     // swallowed cancel is a manager stuck in a dialog they asked to leave.
-    expect(sheet).toContainSource('const cancel = useCallback(() => {\n    confirmedRef.current = false;\n    onCancel();');
+    expect(sheet).toContainSource(
+      'const cancel = useCallback(() => {\n    confirmedRef.current = false;\n    onCancel();',
+    );
   });
 
   it('re-arms the match-day hand-off when the store refuses it', () => {

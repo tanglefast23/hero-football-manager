@@ -307,9 +307,9 @@ describe('trainPlayerInstantly', () => {
     const res = trainPlayerInstantly(noCover, starter.id, 'keeper-drills');
 
     expect(res.injury).toBeUndefined();
-    expect(res.state.players.find((p) => p.id === starter.id)!.injuryWeeks).toBe(
-      0,
-    );
+    expect(
+      res.state.players.find((p) => p.id === starter.id)!.injuryWeeks,
+    ).toBe(0);
     // Still a real drill: the stat moved and the TP was spent.
     expect(res.after).toBeGreaterThan(res.before);
     expect(res.state.trainingPoints).toBe(noCover.trainingPoints - res.tpSpent);
@@ -346,12 +346,18 @@ describe('trainPlayerInstantly', () => {
     const player = userPlayer(state);
 
     expect(() =>
-      trainPlayerInstantly({ ...state, phase: 'season-end' }, player.id,
-        'sprints'),
+      trainPlayerInstantly(
+        { ...state, phase: 'season-end' },
+        player.id,
+        'sprints',
+      ),
     ).toThrow('before a match');
     expect(() =>
-      trainPlayerInstantly({ ...state, phase: 'matchday' }, player.id,
-        'sprints'),
+      trainPlayerInstantly(
+        { ...state, phase: 'matchday' },
+        player.id,
+        'sprints',
+      ),
     ).not.toThrow();
   });
 });

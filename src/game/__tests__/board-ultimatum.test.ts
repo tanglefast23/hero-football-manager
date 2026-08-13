@@ -446,8 +446,9 @@ describe('board ultimatum deadline with no completable sale', () => {
     expect(seen.length).toBeGreaterThan(5);
     expect(seen.filter((id) => id !== undefined)).toEqual([]);
     // Fail-soft, not game over — the club keeps playing and the floor carries it.
-    expect(state.players.filter((player) => player.clubId === state.userClubId))
-      .toHaveLength(11);
+    expect(
+      state.players.filter((player) => player.clubId === state.userClubId),
+    ).toHaveLength(11);
   });
 
   test('mints a fresh id for each refreshed round instead of appending to the old one', () => {

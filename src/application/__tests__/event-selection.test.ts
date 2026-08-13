@@ -342,7 +342,8 @@ describe('M4 event selection', () => {
       ],
     };
 
-    expect(eventOfferForWeek(state, twoEvents, { deskClear: true }).eventId)
-      .toBe('a-story');
+    expect(
+      eventOfferForWeek(state, twoEvents, { deskClear: true }).eventId,
+    ).toBe('a-story');
   });
 });

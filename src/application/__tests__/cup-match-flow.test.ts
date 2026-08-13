@@ -399,8 +399,10 @@ function prepareCupTie(
       ? fixture.awayClubId
       : fixture.homeClubId;
   const opponentDivision = (5 - divisionGap) as 3 | 4;
-  const opponentClubId = career.m2!.pyramid.divisions
-    .find((division) => division.level === opponentDivision)!
+  const opponentClubId = career
+    .m2!.pyramid.divisions.find(
+      (division) => division.level === opponentDivision,
+    )!
     .clubs.find(
       (club) => cup.seedDivisionByClubId![club.id] === opponentDivision,
     )!.id;

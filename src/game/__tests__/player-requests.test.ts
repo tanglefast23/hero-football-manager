@@ -543,7 +543,9 @@ describe('resolvePlayerRequest', () => {
     };
 
     // With cover on the bench this is exactly the card the shipped draw makes.
-    expect(() => resolvePlayerRequest(asking, CATALOG, 'GRANTED')).not.toThrow();
+    expect(() =>
+      resolvePlayerRequest(asking, CATALOG, 'GRANTED'),
+    ).not.toThrow();
 
     const noCover: GameState = {
       ...asking,
@@ -558,7 +560,9 @@ describe('resolvePlayerRequest', () => {
     // Nothing was charged and the card is still open, so the manager can heal
     // or buy cover and grant it after all.
     expect(noCover.playerRequests!.pending).toBeDefined();
-    expect(() => resolvePlayerRequest(noCover, CATALOG, 'REFUSED')).not.toThrow();
+    expect(() =>
+      resolvePlayerRequest(noCover, CATALOG, 'REFUSED'),
+    ).not.toThrow();
   });
 
   it('caps a Bahamas fortnight at one week on Cozy', () => {

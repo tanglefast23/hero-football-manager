@@ -84,9 +84,7 @@ describe('Bert Cup mismatch warning', () => {
     expect(cupMismatchWarning(state)).toMatchObject({
       divisionGap: 3,
       body: [
-        expect.stringContaining(
-          pyramidOpponent(state, opponentClubId).name,
-        ),
+        expect.stringContaining(pyramidOpponent(state, opponentClubId).name),
       ],
     });
   });
@@ -95,9 +93,7 @@ describe('Bert Cup mismatch warning', () => {
     const state = cupCareer(3, 2);
     const opponentClubId = warningFixtureOpponent(state);
     const opponent = pyramidOpponent(state, opponentClubId);
-    const targetId = opponent.squad.find(
-      (player) => player.role === 'FWD',
-    )!.id;
+    const targetId = opponent.squad.find((player) => player.role === 'FWD')!.id;
     const tuned = withPyramidSquad(state, opponentClubId, (player) => {
       if (player.role === 'GK') return player;
       return player.id === targetId
@@ -183,13 +179,11 @@ function cupCareer(divisionGap: number, matchSeed: number): GameState {
                               ...candidateFixture,
                               matchSeed,
                               homeClubId:
-                                candidateFixture.homeClubId ===
-                                state.userClubId
+                                candidateFixture.homeClubId === state.userClubId
                                   ? state.userClubId
                                   : opponent.id,
                               awayClubId:
-                                candidateFixture.awayClubId ===
-                                state.userClubId
+                                candidateFixture.awayClubId === state.userClubId
                                   ? state.userClubId
                                   : opponent.id,
                             }
@@ -204,8 +198,8 @@ function cupCareer(divisionGap: number, matchSeed: number): GameState {
 }
 
 function pyramidOpponent(state: GameState, clubId: string) {
-  return state.m2!.pyramid.divisions
-    .flatMap((division) => division.clubs)
+  return state
+    .m2!.pyramid.divisions.flatMap((division) => division.clubs)
     .find((club) => club.id === clubId)!;
 }
 
@@ -223,7 +217,9 @@ function withPyramidSquad(
         divisions: state.m2!.pyramid.divisions.map((division) => ({
           ...division,
           clubs: division.clubs.map((club) =>
-            club.id === clubId ? { ...club, squad: club.squad.map(tune) } : club,
+            club.id === clubId
+              ? { ...club, squad: club.squad.map(tune) }
+              : club,
           ),
         })),
       },

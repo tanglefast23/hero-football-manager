@@ -51,7 +51,9 @@ describe('titleMascotFits', () => {
       'const showMascot = isWide || titleMascotFits(height);',
     );
     expect(screen).toContain('{showMascot ? (');
-    expect(screen).toContain('<TitlePlayerPopScene reduceMotion={reduceMotion} />');
+    expect(screen).toContain(
+      '<TitlePlayerPopScene reduceMotion={reduceMotion} />',
+    );
     expect(screen).toContain('showMascot={showMascot}');
   });
 });

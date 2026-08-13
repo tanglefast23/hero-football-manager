@@ -235,7 +235,9 @@ describe('first-hire screen copy', () => {
     // proceed, so managers tapped it again and again waiting for something.
     expect(source).toContainSource('visuallyDisabled={!canSubmit}');
     expect(source).not.toContainSource('disabled={!canSubmit}');
-    expect(source).toContainSource('if (!canSubmit) {\n            setSubmitAttempted(true);');
+    expect(source).toContainSource(
+      'if (!canSubmit) {\n            setSubmitAttempted(true);',
+    );
   });
 });
 

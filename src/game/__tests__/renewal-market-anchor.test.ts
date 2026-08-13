@@ -51,10 +51,10 @@ describe('renewal ask market anchor', () => {
       const starved = { ...player, weeklyWage: 1 };
 
       expect(careerRenewalWeeklyAsk(withWage(starved, 1), starved)).toBe(
-        careerRenewalWeeklyAsk(
-          withWage(player, market),
-          { ...player, weeklyWage: market },
-        ),
+        careerRenewalWeeklyAsk(withWage(player, market), {
+          ...player,
+          weeklyWage: market,
+        }),
       );
     }
   });
