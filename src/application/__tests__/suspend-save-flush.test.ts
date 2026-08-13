@@ -203,6 +203,100 @@ describe('career save flush on suspend', () => {
       await flushPendingCareerSave();
     }
   });
+
+  it('never cuts ahead of a career replacement that is only queued', async () => {
+    const saved: GameState[] = [];
+    const held: { release: (() => void) | null } = { release: null };
+    let hangNext = false;
+    const repository = stubCareerRepository({
+      async save(state) {
+        if (hangNext) {
+          hangNext = false;
+          await new Promise<void>((resolve) => {
+            held.release = resolve;
+          });
+        }
+        saved.push(state);
+      },
+    });
+    await useM1Store.getState().initializePersistence(repository);
+    await startCreatedCareer(20260806);
+
+    try {
+      // The sibling test above holds the replacement's OWN first write open, so
+      // the replacement is running when the flush happens. Here something else
+      // occupies the queue, so the replacement is only ever queued — and a
+      // guard that counts running writes cannot see it at all.
+      hangNext = true;
+      useM1Store.setState({
+        career: withWeek(useM1Store.getState().career!, 2),
+      });
+      useM1Store.getState().retrySave();
+      await waitUntil(() => held.release !== null);
+
+      useM1Store.getState().startNewCareer(20260807);
+      const latest = withWeek(useM1Store.getState().career!, 21);
+      useM1Store.setState({ career: latest });
+      useM1Store.getState().retrySave();
+
+      const flushed = flushPendingCareerSave();
+      await settle();
+      // Writing it now would land it UNDER the replacement's own week-1 write,
+      // losing the created hero — while `lastPersistedCareer` claimed the newest
+      // state was safely on disk.
+      expect(saved.some((state) => state.week === 21)).toBe(false);
+
+      held.release!();
+      await flushed;
+      await settle();
+      expect(saved.at(-1)!.week).toBe(21);
+      expect(useM1Store.getState().lastPersistedCareer).toBe(latest);
+    } finally {
+      held.release?.();
+      await flushPendingCareerSave();
+    }
+  });
+
+  it('lets Continue retry the league save on a double-header week', async () => {
+    const saved: GameState[] = [];
+    let failing = false;
+    const repository = stubCareerRepository({
+      async save(state) {
+        if (failing) throw new Error('disk full');
+        saved.push(state);
+      },
+    });
+    await useM1Store.getState().initializePersistence(repository);
+    await startCreatedCareer(20260806);
+
+    // The league leg has settled into a week that also owes a Cup tie, and its
+    // write has already failed — so nothing is left in the queue and the Cup
+    // tie is gated behind a save nobody will attempt again.
+    failing = true;
+    const doubleHeader: GameState = {
+      ...useM1Store.getState().career!,
+      phase: 'matchday',
+    };
+    useM1Store.setState({
+      career: doubleHeader,
+      lastPersistedCareer: null,
+      screen: 'postmatch',
+    });
+
+    await useM1Store.getState().continueAfterMatch();
+    await settle();
+    expect(useM1Store.getState().screen).toBe('postmatch');
+    // The press is counted, so repeated presses escalate to the warning's
+    // Retry instead of producing silence forever.
+    expect(useM1Store.getState().saveWarning).not.toBeNull();
+
+    failing = false;
+    await useM1Store.getState().continueAfterMatch();
+    await settle();
+
+    expect(saved.at(-1)).toBe(doubleHeader);
+    expect(useM1Store.getState().screen).toBe('matchday');
+  });
 });
 
 function withWeek(career: GameState, week: number): GameState {

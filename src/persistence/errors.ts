@@ -60,6 +60,15 @@ export class UnsupportedReplaySchemaError extends Error {
   }
 }
 
+export class UnsupportedReplayEngineError extends Error {
+  constructor(found: string, supported: string) {
+    super(
+      `replay engine ${found} is unsupported; this build runs engine ${supported}`,
+    );
+    this.name = 'UnsupportedReplayEngineError';
+  }
+}
+
 export class CorruptReplayEnvelopeError extends Error {
   constructor(message: string) {
     super(`stored replay is corrupt: ${message}`);

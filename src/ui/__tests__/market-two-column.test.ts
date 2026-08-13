@@ -36,3 +36,33 @@ describe('market two-column layout', () => {
     expect(seasonEnd).not.toContain('flush');
   });
 });
+
+describe('youth prospect card on the narrowest phone', () => {
+  const source = readFileSync(
+    join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
+    'utf8',
+  );
+  // The academy intake card's header row is portrait · text column · ACADEMY
+  // stamp. On a 375pt iPhone SE the two art siblings were free to take the width
+  // they wanted, squeezing the text column to about four characters, and the two
+  // lines under the name had no numberOfLines to stop them wrapping — so
+  // "FWD · AGE 17 · PLAYMAKER" came out as six stacked fragments and pushed SIGN
+  // below the fold. A season-1 duty forces every new manager onto this screen.
+  const header = source.slice(
+    source.indexOf('{intake.offers.map((offer) => ('),
+    source.indexOf('<YouthStatLine'),
+  );
+
+  it('holds the fixed-size art at its natural width', () => {
+    expect(header).not.toBe('');
+    expect(header).toContain('className="shrink-0 overflow-hidden');
+    expect(header).toContain('className="shrink-0 -rotate-2');
+    expect(header).toContain('className="min-w-0 flex-1"');
+  });
+
+  it('clamps every metadata line the way the name is clamped', () => {
+    const textNodes = header.match(/<Text[\s\S]*?>/g) ?? [];
+    expect(textNodes).toHaveLength(3);
+    for (const node of textNodes) expect(node).toContain('numberOfLines={1}');
+  });
+});

@@ -1,4 +1,5 @@
 import { createLaunchCareerSetup } from '../../application/launch';
+import { MAX_PLAYER_ATTRIBUTE } from '../../sim/attributes';
 import { superTrainingChancePercent } from '../archetype-caps';
 import {
   applyCareerContractPromise,
@@ -262,5 +263,101 @@ describe('trainPlayerInstantly', () => {
     }
     expect(sawInjury).toBe(true);
     expect(sawEscape).toBe(true);
+  });
+
+  it('does not injure when the squad cannot cover it, instead of throwing', () => {
+    // The drill used to resolve the injury and only then ask the lineup to
+    // absorb it, so drilling the last coverable starter handed the Training
+    // screen `injured starter <id> has no eligible lineup replacement` — an
+    // internal id, on a deterministic tap that stayed broken. Training somebody
+    // else first re-rolled the injury away, which is a hidden reroll.
+    const state = fullCareerState();
+    const lineup = state.lineups.find((l) => l.clubId === state.userClubId)!;
+    const keepers = state.players.filter(
+      (p) => p.clubId === state.userClubId && p.role === 'GK',
+    );
+    const starter = keepers.find((p) => lineup.playerIds.includes(p.id))!;
+    const backup = keepers.find((p) => p.id !== starter.id)!;
+    const tired = {
+      ...state,
+      players: state.players.map((p) =>
+        p.id === starter.id ? { ...p, condition: 10 } : p,
+      ),
+    };
+
+    // A tap that really does injure him while the bench still has a keeper.
+    let injuringNonce = -1;
+    for (let nonce = 0; nonce < 50 && injuringNonce < 0; nonce += 1) {
+      const res = trainPlayerInstantly(
+        { ...tired, totalInstantDrills: nonce },
+        starter.id,
+        'keeper-drills',
+      );
+      if (res.injury !== undefined) injuringNonce = nonce;
+    }
+    expect(injuringNonce).toBeGreaterThanOrEqual(0);
+
+    const noCover = {
+      ...tired,
+      totalInstantDrills: injuringNonce,
+      players: tired.players.map((p) =>
+        p.id === backup.id ? { ...p, injuryWeeks: 3 } : p,
+      ),
+    };
+    const res = trainPlayerInstantly(noCover, starter.id, 'keeper-drills');
+
+    expect(res.injury).toBeUndefined();
+    expect(
+      res.state.players.find((p) => p.id === starter.id)!.injuryWeeks,
+    ).toBe(0);
+    // Still a real drill: the stat moved and the TP was spent.
+    expect(res.after).toBeGreaterThan(res.before);
+    expect(res.state.trainingPoints).toBe(noCover.trainingPoints - res.tpSpent);
+    // No emergency youth was conjured either — that relief belongs to weekly
+    // settlement, which cannot decline the outage the way a drill can.
+    expect(res.state.players).toHaveLength(noCover.players.length);
+  });
+
+  it('refuses a drill that cannot change anything rather than taking the TP', () => {
+    const state = fullCareerState();
+    const outfielder = userPlayer(state);
+
+    // REF is dead for every outfield role (`INERT_ATTRIBUTES`), so this used to
+    // charge the full 7 TP for a point the match engine never reads.
+    expect(() =>
+      trainPlayerInstantly(state, outfielder.id, 'keeper-drills'),
+    ).toThrow('does nothing for a');
+
+    const maxed = {
+      ...state,
+      players: state.players.map((p) =>
+        p.id === outfielder.id
+          ? { ...p, attrs: { ...p.attrs, pac: MAX_PLAYER_ATTRIBUTE } }
+          : p,
+      ),
+    };
+    expect(() => trainPlayerInstantly(maxed, outfielder.id, 'sprints')).toThrow(
+      'already at the maximum',
+    );
+  });
+
+  it('only trains before a match', () => {
+    const state = fullCareerState();
+    const player = userPlayer(state);
+
+    expect(() =>
+      trainPlayerInstantly(
+        { ...state, phase: 'season-end' },
+        player.id,
+        'sprints',
+      ),
+    ).toThrow('before a match');
+    expect(() =>
+      trainPlayerInstantly(
+        { ...state, phase: 'matchday' },
+        player.id,
+        'sprints',
+      ),
+    ).not.toThrow();
   });
 });

@@ -251,13 +251,19 @@ let careerSaveGeneration = 0;
 let careerLineage = 0;
 
 /**
- * How many writes are in flight that a queue-jumping career save must not
+ * How many writes are OUTSTANDING that a queue-jumping career save must not
  * overlap: the ones spanning several statements (a career replacement, a
  * discard, a backup restore). Two single-statement UPSERTs may interleave
  * safely — SQLite serialises statements on the connection — but a sequence that
  * only makes sense as a whole must not have another writer land in the middle,
  * and a replacement in particular would then write its older state *after* the
  * newer one and lose a week.
+ *
+ * Outstanding, not running: a replacement sitting in the serial queue behind a
+ * long write has not started yet, and counting only the running ones let
+ * `flushPendingCareerSave` jump ahead of it — the replacement then wrote its
+ * own week 1 over the newest state, and `lastPersistedCareer` claimed the
+ * newest state was safe. `queueNewCareerSave` therefore counts at enqueue time.
  */
 let exclusiveSaveDepth = 0;
 
@@ -426,6 +432,16 @@ interface M1Store {
   /** The previous-generation save the player can fall back to, if any. */
   backupSummary: CareerBackupSummary | null;
   screen: M1Screen;
+  /**
+   * True while the player is back at the title because a career screen threw.
+   *
+   * `ScreenErrorBoundary` cannot change the career, so Continue's ordinary
+   * resume routes straight back into the screen that just crashed — and it
+   * crashes again, on this launch and every later one, because the offending
+   * state is persisted. This flag is what lets the next Continue land on the
+   * desk instead: one lost cutscene rather than a dead save.
+   */
+  recoveredFromScreenCrash: boolean;
   activeTab: ManagementTab;
   selectedPlayerId?: string;
   lastDrillResult: InstantDrillResult | null;
@@ -485,6 +501,11 @@ interface M1Store {
   /** Debug UI only: replaces the live career with an exact stored snapshot. */
   restoreDeveloperSave: (state: GameState, slotLabel: string) => void;
   retrySave: () => void;
+  /**
+   * Leaves a screen that threw, for the title, remembering that it threw so
+   * Continue does not walk straight back into it.
+   */
+  recoverFromScreenCrash: () => void;
   startNewCareer: (seed?: number, assistantMode?: AssistantMode) => void;
   continueCareer: () => void;
   setAssistantMode: (assistantMode: AssistantMode) => void;
@@ -732,6 +753,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   saveBlocked: false,
   backupSummary: null,
   screen: 'welcome',
+  recoveredFromScreenCrash: false,
   activeTab: 'home',
   lastDrillResult: null,
   watchedMatch: null,
@@ -773,7 +795,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         persistenceLoadError: null,
         rawExportRequired: false,
         rawExportSucceeded: false,
-        backupSummary: await backupSummaryFailSoft(repository),
+        // Not read on a healthy boot: the summary exists for the
+        // unreadable-save screen's Restore button and is rendered nowhere
+        // else. Answering it now would decode the whole backup blob (a full
+        // parse of ~356 KB) on every launch, for a value nothing draws.
+        backupSummary: null,
         error: null,
       });
       // Reconciliation write-back goes through the normal failure-counting
@@ -792,7 +818,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         persistenceReady: true,
         backupSummary: await backupSummaryFailSoft(repository),
         persistenceLoadError: t('store.saveLoadFailed', {
-          reason: errorMessage(error),
+          reason: rawMessage(error),
           // Glued rather than authored with a leading space: no catalog entry
           // carries edge whitespace, and a translator cannot be asked to keep it.
           damage: damaged ? ` ${t('store.saveDatabaseDamaged')}` : '',
@@ -817,7 +843,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     } catch (error) {
       set({
         persistenceLoadError: t('store.rawExportFailed', {
-          reason: errorMessage(error),
+          reason: rawMessage(error),
         }),
       });
       return;
@@ -849,7 +875,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     } catch (error) {
       set({
         persistenceLoadError: t('store.saveDeleteFailed', {
-          reason: errorMessage(error),
+          reason: rawMessage(error),
         }),
       });
       return 'failed';
@@ -897,7 +923,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     } catch (error) {
       set({
         persistenceLoadError: t('store.backupRestoreFailed', {
-          reason: errorMessage(error),
+          reason: rawMessage(error),
         }),
       });
       return;
@@ -968,10 +994,26 @@ export const useM1Store = create<M1Store>((set, get) => ({
     queueCareerSave(get, set, career);
   },
 
+  recoverFromScreenCrash() {
+    set({
+      screen: 'welcome',
+      recoveredFromScreenCrash: true,
+      error: null,
+      activeTab: 'home',
+      // Overlay state that survives the remount must not haunt the title
+      // screen: a crash while Bert's desk reminder was up would otherwise
+      // recover with his lecture floating over the landing view, and a stale
+      // watched match holds live-match props no screen consumes.
+      inboxDutyReminder: null,
+      inboxDutyFocus: null,
+      watchedMatch: null,
+    });
+  },
+
   startNewCareer(seed, assistantMode) {
     guarded(set, () => {
       if (get().persistenceLoadError !== null) {
-        throw new Error(t('store.replaceCareerBlocked'));
+        playerError('store.replaceCareerBlocked');
       }
       const replacedCareer = get().career;
       // Requests are attached here rather than inside createLaunchCareerSetup so
@@ -995,6 +1037,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         hasSavedCareer: true,
         lastPersistedCareer: null,
         screen: 'create-player',
+        recoveredFromScreenCrash: false,
         activeTab: 'home',
         selectedPlayerId: undefined,
         watchedMatch: null,
@@ -1019,9 +1062,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
     }
     const current = get().career!;
     const career = reconcilePendingCareerEvent(current, launchContent.events);
+    // A screen crash sent the player here, and the career it crashed on is
+    // unchanged — so resuming where the career says walks straight back into
+    // the screen that threw. The desk renders the same career without the
+    // cutscene, story card or match presentation that failed, so recovery
+    // costs that one moment instead of the save. Consumed on use: if the desk
+    // throws too, the boundary sets the flag again and there is nowhere in the
+    // career left to route to.
+    const recovered = get().recoveredFromScreenCrash;
     set({
       career,
-      screen: resumeScreen(career),
+      screen: recovered ? 'management' : resumeScreen(career),
+      recoveredFromScreenCrash: false,
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
@@ -1386,12 +1438,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const screen = get().screen;
       if (screen !== 'management' && screen !== 'season-end') return;
       if (get().saveBlocked) {
-        throw new Error(t('store.seasonPausedBySaveFailure'));
+        playerError('store.seasonPausedBySaveFailure');
       }
       const career = requireCareer(get());
       if (midseasonTrainingStatus(career) === 'prompt') return;
       if (career.onboarding?.stage === 'create-player') {
-        throw new Error(t('store.createPlayerFirst'));
+        playerError('store.createPlayerFirst');
       }
       if (
         career.awakening.pending !== undefined ||
@@ -1405,7 +1457,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         hasAssistantGuideMilestone(career, 'intro-complete') &&
         !hasAssistantGuideMilestone(career, 'first-training-complete')
       ) {
-        throw new Error(t('store.trainBeforeAdvancing'));
+        playerError('store.trainBeforeAdvancing');
       }
       if (career.phase === 'matchday') {
         set({ screen: 'matchday', error: null });
@@ -1540,7 +1592,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // watched-fixture identity check.)
       if (get().screen !== 'matchday') return;
       if (get().saveBlocked) {
-        throw new Error(t('store.seasonPausedBySaveFailure'));
+        playerError('store.seasonPausedBySaveFailure');
       }
       const before = requireCareer(get());
       if (midseasonTrainingStatus(before) === 'prompt') return;
@@ -1673,7 +1725,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // Matches saveBlocked's contract: once saving is broken the season is
       // paused, so no new match progress may start, only be retried/recovered.
       if (get().saveBlocked) {
-        throw new Error(t('store.seasonPausedBySaveFailure'));
+        playerError('store.seasonPausedBySaveFailure');
       }
       const career = requireCareer(get());
       if (midseasonTrainingStatus(career) === 'prompt') return;
@@ -1797,6 +1849,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
       get().lastPersistedCareer !== career
     ) {
       set({ notice: { tone: 'info', message: t('store.savingLeagueResult') } });
+      // Re-queue before waiting. A save that has already FAILED leaves nothing
+      // in the queue, so waiting alone returns silently on this press and every
+      // press after it — the Cup tie is unreachable and the only exit is force
+      // quitting, which loses the match. Queueing makes the press itself the
+      // retry: the career resumes the instant a write lands, and until then
+      // each attempt is counted, so the save warning escalates to its Retry
+      // instead of the player pressing a dead button forever.
+      queueCareerSave(get, set, career);
       await saveQueue;
       if (get().career !== career || get().lastPersistedCareer !== career)
         return;
@@ -2038,7 +2098,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         event === undefined ||
         !careerEventTargetCandidates(career, event).playerIds.includes(playerId)
       ) {
-        throw new Error('that player is not eligible for this story');
+        playerError('store.storyTargetNotEligible');
       }
       const eligiblePlayerIds = careerEventTargetCandidates(
         career,
@@ -2062,7 +2122,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         event === undefined ||
         !careerEventTargetCandidates(career, event).coachRoles.includes(role)
       ) {
-        throw new Error('that coach is not eligible for this story');
+        playerError('store.storyTargetNotEligible');
       }
       const next = selectCareerEventCoach(career, role);
       set({ career: next, error: null });
@@ -2084,7 +2144,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           buildingId,
         )
       ) {
-        throw new Error('that facility is not eligible for this story');
+        playerError('store.storyTargetNotEligible');
       }
       const next = selectCareerEventFacility(career, buildingId);
       set({ career: next, error: null });
@@ -2157,7 +2217,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // Resolving a story writes the club's money, morale and roster, so it
       // honours the same saveBlocked pause as advanceCareer.
       if (get().saveBlocked) {
-        throw new Error(t('store.seasonPausedBySaveFailure'));
+        playerError('store.seasonPausedBySaveFailure');
       }
       const career = requireCareer(get());
       const pending = career.pendingEvent;
@@ -2234,7 +2294,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         .filter((id) => id !== playerId);
       if (!player.licensed) {
         if (selected.length >= careerHeroLimit(career)) {
-          throw new Error(t('store.unlicenseFirst'));
+          playerError('store.unlicenseFirst');
         }
         selected.push(playerId);
       }
@@ -3422,7 +3482,7 @@ function assertLeagueCupCheckpointPersisted(
     store.repository !== null &&
     store.lastPersistedCareer !== career
   ) {
-    throw new Error(t('store.leagueResultStillSaving'));
+    playerError('store.leagueResultStillSaving');
   }
 }
 
@@ -3431,6 +3491,24 @@ function queueCareerSave(
   set: (partial: Partial<M1Store>) => void,
   career: GameState,
 ): void {
+  // Every career mutation routes through here, which makes it the one place a
+  // selection can be reconciled against the roster it points into. A sale or a
+  // release leaves `selectedPlayerId` naming someone who is no longer at the
+  // club — a sale does not even remove them from `players`, it moves them to
+  // the buying club — and the store then answers taps on that stale selection
+  // with raw refusals naming the internal id ("player bramble-rovers-p11 is
+  // not on the user club"). Cleared before the save so no consumer sees the
+  // gap; the squad view model resolves this id against the user roster alone.
+  const selectedPlayerId = get().selectedPlayerId;
+  if (
+    selectedPlayerId !== undefined &&
+    !career.players.some(
+      (player) =>
+        player.id === selectedPlayerId && player.clubId === career.userClubId,
+    )
+  ) {
+    set({ selectedPlayerId: undefined });
+  }
   const repository = get().repository;
   if (repository === null) return;
   if (pendingCareerSave !== null) {
@@ -3570,13 +3648,16 @@ function queueNewCareerSave(
   let replacedCareerPersisted = false;
   const replacedCareerId =
     replacedCareer === null ? null : `m1-career-${replacedCareer.careerSeed}`;
+  // Exclusive from THIS moment, not from the moment the task starts running:
+  // the checkpoint, the replacement write and the replay cleanup only mean
+  // anything as one sequence, and a flush that jumped the queue while this sat
+  // waiting behind a long write would be overwritten by the replacement write
+  // that follows it.
+  exclusiveSaveDepth += 1;
   enqueueSave(
     set,
-    // Exclusive: the checkpoint, the replacement write and the replay cleanup
-    // only mean anything as one sequence. A queue-jumping save landing between
-    // them would be overwritten by the replacement write that follows it.
-    () =>
-      withExclusiveSave(async () => {
+    async () => {
+      try {
         // A replacement may be requested in the same turn as an ordinary save.
         // That older task no longer owns its coalesced payload once we withdraw
         // it above, so first checkpoint the exact career the player is replacing.
@@ -3601,12 +3682,15 @@ function queueNewCareerSave(
             notice: {
               tone: 'info',
               message: t('store.replayCleanupFailed', {
-                reason: errorMessage(error),
+                reason: rawMessage(error),
               }),
             },
           });
         }
-      }),
+      } finally {
+        exclusiveSaveDepth -= 1;
+      }
+    },
     t('store.newCareerSaveFailed'),
     () => {
       clearSaveFailures(set);
@@ -3668,7 +3752,7 @@ function enqueueSave(
     .catch((error) => {
       onError?.(error);
       if (ticket === latestSaveTicket) set({ saving: false });
-      set({ error: `${errorPrefix}: ${errorMessage(error)}` });
+      set({ error: `${errorPrefix}: ${rawMessage(error)}` });
     });
 }
 
@@ -3693,7 +3777,7 @@ function guarded(
 
 /** Turns every player-reachable facility refusal into Bert-ready copy. */
 export function facilityTransactionErrorCopy(error: unknown): string {
-  const raw = errorMessage(error);
+  const raw = rawMessage(error);
   if (/ is not unlocked$/.test(raw)) return t('facilityError.locked');
   if (/ is already built;| limit reached;/.test(raw)) {
     return t('facilityError.buildLimit');
@@ -3743,10 +3827,10 @@ export function facilityTransactionErrorCopy(error: unknown): string {
 
 /** Turns the pressable-but-unaffordable transfer refusal into player copy. */
 export function transferTransactionErrorCopy(error: unknown): string {
-  const raw = errorMessage(error);
+  const raw = rawMessage(error);
   return raw === 'transfer fee exceeds current cash'
     ? t('market.notEnoughCash')
-    : raw;
+    : t('store.actionUnavailable');
 }
 
 export function assertTransferCashAvailable(cash: number, fee: number): void {
@@ -3760,9 +3844,124 @@ function guardedTransfer(
   guarded(set, action, transferTransactionErrorCopy);
 }
 
+/** The developer text a throw carries, for matching. Never shown to a player. */
+function rawMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * A refusal whose message is already the player's sentence, already resolved in
+ * the player's language.
+ *
+ * Most `throw`s in the rings carry developer English written for a stack trace,
+ * and `errorMessage` replaces those with one catalogued line. A handful of store
+ * refusals are the opposite: their text comes straight out of the catalog and is
+ * exactly what the player should read. Marking them by type keeps that
+ * distinction explicit — a plain `throw new Error('...')` is developer text by
+ * default, which is the safe way round.
+ */
+class PlayerFacingError extends Error {}
+
+/** Throws catalogued copy the error banner should show verbatim. */
+function playerError(
+  key: string,
+  params?: Readonly<Record<string, string | number>>,
+): never {
+  throw new PlayerFacingError(t(key, params));
+}
+
+/**
+ * The refusals a player reaches by tapping a control the screen offered.
+ *
+ * Matched on the raw English because that is all a `throw` carries. Keep the
+ * list short: a refusal that needs an entry here is usually a screen that
+ * should have disabled the control instead.
+ */
+type RefusalRule = readonly [
+  RegExp,
+  string,
+  ((match: RegExpMatchArray) => Readonly<Record<string, string | number>>)?,
+];
+
+const PLAYER_REACHABLE_REFUSALS: readonly RefusalRule[] = [
+  [/^unknown coach candidate /, 'store.coachUnavailable'],
+  [/^choose a club bid before accepting the transfer$/, 'store.chooseBidFirst'],
+  [/^Scouting unlocks in Week /, 'store.scoutingLocked'],
+  [
+    /^expired players can only leave at season end$/,
+    'store.releaseAtSeasonEnd',
+  ],
+  [
+    /^renewal talks require the season-end phase$/,
+    'store.renewalSeasonEndOnly',
+  ],
+  [/ is not on the user club$/, 'store.playerNotOnClub'],
+  [
+    /^Both lineup players must belong to your club\.$/,
+    'store.lineupOwnPlayersOnly',
+  ],
+  [/^only heroes can receive a license$/, 'store.heroesOnlyLicense'],
+  [
+    / uses characters the game cannot display$/,
+    'store.nameHasUnsupportedCharacters',
+  ],
+  // These two carry numbers and a name the player needs. Dropping them into the
+  // generic line would answer "why can't I?" with "you can't", so the capture
+  // groups are forwarded as params rather than thrown away.
+  [
+    /^training needs (\d+) TP but only (\d+) are available$/,
+    'store.trainingNeedsMoreTp',
+    (m) => ({ cost: m[1], available: m[2] }),
+  ],
+  [
+    /^(.+) is not eligible for this club$/,
+    'store.playerNotEligible',
+    (m) => ({ player: m[1] }),
+  ],
+  [/^this story still has an eligible target$/, 'store.storyHasEligibleTarget'],
+  // The refusals the squad/training hardening added in this same pass. A guard
+  // that stops a crash but answers the player in developer English has only
+  // moved the defect, so each new throw lands here with its own sentence.
+  [
+    /^(.+) cannot be spared: no eligible replacement is available$/,
+    'store.playerCannotBeSpared',
+    (m) => ({ player: m[1] }),
+  ],
+  [/^training can only run before a match$/, 'store.trainingBeforeMatchOnly'],
+  [
+    /^(.+) does nothing for a (GK|DEF|MID|FWD)$/,
+    'store.drillDoesNothingForRole',
+    (m) => ({ drill: m[1], role: m[2] }),
+  ],
+  [/ is already at the maximum$/, 'store.attributeAlreadyMaxed'],
+  [
+    /^(.+) is (?:injured|away) and cannot train$/,
+    'store.playerCannotTrain',
+    (m) => ({ player: m[1] }),
+  ],
+  [/^the club cannot afford this request$/, 'store.requestNotAffordable'],
+];
+
+/**
+ * The player-facing sentence for a refusal a pure ring raised.
+ *
+ * The rings may not import `src/i18n`, so a `throw` carries no key and its
+ * English is written for whoever is reading a stack trace. Showing it verbatim
+ * put "unknown coach candidate coach-s1-mateo-silva" in the error banner, in
+ * all seven languages. Anything not recognised here is a state the UI should
+ * not have offered, so it gets one catalogued line rather than a developer
+ * sentence a player cannot act on.
+ */
 function errorMessage(error: unknown): string {
   if (error instanceof ContractPromiseBlockedError) {
     return copyOrEnglish(t, error.key, error.message, error.params);
   }
-  return error instanceof Error ? error.message : String(error);
+  // Already the player's sentence, in the player's language — show it as it is.
+  if (error instanceof PlayerFacingError) return error.message;
+  const raw = rawMessage(error);
+  for (const [pattern, key, params] of PLAYER_REACHABLE_REFUSALS) {
+    const match = raw.match(pattern);
+    if (match !== null) return t(key, params?.(match));
+  }
+  return t('store.actionUnavailable');
 }

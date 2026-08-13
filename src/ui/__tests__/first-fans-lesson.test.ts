@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { loadCatalog } from '../../i18n';
 import { briefingMoments } from '../bert-beat-moments';
 import type { BriefingBeat } from '../bert-briefing-beats';
 import { BERT_MOMENTS } from '../bert-poses';
@@ -63,10 +64,19 @@ describe("Bert's first-fans lesson", () => {
   });
 
   it('sends the manager after income rather than dwelling on the bills', () => {
-    expect(app).toContainSource('make sure you have income streams');
-    expect(app).toContainSource(
+    // The lines live in the catalog now — they used to be English literals in
+    // `App.tsx`, which meant six of the seven shipped languages heard this
+    // lesson in English. Assert both halves: the key exists with the right
+    // sentence, and `App.tsx` actually asks for it.
+    const strings = loadCatalog('en').strings;
+    expect(strings['bert.firstFansLedger.body2']).toContain(
+      'make sure you have income streams',
+    );
+    expect(strings['bert.firstFansLedger.body3']).toContain(
       'help with fans or income if you’re short on cash',
     );
+    expect(app).toContainSource("t('bert.firstFansLedger.body2')");
+    expect(app).toContainSource("t('bert.firstFansLedger.body3')");
   });
 
   /** The owner's rule: the face is chosen for the line, never left to the fallback run. */

@@ -7,24 +7,26 @@ const DIST = path.resolve('dist');
 // above the accepted artifact, so ordinary feature growth eventually needs a
 // deliberate re-ratchet and a one-off leak still trips the gate.
 //
-// Re-ratcheted 2026-08-13 off the Season 1 opening branch, measured at
-// 5_903_715 raw / 870_479 gzip. BOTH moved this time: gzip had drifted to
-// within 1.9 KB of its mark and main has since crossed it, so the 5 KB
-// allowance above is restored on both rather than only on raw.
+// Re-ratcheted 2026-08-13 off PR #158's merge artifact (audit2 + main), CI-
+// measured at 5_917_682 raw / 874_253 gzip. Growth since the 2026-08-12 mark
+// (5_896_612 raw / 868_302 gzip) is +21_070 raw / +5_951 gzip, spread across
+// four merges: win bonus + story rewards (78c35279), the audit2 hardening
+// sweep, substitution entry energy (#157), and the audit3 adversarial fixes
+// (59175c5b: error-boundary reload path, seven-locale catalog additions).
+// Checked before moving the number, same as last time: the QA and Skia marker
+// assertions below both stayed clean, so this is distributed feature growth,
+// not a renderer or dev-harness leak.
 //
-// Where the growth came from, because it is worth not misattributing: main was
-// ALREADY over BOTH gates at 59175c5b (the audit3 merge) — 5_903_705 raw and
-// 870_476 gzip, against marks of 5_901_732 and 870_222. Measured directly, by
-// exporting this worktree with only the branch's bundled files reverted to
-// 59175c5b. The branch itself adds TEN bytes of raw and three of gzip; every
-// other byte arrived on main. Checked before moving the numbers, same as last
-// time: the QA and Skia marker assertions below both stayed clean, so this is
-// distributed growth, not a renderer or dev-harness leak.
+// Merge note, same day: #159 independently re-ratcheted main to 5_908_835 /
+// 875_599 off a main-only artifact (5_903_715 / 870_479, its own branch adding
+// ten raw bytes). The audit2 merge artifact above is the larger superset, so
+// its marks win this conflict; #159's growth attribution for main agrees with
+// the four-merge account above.
 //
-// Previous marks: 5_901_732 / 870_222 at 5229b392, 5_891_821 at 0128bcc4,
-// 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 5_908_835;
-const GZIP_BUDGET = 875_599;
+// Previous marks: 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the
+// stat-tip branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 5_922_802;
+const GZIP_BUDGET = 879_373;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

@@ -30,13 +30,14 @@ import {
   hasActiveCareerContractPromise,
   pendingTrainingPriorityHolder,
 } from './contract-promises';
-import { repairCareerLineupForInjuries } from './squad';
+import { tryRepairCareerLineupForInjuries } from './squad';
 import { isAvailableForSelection } from './lineup';
 import { drillMultiplierPercent } from './player-requests';
 import {
   keeperDisplayLadderMultiplier,
   resolveTrainingDrillForPath,
   trainingPathAttribute,
+  trainingPathLabel,
 } from './training-paths';
 import type { CareerPlayer, GameState } from './types';
 
@@ -222,6 +223,11 @@ export function trainPlayerInstantly(
   playerId: string,
   pathId: string,
 ): InstantDrillResolution {
+  // Every other squad mutation asserts its phase; training used to run happily
+  // during season-end, which is the renewals desk, not the training ground.
+  if (state.phase !== 'manage' && state.phase !== 'matchday') {
+    throw new Error('training can only run before a match');
+  }
   const player = state.players.find((candidate) => candidate.id === playerId);
   if (player === undefined || player.clubId !== state.userClubId) {
     throw new Error(`player ${playerId} is not on the user club`);
@@ -233,6 +239,22 @@ export function trainPlayerInstantly(
     throw new Error(`${player.name} is injured and cannot train`);
   if ((player.awayWeeks ?? 0) > 0)
     throw new Error(`${player.name} is away and cannot train`);
+  const attribute = trainingPathAttribute(pathId);
+  // TP is one of two currencies and deliberately scarce, so a drill that cannot
+  // change anything must not take any. Both refusals are backstops: the drill
+  // picker already hides an inert stat (`selectedPlayerStatOptions` filters on
+  // the same `attributeAffectsPlay`), and the ceiling is only reachable after a
+  // very long career.
+  if (!attributeAffectsPlay(player.role, attribute)) {
+    throw new Error(
+      `${trainingPathLabel(pathId)} does nothing for a ${player.role}`,
+    );
+  }
+  if (player.attrs[attribute] >= MAX_PLAYER_ATTRIBUTE) {
+    throw new Error(
+      `${player.name}'s ${trainingPathLabel(pathId)} is already at the maximum`,
+    );
+  }
   // A TRAINING_PRIORITY promise is a debt: the promised player owns the next
   // drills until their countdown drains. They remind the manager; an injured
   // holder pauses the debt instead of deadlocking training.
@@ -261,7 +283,6 @@ export function trainPlayerInstantly(
     pityReached ||
     instantDrillRoll(state.careerSeed, nonce, playerId, 0, 100) < superChance;
 
-  const attribute = trainingPathAttribute(pathId);
   const baseDrillGain = drill.gains[attribute] ?? 0;
   const rolledGain = isSuper ? Math.round(baseDrillGain * 1.5) : baseDrillGain;
   const growth = applyInstantGrowthModifiers(
@@ -332,7 +353,7 @@ export function trainPlayerInstantly(
     injuryChancePercent > 0 &&
     instantDrillRoll(state.careerSeed, nonce, playerId, 1, 100) <
       injuryChancePercent;
-  const recoveryWeeks = injured
+  const rolledRecoveryWeeks = injured
     ? medicalBayRecoveryWeeks(
         2 + instantDrillRoll(state.careerSeed, nonce, playerId, 2, 5),
         gridMedicalBayLevel(state.facilities.grid),
@@ -343,40 +364,61 @@ export function trainPlayerInstantly(
     conditionBefore - INSTANT_DRILL_CONDITION_COST,
   );
 
-  const trainedPlayer: CareerPlayer = {
-    ...player,
-    attrs: { ...player.attrs, [attribute]: growth.value },
-    condition: conditionAfter,
-    drillsSinceSuper: isSuper ? 0 : (player.drillsSinceSuper ?? 0) + 1,
-    ...(targetOwedDrills
-      ? { priorityDrillsRemaining: (player.priorityDrillsRemaining ?? 0) - 1 }
-      : {}),
-    ...(growth.trainingBonusRemainders === undefined
-      ? {}
-      : { trainingBonusRemainders: growth.trainingBonusRemainders }),
-    ...(growth.facilityStaBonusRemainder === undefined
-      ? {}
-      : { facilityStaBonusRemainder: growth.facilityStaBonusRemainder }),
-    ...(displayBonusAfter > 0 ? { refDisplayBonus: displayBonusAfter } : {}),
-    ...(recoveryWeeks === undefined ? {} : { injuryWeeks: recoveryWeeks }),
+  const drilledState = (injuryWeeks: number | undefined): GameState => {
+    const trainedPlayer: CareerPlayer = {
+      ...player,
+      attrs: { ...player.attrs, [attribute]: growth.value },
+      condition: conditionAfter,
+      drillsSinceSuper: isSuper ? 0 : (player.drillsSinceSuper ?? 0) + 1,
+      ...(targetOwedDrills
+        ? { priorityDrillsRemaining: (player.priorityDrillsRemaining ?? 0) - 1 }
+        : {}),
+      ...(growth.trainingBonusRemainders === undefined
+        ? {}
+        : { trainingBonusRemainders: growth.trainingBonusRemainders }),
+      ...(growth.facilityStaBonusRemainder === undefined
+        ? {}
+        : { facilityStaBonusRemainder: growth.facilityStaBonusRemainder }),
+      ...(displayBonusAfter > 0 ? { refDisplayBonus: displayBonusAfter } : {}),
+      ...(injuryWeeks === undefined ? {} : { injuryWeeks }),
+    };
+    return {
+      ...state,
+      players: state.players.map((candidate) =>
+        candidate.id === playerId ? trainedPlayer : candidate,
+      ),
+      trainingPoints: state.trainingPoints - drill.tpCost,
+      totalInstantDrills: nonce + 1,
+    };
   };
 
-  const nextState: GameState = {
-    ...state,
-    players: state.players.map((candidate) =>
-      candidate.id === playerId ? trainedPlayer : candidate,
-    ),
-    trainingPoints: state.trainingPoints - drill.tpCost,
-    totalInstantDrills: nonce + 1,
-  };
+  /**
+   * A tap-time injury must bench the starter right away — settlement no longer
+   * stands between training and the next matchday to repair it. The repair is
+   * therefore asked BEFORE the injury is kept: it used to be applied first and
+   * the throw handed straight to the Training screen, so drilling the last
+   * coverable starter turned the TRAIN button into a red banner carrying an
+   * internal player id, and training somebody else first re-rolled the injury
+   * away — a hidden reroll for a deterministic tap. A drill the squad cannot
+   * absorb simply does not injure.
+   *
+   * `tryRepair`, not `repairCareerLineupForInjuries`: settlement's fail-soft
+   * mints an emergency academy youth, which would turn "drill your keeper until
+   * he pulls up" into a way to conjure a free player.
+   *
+   * RNG: every roll above is an independent hash of
+   * (careerSeed, nonce, playerId, stream) rather than a position in a stream,
+   * so no draw moved and no draw was added or removed by this reordering.
+   */
+  const injuredState =
+    rolledRecoveryWeeks === undefined
+      ? undefined
+      : tryRepairCareerLineupForInjuries(drilledState(rolledRecoveryWeeks));
+  const recoveryWeeks =
+    injuredState === undefined ? undefined : rolledRecoveryWeeks;
 
   return {
-    // A tap-time injury must bench the starter right away — settlement no
-    // longer stands between training and the next matchday to repair it.
-    state:
-      recoveryWeeks === undefined
-        ? nextState
-        : repairCareerLineupForInjuries(nextState),
+    state: injuredState ?? drilledState(undefined),
     playerId,
     pathId,
     drillId: drill.id,

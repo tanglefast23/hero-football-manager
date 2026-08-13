@@ -82,10 +82,50 @@ describe('screen transition', () => {
 
   it('leaves the fading screen untouchable and unread', () => {
     const file = source(TRANSITION);
-    expect(file).toContain("pointerEvents={active === 0 ? 'auto' : 'none'}");
-    expect(file).toContain("pointerEvents={active === 1 ? 'auto' : 'none'}");
+    expect(file).toContain(
+      "pointerEvents={active === 0 && inputSettled ? 'auto' : 'none'}",
+    );
+    expect(file).toContain(
+      "pointerEvents={active === 1 && inputSettled ? 'auto' : 'none'}",
+    );
     expect(file).toContain('accessibilityElementsHidden={active !== 0}');
     expect(file).toContain('accessibilityElementsHidden={active !== 1}');
+  });
+
+  it('makes the hidden slot inert, not merely unclickable', () => {
+    // pointerEvents stops the mouse and nothing else. The departed title screen
+    // kept tabIndex=0 buttons in the tab order for the whole session, so Tab +
+    // Enter on the invisible "Start over · erase save" raised the career-erase
+    // confirm over whatever screen the manager was actually on.
+    const file = source(TRANSITION);
+    expect(file).toContain("return { inert: true, 'aria-hidden': true };");
+    expect(file).toContain('{...hiddenSlotProps(active !== 0)}');
+    expect(file).toContain('{...hiddenSlotProps(active !== 1)}');
+    // Native already owns its AX boundary; `inert` is a DOM attribute.
+    expect(file).toContain("if (!hidden || Platform.OS !== 'web') return {};");
+  });
+
+  it('unmounts the departed screen even when the fade never completes', () => {
+    // react-native-web drives this fade on requestAnimationFrame, which a
+    // backgrounded tab stops outright. Without the timer the outgoing screen
+    // stayed mounted for the rest of the session, still running its intervals.
+    const file = source(TRANSITION);
+    expect(file).toContain(
+      'const backstop = setTimeout(drop, SCREEN_FADE_MS + 100);',
+    );
+    expect(file).toContain('clearTimeout(backstop);');
+  });
+
+  it('swallows the stray taps of a double-tap that changed the screen', () => {
+    // Both slots fill the same rect, so the weekly review's confirm button and
+    // the management shell's Club tab share a y-band. Taps 2-3 of an impatient
+    // triple-tap landed on the tab and moved the manager to Club Office.
+    const file = source(TRANSITION);
+    expect(file).toContain('export const SCREEN_INPUT_SETTLE_MS = 250;');
+    expect(file).toContain('setInputSettled(false);');
+    expect(file).toContain('SCREEN_INPUT_SETTLE_MS,');
+    // The first screen of the session has no stray tap in flight behind it.
+    expect(file).toContain('useState(true);');
   });
 
   it('never updates transition state while React is rendering', () => {

@@ -89,9 +89,34 @@ const DISPLAY_LEAVES: readonly RegExp[] = [
   /^bert\.fiction\.[^.]+\.title$/, //         Scorecard.tsx:71          PixelText uppercase
 ];
 
+/**
+ * The leaves inside a display namespace that are drawn in the platform sans.
+ *
+ * The mirror image of `DISPLAY_LEAVES`, and needed for the same reason: a
+ * namespace is one prop-name away from holding both voices. A confirmation
+ * sheet's heading is `font-pixel text-xl uppercase`, and the paragraph directly
+ * under it sets no `fontFamily` at all — one dialog, two faces.
+ *
+ * Getting this wrong is not cosmetic. A `display` classification glyph-gates a
+ * whole explanatory sentence against a 328-glyph pixel face and hands it the
+ * tight `boxed` character budget, which is how translated prose gets mangled to
+ * fit a box it never renders in.
+ *
+ * Same rule as the other list: every entry cites the render site it was read
+ * from.
+ */
+const BODY_LEAVES: readonly RegExp[] = [
+  /^confirm\.[^.]+\.detail[A-Za-z]*$/, // ConfirmationSheet.tsx:195  <Text className="mt-3 text-base leading-6">
+  /^confirm\.facilityClose\.(netCash|shortfall)$/, // interpolated into detailStaffed
+  /^confirm\.sponsor\.(contract|chairmanFee|objective|chairmanBonus)$/, // joined into the same paragraph
+  /^confirm\.hireCoach\.replaceNote$/, // joined into the same paragraph
+  /^trainingDrill\.notEnoughTpDetail$/, // TrainingDrillModal.tsx:1295  <Text className="mt-2 text-center text-sm">
+];
+
 export function voiceOf(key: string): Voice {
   // Checked BEFORE the prefixes, because these live inside body namespaces.
   if (DISPLAY_LEAVES.some((leaf) => leaf.test(key))) return 'display';
+  if (BODY_LEAVES.some((leaf) => leaf.test(key))) return 'body';
   if (BODY_PREFIXES.some((prefix) => key.startsWith(prefix))) return 'body';
   if (DATA_PREFIXES.some((prefix) => key.startsWith(prefix))) return 'data';
   return 'display';

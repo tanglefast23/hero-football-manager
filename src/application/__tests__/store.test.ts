@@ -266,13 +266,18 @@ describe('M1 app store integration', () => {
     });
 
     useM1Store.getState().selectEventPlayer(nonKeeper.id);
-    expect(useM1Store.getState().error).toContain('not eligible');
+    // The banner shows catalogued copy, not the developer sentence the throw
+    // carries: "that player is not eligible for this story" was reaching the
+    // player verbatim, in all seven languages.
+    expect(useM1Store.getState().error).toBe(
+      'That is not a valid choice for this story, boss.',
+    );
     expect(useM1Store.getState().career?.pendingEvent).toEqual({
       eventId: 'the-penalty-gauntlet',
     });
     useM1Store.getState().skipUnavailableEvent();
-    expect(useM1Store.getState().error).toContain(
-      'still has an eligible target',
+    expect(useM1Store.getState().error).toBe(
+      'Someone can still take this one on, boss.',
     );
 
     const assistant = career.market!.coachCandidates[0]!;
@@ -283,7 +288,9 @@ describe('M1 app store integration', () => {
     };
     useM1Store.setState({ career: staffed, screen: 'event', error: null });
     useM1Store.getState().selectEventCoach('HEAD');
-    expect(useM1Store.getState().error).toContain('not eligible');
+    expect(useM1Store.getState().error).toBe(
+      'That is not a valid choice for this story, boss.',
+    );
     useM1Store.getState().selectEventCoach('ASSISTANT');
     expect(useM1Store.getState().career?.pendingEvent).toMatchObject({
       selectedCoachRole: 'ASSISTANT',
@@ -314,7 +321,9 @@ describe('M1 app store integration', () => {
     };
     useM1Store.setState({ career: withGym, screen: 'event', error: null });
     useM1Store.getState().selectEventFacility('missing-building');
-    expect(useM1Store.getState().error).toContain('not eligible');
+    expect(useM1Store.getState().error).toBe(
+      'That is not a valid choice for this story, boss.',
+    );
     useM1Store.getState().selectEventFacility('store-test-gym');
     expect(useM1Store.getState().career?.pendingEvent).toMatchObject({
       selectedFacilityId: 'store-test-gym',
@@ -887,7 +896,11 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().trainPlayer(playerId, 'sprints');
 
-    expect(useM1Store.getState().error).toContain('needs 7 TP');
+    // The cost and the balance are what the player needs; they survive into
+    // catalogued copy rather than being flattened into a generic refusal.
+    expect(useM1Store.getState().error).toBe(
+      'That drill costs 7 TP and we only have 0, boss.',
+    );
     expect(useM1Store.getState().lastDrillResult).toBeNull();
     expect(
       useM1Store

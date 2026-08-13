@@ -17,6 +17,7 @@ import {
   generatedPlayerWeeklyWage,
   reducedPlayerWeeklyWage,
 } from './market';
+import { isAvailableForSelection } from './lineup';
 import { compareIds } from './ordering';
 import {
   applyM2PromotionAndRelegation,
@@ -961,20 +962,25 @@ function repairUserLineup(
     const vacatedId = current.playerIds[index];
     const vacatedRole =
       retiredRoleById.get(vacatedId) ?? playerById.get(vacatedId)?.role;
+    // Availability, not just a free shirt. Injuries deliberately survive the
+    // season boundary (only `awayWeeks` is zeroed), so a backfill that ignored
+    // it handed the retired starter's slot to a reserve who is still hurt —
+    // and then every lineup edit on week 1, including a swap of an unrelated
+    // player, threw `unavailable player <id> must be replaced in the lineup`.
+    // The last-resort pick still ignores it so a thin squad fields eleven.
+    const free = (player: CareerPlayer): boolean =>
+      !selected.has(player.id) && isAvailableForSelection(player);
     const sameRole = players.find(
-      (player) => !selected.has(player.id) && player.role === vacatedRole,
+      (player) => free(player) && player.role === vacatedRole,
     );
     const fallback =
       index === 0
-        ? players.find(
-            (player) => !selected.has(player.id) && player.role === 'GK',
-          )
-        : players.find(
-            (player) => !selected.has(player.id) && player.role !== 'GK',
-          );
+        ? players.find((player) => free(player) && player.role === 'GK')
+        : players.find((player) => free(player) && player.role !== 'GK');
     const replacement =
       sameRole ??
       fallback ??
+      players.find(free) ??
       players.find((player) => !selected.has(player.id));
     if (replacement !== undefined) {
       slots[index] = replacement.id;

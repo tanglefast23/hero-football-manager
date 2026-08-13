@@ -637,36 +637,43 @@ function YouthDesk({
               key={offer.playerId}
               className="border-2 border-b-4 border-ink bg-white p-3"
             >
+              {/* The portrait and the ACADEMY stamp are fixed-size art, so both
+                  are shrink-0: without it a 375pt phone squeezed the middle
+                  column to about four characters and the two unclamped lines
+                  below the name wrapped one word-fragment per row — six stacked
+                  rows for "FWD · AGE 17 · PLAYMAKER". Every new manager on an SE
+                  meets this card, because a season-1 duty sends them here. */}
               <View className="flex-row items-start justify-between gap-3">
-                <View className="overflow-hidden border-2 border-ink bg-blue-light">
+                <View className="shrink-0 overflow-hidden border-2 border-ink bg-blue-light">
                   <PixelPortrait
                     playerId={offer.playerId}
                     role={offer.role}
                     lookId={offer.lookId}
                   />
                 </View>
-                <View className="flex-1">
+                <View className="min-w-0 flex-1">
                   <Text
                     className="text-lg font-bold text-ink"
                     numberOfLines={1}
                   >
                     {offer.playerName}
                   </Text>
-                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
+                  <Text
+                    className="mt-1 font-pixel text-sm uppercase text-blue-dark"
+                    numberOfLines={1}
+                  >
                     {offer.role} · {offer.ageLabel} · {offer.archetypeLabel}
                   </Text>
                   <Text
                     className="mt-1 font-pixel text-sm uppercase text-gold-dark"
                     numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
                   >
                     {t('market.potentialValue', {
                       grade: offer.potentialLabel,
                     })}
                   </Text>
                 </View>
-                <View className="-rotate-2 border-2 border-blue-dark bg-blue-light px-2 py-1">
+                <View className="shrink-0 -rotate-2 border-2 border-blue-dark bg-blue-light px-2 py-1">
                   <PixelText className="text-sm uppercase text-blue-dark">
                     {t('market.academy')}
                   </PixelText>

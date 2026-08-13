@@ -8,7 +8,7 @@ import { clubSquadStrength, currentUserDivision } from '../m2-career';
 import { DIVISION_STRENGTH_BANDS, tuneSquadToStrength } from '../pyramid';
 import { runHeadlessFullCareer } from '../headless';
 import { isSpecialHeroId } from '../special-heroes';
-import { buildCareerTeamDef } from '../squad';
+import { buildCareerTeamDef, setCareerLineup } from '../squad';
 import { careerRosterCapacity, userCareerRosterCount } from '../youth-intake';
 import type { GameState } from '../types';
 import {
@@ -570,6 +570,88 @@ describe('full M2 career clock', () => {
         .length,
     ).toBeGreaterThanOrEqual(11);
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
+  });
+
+  test('backfills a retired starter with a fit reserve, never an injured one', () => {
+    // Injuries deliberately survive the season boundary — only `awayWeeks` is
+    // zeroed — and the retirement backfill used to pick the first free shirt of
+    // the right role without asking whether he could play. The new season then
+    // opened with an injured man in the XI, and EVERY lineup edit on week 1,
+    // including a swap of a completely unrelated player, threw
+    // `unavailable player <id> must be replaced in the lineup` at the manager.
+    // Season 2, because an announcement only matures at the transition AFTER
+    // the season it was made in (`willRetireAtSeasonTransition`).
+    const initial = runHeadlessFullCareer(createLaunchCareerSetup(4242), 2);
+    const lineup = initial.lineups.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const roster = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const reserves = roster.filter(
+      (player) => !lineup.playerIds.includes(player.id),
+    );
+    // A role held by both a starter and a reserve, so the retirement leaves a
+    // same-role hole the injured reserve is the obvious candidate for.
+    const hurtRole = reserves.find(
+      (reserve) =>
+        reserve.role !== 'GK' &&
+        roster.some(
+          (player) =>
+            player.role === reserve.role &&
+            lineup.playerIds.includes(player.id),
+        ),
+    )!.role;
+    const retiring = roster.find(
+      (player) =>
+        player.role === hurtRole && lineup.playerIds.includes(player.id),
+    )!;
+    const hurtIds = reserves
+      .filter((reserve) => reserve.role === hurtRole)
+      .map((reserve) => reserve.id);
+    // Somebody fit must be left, or the last-resort pick is correct to take an
+    // injured man rather than field ten.
+    expect(
+      reserves.some(
+        (reserve) => reserve.role !== 'GK' && !hurtIds.includes(reserve.id),
+      ),
+    ).toBe(true);
+
+    const seasonEnd = {
+      ...initial,
+      players: initial.players.map((player) => {
+        if (player.id === retiring.id) {
+          return {
+            ...player,
+            contractSeasonsRemaining: 2,
+            retirementAnnounced: true,
+            retirementAnnouncementSeason: 1,
+          };
+        }
+        if (player.clubId !== initial.userClubId) return player;
+        // Expired deals block the transition for reasons of their own; this
+        // test is about the backfill, so nobody is out of contract.
+        return {
+          ...player,
+          contractSeasonsRemaining: 2,
+          ...(hurtIds.includes(player.id) ? { injuryWeeks: 4 } : {}),
+        };
+      }),
+    };
+    const next = startNextSeason(seasonEnd);
+    const nextLineup = next.lineups.find(
+      (candidate) => candidate.clubId === next.userClubId,
+    )!;
+    const unfitStarters = nextLineup.playerIds.filter((id) => {
+      const player = next.players.find((candidate) => candidate.id === id);
+      return (player?.injuryWeeks ?? 0) > 0 || (player?.awayWeeks ?? 0) > 0;
+    });
+
+    expect(nextLineup.playerIds).not.toContain(retiring.id);
+    expect(unfitStarters).toEqual([]);
+    // Week 1 of the new season: the match boundary and a Squad-screen edit.
+    expect(() => buildCareerTeamDef(next, next.userClubId)).not.toThrow();
+    expect(() => setCareerLineup(next, nextLineup.playerIds)).not.toThrow();
   });
 });
 

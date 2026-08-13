@@ -354,7 +354,21 @@ function inProductNameField(node: ts.Node): boolean {
   return false;
 }
 
-/** The JSX attribute a literal belongs to, if any. */
+/**
+ * The JSX attribute a literal belongs to, if any.
+ *
+ * Only when the literal is the attribute's DIRECT value. A callback prop —
+ * `onReleaseContract={() => requestConfirmation({ title: 'Let this player
+ * leave?' })}` — is an attribute too, and while this returned it, the whitelist
+ * check in `record` exempted the entire callback body: `onReleaseContract` is
+ * not a render prop, so every string inside it was skipped. That hid all ten
+ * confirmation dialogs in `App.tsx`, both Bert briefings and the Continue
+ * button's season line, in English, with the gate reading zero.
+ *
+ * A function expression between the literal and the attribute means the string
+ * is not being handed to the child as copy — it is ordinary code that happens to
+ * live in JSX, exactly like a view model, and it gets scanned as such.
+ */
 function enclosingJsxAttribute(node: ts.Node): ts.JsxAttribute | undefined {
   for (
     let current = node.parent;
@@ -363,6 +377,12 @@ function enclosingJsxAttribute(node: ts.Node): ts.JsxAttribute | undefined {
   ) {
     if (ts.isJsxAttribute(current)) return current;
     if (ts.isJsxElement(current) || ts.isJsxSelfClosingElement(current))
+      return undefined;
+    if (
+      ts.isArrowFunction(current) ||
+      ts.isFunctionExpression(current) ||
+      ts.isFunctionDeclaration(current)
+    )
       return undefined;
   }
   return undefined;

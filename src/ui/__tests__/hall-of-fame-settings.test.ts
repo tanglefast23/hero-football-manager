@@ -14,6 +14,9 @@ jest.mock('../../i18n', () => {
 jest.mock('react-native', () => ({
   Modal: 'Modal',
   PanResponder: { create: jest.fn() },
+  // The overlay asks Platform whether to add the web dialog role; native is the
+  // branch that adds nothing, so these trees stay exactly as they were.
+  Platform: { OS: 'ios' },
   Pressable: 'Pressable',
   ScrollView: 'ScrollView',
   Text: 'Text',

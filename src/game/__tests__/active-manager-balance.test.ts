@@ -10,7 +10,7 @@ import { willRetireAtSeasonTransition } from '../m2-career';
 import { renewCareerPlayer } from '../squad';
 import { trainPlayerInstantly } from '../training';
 import { resolveTrainingDrillForPath, TRAINING_PATHS } from '../training-paths';
-import { playerAttributeCaps } from '../archetype-caps';
+import { attributeAffectsPlay, playerAttributeCaps } from '../archetype-caps';
 import type { GameState, LeagueFixture } from '../types';
 
 const SEEDS = [0, 77, 20_260_719];
@@ -42,10 +42,18 @@ function tapWeeklyDrills(state: GameState): GameState {
   const ranked = roster
     .map((p) => {
       const caps = playerAttributeCaps(p);
-      const best = TRAINING_PATHS.map((path) => ({
-        pathId: path.pathId,
-        room: caps[path.attribute] - p.attrs[path.attribute],
-      })).sort((a, b) => b.room - a.room)[0];
+      // Only stats this role's play actually reads. Without the filter the
+      // most-open path was always the one the engine ignores — REF for every
+      // outfielder — so the rail spent its whole TP budget on nothing, which
+      // `trainPlayerInstantly` now refuses outright.
+      const best = TRAINING_PATHS.filter((path) =>
+        attributeAffectsPlay(p.role, path.attribute),
+      )
+        .map((path) => ({
+          pathId: path.pathId,
+          room: caps[path.attribute] - p.attrs[path.attribute],
+        }))
+        .sort((a, b) => b.room - a.room)[0];
       return { playerId: p.id, pathId: best.pathId, room: best.room };
     })
     .filter((s) => s.room > 0)

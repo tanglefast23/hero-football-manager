@@ -4,6 +4,7 @@ import type { ReplayEnvelope } from '../../sim/types';
 import {
   CorruptReplayEnvelopeError,
   InvalidReplayEnvelopeError,
+  UnsupportedReplayEngineError,
   UnsupportedReplaySchemaError,
 } from '../errors';
 import { REPLAY_SCHEMA_VERSION } from '../replay-codec';
@@ -149,6 +150,24 @@ describe('replay repository', () => {
     await expect(repository.load('career-1', 'fixture-1')).rejects.toThrow(
       'engine_version column does not match',
     );
+  });
+
+  it('refuses an envelope taped by a different engine version', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createReplayRepository(database);
+    const stale = { ...makeEnvelope(), engineVersion: 'm0.9' };
+    database.seedReplayRow(
+      storedRow({
+        engine_version: 'm0.9',
+        envelope_json: JSON.stringify(stale),
+      }),
+    );
+
+    // Replaying it would not fail — it would desync silently, because the
+    // stored inputs consume a different engine's PRNG. Refuse at the parse.
+    await expect(
+      repository.load('career-1', 'fixture-1'),
+    ).rejects.toBeInstanceOf(UnsupportedReplayEngineError);
   });
 
   it('refuses malformed or unordered envelopes before writing', async () => {

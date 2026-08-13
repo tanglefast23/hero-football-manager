@@ -3,6 +3,7 @@ import { copyFor, formatMoneyForCopy, type CopyFn } from '../i18n';
 import { facilityNameFromId, personalityName } from './name-copy';
 import {
   careerEventPlayerSaleBlocker,
+  compareIds,
   deterministicCareerEventRoll,
   currentUserDivision,
   isCareerMilestoneEventId,
@@ -117,7 +118,12 @@ export function eventOfferForWeek(
         event.trigger.repeatable === true ||
         !state.resolvedEventIds.includes(event.id),
     )
-    .sort((left, right) => left.id.localeCompare(right.id));
+    // The weighted draw indexes into this array, so the order decides which
+    // story a seeded career fires. `localeCompare` reads the JS engine's own
+    // collation table, so Hermes on device need not agree with V8 under Jest —
+    // exactly the cross-engine hazard `src/game/ordering.ts` documents and
+    // forbids. These are internal slugs; nobody reads them alphabetically.
+    .sort((left, right) => compareIds(left.id, right.id));
   if (candidates.length === 0) {
     return {
       eventClock: {

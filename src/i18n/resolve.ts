@@ -37,7 +37,10 @@ function lookup(
 function interpolate(template: string, params?: CopyParams): string {
   if (params === undefined) return template;
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name: string) => {
-    const value = params[name];
+    // `hasOwn` for the same reason `lookup` uses it: `labelParams` comes out of
+    // a save, and `{constructor}` would otherwise print `function Object() {
+    // [native code] }` into a ledger line instead of leaving the hole visible.
+    const value = Object.hasOwn(params, name) ? params[name] : undefined;
     // Leave the placeholder visible rather than printing "undefined": a stray
     // `{player}` on screen is an obvious bug, whereas "undefined" reads as copy
     // and survives review.

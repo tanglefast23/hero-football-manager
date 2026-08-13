@@ -460,13 +460,46 @@ describe('career backup generation', () => {
     await expect(repository.load()).resolves.toEqual(state);
     await expect(repository.backupSummary()).resolves.toBeNull();
 
-    // The checkpoint is retried rather than skipped for the rest of the season.
+    // One attempt per boundary, not one per save. A rejected backup used to be
+    // retried on every later save for the rest of the career, and on a release
+    // build each retry re-serialises the whole career WITH validation — a
+    // measured ~200ms of JS thread per player action.
+    const attempts = database.backupWriteAttempts;
+    for (let week = 2; week <= 10; week += 1) {
+      await repository.save(atSeason(state, 1, week));
+    }
+    expect(database.backupWriteAttempts).toBe(attempts);
+
+    // The next genuine boundary still tries, so a disk that frees up is picked
+    // up at the next season rather than never.
     database.backupWritesFail = false;
-    await repository.save(atSeason(state, 1, 5));
+    await repository.save(atSeason(state, 2, 1));
     await expect(repository.backupSummary()).resolves.toEqual({
-      season: 1,
-      week: 5,
+      season: 2,
+      week: 1,
     });
+  });
+
+  it('offers no backup summary for a generation it cannot decode', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+    await repository.save(state);
+    // Restore backup is the one rescue on the unreadable-save screen. Reading
+    // the three integer columns alone cannot fail for the reason the blob
+    // fails, so the button was offered for a copy that then refused to load.
+    database.seedBackupRow({
+      schema_version: GAME_SCHEMA_VERSION,
+      state_json: serializeGameState(state).slice(0, 400),
+      saved_season: 3,
+      saved_week: 1,
+      saved_career_seed: state.careerSeed,
+    });
+
+    await expect(repository.backupSummary()).resolves.toBeNull();
+    await expect(repository.restoreBackup()).rejects.toBeInstanceOf(
+      CorruptCareerSaveError,
+    );
   });
 
   it('backs up a replacement career that opened on the same season number', async () => {
@@ -510,8 +543,8 @@ describe('career backup generation', () => {
       saved_career_seed: null,
     });
 
-    // Same season, so only the unnamed career forces the rewrite. Until it does,
-    // an undecodable row from an unknown career is what Restore backup offers.
+    // Same season, so only the unnamed career forces the rewrite — and until it
+    // does, the undecodable row is offered as no summary at all.
     await repository.save(state);
 
     await expect(repository.backupSummary()).resolves.toEqual({
@@ -552,8 +585,12 @@ function atSeason(state: GameState, season: number, week: number): GameState {
 /** A disk with room for the live save but not for its backup copy. */
 class BackupWriteFailureDatabase extends FakePersistenceDatabase {
   backupWritesFail = true;
+  backupWriteAttempts = 0;
 
   override async runAsync(source: string, params: DatabaseBindParams) {
+    if (source.includes('INSERT INTO career_save_backups')) {
+      this.backupWriteAttempts += 1;
+    }
     if (this.backupWritesFail && source.includes('career_save_backups')) {
       throw new Error('database or disk is full');
     }

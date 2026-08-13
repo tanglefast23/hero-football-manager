@@ -118,6 +118,13 @@ export async function createCareerRepository(
   // save path stays a single INSERT instead of re-reading the stored state every
   // week, and only ever updated from a write that succeeded.
   let backedUp = await readBackupGeneration(database);
+  // Which boundary a backup write has been ATTEMPTED for, successfully or not.
+  // `backedUp` alone cannot say: a rejected write leaves it behind, the season
+  // boundary test stays true, and every later save retries — in a release build
+  // that is a full serialize-with-validation (~200ms) on every player action for
+  // the rest of the career. One attempt per boundary; the next genuine boundary
+  // still tries, so a disk that frees up is picked up at the next season.
+  let backupAttempted: BackupGeneration | null = null;
 
   async function readRawCareer(): Promise<RawStoredCareer | null> {
     const row = await database.getFirstAsync<StoredCareerRow>(LOAD_CAREER_SQL, [
@@ -145,6 +152,11 @@ export async function createCareerRepository(
     state: GameState,
     liveJson: string,
   ): Promise<void> {
+    backupAttempted = {
+      careerSeed: state.careerSeed,
+      season: state.season,
+      week: state.week,
+    };
     try {
       // The live slot skips validation in production for speed, so an unnoticed
       // state bug would be copied straight into the generation meant to survive
@@ -172,7 +184,9 @@ export async function createCareerRepository(
       };
     } catch {
       // The live save already succeeded, so a failed backup must not report the
-      // week as lost. `backedUp` stays put, so the next save retries.
+      // week as lost. `backedUp` stays put and `backupAttempted` now names this
+      // boundary, so the retry waits for the next season rather than running on
+      // every save for the rest of the career.
     }
   }
 
@@ -192,9 +206,8 @@ export async function createCareerRepository(
       // replaced stays restorable, and season 1 of the new one would never
       // displace season 1 of the old.
       if (
-        backedUp === null ||
-        backedUp.careerSeed !== state.careerSeed ||
-        backedUp.season !== state.season
+        !isBackupBoundaryFor(backedUp, state) &&
+        !isBackupBoundaryFor(backupAttempted, state)
       ) {
         await writeBackup(state, stateJson);
       }
@@ -238,13 +251,38 @@ export async function createCareerRepository(
         await database.runAsync(DELETE_BACKUP_SQL, [BACKUP_SLOT]);
       });
       backedUp = null;
+      backupAttempted = null;
     },
 
+    /**
+     * The summary is what puts "Restore backup — Season N, Week M" on the
+     * unreadable-save screen, and that button is the only rescue the player is
+     * offered there. Answering from the three integer columns alone cannot fail
+     * for the reason the stored state fails, so the button could be offered for
+     * a blob that then refuses to restore — the career appearing to be lost
+     * twice. Decoding costs a full parse, which is why nothing calls this until
+     * the live slot has already failed.
+     */
     async backupSummary(): Promise<CareerBackupSummary | null> {
-      const generation = await readBackupGeneration(database);
-      return generation === null
-        ? null
-        : { season: generation.season, week: generation.week };
+      const row = await database.getFirstAsync<StoredBackupRow>(
+        LOAD_BACKUP_SQL,
+        [BACKUP_SLOT],
+      );
+      if (row === null) return null;
+      let restored: GameState;
+      try {
+        restored = decodeStoredCareer(row);
+      } catch {
+        return null;
+      }
+      return {
+        season:
+          typeof row.saved_season === 'number'
+            ? row.saved_season
+            : restored.season,
+        week:
+          typeof row.saved_week === 'number' ? row.saved_week : restored.week,
+      };
     },
 
     async restoreBackup(): Promise<GameState> {
@@ -271,6 +309,7 @@ export async function createCareerRepository(
         week:
           typeof row.saved_week === 'number' ? row.saved_week : restored.week,
       };
+      backupAttempted = null;
       return restored;
     },
 
@@ -282,6 +321,18 @@ export async function createCareerRepository(
       return row?.quick_check === 'ok';
     },
   };
+}
+
+/** Whether a recorded generation already covers this state's season boundary. */
+function isBackupBoundaryFor(
+  generation: BackupGeneration | null,
+  state: GameState,
+): boolean {
+  return (
+    generation !== null &&
+    generation.careerSeed === state.careerSeed &&
+    generation.season === state.season
+  );
 }
 
 function rawCareerSeed(stateJson: string): number | null {

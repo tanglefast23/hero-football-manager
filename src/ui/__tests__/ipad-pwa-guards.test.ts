@@ -48,7 +48,13 @@ describe('iPad and installed web app guards', () => {
     expect(store).toContainSource(
       'withExclusiveSave(() => repository.restoreBackup())',
     );
-    expect(store).toContainSource('() => withExclusiveSave(async () => {');
+    // A career replacement must count as exclusive from the moment it is
+    // QUEUED, not from the moment it starts running. Counting at run time left
+    // the counter at 0 while the replacement sat behind a long write, so a
+    // suspend flush cut ahead and the replacement then wrote its own week 1
+    // over the newest state — while `lastPersistedCareer` still claimed the
+    // newest state was safe.
+    expect(store).toContainSource('exclusiveSaveDepth += 1;\n  enqueueSave(');
   });
 
   it('asks the browser to keep the save, and remembers the answer', () => {

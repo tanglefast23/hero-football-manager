@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { MOTION_MS } from '../motion';
 
 /**
@@ -37,6 +37,38 @@ import { MOTION_MS } from '../motion';
 
 /** Short on purpose: this sits between every interaction, not on top of one. */
 export const SCREEN_FADE_MS = MOTION_MS.QUICK;
+
+/**
+ * How long the arriving screen ignores pointer input.
+ *
+ * Screens are two absolutely-positioned slots filling the same rect, so a
+ * control on the screen being left and a control on the screen being arrived at
+ * routinely share a y-band: the weekly review's "Start Week N" sits exactly on
+ * top of the management shell's Club tab. An impatient double- or triple-tap
+ * spent tap 1 on the review and taps 2-3 on the Club tab, landing the manager on
+ * a screen they never asked for. Long enough to swallow the second tap of a
+ * double-tap, short enough that a deliberate press never feels dropped — the
+ * same reasoning and the same window as `useTapGuard`.
+ *
+ * A timer, not a frame callback: a backgrounded tab pauses rAF entirely, which
+ * would leave the screen deaf for as long as the tab stayed hidden.
+ */
+export const SCREEN_INPUT_SETTLE_MS = 250;
+
+/**
+ * Web needs an explicit `inert`.
+ *
+ * `pointerEvents` stops the mouse and nothing else: a hidden slot's buttons keep
+ * `tabIndex=0`, stay in the accessibility tree, and a native <button> fires
+ * `click` on Enter. The departed title screen therefore left "Start over · erase
+ * save" one Tab+Enter away from raising the career-erase confirm over whatever
+ * screen the manager was actually on. `accessibilityElementsHidden` and
+ * `importantForAccessibility` are native-only and do not close it.
+ */
+function hiddenSlotProps(hidden: boolean): object {
+  if (!hidden || Platform.OS !== 'web') return {};
+  return { inert: true, 'aria-hidden': true };
+}
 
 /** One side of a screen change, as far as the dissolve is concerned. */
 export interface ScreenTransitionSide {
@@ -118,9 +150,13 @@ export function ScreenTransition({
     outgoing: null,
     pass: 0,
   }));
+  // The first screen of the session was not arrived at from anywhere, so there
+  // is no stray tap in flight to swallow.
+  const [inputSettled, setInputSettled] = useState(true);
 
   useLayoutEffect(() => {
     if (state.key === screenKey) return;
+    setInputSettled(false);
     const dissolves = screenChangeDissolves(
       committed.current.side,
       { key: screenKey, animated },
@@ -156,6 +192,10 @@ export function ScreenTransition({
   useEffect(() => {
     if (outgoing === null) return undefined;
     const opacity = opacities[fading];
+    const drop = () =>
+      setState((current) =>
+        current.pass === pass ? { ...current, outgoing: null } : current,
+      );
     const animation = Animated.timing(opacity, {
       toValue: 0,
       duration: SCREEN_FADE_MS,
@@ -168,11 +208,16 @@ export function ScreenTransition({
       // just finished dissolving back to solid — the cleanup below does it once
       // the slot is genuinely empty.
       if (!finished) return;
-      setState((current) =>
-        current.pass === pass ? { ...current, outgoing: null } : current,
-      );
+      drop();
     });
+    // The completion callback is not a guarantee. react-native-web has no native
+    // animated module, so this fade is driven by requestAnimationFrame — and a
+    // backgrounded tab stops rAF outright, leaving the departed screen mounted
+    // for the rest of the session with its intervals and effects still running.
+    // A timer still fires there (throttled), so it is the honest backstop.
+    const backstop = setTimeout(drop, SCREEN_FADE_MS + 100);
     return () => {
+      clearTimeout(backstop);
       animation.stop();
       // The slot has either been emptied or taken over by the newest screen.
       // Either way it is done fading and must be handed back opaque.
@@ -180,14 +225,24 @@ export function ScreenTransition({
     };
   }, [outgoing, fading, pass, opacities]);
 
+  useEffect(() => {
+    if (inputSettled) return undefined;
+    const timer = setTimeout(
+      () => setInputSettled(true),
+      SCREEN_INPUT_SETTLE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [inputSettled, pass]);
+
   return (
     <View style={styles.root}>
       <Animated.View
-        pointerEvents={active === 0 ? 'auto' : 'none'}
+        pointerEvents={active === 0 && inputSettled ? 'auto' : 'none'}
         accessibilityElementsHidden={active !== 0}
         importantForAccessibility={
           active === 0 ? 'auto' : 'no-hide-descendants'
         }
+        {...hiddenSlotProps(active !== 0)}
         style={[
           styles.slot,
           { opacity: opacities[0], zIndex: active === 0 ? 0 : 1 },
@@ -196,11 +251,12 @@ export function ScreenTransition({
         {active === 0 ? children : outgoing}
       </Animated.View>
       <Animated.View
-        pointerEvents={active === 1 ? 'auto' : 'none'}
+        pointerEvents={active === 1 && inputSettled ? 'auto' : 'none'}
         accessibilityElementsHidden={active !== 1}
         importantForAccessibility={
           active === 1 ? 'auto' : 'no-hide-descendants'
         }
+        {...hiddenSlotProps(active !== 1)}
         style={[
           styles.slot,
           { opacity: opacities[1], zIndex: active === 1 ? 0 : 1 },

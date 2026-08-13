@@ -321,6 +321,36 @@ const DATABASE_NAME = 'hero-football-manager.db';
 const BOOT_TIMEOUT_MS = 15_000;
 
 /**
+ * How many document reloads the browser-database lock gets before the player is
+ * offered Start Fresh again. The lock usually clears on the first or second
+ * reload, once the sibling tab holding it finishes.
+ */
+const BOOT_RETRY_LIMIT = 3;
+
+/**
+ * Retrying a browser-database lock reloads the document, so the attempt counter
+ * cannot live in component state — it would reset on every try, and the screen
+ * would offer Retry forever. sessionStorage is per-tab and dies with the tab,
+ * which is exactly the lifetime of the lock being counted against.
+ */
+const BOOT_RETRY_KEY = 'hfm.bootRetries';
+
+function bootRetryCount(): number {
+  if (typeof sessionStorage === 'undefined') return 0;
+  return Number(sessionStorage.getItem(BOOT_RETRY_KEY) ?? '0') || 0;
+}
+
+function noteBootRetry(): void {
+  if (typeof sessionStorage === 'undefined') return;
+  sessionStorage.setItem(BOOT_RETRY_KEY, String(bootRetryCount() + 1));
+}
+
+function clearBootRetries(): void {
+  if (typeof sessionStorage === 'undefined') return;
+  sessionStorage.removeItem(BOOT_RETRY_KEY);
+}
+
+/**
  * True while nobody is looking at the app — a backgrounded native app or a hidden
  * browser tab. Both suspend the work a deadline is measuring, so both must be
  * able to postpone it rather than fail it.
@@ -387,20 +417,15 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ScreenErrorBoundary
-        onRecover={() =>
-          useM1Store.setState({
-            screen: 'welcome',
-            error: null,
-            activeTab: 'home',
-            // Overlay state that survives the remount must not haunt the title
-            // screen: a crash while Bert's desk reminder was up would otherwise
-            // recover with his lecture floating over the landing view, and a stale
-            // watched match holds live-match props no screen consumes.
-            inboxDutyReminder: null,
-            inboxDutyFocus: null,
-            watchedMatch: null,
-          })
-        }
+        // The store action, not the equivalent inline `setState` this replaced.
+        // It clears the same overlay state — a crash while Bert's desk reminder
+        // was up must not recover with his lecture floating over the title, and
+        // a stale watched match holds live-match props no screen consumes — and
+        // it additionally raises `recoveredFromScreenCrash`, which is the whole
+        // point: recovering to `welcome` leaves the career untouched, so without
+        // the flag `continueCareer()` resumes the screen that just crashed and
+        // the player loops.
+        onRecover={() => useM1Store.getState().recoverFromScreenCrash()}
       >
         <GameApp />
       </ScreenErrorBoundary>
@@ -1507,7 +1532,10 @@ function GameApp() {
         // A boot that outlived its deadline but then finished is a success:
         // clear the timeout's failure message so the player lands in the game
         // instead of a stale BootFailure over a fully loaded save.
-        if (active) setBootError(null);
+        if (active) {
+          setBootError(null);
+          clearBootRetries();
+        }
         return undefined;
       })
       .catch((error) => {
@@ -2450,7 +2478,14 @@ function GameApp() {
   const browserDatabaseLock =
     bootError !== null &&
     Platform.OS === 'web' &&
-    isBrowserDatabaseLockError(bootError);
+    isBrowserDatabaseLockError(bootError) &&
+    // Suppressing Start Fresh is right while Retry can still work: a boot
+    // failure means the repository never opened, so deleting is the wrong first
+    // answer. But Retry on this class reloads the document, and if the lock
+    // never clears — a crashed sibling tab, a page frozen in bfcache — the
+    // screen renders exactly one button that has already failed, forever. After
+    // three reloads the player gets the ordinary Start Fresh path back.
+    bootRetryCount() < BOOT_RETRY_LIMIT;
 
   let screen;
   let lowConditionMatchdayStarter: ReturnType<
@@ -2472,7 +2507,10 @@ function GameApp() {
         onRetry={() => {
           // Expo SQLite caches the failed browser VFS. Re-running this effect
           // cannot repair it; only a fresh document can create a new handle.
-          if (browserDatabaseLock && reloadBrowserDocument()) return;
+          if (browserDatabaseLock) {
+            noteBootRetry();
+            if (reloadBrowserDocument()) return;
+          }
           setBootAttempt((attempt) => attempt + 1);
         }}
         onStartFresh={
@@ -2489,7 +2527,12 @@ function GameApp() {
                   // rejection here reads as a button that does nothing, forever.
                   .catch((error) =>
                     setBootError(
-                      `The save could not be deleted. ${error instanceof Error ? error.message : String(error)}`,
+                      copyRef.current('app.saveCouldNotBeDeleted', {
+                        detail:
+                          error instanceof Error
+                            ? error.message
+                            : String(error),
+                      }),
                     ),
                   );
               }
@@ -2746,14 +2789,16 @@ function GameApp() {
                 'hero',
                 'hero',
               );
-            if (!willEnterLineup) {
+            if (!willEnterLineup || hero === undefined) {
               toggle();
               return;
             }
             requestConfirmation({
-              title: 'License and change the XI?',
-              detail: `${hero?.playerName ?? 'This hero'} is on the bench. Assigning the permit will move them into the Starting XI and bench an unlicensed hero.`,
-              confirmLabel: 'License and swap',
+              title: t('confirm.heroLicense.title'),
+              detail: t('confirm.heroLicense.detail', {
+                hero: hero.playerName,
+              }),
+              confirmLabel: t('confirm.heroLicense.confirm'),
               tone: 'hero',
               onConfirm: toggle,
             });
@@ -2909,9 +2954,12 @@ function GameApp() {
         onCloseRenewal={store.closeRenewal}
         onReleaseContract={(playerId) =>
           requestConfirmation({
-            title: 'Let this player leave?',
-            detail: `${season.expiredContract?.playerName ?? 'This player'} leaves immediately. This cannot be undone.`,
-            confirmLabel: 'Let player leave',
+            title: t('confirm.releasePlayer.title'),
+            detail: t('confirm.releasePlayer.detail', {
+              player:
+                season.expiredContract?.playerName ?? t('store.thePlayer'),
+            }),
+            confirmLabel: t('confirm.releasePlayer.confirm'),
             tone: 'danger',
             onConfirm: () =>
               performManagementAction(
@@ -3138,10 +3186,22 @@ function GameApp() {
               const upgrade = squadTrainingVm!.drillUpgrades.find(
                 (row) => row.pathId === pathId,
               );
+              const drill = upgrade?.label ?? t('confirm.fallback.drill');
               requestConfirmation({
-                title: `Buy ${upgrade?.label ?? 'drill'} Tier ${upgrade?.nextTier ?? ''}?`,
-                detail: `Spend ${upgrade === undefined ? 'the shown cost' : formatCurrency(t, upgrade.cost ?? 0)} once. Every ${upgrade?.label ?? ''} drill from now on gives +${upgrade?.nextGain ?? 0} for ${upgrade?.nextTpCost ?? 0} TP.`,
-                confirmLabel: 'Buy upgrade',
+                title: t('confirm.drillUpgrade.title', {
+                  drill,
+                  tier: upgrade?.nextTier ?? '',
+                }),
+                detail: t('confirm.drillUpgrade.detail', {
+                  cost:
+                    upgrade === undefined
+                      ? t('confirm.fallback.shownAmount')
+                      : formatCurrency(t, upgrade.cost ?? 0),
+                  drill,
+                  gain: upgrade?.nextGain ?? 0,
+                  tp: upgrade?.nextTpCost ?? 0,
+                }),
+                confirmLabel: t('confirm.drillUpgrade.confirm'),
                 onConfirm: () => store.purchaseTrainingUpgrade(pathId),
               });
             }}
@@ -3213,9 +3273,16 @@ function GameApp() {
                 (candidate) => candidate.id === buildingId,
               );
               requestConfirmation({
-                title: `Upgrade ${building?.name ?? 'facility'}?`,
-                detail: `Spend ${building?.upgradeCost === undefined ? 'the shown cost' : formatCurrency(t, building.upgradeCost)} now. Weekly upkeep will rise with the new level.`,
-                confirmLabel: 'Approve upgrade',
+                title: t('confirm.facilityUpgrade.title', {
+                  facility: building?.name ?? t('confirm.fallback.facility'),
+                }),
+                detail: t('confirm.facilityUpgrade.detail', {
+                  cost:
+                    building?.upgradeCost === undefined
+                      ? t('confirm.fallback.shownAmount')
+                      : formatCurrency(t, building.upgradeCost),
+                }),
+                confirmLabel: t('confirm.facilityUpgrade.confirm'),
                 onConfirm: () => upgradeClubFacilityWithFeedback(buildingId),
               });
             }}
@@ -3238,22 +3305,45 @@ function GameApp() {
                   ? staffedCoachingOfficeClosureConfirmation(career, buildingId)
                   : undefined;
               requestConfirmation({
-                title: `Close ${building?.name ?? 'facility'}?`,
+                title: t('confirm.facilityClose.title', {
+                  facility: building?.name ?? t('confirm.fallback.facility'),
+                }),
                 detail:
                   staffedOffice === undefined
                     ? building?.closeRefund === 0
-                      ? 'The club never paid to put this up, so nothing comes back. Its bonus and its square go straight away.'
-                      : `You will only get half your investment back${
-                          building === undefined
-                            ? ''
-                            : `, ${formatCurrency(t, building.closeRefund)}`
-                        }. Are you sure?`
-                    : `This also dismisses ${staffedOffice.assistantName}. The facility returns ${formatCurrency(t, staffedOffice.facilityRefund)} and severance costs ${formatCurrency(t, staffedOffice.severanceCost)}. ${
-                        staffedOffice.canConfirm
-                          ? `Net cash change ${formatCurrency(t, staffedOffice.netCashEffect, true)}; balance after ${formatCurrency(t, staffedOffice.cashAfter)}.`
-                          : `The club needs ${formatCurrency(t, staffedOffice.shortage)} more after the refund, so this cannot be completed.`
-                      }`,
-                confirmLabel: 'Close it',
+                      ? t('confirm.facilityClose.detailFree')
+                      : building === undefined
+                        ? t('confirm.facilityClose.detailRefundUnknown')
+                        : t('confirm.facilityClose.detailRefund', {
+                            refund: formatCurrency(t, building.closeRefund),
+                          })
+                    : t('confirm.facilityClose.detailStaffed', {
+                        coach: staffedOffice.assistantName,
+                        refund: formatCurrency(t, staffedOffice.facilityRefund),
+                        severance: formatCurrency(
+                          t,
+                          staffedOffice.severanceCost,
+                        ),
+                        outcome: staffedOffice.canConfirm
+                          ? t('confirm.facilityClose.netCash', {
+                              net: formatCurrency(
+                                t,
+                                staffedOffice.netCashEffect,
+                                true,
+                              ),
+                              balance: formatCurrency(
+                                t,
+                                staffedOffice.cashAfter,
+                              ),
+                            })
+                          : t('confirm.facilityClose.shortfall', {
+                              shortage: formatCurrency(
+                                t,
+                                staffedOffice.shortage,
+                              ),
+                            }),
+                      }),
+                confirmLabel: t('confirm.facilityClose.confirm'),
                 tone: 'danger',
                 ...(staffedOffice !== undefined && !staffedOffice.canConfirm
                   ? { confirmDisabled: true }
@@ -3278,17 +3368,35 @@ function GameApp() {
             onDismissCoach={beginCoachDismissal}
             onReviewSponsorOffer={(offer, slot) =>
               requestConfirmation({
-                title: `Sign ${offer.sponsorName}?`,
-                detail: `${slot.slotLabel}. Contract ${formatCurrency(t, offer.nominalMonthlyFee)} per month.${
+                title: t('confirm.sponsor.title', {
+                  sponsor: offer.sponsorName,
+                }),
+                // Assembled from whole sentences rather than one template with
+                // optional tails: a translator never has to guess where a
+                // leading space belongs, and each half stands alone.
+                detail: [
+                  t('confirm.sponsor.contract', {
+                    slot: slot.slotLabel,
+                    fee: formatCurrency(t, offer.nominalMonthlyFee),
+                  }),
                   offer.actualMonthlyFee === offer.nominalMonthlyFee
-                    ? ''
-                    : ` On Chairman, the club receives ${formatCurrency(t, offer.actualMonthlyFee)} per month.`
-                } Objective: ${offer.objectiveLabel}. Target bonus ${formatCurrency(t, offer.nominalBonus)}.${
+                    ? undefined
+                    : t('confirm.sponsor.chairmanFee', {
+                        fee: formatCurrency(t, offer.actualMonthlyFee),
+                      }),
+                  t('confirm.sponsor.objective', {
+                    objective: offer.objectiveLabel,
+                    bonus: formatCurrency(t, offer.nominalBonus),
+                  }),
                   offer.actualBonus === offer.nominalBonus
-                    ? ''
-                    : ` The club receives ${formatCurrency(t, offer.actualBonus)} on Chairman.`
-                }`,
-                confirmLabel: 'Sign deal',
+                    ? undefined
+                    : t('confirm.sponsor.chairmanBonus', {
+                        bonus: formatCurrency(t, offer.actualBonus),
+                      }),
+                ]
+                  .filter((sentence) => sentence !== undefined)
+                  .join(' '),
+                confirmLabel: t('confirm.sponsor.confirm'),
                 returnFocusId: `sponsor-slots-panel-${slot.slot}`,
                 onAfterConfirmDismiss: () => {
                   if (Platform.OS !== 'web') {
@@ -3370,12 +3478,26 @@ function GameApp() {
                   : undefined;
               requestConfirmation({
                 title: acceptingBid
-                  ? `Accept ${bid?.buyerName ?? 'this club'} bid?`
-                  : `List ${listing?.playerName ?? 'this player'}?`,
+                  ? t('confirm.transferAccept.title', {
+                      club: bid?.buyerName ?? t('confirm.fallback.thisClub'),
+                    })
+                  : t('confirm.transferList.title', {
+                      player:
+                        listing?.playerName ?? t('confirm.fallback.thisPlayer'),
+                    }),
                 detail: acceptingBid
-                  ? `Receive ${bid === undefined ? 'the shown fee' : formatCurrency(t, bid.fee)} for ${listing?.playerName ?? 'the player'}. The player leaves immediately and will be removed from the Starting XI and training plan.`
-                  : 'The transfer office will request up to three club bids. Listing does not sell the player; you will compare every offer first.',
-                confirmLabel: acceptingBid ? 'Accept bid' : 'Request bids',
+                  ? t('confirm.transferAccept.detail', {
+                      fee:
+                        bid === undefined
+                          ? t('confirm.fallback.shownAmount')
+                          : formatCurrency(t, bid.fee),
+                      player:
+                        listing?.playerName ?? t('confirm.fallback.thePlayer'),
+                    })
+                  : t('confirm.transferList.detail'),
+                confirmLabel: acceptingBid
+                  ? t('market.actionAcceptBid')
+                  : t('confirm.transferList.confirm'),
                 tone: acceptingBid ? 'danger' : 'normal',
                 onConfirm: () => {
                   performManagementAction(
@@ -3419,23 +3541,42 @@ function GameApp() {
                   ? career.market?.headCoach
                   : career.market?.assistantCoach;
               const roleLabel =
-                role === 'HEAD' ? 'head coach' : 'assistant coach';
+                role === 'HEAD'
+                  ? t('confirm.role.head')
+                  : t('confirm.role.assistant');
               requestConfirmation({
                 title: current
-                  ? `Replace ${current.name}?`
-                  : `Hire ${coach?.name ?? 'this coach'}?`,
-                detail: `${coach?.name ?? 'The coach'} will become ${roleLabel} and costs ${coach === undefined ? 'the shown wage' : formatCurrency(t, coach.weeklyWage)} each week.${current ? ` The current ${roleLabel} leaves immediately.` : ''}`,
-                confirmLabel: current ? 'Replace coach' : 'Hire coach',
+                  ? t('confirm.hireCoach.titleReplace', { coach: current.name })
+                  : t('confirm.hireCoach.titleHire', {
+                      coach: coach?.name ?? t('confirm.fallback.thisCoach'),
+                    }),
+                detail: [
+                  t('confirm.hireCoach.detail', {
+                    coach: coach?.name ?? t('confirm.fallback.theCoach'),
+                    role: roleLabel,
+                    wage:
+                      coach === undefined
+                        ? t('confirm.fallback.shownAmount')
+                        : formatCurrency(t, coach.weeklyWage),
+                  }),
+                  current
+                    ? t('confirm.hireCoach.replaceNote', { role: roleLabel })
+                    : undefined,
+                ]
+                  .filter((sentence) => sentence !== undefined)
+                  .join(' '),
+                confirmLabel: current
+                  ? t('confirm.hireCoach.confirmReplace')
+                  : t('confirm.hireCoach.confirmHire'),
                 tone: current ? 'danger' : 'normal',
                 onConfirm: () => hireCoachWithFeedback(coachId, role),
               });
             }}
             onSignYouth={(playerId) =>
               requestConfirmation({
-                title: 'Sign this youth player?',
-                detail:
-                  'The player joins the senior squad immediately and occupies a roster place.',
-                confirmLabel: 'Sign player',
+                title: t('confirm.signYouth.title'),
+                detail: t('confirm.signYouth.detail'),
+                confirmLabel: t('confirm.signYouth.confirm'),
                 onConfirm: () => signYouthWithFeedback(playerId),
               })
             }
@@ -3445,10 +3586,9 @@ function GameApp() {
                 return;
               }
               requestConfirmation({
-                title: 'Decline the youth intake?',
-                detail:
-                  'Every remaining offer will be removed. This cannot be undone after you leave the desk.',
-                confirmLabel: 'Decline all',
+                title: t('confirm.declineYouth.title'),
+                detail: t('confirm.declineYouth.detail'),
+                confirmLabel: t('confirm.declineYouth.confirm'),
                 tone: 'danger',
                 onConfirm: () =>
                   performManagementAction(
@@ -3689,7 +3829,14 @@ function GameApp() {
               {store.saveWarning !== null && !blockingSaveWarningVisible && (
                 <SaveWarningBanner
                   message={store.saveWarning}
-                  blocked={store.saveBlocked}
+                  // The banner's Retry renders behind `blocked`, and
+                  // `store.saveBlocked` needs THREE consecutive failures. After
+                  // one, the player read "your club is not saving" on a banner
+                  // with no button on it. The warning itself is the right
+                  // condition: it is set the moment a write fails and cleared
+                  // the moment one lands.
+                  blocked={store.saveWarning !== null}
+                  seasonPaused={store.saveBlocked}
                   onRetry={store.retrySave}
                 />
               )}
@@ -3977,11 +4124,8 @@ function GameApp() {
                 // deadpan.
                 sequenceId="first-fans"
                 customMessage={{
-                  title: 'New faces on the terraces',
-                  body: [
-                    'Fans! You pick them up by winning, going deep in the cup, and climbing a division.',
-                    'They pay at the gate every home game, and they buy shirts once you build a shop. Come see where the money lands.',
-                  ],
+                  title: t('bert.firstFans.title'),
+                  body: [t('bert.firstFans.body1'), t('bert.firstFans.body2')],
                 }}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
@@ -3999,9 +4143,9 @@ function GameApp() {
                 sequenceId="first-fans-ledger"
                 customMessage={{
                   body: [
-                    'No one loves to look at the finances, except smart guys.',
-                    'You’re a smart guy so look at it and make sure you have income streams.',
-                    'Build facilities that help with fans or income if you’re short on cash.',
+                    t('bert.firstFansLedger.body1'),
+                    t('bert.firstFansLedger.body2'),
+                    t('bert.firstFansLedger.body3'),
                   ],
                 }}
                 navigationAnchor={navigationGuideAnchor}
@@ -4202,6 +4346,9 @@ function GameApp() {
             <SaveWarningBanner
               message={store.saveWarning}
               blocked
+              // This is the blocking presentation — the season really is paused
+              // here, so holding the screen reader on it is honest.
+              seasonPaused
               onRetry={store.retrySave}
             />
           )}
@@ -4447,10 +4594,12 @@ function BootFailure({
 function SaveWarningBanner({
   message,
   blocked,
+  seasonPaused,
   onRetry,
 }: {
   message: string;
   blocked: boolean;
+  seasonPaused: boolean;
   onRetry: () => void;
 }) {
   const t = useCopy();
@@ -4459,7 +4608,12 @@ function SaveWarningBanner({
   const insets = useSafeAreaInsets();
   return (
     <View
-      accessibilityViewIsModal={blocked}
+      // Trapping the screen reader is only honest while the season really is
+      // paused. Retry appears on the FIRST failed write, but the game is still
+      // fully playable then — making the banner modal at that point would let
+      // touch carry on while VoiceOver and Switch Control could not leave the
+      // top strip.
+      accessibilityViewIsModal={seasonPaused}
       className="absolute inset-x-0 top-0 border-b-4 border-stamp bg-red-light px-4 py-3"
       style={{ paddingTop: insets.top + 12 }}
     >
@@ -4514,7 +4668,12 @@ function FeedbackNotice({
       accessibilityLiveRegion={tone === 'error' ? 'assertive' : 'polite'}
       accessibilityLabel={feedbackNoticeAccessibilityLabel(message, t)}
       onPress={onDismiss}
-      className={`absolute left-4 right-4 top-16 border-2 px-4 py-3 shadow-lg shadow-black/40 ${palette}`}
+      // top-16 is 4rem, and NativeWind's rem is 14pt, so the banner sat 56pt
+      // down — on top of the money/TP/fans chips, hiding the very number the
+      // player is being told they do not have enough of. top-32 (112pt) clears
+      // the tallest management HUD. A constant, not a measured offset: this
+      // notice also appears on screens that have no HUD to measure.
+      className={`absolute left-4 right-4 top-32 border-2 px-4 py-3 shadow-lg shadow-black/40 ${palette}`}
     >
       <View className="flex-row items-start gap-3">
         <Text className="font-mono text-base font-bold text-ink">{symbol}</Text>
