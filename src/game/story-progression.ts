@@ -3,6 +3,7 @@ import type { GameState } from './types';
 export const STORY_STARTING_ROSTER_SIZE = 15;
 const STORY_YOUTH_UNLOCK_WEEK = 2;
 export const STORY_COACHING_OFFICE_GUIDE_WEEK = 3;
+export const STORY_FACILITY_UPGRADE_GUIDE_WEEK = 8;
 const STORY_CUP_GUIDE_WEEK = 5;
 const STORY_SCOUT_UNLOCK_WEEK = 15;
 

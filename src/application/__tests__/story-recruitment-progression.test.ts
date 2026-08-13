@@ -133,7 +133,7 @@ describe('story recruitment pacing', () => {
     const weekFifteen = { ...weekFive, week: 15 };
     expect(
       marketViewModel(careerMarketViewModelSource(weekFifteen)).sections,
-    ).toEqual(['YOUTH', 'SCOUT', 'COACHES']);
+    ).toEqual(['YOUTH', 'SCOUT', 'TRANSFERS', 'COACHES']);
     expect(dueAssistantInboxGuideSequences(weekFifteen)).toContain(
       'scout-mission',
     );
@@ -216,6 +216,13 @@ describe('story recruitment pacing', () => {
 
     const dueState = { ...started.state, week: dueWeek };
     const reported = resolveCareerScoutClock(dueState, started.market);
+    const reportedState = { ...dueState, market: reported };
+    expect(dueAssistantInboxGuideSequences(reportedState)).toContain(
+      'transfer-list',
+    );
+    expect(dueAssistantInboxGuideSequences(reportedState)).not.toContain(
+      'roster-cap',
+    );
     const cash = dueState.clubs.find(
       (club) => club.id === dueState.userClubId,
     )!.cash;
@@ -248,6 +255,13 @@ describe('story recruitment pacing', () => {
     expect(fullStory.cashTransactions?.at(-1)).toMatchObject({
       kind: 'transfer-buy',
     });
+    const reconciled = reconcileSatisfiedAssistantGuideSequences(fullStory);
+    expect(
+      hasAssistantGuideSequenceCompleted(reconciled, 'transfer-negotiation'),
+    ).toBe(true);
+    expect(dueAssistantInboxGuideSequences(reconciled)).not.toContain(
+      'transfer-negotiation',
+    );
   });
 
   it('retires a queued first-scout objective as soon as the mission starts', () => {

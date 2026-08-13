@@ -351,7 +351,7 @@ export type LedgerLineReveal =
       /** −10…+20; 11…20 iff surge. */
       variancePercent: number;
       surge: boolean;
-      /** 100 + 50 × combined operational Stadium Stand level; 100 when none. */
+      /** 100 base + commercial Stand bonus; 100 when none. */
       multiplierPercent: number;
       /** Operational stand buildings; 0 when none. */
       facilityCount: number;
@@ -362,13 +362,15 @@ export type LedgerLineReveal =
       base: number;
       variancePercent: number;
       surge: boolean;
-      /** Combined operational Fan Shop level, ≥ 1. */
+      /** Legacy combined operational Fan Shop level, retained for old saves. */
       multiplierTimes: number;
+      /** Commercial multiplier. Old saves omit it and use multiplierTimes × 100. */
+      multiplierPercent?: number;
       /** Operational shop buildings, ≥ 1. */
       facilityCount: number;
       /** merchIncomeBonusPercent at settlement; 0 if none. */
       adjacencyPercent: number;
-      /** floor(base × multiplierTimes × adjacencyPercent / 100); 0 if none. */
+      /** floor(commercial merchandise × adjacencyPercent / 100); 0 if none. */
       adjacencyAmount: number;
     };
 

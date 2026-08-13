@@ -514,7 +514,7 @@ describe('assistant guide application flow', () => {
     );
   });
 
-  test('saves the first facility upgrade for a quiet week after the story season', () => {
+  test('offers the first facility upgrade in a quiet Week 8 of the story season', () => {
     let state = createCareer(createLaunchCareerSetup(935));
     state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
     state = advanceWeek(state);
@@ -528,25 +528,29 @@ describe('assistant guide application flow', () => {
       'facility-upgrade',
     );
 
-    // Season 2 opens with firsts of its own, and the upgrade queues behind all
-    // of them rather than taking one of the three weekly slots.
-    const seasonTwo = { ...state, season: 2 };
-    expect(dueAssistantInboxGuideSequences(seasonTwo)).not.toContain(
+    const weekSeven = clearOtherGuideFirsts({ ...state, week: 7 });
+    expect(dueAssistantInboxGuideSequences(weekSeven)).not.toContain(
       'facility-upgrade',
     );
-    const quietWeek = clearOtherGuideFirsts(seasonTwo);
-    expect(dueAssistantInboxGuideSequences(quietWeek)).toEqual([
+
+    const weekEight = clearOtherGuideFirsts({ ...weekSeven, week: 8 });
+    expect(dueAssistantInboxGuideSequences(weekEight)).toEqual([
       'facility-upgrade',
     ]);
+    expect(
+      dueAssistantInboxGuideSequences(
+        reconcileSatisfiedAssistantGuideSequences(weekEight),
+      ),
+    ).toEqual(['facility-upgrade']);
 
     // Nothing left to teach once every building sits at the current ceiling.
     const atCeiling = {
-      ...quietWeek,
+      ...weekEight,
       facilities: {
-        ...quietWeek.facilities,
+        ...weekEight.facilities,
         grid: {
-          ...quietWeek.facilities.grid!,
-          buildings: quietWeek.facilities.grid!.buildings.map((building) => ({
+          ...weekEight.facilities.grid!,
+          buildings: weekEight.facilities.grid!.buildings.map((building) => ({
             ...building,
             level: 2 as const,
           })),

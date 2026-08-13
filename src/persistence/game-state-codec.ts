@@ -121,6 +121,9 @@ const merchRevealSchema = z.object({
   variancePercent: safeInteger.refine((value) => value >= -10 && value <= 20),
   surge: z.boolean(),
   multiplierTimes: safeInteger.refine((value) => value >= 1),
+  multiplierPercent: safeInteger
+    .refine((value) => value >= 100)
+    .optional(),
   facilityCount: safeInteger.refine((value) => value >= 1),
   adjacencyPercent: safeInteger.refine((value) => value >= 0),
   adjacencyAmount: safeInteger.refine((value) => value >= 0),
@@ -3148,8 +3151,12 @@ function revealIsConsistent(line: Record<string, unknown>): boolean {
   if (reveal.surge !== reveal.variancePercent >= 11) return false;
   if (reveal.source === 'merch') {
     if (line.kind !== 'merch') return false;
-    const afterMultiplier = reveal.base * reveal.multiplierTimes;
-    if (!Number.isSafeInteger(afterMultiplier)) return false;
+    const multiplierPercent =
+      reveal.multiplierPercent ?? reveal.multiplierTimes * 100;
+    if (!Number.isSafeInteger(multiplierPercent)) return false;
+    const multiplierProduct = reveal.base * multiplierPercent;
+    if (!Number.isSafeInteger(multiplierProduct)) return false;
+    const afterMultiplier = Math.floor(multiplierProduct / 100);
     const adjacencyProduct = afterMultiplier * reveal.adjacencyPercent;
     if (!Number.isSafeInteger(adjacencyProduct)) return false;
     if (reveal.adjacencyAmount !== Math.floor(adjacencyProduct / 100))

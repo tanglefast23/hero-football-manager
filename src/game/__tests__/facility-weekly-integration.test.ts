@@ -297,7 +297,7 @@ describe('facility weekly integration', () => {
     expect(afterTen?.facilityStaBonusRemainder).toBe(10);
   });
 
-  test('raises the home gate by 100% for every level across up to three Stadium Stands', () => {
+  test('gives each Stadium Stand a full first level and half-strength upgrades', () => {
     const initial = createCareer(createLaunchCareerSetup(20260725));
     const homeFixture = initial.fixtures.find(
       (fixture) =>
@@ -357,11 +357,11 @@ describe('facility weekly integration', () => {
     // the 5% home-gate uplift every gate now carries: $1,260.
     expect(gateOf(playedHomeWeek)).toBe(1_260);
     expect(gateOf(withStands(1))).toBe(2_520);
-    expect(gateOf(withStands(2))).toBe(3_780);
-    expect(gateOf(withStands(3))).toBe(5_040);
+    expect(gateOf(withStands(2))).toBe(3_150);
+    expect(gateOf(withStands(3))).toBe(3_780);
     // Every placed stand contributes, regardless of build order.
-    expect(gateOf(withStands(1, 3))).toBe(6_300);
-    expect(gateOf(withStands(3, 1))).toBe(6_300);
+    expect(gateOf(withStands(1, 3))).toBe(5_040);
+    expect(gateOf(withStands(3, 1))).toBe(5_040);
     expect(gateOf(withStands(1, 1, 1))).toBe(5_040);
   });
 

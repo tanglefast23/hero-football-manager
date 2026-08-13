@@ -593,7 +593,9 @@ function incomeGenerationViewModel(
       effect:
         commercial.shopCount === 0
           ? t('clubFinances.incomeShopEffectUnbuilt')
-          : t('clubFinances.incomeShopEffect', { level: commercial.shopLevel }),
+          : t('clubFinances.incomeShopEffect', {
+              percent: commercial.shopIncomePercent,
+            }),
       owned: commercial.shopCount > 0,
       ...(fanShopHistory.length === 0 ? {} : { history: fanShopHistory }),
     },
@@ -707,7 +709,6 @@ export function clubFinancesViewModel(
   const club = requireUserClub(state);
   const sponsorship = clubSponsorshipViewModel(state, club, t);
   const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
-  const latest = state.ledgers[state.ledgers.length - 1];
   const facilityUpkeep =
     state.facilities.grid === undefined
       ? 0
@@ -810,9 +811,7 @@ export function clubFinancesViewModel(
       : undefined;
   const loan = outstandingLoanViewModel(state, t);
   return {
-    periodLabel: latest
-      ? `S${latest.season} · W${latest.week}`
-      : `S${state.season} · W${state.week}`,
+    periodLabel: `S${state.season} · W${state.week}`,
     resources: {
       money: club.cash,
       trainingPoints: state.trainingPoints,
@@ -1695,7 +1694,9 @@ function facilityEffectLabel(
   }
   if (type === 'fan-shop') return t('clubFinances.facilityShopEffect');
   if (type === 'stadium-stand')
-    return t('clubFinances.facilityStandEffect', { percent: level * 100 });
+    return t('clubFinances.facilityStandEffect', {
+      percent: 100 + (level - 1) * 50,
+    });
   throw new Error(`missing facility effect copy for ${type}`);
 }
 

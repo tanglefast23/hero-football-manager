@@ -85,11 +85,11 @@ function lineFor(
 
 describe('what the gaffer says about a cup tie', () => {
   // The draw is deterministic, so these are the two ties this career gets: a
-  // club out of its own division, then one from the top of the pyramid. Week 6
-  // and week 10 are chosen because each leaves its tie unresolved, which is
+  // club out of its own division, then one from the top of the pyramid. Week 10
+  // and week 14 are chosen because each leaves its tie unresolved, which is
   // what lets a score decide the outcome rather than a recorded winner.
-  const levelWeek = staffedCareer(6);
-  const giantWeek = staffedCareer(10);
+  const levelWeek = staffedCareer(10);
+  const giantWeek = staffedCareer(14);
   const level = tieByGap(levelWeek, 0);
   const giant = tieByGap(giantWeek, 4);
 
@@ -120,16 +120,16 @@ describe('what the gaffer says about a cup tie', () => {
   });
 
   it('takes a settled tie from the recorded winner, not from the score', () => {
-    // By week 14 the cup has already had its say. A tie that is on the books as
+    // By week 18 the cup has already had its say. A tie that is on the books as
     // a defeat stays a defeat even if the report is handed a winning scoreline.
-    const settled = staffedCareer(14);
+    const settled = staffedCareer(18);
     expect(content.fulltimeCoachLines.cupLossStrong).toContain(
       lineFor(settled, tieByGap(settled, 4), 4, 0),
     );
   });
 
   it('boxes the recorded penalty winner when the Cup score is level', () => {
-    const before = staffedCareer(6);
+    const before = staffedCareer(10);
     const fixtureId = tieByGap(before, 0);
     const fixture = userCupTies(before).find(
       (candidate) => candidate.id === fixtureId,
@@ -203,7 +203,7 @@ describe('what the gaffer says about a cup tie', () => {
      * reading the wrong map dates both sides of the subtraction at once.
      */
     function careerWithStaleSeeding(): { career: GameState; tie: string } {
-      const base = staffedCareer2(2, 10);
+      const base = staffedCareer2(2, 14);
       // An unresolved tie, so the scoreline still decides the outcome and both
       // the win and the defeat pools can be reached on the same fixture.
       const giant = userCupTies(base).find(

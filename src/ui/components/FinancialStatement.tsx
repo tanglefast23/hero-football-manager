@@ -375,7 +375,7 @@ function StatementRow({
 
 function hasMultiplierBeat(reveal: LedgerLineReveal): boolean {
   return reveal.source === 'merch'
-    ? reveal.multiplierTimes > 1
+    ? merchMultiplierPercent(reveal) > 100
     : reveal.multiplierPercent > 100;
 }
 
@@ -430,7 +430,8 @@ function rowAccessibilityLabel(
   const count =
     reveal.facilityCount >= 1 ? `, ${facilityCount(reveal, t)}` : '';
   if (reveal.source === 'merch') {
-    if (reveal.multiplierTimes < 2 && reveal.adjacencyAmount === 0) {
+    const multiplierPercent = merchMultiplierPercent(reveal);
+    if (multiplierPercent <= 100 && reveal.adjacencyAmount === 0) {
       return t('financialStatement.a11y.rowAmount', {
         label: line.label,
         count,
@@ -439,8 +440,8 @@ function rowAccessibilityLabel(
       });
     }
     const times =
-      reveal.multiplierTimes >= 2
-        ? `, ${t('financialStatement.a11y.timesFragment', { times: reveal.multiplierTimes })}`
+      multiplierPercent > 100
+        ? `, ${t('financialStatement.a11y.timesFragment', { times: multiplierPercent / 100 })}`
         : '';
     const adjacency =
       reveal.adjacencyAmount > 0
@@ -484,8 +485,14 @@ function rowAccessibilityLabel(
  */
 function multiplierLabel(reveal: LedgerLineReveal): string {
   return reveal.source === 'merch'
-    ? `×${reveal.multiplierTimes * 100}%`
+    ? `×${merchMultiplierPercent(reveal)}%`
     : `×${reveal.multiplierPercent}%`;
+}
+
+function merchMultiplierPercent(
+  reveal: Extract<LedgerLineReveal, { source: 'merch' }>,
+): number {
+  return reveal.multiplierPercent ?? reveal.multiplierTimes * 100;
 }
 
 /**

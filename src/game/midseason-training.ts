@@ -5,6 +5,7 @@ import type { DivisionLevel } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
 export const MIDSEASON_TRAINING_WEEK = 19;
+export const MIDSEASON_TRAINING_CONDITION_COST = 10;
 
 const ATTRIBUTE_KEYS = [
   'pac',
@@ -80,8 +81,9 @@ export function midseasonTrainingCaptain(
 }
 
 /**
- * Pays every TP currently held and raises all seven stored attributes on every
- * user-club player. The accepted flag makes a repeated call an exact no-op.
+ * Pays every TP currently held, raises all seven stored attributes, and costs
+ * every user-club player 10 condition. The accepted flag makes a repeated call
+ * an exact no-op.
  */
 export function acceptMidseasonTraining(state: GameState): GameState {
   if (midseasonTrainingStatus(state) !== 'prompt') return state;
@@ -94,6 +96,10 @@ export function acceptMidseasonTraining(state: GameState): GameState {
         ? player
         : {
             ...player,
+            condition: Math.max(
+              0,
+              (player.condition ?? 100) - MIDSEASON_TRAINING_CONDITION_COST,
+            ),
             attrs: mapAttributes(player.attrs, (value) =>
               Math.min(MAX_PLAYER_ATTRIBUTE, value + gain),
             ),

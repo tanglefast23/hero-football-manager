@@ -80,9 +80,7 @@ export function careerMarketViewModelSource(
     ]),
   );
   const playerSalesUnlocked =
-    !storyPacing ||
-    savedSellListings.size > 0 ||
-    (scoutingUnlocked && rosterCount >= rosterCapacity);
+    !storyPacing || savedSellListings.size > 0 || scoutingUnlocked;
   const transferDealsUnlocked =
     !storyPacing ||
     market.scoutReports.length > 0 ||

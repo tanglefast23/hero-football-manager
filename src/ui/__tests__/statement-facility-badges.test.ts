@@ -85,7 +85,7 @@ describe('match statement facility badges', () => {
   it('states both multipliers in percent', () => {
     // "×3" beside "×200%" read as two kinds of arithmetic, and left the shop
     // on the larger multiple looking like the smaller number.
-    expect(source).toContainSource('`×${reveal.multiplierTimes * 100}%`');
+    expect(source).toContainSource('`×${merchMultiplierPercent(reveal)}%`');
     expect(source).toContainSource('`×${reveal.multiplierPercent}%`');
   });
 

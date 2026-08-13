@@ -94,6 +94,7 @@ export function MidseasonTrainingDecisionCard({
           <Text className="text-center text-lg leading-7 text-ink">
             {t('midseasonTraining.spendAllTp', {
               tp: viewModel.trainingPointsLabel,
+              condition: viewModel.conditionCost,
             })}
           </Text>
           <PixelText className="mt-3 text-center text-sm uppercase text-pitch-ink">
@@ -115,6 +116,7 @@ export function MidseasonTrainingDecisionCard({
                 label={t('midseasonTraining.yes')}
                 accessibilityLabel={t('midseasonTraining.a11y.yes', {
                   tp: viewModel.trainingPointsLabel,
+                  condition: viewModel.conditionCost,
                 })}
                 variant="confirm"
                 onPress={onYes}

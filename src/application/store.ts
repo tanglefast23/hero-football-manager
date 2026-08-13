@@ -1535,6 +1535,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
           activeTab: 'home',
           weekReview: null,
+          matchDayBanner: null,
           error: null,
         });
         queueCareerSave(get, set, next);
@@ -1835,6 +1836,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         // post-match minute must match the minute shown when it went in.
         minuteLabel: `${Math.max(1, Math.min(90, Math.ceil((goal.tick / (HALF_TICKS * 2)) * 90)))}'`,
         description: t('store.goalScored', { player: goal.name }),
+        ...(goal.power === undefined ? {} : { power: goal.power }),
       }));
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
       const completed = isOnboardingMatch

@@ -1,5 +1,5 @@
 import { createLaunchCareerSetup } from '../../application/launch';
-import { createCareer } from '../career';
+import { createCareer, CUP_SETTLEMENT_WEEKS } from '../career';
 import { DEFAULT_CREATION_RATINGS } from '../onboarding/player-creation';
 import {
   addCreatedPlayer,
@@ -175,18 +175,7 @@ describe('first-meeting rival hero intro', () => {
 
   it('keeps league-first double headers separate, then discovers a Cup rival', () => {
     const opening = heroMatchday();
-    const week = 6;
     const m2 = opening.m2!;
-    const scheduledLeagueFixture = opening.fixtures.find(
-      (fixture) =>
-        fixture.status === 'scheduled' &&
-        (fixture.homeClubId === opening.userClubId ||
-          fixture.awayClubId === opening.userClubId),
-    );
-    const leagueFixture =
-      scheduledLeagueFixture === undefined
-        ? undefined
-        : { ...scheduledLeagueFixture, week };
     const cupFixture = m2.nationalCups[0].rounds
       .at(-1)
       ?.fixtures.find(
@@ -195,7 +184,25 @@ describe('first-meeting rival hero intro', () => {
           (fixture.homeClubId === opening.userClubId ||
             fixture.awayClubId === opening.userClubId),
       );
-    if (leagueFixture === undefined || cupFixture === undefined) {
+    const week =
+      cupFixture === undefined
+        ? undefined
+        : CUP_SETTLEMENT_WEEKS[cupFixture.round - 1];
+    const scheduledLeagueFixture = opening.fixtures.find(
+      (fixture) =>
+        fixture.status === 'scheduled' &&
+        (fixture.homeClubId === opening.userClubId ||
+          fixture.awayClubId === opening.userClubId),
+    );
+    const leagueFixture =
+      scheduledLeagueFixture === undefined || week === undefined
+        ? undefined
+        : { ...scheduledLeagueFixture, week };
+    if (
+      leagueFixture === undefined ||
+      cupFixture === undefined ||
+      week === undefined
+    ) {
       throw new Error('test seed did not produce the expected double header');
     }
     const opponent = (fixture: { homeClubId: string; awayClubId: string }) =>

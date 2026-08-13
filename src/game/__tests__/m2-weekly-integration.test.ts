@@ -568,7 +568,7 @@ describe('M2 weekly sidecars', () => {
     const baseIncome = weeklyMerchandiseIncome(baseState, club);
     const adjacencyIncome = weeklyMerchandiseIncome(adjacentState, club);
 
-    expect(baseIncome).toBe(Math.floor((club.fans * 3) / 2));
+    expect(baseIncome).toBe(club.fans);
     expect(adjacencyIncome).toBe(baseIncome + Math.floor(baseIncome / 10));
     expect(advanceWeek(adjacentState).ledgers[0].lines).toContainEqual(
       expect.objectContaining({

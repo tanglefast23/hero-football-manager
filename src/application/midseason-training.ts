@@ -1,4 +1,5 @@
 import {
+  MIDSEASON_TRAINING_CONDITION_COST,
   midseasonTrainingCaptain,
   midseasonTrainingGain,
   rosterForClub,
@@ -70,6 +71,7 @@ export function midseasonTrainingViewModel(
     trainingPoints: state.trainingPoints,
     trainingPointsLabel: formatIntegerForCopy(t, state.trainingPoints),
     statGain: midseasonTrainingGain(state),
+    conditionCost: MIDSEASON_TRAINING_CONDITION_COST,
     captain,
     squad:
       orderedRoster.length === 0
