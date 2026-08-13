@@ -7,21 +7,20 @@ const DIST = path.resolve('dist');
 // above the accepted artifact, so ordinary feature growth eventually needs a
 // deliberate re-ratchet and a one-off leak still trips the gate.
 //
-// Re-ratcheted 2026-08-12 (raw only) off the stat-tip top layer branch, measured
-// at 5_896_612 raw / 868_302 gzip. Only RAW moved: gzip still fits its existing
-// mark with 1.9 KB to spare, and loosening a gate that is passing buys nothing.
+// Re-ratcheted 2026-08-13 off PR #158's merge artifact (audit2 + main), CI-
+// measured at 5_917_682 raw / 874_253 gzip. Growth since the 2026-08-12 mark
+// (5_896_612 raw / 868_302 gzip) is +21_070 raw / +5_951 gzip, spread across
+// four merges: win bonus + story rewards (78c35279), the audit2 hardening
+// sweep, substitution entry energy (#157), and the audit3 adversarial fixes
+// (59175c5b: error-boundary reload path, seven-locale catalog additions).
+// Checked before moving the number, same as last time: the QA and Skia marker
+// assertions below both stayed clean, so this is distributed feature growth,
+// not a renderer or dev-harness leak.
 //
-// Where the raw growth came from, because it is worth not misattributing: main
-// was ALREADY 3_552 bytes over this gate at 64e23d44 (the club-crests merge,
-// 5_895_373) and its own CI run failed on exactly this line. The branch doing
-// the re-ratchet adds the remaining 1_239 bytes. Checked before moving the
-// number, same as last time: the QA and Skia marker assertions below both
-// stayed clean, so this is distributed growth, not a renderer or dev-harness
-// leak.
-//
-// Previous marks: 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 5_901_732;
-const GZIP_BUDGET = 870_222;
+// Previous marks: 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
+// 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 5_922_802;
+const GZIP_BUDGET = 879_373;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
