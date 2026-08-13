@@ -46,7 +46,7 @@ describe('club finances immediate transaction history', () => {
       'fan-shop': '+$$$ Merchandise boost. Scales with Fans.',
       'stadium-stand': '+100% home gate income',
       'medical-bay': 'Recovery -1 week',
-      dorm: '+4 condition recovery weekly',
+      dorm: '+3 condition recovery weekly',
       'scout-office': '3 names per mission',
     });
   });
@@ -333,11 +333,11 @@ describe('club finances immediate transaction history', () => {
       }),
       expect.objectContaining({
         periodLabel: 'S1 · W6',
-        detail: 'Home Hero Cup gate',
-        net: baseline + 1_260,
+        detail: 'No match or advertising payment',
+        net: baseline,
       }),
     ]);
-    expect(viewModel.operatingOutlook.net).toBe(baseline * 4 + 5_520);
+    expect(viewModel.operatingOutlook.net).toBe(baseline * 4 + 4_260);
     expect(viewModel.operatingOutlook.projectedBalance).toBe(
       viewModel.resources.money + viewModel.operatingOutlook.net,
     );
@@ -634,6 +634,40 @@ describe('club finances immediate transaction history', () => {
       affordable: false,
       affordabilityShortfall: 0,
       blockedReason: 'Build limit reached · 3 of 3 built.',
+    });
+  });
+
+  test('does not call a facility built until construction finishes', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260813));
+    const started = buildCareerFacility(initial, 'training-pitch', {
+      x: 0,
+      y: 0,
+    }).state;
+    const building = () =>
+      clubFinancesViewModel(started).facilities.catalog.find(
+        (entry) => entry.type === 'training-pitch',
+      );
+
+    expect(building()).toMatchObject({
+      builtCount: 0,
+      affordable: false,
+      blockedReason: 'Construction crew is already assigned.',
+    });
+    const finished = {
+      ...started,
+      facilities: {
+        ...started.facilities,
+        grid: finishConstruction(started.facilities.grid!),
+      },
+    };
+    expect(
+      clubFinancesViewModel(finished).facilities.catalog.find(
+        (entry) => entry.type === 'training-pitch',
+      ),
+    ).toMatchObject({
+      builtCount: 1,
+      blockedReason:
+        'Already built. Select it on the grid to upgrade or move it.',
     });
   });
 

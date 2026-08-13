@@ -743,22 +743,17 @@ describe('Hero Cup settlement calendar', () => {
     expect(weeks[5]).toBe(SEASON_WEEKS - 1);
   });
 
-  it('doubles up on only the two league weeks no six-week set can avoid', () => {
+  it('moves league fixtures around all six Cup rounds in every season', () => {
     const opening = leagueWeeks(1);
     const standard = leagueWeeks(2);
-    const freeInEverySeason = Array.from(
-      { length: SEASON_WEEKS },
-      (_week, index) => index + 1,
-    ).filter((week) => !opening.has(week) && !standard.has(week));
 
-    // Season 2 onward opens a fortnight later than season 1, so only these weeks
-    // are empty in both calendars: six rounds cannot all avoid a league week
-    // everywhere. The two that do share a week are the documented minimum.
-    // Week 30 is not among them — it holds the league finale in every season.
-    expect(freeInEverySeason).toEqual([1, 2, 12, 24, 27, 28, 29]);
-    expect(CUP_SETTLEMENT_WEEKS.filter((week) => standard.has(week))).toEqual([
-      6, 18,
-    ]);
+    expect(CUP_SETTLEMENT_WEEKS).toEqual([10, 14, 18, 22, 26, 29]);
+    expect(CUP_SETTLEMENT_WEEKS.filter((week) => opening.has(week))).toEqual(
+      [],
+    );
+    expect(CUP_SETTLEMENT_WEEKS.filter((week) => standard.has(week))).toEqual(
+      [],
+    );
   });
 });
 

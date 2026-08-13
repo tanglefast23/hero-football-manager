@@ -1314,7 +1314,7 @@
     "managementShell.tabTip.squad": "Your eleven and the bench: train players and set the lineup",
     "managementShell.tabTipWithKey": "{tip} · press {key}",
     "managementShell.trainingPoints": "Training points",
-    "managementShell.trainingPointsExplainer": "Training Points. Earned each week and spent on drills — the only thing that improves a player.",
+    "managementShell.trainingPointsExplainer": "Training Points. Earned each week and spent on drills to improve players.",
     "managerNotes.cupByeDetail": "You sit this round out. Your run starts in Week {week} in the {round}.",
     "managerNotes.cupByeFinalDetail": "You sit this round out and go straight through.",
     "managerNotes.cupByeTitle": "Manager's Note: Hero Cup bye through the {round}",

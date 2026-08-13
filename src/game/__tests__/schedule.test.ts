@@ -62,12 +62,12 @@ describe('generateSeasonFixtures', () => {
     }
   });
 
-  test('starts the opening season in Week 3 and brings Match 2 forward to Week 4', () => {
+  test('starts in Week 3 and uses Week 6 for league play before the Cup', () => {
     const weeks = Array.from({ length: 18 }, (_, index) =>
       leagueWeekForRound(index + 1, 1),
     );
 
-    expect(weeks.slice(0, 3)).toEqual([3, 4, 5]);
+    expect(weeks.slice(0, 4)).toEqual([3, 4, 5, 6]);
     expect(weeks[17]).toBe(30);
     expect(new Set(weeks).size).toBe(18);
     expect(
@@ -85,9 +85,16 @@ describe('generateSeasonFixtures', () => {
       leagueWeekForRound(index + 1, 2),
     );
 
-    expect(weeks[0]).toBe(5);
+    expect(weeks.slice(0, 5)).toEqual([5, 6, 7, 8, 9]);
     expect(weeks[17]).toBe(30);
     expect(new Set(weeks).size).toBe(18);
+    expect(
+      weeks.filter((week) =>
+        CUP_SETTLEMENT_WEEKS.includes(
+          week as (typeof CUP_SETTLEMENT_WEEKS)[number],
+        ),
+      ),
+    ).toEqual([]);
 
     const fixtures = generateSeasonFixtures(CLUB_IDS, 2, 12345);
     for (const fixture of fixtures) {
@@ -103,13 +110,10 @@ describe('generateSeasonFixtures', () => {
         leagueWeekForRound(index + 1, season),
       );
       expect(weeks[17]).toBe(SEASON_WEEKS);
-      // Rounds 1–17 keep the spread they had before the pin, which is what
-      // leaves the cup weeks alone.
-      expect(weeks[16]).toBe(26);
-      expect(weeks.includes(28)).toBe(false);
+      expect(weeks[16]).toBe(28);
       expect(
         CUP_SETTLEMENT_WEEKS.filter((week) => weeks.includes(week)),
-      ).toEqual(season === 1 ? [] : [6, 18]);
+      ).toEqual([]);
     }
   });
 

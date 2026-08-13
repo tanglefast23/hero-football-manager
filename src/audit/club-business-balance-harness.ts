@@ -14,7 +14,7 @@ import type {
 import { difficultyRules } from '../game/difficulty';
 import { divisionFans, divisionTicketPrice } from '../game/full-career';
 import type { DivisionLevel } from '../game/pyramid';
-import { generateSeasonFixtures } from '../game/schedule';
+import { CUP_SETTLEMENT_WEEKS, generateSeasonFixtures } from '../game/schedule';
 import {
   SPONSOR_PAYMENT_WEEKS,
   acceptSponsorOffer,
@@ -506,8 +506,11 @@ function generateScenarioFixtures(scenario: ClubBusinessBalanceScenario): {
   // Every club reaches at least one Cup tie; this representative path starts
   // in the play-in and continues while it wins. Including the Cup makes the
   // D5 income check generous rather than manufacturing a failure by omission.
-  const cupWeeks = [6, 12, 18, 24, 27, 29] as const;
-  for (let roundIndex = 0; roundIndex < cupWeeks.length; roundIndex += 1) {
+  for (
+    let roundIndex = 0;
+    roundIndex < CUP_SETTLEMENT_WEEKS.length;
+    roundIndex += 1
+  ) {
     const outcomeRoll = random();
     const outcome = outcomeRoll < 0.45 ? 'WIN' : 'LOSS';
     const [userGoals, opponentGoals] = goalsForOutcome(outcome, random);
@@ -524,7 +527,7 @@ function generateScenarioFixtures(scenario: ClubBusinessBalanceScenario): {
       id: `cup-s${SEASON}-r${roundIndex + 1}`,
       season: SEASON,
       round: roundIndex + 1,
-      week: cupWeeks[roundIndex],
+      week: CUP_SETTLEMENT_WEEKS[roundIndex],
       homeClubId: userIsHome ? USER_CLUB_ID : 'cup-opponent',
       awayClubId: userIsHome ? 'cup-opponent' : USER_CLUB_ID,
       matchSeed: Math.floor(random() * 0x1_0000_0000) >>> 0,

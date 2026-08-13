@@ -1130,7 +1130,7 @@ function GameApp() {
             role === 'HEAD'
               ? candidate.headEffectLabels
               : candidate.assistantEffectLabels,
-          weeklyWage: candidate.weeklyWage,
+          weeklyWage: hired.weeklyWage,
         },
       });
     },
@@ -3557,7 +3557,12 @@ function GameApp() {
                     wage:
                       coach === undefined
                         ? t('confirm.fallback.shownAmount')
-                        : formatCurrency(t, coach.weeklyWage),
+                        : formatCurrency(
+                            t,
+                            role === 'HEAD'
+                              ? coach.headWeeklyWage
+                              : coach.assistantWeeklyWage,
+                          ),
                   }),
                   current
                     ? t('confirm.hireCoach.replaceNote', { role: roleLabel })

@@ -354,7 +354,7 @@ export interface FacilityPosition {
  *
  * Deliberately four named fields rather than one "output" percent: the game's
  * seven facility benefits are not the same kind of number. A percent of the
- * dorm's "+4 recovery per level" rounds to nothing, and the medical bay's
+ * dorm's "+3 recovery per level" rounds to nothing, and the medical bay's
  * benefit is whole weeks of recovery, which no percentage can move by a
  * sensible amount. Each field says which real formula it scales.
  *

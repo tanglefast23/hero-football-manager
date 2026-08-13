@@ -1,4 +1,8 @@
-import { CAREER_MILESTONES } from '../../game';
+import {
+  CAREER_MILESTONES,
+  CUP_SETTLEMENT_WEEKS,
+  TRAINING_PITCH_TP_PER_LEVEL,
+} from '../../game';
 import { loadLaunchContent, parseLaunchContent } from '../load';
 import type { LaunchContent } from '../schemas';
 
@@ -896,6 +900,24 @@ describe('validated M1 launch content', () => {
 
     const money = club?.entries.find((term) => term.term === 'Money');
     expect(money?.definition).toContain('advertising');
+  });
+
+  test('keeps the Cup briefing and Training Pitch glossary on engine values', () => {
+    const content = loadLaunchContent();
+    const cup = content.assistantGuide.sequences.find(
+      (sequence) => sequence.id === 'national-cup',
+    );
+    expect(cup?.inbox?.detail).toContain(`Week ${CUP_SETTLEMENT_WEEKS[0]}`);
+    expect(cup?.pages[0].body[0]).toContain(`Week ${CUP_SETTLEMENT_WEEKS[0]}`);
+
+    const training = content.glossary.categories.find(
+      (category) => category.id === 'training',
+    );
+    for (const term of ['Training Points (TP)', 'Training Pitch']) {
+      expect(
+        training?.entries.find((entry) => entry.term === term)?.definition,
+      ).toContain(`${TRAINING_PITCH_TP_PER_LEVEL} TP`);
+    }
   });
 });
 

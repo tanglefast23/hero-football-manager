@@ -404,7 +404,7 @@
       "id": "national-cup",
       "inbox": {
         "title": "Your first Hero Cup",
-        "detail": "Every division enters from around Week 10. One upset can change the season."
+        "detail": "Every division enters in Week 10. One upset can change the season."
       },
       "destination": "league-cup",
       "pages": [
@@ -412,7 +412,7 @@
           "kicker": "Knockout football",
           "title": "Hero Cup",
           "body": [
-            "Starting from week 10, all divisions against each other. Stronger clubs receive opening byes. Teams battle, no second chances until there's one winner. Lots of prizes and fans the further you can go!"
+            "Starting in Week 10, every division enters. Stronger clubs receive opening byes. Teams battle, with no second chances, until one winner remains. The further you go, the more prizes and fans you earn!"
           ],
           "focus": "national-cup",
           "objective": "WATCH THE CUP ROUNDS FILL IN.",

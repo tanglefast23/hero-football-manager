@@ -14,11 +14,10 @@ import type { FixtureResult, GameState } from '../types';
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
 
 /**
- * A career parked on the play-in week with the next league round pulled onto the
- * same week. The cup calendar settles in weeks the season-1 league leaves empty,
- * so a double-header only happens naturally from season 2 on (weeks 6 and 18);
- * moving the round keeps that shared-week path covered without playing out a
- * whole season first.
+ * A career parked on the play-in week with the next league round deliberately
+ * pulled onto the same week. Production scheduling keeps Cup weeks standalone;
+ * this fixture mutation preserves coverage for old saves that already contain
+ * a league-and-Cup double-header.
  */
 function fullCareerAtPlayIn(seed = 2): GameState {
   const career = createCareer(createLaunchCareerSetup(seed));
@@ -433,7 +432,7 @@ describe('player-controlled Hero Cup match flow', () => {
     const atRisk: GameState = {
       ...afterLeague,
       clubs: afterLeague.clubs.map((club) =>
-        club.id === afterLeague.userClubId ? { ...club, cash: -14_500 } : club,
+        club.id === afterLeague.userClubId ? { ...club, cash: -15_500 } : club,
       ),
     };
     const won = completeMatchday(atRisk, [

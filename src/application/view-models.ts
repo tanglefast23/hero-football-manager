@@ -108,6 +108,7 @@ import {
   nominalSponsorPortfolioIncome,
   sponsorObjectiveProgressFromFixtures,
   storyTrainingPointReward,
+  DORM_CONDITION_RECOVERY_PER_LEVEL,
   isFacilityOperational,
   weeklyFacilityUpkeep,
   weeklyAmbientTrainingPoints,
@@ -1547,11 +1548,16 @@ function facilityGridViewModel(
     catalog: FACILITY_BUILD_MENU_ORDER.map((type) => FACILITY_CATALOG[type])
       .filter((definition) => definition.available)
       .map((definition) => {
-        const builtCount = grid.buildings.filter(
+        const placedCount = grid.buildings.filter(
           (building) => building.type === definition.type,
         ).length;
+        const builtCount = grid.buildings.filter(
+          (building) =>
+            building.type === definition.type &&
+            isFacilityOperational(grid, building.id),
+        ).length;
         const buildLimit = facilityBuildLimit(definition.type);
-        const buildLimitReached = builtCount >= buildLimit;
+        const buildLimitReached = placedCount >= buildLimit;
         const blockedByOpeningTrainingPitch =
           pitchMustBeFirst && definition.type !== 'training-pitch';
         return {
@@ -1579,22 +1585,24 @@ function facilityGridViewModel(
           buildWeeks: definition.buildWeeks,
           ...(!definition.available
             ? { blockedReason: t('clubFinances.facilityLocked') }
-            : buildLimitReached
-              ? {
-                  blockedReason:
-                    buildLimit === 1
-                      ? t('clubFinances.facilityAlreadyBuilt')
-                      : t('clubFinances.facilityBuildLimitReached', {
-                          built: builtCount,
-                          limit: buildLimit,
-                        }),
-                }
-              : blockedByOpeningTrainingPitch
+            : grid.construction !== undefined
+              ? { blockedReason: t('clubFinances.facilityCrewAssigned') }
+              : buildLimitReached
                 ? {
-                    blockedReason: t(OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY),
+                    blockedReason:
+                      buildLimit === 1
+                        ? t('clubFinances.facilityAlreadyBuilt')
+                        : t('clubFinances.facilityBuildLimitReached', {
+                            built: builtCount,
+                            limit: buildLimit,
+                          }),
                   }
-                : grid.construction !== undefined
-                  ? { blockedReason: t('clubFinances.facilityCrewAssigned') }
+                : blockedByOpeningTrainingPitch
+                  ? {
+                      blockedReason: t(
+                        OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY,
+                      ),
+                    }
                   : club.cash < definition.buildCost
                     ? {
                         blockedReason: t(
@@ -1668,7 +1676,9 @@ function facilityEffectLabel(
     return t('clubFinances.facilityMedicalEffect', { n: level, count: level });
   }
   if (type === 'dorm') {
-    return t('clubFinances.facilityDormEffect', { amount: level * 4 });
+    return t('clubFinances.facilityDormEffect', {
+      amount: level * DORM_CONDITION_RECOVERY_PER_LEVEL,
+    });
   }
   if (type === 'scout-office') {
     const names = t('clubFinances.facilityScoutNames', { count: 2 + level });

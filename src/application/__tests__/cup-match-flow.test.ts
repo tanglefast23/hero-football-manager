@@ -66,10 +66,8 @@ describe('Hero Cup app routing', () => {
       career: { week: 4, phase: 'manage' },
     });
 
-    // The cup settles in weeks the season-1 league leaves empty, so the league
-    // round after the play-in week is pulled onto it. That reproduces the
-    // season-2-onward double-header this routing has to handle without playing
-    // out a whole season first.
+    // Production scheduling keeps Cup weeks standalone. Pulling a later league
+    // round onto this week preserves the old-save double-header recovery path.
     const awakenedCareer = useM1Store.getState().career!;
     const doubleHeaderRound = Math.min(
       ...awakenedCareer.fixtures

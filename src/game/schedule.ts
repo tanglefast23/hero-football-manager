@@ -8,9 +8,8 @@ const TOTAL_ROUNDS = FIRST_LEG_ROUNDS * 2;
 const OPENING_SEASON_FIRST_LEAGUE_WEEK = 3;
 const STANDARD_FIRST_LEAGUE_WEEK = 5;
 /**
- * The last week the even spread may use. Rounds 1–17 are spaced across it
- * exactly as before the finale was pinned, which is what keeps the cup calendar
- * below unchanged.
+ * The last week the even spread may use. Rounds 1–17 are spaced across the
+ * non-Cup weeks up to this point; Round 18 stays pinned to the finale.
  */
 const LAST_SPREAD_LEAGUE_WEEK = 28;
 
@@ -26,26 +25,17 @@ const LAST_SPREAD_LEAGUE_WEEK = 28;
 const SEASON_FINALE_WEEK = SEASON_WEEKS;
 
 /**
- * The week each Hero Cup round settles, chosen to land on weeks the league
- * calendar leaves empty so a cup tie is its own event instead of a second match
- * bolted onto a league week. `leagueWeekForRound` fills weeks 3–26 plus 30 in
- * season 1 and 5–26 plus 30 from season 2 on, which leaves these empty weeks:
- *
- *   season 1:  1 2   6   9   12    15    18    21    24 27 28 29
- *   season 2+: 1 2 3 4 8       12       16       20  24 27 28 29
- *
- * Only 12, 24, 27, 28 and 29 are free in every season, so no six-week set can
- * be empty in all of them. This set is empty for the whole of season 1 and
- * doubles up only twice (weeks 6 and 18) from season 2 on — the fewest possible
- * without opening in weeks 1–2, before the league has even kicked off, or
- * settling the final in week 30 on top of the league finale.
+ * The week each Hero Cup round settles. The Cup starts after the opening league
+ * run, keeps a four-week rhythm, and finishes before the Week 30 league finale.
+ * `leagueWeekForRound` skips these weeks, so every Cup tie is its own matchday
+ * in every season instead of becoming a league-and-Cup double-header.
  *
  * Lives here rather than in `career.ts` because it is season-calendar data, and
  * because `player-requests.ts` reads it to decide whether a cost priced in
  * missed matches can be collected — an import `career.ts` cannot supply without
  * a cycle.
  */
-export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
+export const CUP_SETTLEMENT_WEEKS = [10, 14, 18, 22, 26, 29] as const;
 const UINT32_RANGE = 4294967296;
 
 export function leagueWeekForRound(round: number, season: number): number {
@@ -64,10 +54,19 @@ export function leagueWeekForRound(round: number, season: number): number {
     season === 1
       ? OPENING_SEASON_FIRST_LEAGUE_WEEK
       : STANDARD_FIRST_LEAGUE_WEEK;
-  const weekSpan = LAST_SPREAD_LEAGUE_WEEK - firstLeagueWeek;
-  return (
-    firstLeagueWeek + Math.floor(((round - 1) * weekSpan) / (TOTAL_ROUNDS - 1))
+  const availableWeeks = Array.from(
+    { length: LAST_SPREAD_LEAGUE_WEEK - firstLeagueWeek + 1 },
+    (_, index) => firstLeagueWeek + index,
+  ).filter(
+    (week) =>
+      !CUP_SETTLEMENT_WEEKS.includes(
+        week as (typeof CUP_SETTLEMENT_WEEKS)[number],
+      ),
   );
+  const weekIndex = Math.floor(
+    ((round - 1) * (availableWeeks.length - 1)) / (TOTAL_ROUNDS - 2),
+  );
+  return availableWeeks[weekIndex];
 }
 
 export function generateSeasonFixtures(
