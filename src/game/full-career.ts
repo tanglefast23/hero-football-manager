@@ -491,23 +491,34 @@ function balanceOpeningDivision(state: GameState): GameState {
         currentStrengths.get(left.id)! - currentStrengths.get(right.id)! ||
         compareIds(left.id, right.id),
     );
-  // The opening is deliberately rigged against the player: 40 against a field of
-  // 42..50, so the user is the weakest club in the division and every week of
-  // Season 1 is uphill. Climbing out is meant to take one or two seasons of
-  // building facilities and training, not a fair fight on day one.
+  // The opening is still tilted against the player — 42 against a field of
+  // 42..50 leaves the user level with the weakest club and behind the other
+  // eight — but no longer alone at the bottom. Climbing out is meant to take a
+  // season or two of facilities and training, not a fair fight on day one.
   //
-  // Measured against a held squad strength over a full 90-fixture D5 season,
-  // promotion (top two) needs roughly a +5 lead on the field, so the climb this
-  // opening asks for is about +11 of squad strength:
+  // The user opened on 40 until an owner review of a real Season 1: that career
+  // finished 7th on 22 points with ELEVEN draws in 18, having been handed the
+  // division's strongest club in match one (lost 0-13). The schedule pin now
+  // opens mid-table, and this raises the floor by two.
   //
-  // | strength vs field | finish | points |
-  // |-------------------|--------|--------|
-  // | -5 (the opening)  | 8th    | 17     |
-  // |  0                | 8th    | 19     |
-  // | +5                | 2nd    | 34     |
-  // | +10               | 1st    | 52     |
+  // Re-measured over three seeds, holding squad strength for the whole season
+  // and doing NO management (no training, signings or facilities), so read every
+  // row as a floor rather than a forecast:
+  //
+  // | user strength | finishes         | points     | first league win |
+  // |---------------|------------------|------------|------------------|
+  // | 40 (was)      | 10th, 9th, 10th  | 3, 8, 8    | never, 5, 5      |
+  // | 42 (now)      | 9th, 8th, 8th    | 11, 13, 12 | 2, 5, 12         |
+  // | 43            | 10th, 8th, 9th   | 7, 14, 12  | 3, 5, 8          |
+  // | 45            | 9th, 8th, 6th    | 14, 16, 18 | 4, 5, 3          |
+  //
+  // 43 measured no better than 42, which is why the bump stops here. The table
+  // this replaced claimed +5 promoted the user in 2nd on 34 points; it does not,
+  // and no row of it reproduced. An active manager is worth roughly +5 of squad
+  // strength on top of these numbers — the real career above out-scored every
+  // unmanaged 45 run — so re-measure before trusting any of it again.
   const targetStrengthByClubId = new Map<string, number>([
-    [state.userClubId, 40],
+    [state.userClubId, 42],
   ]);
   opponentsWeakestFirst.forEach((club, index) => {
     targetStrengthByClubId.set(club.id, 42 + index);

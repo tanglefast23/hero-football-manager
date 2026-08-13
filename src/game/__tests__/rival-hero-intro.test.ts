@@ -13,7 +13,16 @@ import {
 } from '../rival-hero-intro';
 import type { CareerPlayer, GameState } from '../types';
 
-function openingMatchday(): GameState {
+/**
+ * The first match-day on which the user actually meets Larry Alan.
+ *
+ * This used to be match one, because the schedule pinned the division's
+ * STRONGEST club to the opener and `placement: 5` puts Larry on exactly that
+ * club. The pin now opens mid-table, so the two came apart: Larry still fields
+ * for the strongest club, and his scene fires the week that fixture arrives.
+ * The intro is opponent-driven and stateless, so nothing else had to move.
+ */
+function heroMatchday(): GameState {
   const begun = beginStoryOnboarding(
     createCareer(createLaunchCareerSetup(20260808)),
   );
@@ -21,11 +30,20 @@ function openingMatchday(): GameState {
     name: 'Jo Rook',
     ratings: DEFAULT_CREATION_RATINGS,
   });
-  const fixtureId = career.onboarding?.firstFixtureId;
-  const fixture = career.fixtures.find(
-    (candidate) => candidate.id === fixtureId,
-  );
-  if (fixture === undefined) throw new Error('opening fixture missing');
+  const host = career.players.find(
+    (player) => player.id === 'special-f171',
+  )?.clubId;
+  if (host === undefined) throw new Error('Larry Alan was never placed');
+  const fixture = career.fixtures
+    .filter(
+      (candidate) =>
+        candidate.season === 1 &&
+        (candidate.homeClubId === host || candidate.awayClubId === host) &&
+        (candidate.homeClubId === career.userClubId ||
+          candidate.awayClubId === career.userClubId),
+    )
+    .sort((left, right) => left.round - right.round)[0];
+  if (fixture === undefined) throw new Error('hero fixture missing');
   return { ...career, week: fixture.week, phase: 'matchday' };
 }
 
@@ -38,15 +56,21 @@ function cloneAsHero(
 }
 
 describe('first-meeting rival hero intro', () => {
-  it('finds Barry on the exact first opponent and uses stable character identity', () => {
-    const state = openingMatchday();
+  it('finds Barry on the division-headline club and uses stable character identity', () => {
+    const state = heroMatchday();
     const pending = pendingRivalHeroIntro(state);
+    const host = state.players.find(
+      (player) => player.id === 'special-f171',
+    )!.clubId;
 
     expect(pending).toMatchObject({
       heroId: 'special-f171',
-      fixtureId: state.onboarding?.firstFixtureId,
+      opponentClubId: host,
       competition: 'league',
     });
+    // Deliberately NOT the onboarding opener any more: the schedule pin opens
+    // mid-table, so the headline rival is met later in Season 1.
+    expect(pending?.fixtureId).not.toBe(state.onboarding?.firstFixtureId);
     expect(state.players).toContainEqual(
       expect.objectContaining({
         id: pending?.heroId,
@@ -56,7 +80,7 @@ describe('first-meeting rival hero intro', () => {
   });
 
   it('writes one hero-specific flag only after explicit completion', () => {
-    const state = openingMatchday();
+    const state = heroMatchday();
     expect(state.eventFlags).not.toContain(rivalHeroIntroFlag('special-f171'));
 
     const completed = completeRivalHeroIntro(state, 'special-f171');
@@ -70,7 +94,7 @@ describe('first-meeting rival hero intro', () => {
   });
 
   it('does not trigger when the hero is owned by the user or on another club', () => {
-    const state = openingMatchday();
+    const state = heroMatchday();
     const barry = state.players.find((player) => player.id === 'special-f171')!;
     const userOwned = {
       ...state,
@@ -98,7 +122,7 @@ describe('first-meeting rival hero intro', () => {
   });
 
   it('follows a hero to a new host instead of keying the scene to a club', () => {
-    const state = openingMatchday();
+    const state = heroMatchday();
     const pending = pendingRivalHeroIntro(state)!;
     const moved = {
       ...state,
@@ -126,7 +150,7 @@ describe('first-meeting rival hero intro', () => {
   });
 
   it('uses D5-to-D1 order and rejects a stale completion for the next hero', () => {
-    const state = openingMatchday();
+    const state = heroMatchday();
     const pending = pendingRivalHeroIntro(state)!;
     const ordinaryOpponent = state.players.find(
       (player) =>
@@ -150,7 +174,7 @@ describe('first-meeting rival hero intro', () => {
   });
 
   it('keeps league-first double headers separate, then discovers a Cup rival', () => {
-    const opening = openingMatchday();
+    const opening = heroMatchday();
     const week = 6;
     const m2 = opening.m2!;
     const scheduledLeagueFixture = opening.fixtures.find(
@@ -227,7 +251,7 @@ describe('first-meeting rival hero intro', () => {
   });
 
   it('ignores every other named special and remains absent off Match Day', () => {
-    const state = openingMatchday();
+    const state = heroMatchday();
     const pending = pendingRivalHeroIntro(state)!;
     const lowerOrder = state.players.find(
       (player) => player.clubId === pending.opponentClubId,

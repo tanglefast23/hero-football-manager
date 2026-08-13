@@ -14,7 +14,15 @@ import {
 } from '../../game/rival-hero-intro';
 import type { GameState } from '../../game/types';
 
-function openingMatchday(): GameState {
+/**
+ * The first match-day on which the user meets Larry Alan.
+ *
+ * Was the onboarding opener until 2026-08-13: the schedule pinned the
+ * division's strongest club to match one and `placement: 5` puts Larry on
+ * exactly that club. The pin now opens mid-table, so his scene fires on the
+ * week that fixture actually arrives.
+ */
+function heroMatchday(): GameState {
   const begun = beginStoryOnboarding(
     createCareer(createLaunchCareerSetup(20260808)),
   );
@@ -22,10 +30,20 @@ function openingMatchday(): GameState {
     name: 'Jo Rook',
     ratings: DEFAULT_CREATION_RATINGS,
   });
-  const fixture = career.fixtures.find(
-    (candidate) => candidate.id === career.onboarding?.firstFixtureId,
-  );
-  if (fixture === undefined) throw new Error('opening fixture missing');
+  const host = career.players.find(
+    (player) => player.id === 'special-f171',
+  )?.clubId;
+  if (host === undefined) throw new Error('Larry Alan was never placed');
+  const fixture = career.fixtures
+    .filter(
+      (candidate) =>
+        candidate.season === 1 &&
+        (candidate.homeClubId === host || candidate.awayClubId === host) &&
+        (candidate.homeClubId === career.userClubId ||
+          candidate.awayClubId === career.userClubId),
+    )
+    .sort((left, right) => left.round - right.round)[0];
+  if (fixture === undefined) throw new Error('hero fixture missing');
   return { ...career, week: fixture.week, phase: 'matchday' };
 }
 
@@ -35,7 +53,7 @@ describe('rival hero intro store flow', () => {
   });
 
   it('blocks Back, Play, and Quick Result until Barry finishes his taunt', () => {
-    const career = openingMatchday();
+    const career = heroMatchday();
     useM1Store.setState({ career, screen: 'matchday', activeTab: 'league' });
 
     useM1Store.getState().setActiveTab('home');
@@ -65,7 +83,7 @@ describe('rival hero intro store flow', () => {
   });
 
   it('keeps the new club powerless but lets Larry charge and fire after the teaser', () => {
-    const career = openingMatchday();
+    const career = heroMatchday();
     const fixture = matchDayViewModel(career, loadLaunchContent()).fixture;
     expect(fixture.opponentHeroCount).toBe(1);
     expect(fixture.opponentHeroes).toEqual([
