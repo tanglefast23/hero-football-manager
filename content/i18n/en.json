@@ -2199,7 +2199,7 @@
     "squadTraining.potentialAndSuper": "{grade} · {percent}% SUPER",
     "squadTraining.potentialTip": "{grade} · {percent}% SUPER. The grade is how fast they still improve; the percent is each drill's chance of a 1.5x gain.",
     "squadTraining.powerAndTier": "{power} · Tier {tier}",
-    "squadTraining.promiseCaptaincy": "Promise · Captaincy",
+    "squadTraining.promiseCaptaincy": "(Promise) Captain",
     "squadTraining.promiseShirt10": "Promise · Shirt #10",
     "squadTraining.promiseStartingXi": "Promise · Starting XI",
     "squadTraining.promiseTrainingPriority": "Promise · Training priority",

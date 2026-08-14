@@ -127,6 +127,20 @@ describe('squad register column widths', () => {
     expect(source).not.toMatchSource(/<SquadSortHeader[\s\S]{0,160}?label="/);
   });
 
+  it('shows a captaincy promise once in roster rows', () => {
+    const source = screenSource();
+
+    expect(englishStrings['squadTraining.promiseCaptaincy']).toBe(
+      '(Promise) Captain',
+    );
+    expect(
+      source.match(/player\.contractPromisePerk !== 'CAPTAINCY'/g),
+    ).toHaveLength(2);
+    expect(source).toContainSource(
+      "selectedPlayer.contractPromisePerk !== 'CAPTAINCY'",
+    );
+  });
+
   it('measures every English label the register renders', () => {
     for (const keys of Object.values(LABEL_KEYS)) {
       for (const key of [keys.phone, keys.wide]) {

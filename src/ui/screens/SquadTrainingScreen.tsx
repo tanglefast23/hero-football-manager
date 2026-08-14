@@ -173,7 +173,9 @@ function rosterRowSummary(player: SquadPlayerViewModel, t: CopyFn): string {
       : player.isStarter
         ? t('storyEvent.startingXi')
         : undefined,
-    player.isCaptain ? t('squadTraining.captain') : undefined,
+    player.isCaptain && player.contractPromisePerk !== 'CAPTAINCY'
+      ? t('squadTraining.captain')
+      : undefined,
     player.shirtNumber === undefined ? undefined : `#${player.shirtNumber}`,
     player.contractLabel,
     player.contractPromiseLabel === undefined
@@ -1070,7 +1072,8 @@ function RosterSection({
                         numberOfLines={1}
                       >
                         {[
-                          player.isCaptain
+                          player.isCaptain &&
+                          player.contractPromisePerk !== 'CAPTAINCY'
                             ? t('squadTraining.captain')
                             : undefined,
                           player.shirtNumber
@@ -1536,7 +1539,8 @@ function PlayerFileSection({
       selectedPlayer.isCaptain ||
       selectedPlayer.shirtNumber ? (
         <View className="mt-3 flex-row flex-wrap gap-2">
-          {selectedPlayer.isCaptain ? (
+          {selectedPlayer.isCaptain &&
+          selectedPlayer.contractPromisePerk !== 'CAPTAINCY' ? (
             <StatusChip label={t('squadTraining.captain')} selected />
           ) : null}
           {selectedPlayer.shirtNumber ? (
