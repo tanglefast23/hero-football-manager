@@ -148,6 +148,41 @@ describe('career event target candidates', () => {
     expect(new Set(roles)).toEqual(new Set(['GK']));
   });
 
+  test.each([
+    ['sprint-the-postman', 'pace'],
+    ['homesick-family-move', 'age'],
+    ['the-cameras-want-him', 'fame'],
+  ] as const)('%s automatically locks one tied %s leader', (eventId, field) => {
+    const base = targetCareer();
+    const squad = base.players.filter(
+      (player) => player.clubId === base.userClubId,
+    );
+    const leaders = squad.slice(0, 2).map((player) => player.id);
+    const state: GameState = {
+      ...base,
+      players: base.players.map((player) => {
+        const leader = leaders.includes(player.id);
+        if (field === 'pace')
+          return { ...player, attrs: { ...player.attrs, pac: leader ? 99 : 1 } };
+        if (field === 'age') return { ...player, age: leader ? 17 : 30 };
+        return { ...player, fame: leader ? 50 : 0 };
+      }),
+      pendingEvent: { eventId },
+    };
+    const story = event(eventId);
+    expect(careerEventTargetCandidates(state, story).playerIds).toEqual(
+      leaders,
+    );
+
+    const first = reconcilePendingCareerEvent(state, catalog);
+    const second = reconcilePendingCareerEvent(state, catalog);
+    expect(leaders).toContain(first.pendingEvent?.selectedPlayerId);
+    expect(first.pendingEvent?.selectedPlayerId).toBe(
+      second.pendingEvent?.selectedPlayerId,
+    );
+    expect(first.pendingEvent?.playerLocked).toBe(true);
+  });
+
   test('assistant-specific copy can target only the employed assistant', () => {
     expect(
       careerEventTargetCandidates(

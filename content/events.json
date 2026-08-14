@@ -1550,7 +1550,8 @@
         "season": 1,
         "minWeek": 4,
         "maxWeek": 30,
-        "requiresPlayer": true
+        "requiresPlayer": true,
+        "autoSelectPlayer": "FASTEST"
       },
       "choices": [
         {
@@ -2184,7 +2185,8 @@
         "season": 1,
         "minWeek": 4,
         "maxWeek": 30,
-        "requiresPlayer": true
+        "requiresPlayer": true,
+        "autoSelectPlayer": "YOUNGEST"
       },
       "choices": [
         {
@@ -2354,7 +2356,8 @@
         "season": 1,
         "minWeek": 4,
         "maxWeek": 30,
-        "requiresPlayer": true
+        "requiresPlayer": true,
+        "autoSelectPlayer": "MOST_FAMOUS"
       },
       "choices": [
         {

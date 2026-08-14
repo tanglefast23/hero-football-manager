@@ -1,5 +1,7 @@
 import type { EventCatalog, GameEvent } from '../content';
 import {
+  compareIds,
+  deterministicCareerEventRoll,
   drainPendingMilestone,
   isCareerMilestoneEventId,
   isFacilityOperational,
@@ -35,7 +37,7 @@ export function careerEventTargetPlayers(
             return target === undefined ? [] : [target.player];
           })
         : state.players.filter((player) => player.clubId === state.userClubId);
-  return players.filter(
+  const eligible = players.filter(
     (player) =>
       (event.trigger.requiresPlayerRole === undefined ||
         player.role === event.trigger.requiresPlayerRole) &&
@@ -44,6 +46,39 @@ export function careerEventTargetPlayers(
       // other card still offers the whole squad.
       (event.trigger.excludesHeroes !== true || player.power === undefined),
   );
+  if (event.trigger.autoSelectPlayer === undefined) return eligible;
+  const rank = (player: CareerPlayer): number => {
+    if (event.trigger.autoSelectPlayer === 'FASTEST') return player.attrs.pac;
+    if (event.trigger.autoSelectPlayer === 'YOUNGEST')
+      return -(player.age ?? Number.MAX_SAFE_INTEGER);
+    return player.fame ?? 0;
+  };
+  const best = Math.max(...eligible.map(rank));
+  return eligible.filter((player) => rank(player) === best);
+}
+
+/** Picks one objective leader reproducibly when several players share the lead. */
+function automaticCareerEventPlayerId(
+  state: GameState,
+  event: GameEvent,
+): string | undefined {
+  if (event.trigger.autoSelectPlayer === undefined) return undefined;
+  const candidates = careerEventTargetPlayers(state, event).sort((left, right) =>
+    compareIds(left.id, right.id),
+  );
+  if (candidates.length === 0) return undefined;
+  const index = deterministicCareerEventRoll(
+    {
+      careerSeed: state.careerSeed,
+      season: state.season,
+      week: state.week,
+      riskyChoices: state.eventClock.riskyChoices,
+    },
+    `auto-target:${event.id}`,
+    0,
+    candidates.length,
+  );
+  return candidates[index]?.id;
 }
 
 /** The one target shape an authored story asks the manager to choose. */
@@ -240,6 +275,18 @@ export function reconcilePendingCareerEvent(
   // own exact-target legality check against the then-current club.
   if (cleaned.resolvedChoiceId !== undefined) return next;
   if (kind === 'none') return next;
+
+  const automaticPlayerId = automaticCareerEventPlayerId(next, event);
+  if (automaticPlayerId !== undefined) {
+    return {
+      ...next,
+      pendingEvent: {
+        ...next.pendingEvent!,
+        selectedPlayerId: automaticPlayerId,
+        playerLocked: true,
+      },
+    };
+  }
 
   const legal = pendingCareerEventTargetIsLegal(next, event);
   const carriedOnly = carriedOnlyCareerEventIds(catalog).has(event.id);

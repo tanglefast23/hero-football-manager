@@ -924,6 +924,10 @@ export const GameEventSchema = z
           .optional(),
         /** Prose that names a position: the picker offers only that role. */
         requiresPlayerRole: RoleSchema.optional(),
+        /** Prose that names one objective squad leader: select and lock that player. */
+        autoSelectPlayer: z
+          .enum(['FASTEST', 'YOUNGEST', 'MOST_FAMOUS'])
+          .optional(),
         /**
          * Drops the club's heroes from the picker, for a story whose prose has
          * the hero standing opposite the chosen player rather than being him.
@@ -1001,6 +1005,16 @@ export const GameEventSchema = z
             context,
             ['requiresPlayerSource'],
             'requiresPlayerSource requires requiresPlayer',
+          );
+        }
+        if (
+          trigger.autoSelectPlayer !== undefined &&
+          trigger.requiresPlayer !== true
+        ) {
+          addIssue(
+            context,
+            ['autoSelectPlayer'],
+            'autoSelectPlayer requires requiresPlayer',
           );
         }
       }),
