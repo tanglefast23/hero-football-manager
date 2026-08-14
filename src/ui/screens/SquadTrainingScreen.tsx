@@ -170,7 +170,8 @@ function rosterRowSummary(player: SquadPlayerViewModel, t: CopyFn): string {
           n: player.injuryWeeks,
           count: player.injuryWeeks,
         })
-      : player.isStarter
+      : player.isStarter &&
+          player.contractPromisePerk !== 'GUARANTEED_STARTER'
         ? t('storyEvent.startingXi')
         : undefined,
     player.isCaptain && player.contractPromisePerk !== 'CAPTAINCY'
@@ -1055,7 +1056,8 @@ function RosterSection({
                           count: player.injuryWeeks,
                         })}
                       </Text>
-                    ) : player.isStarter ? (
+                    ) : player.isStarter &&
+                      player.contractPromisePerk !== 'GUARANTEED_STARTER' ? (
                       // One word, because the name column is the row's only
                       // flexible cell: "Starting XI" clipped to "STARTI…" on a
                       // phone, which reads as a bug rather than an abbreviation.

@@ -127,7 +127,7 @@ describe('squad register column widths', () => {
     expect(source).not.toMatchSource(/<SquadSortHeader[\s\S]{0,160}?label="/);
   });
 
-  it('shows a captaincy promise once in roster rows', () => {
+  it('shows captaincy and starter promises once in roster rows', () => {
     const source = screenSource();
 
     expect(englishStrings['squadTraining.promiseCaptaincy']).toBe(
@@ -139,6 +139,14 @@ describe('squad register column widths', () => {
     expect(source).toContainSource(
       "selectedPlayer.contractPromisePerk !== 'CAPTAINCY'",
     );
+    expect(englishStrings['squadTraining.promiseStartingXi']).toBe(
+      '(Promise) Starter',
+    );
+    expect(
+      source.match(
+        /player\.contractPromisePerk !== 'GUARANTEED_STARTER'/g,
+      ),
+    ).toHaveLength(2);
   });
 
   it('measures every English label the register renders', () => {
