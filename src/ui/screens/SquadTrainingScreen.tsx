@@ -8,6 +8,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -356,9 +357,14 @@ export function SquadTrainingScreen({
   const columns = wideColumns
     ? ROSTER_COLUMN_STYLE.wide
     : ROSTER_COLUMN_STYLE.phone;
-  // Headers label the data, they aren't it. Phone headers step down one further
-  // than the wide ones so four abbreviations and an arrow fit side by side.
-  const headerLabelSize = wideColumns ? 'text-xs' : 'text-[10px]';
+  // Desktop browsers have room for the 13px caption token. Native wide layouts
+  // stay at text-xs because Dynamic Type can still grow them by another 25%.
+  const headerLabelSize =
+    wideColumns && Platform.OS === 'web'
+      ? 'text-[13px]'
+      : wideColumns
+        ? 'text-xs'
+        : 'text-[10px]';
   const selectedPlayer = viewModel.players.find(
     (player) => player.id === selectedPlayerId,
   );
@@ -1158,7 +1164,7 @@ function RosterSection({
                         ? 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-blue-dark bg-blue-light'
                         : glowAssignmentButton
                           ? 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-gold-dark bg-gold-light'
-                          : 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/30'
+                          : 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/30 hover:bg-blue-light'
                   }
                   style={({ pressed }) => [
                     {
@@ -1259,7 +1265,7 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
                 {/* One line, not two: the upgrade's pitch while it can be
                     bought, the reason it cannot once it cannot. Both at once
                     repeated the tier number and painted the whole column. */}
-                <Text className="mt-0.5 text-xs text-ink/55" numberOfLines={2}>
+                <Text className="mt-0.5 text-sm text-ink/70" numberOfLines={2}>
                   {maxed
                     ? t('squadTraining.bestDrillOwned')
                     : (upgrade.blockedReason ??
@@ -1816,7 +1822,7 @@ function SquadSortHeader({
           // column with the sort arrow — headers label the data, they aren't it.
           className={
             direction === null
-              ? `${labelSize} uppercase text-ink/50`
+              ? `${labelSize} uppercase text-ink/70`
               : `${labelSize} uppercase text-blue-dark`
           }
           // Capped, because the column under it cannot grow with the reader's

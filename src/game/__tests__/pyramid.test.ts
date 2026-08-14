@@ -332,6 +332,35 @@ describe('Hero Cup', () => {
     ).toBe(49);
   });
 
+  it('caps a surviving D5 club at a D2 opponent in the Round of 32', () => {
+    for (let careerSeed = 1; careerSeed <= 100; careerSeed += 1) {
+      const pyramid = generateLeaguePyramid(careerSeed);
+      const divisionByClubId = Object.fromEntries(
+        pyramid.divisions.flatMap((division) =>
+          division.clubs.map((club) => [club.id, division.level] as const),
+        ),
+      );
+      const clubIds = Object.keys(divisionByClubId);
+      const playIn = createNationalCup(
+        clubIds,
+        1,
+        careerSeed,
+        divisionByClubId,
+      );
+      const roundOf32 = advanceNationalCup(playIn, winResults(playIn))
+        .rounds[1];
+
+      const d5Opponents = roundOf32.fixtures.flatMap((fixture) => {
+        const homeDivision = divisionByClubId[fixture.homeClubId];
+        const awayDivision = divisionByClubId[fixture.awayClubId];
+        if (homeDivision === 5) return [awayDivision];
+        if (awayDivision === 5) return [homeDivision];
+        return [];
+      });
+      expect(d5Opponents).toEqual(Array(5).fill(2));
+    }
+  });
+
   it('accepts a named penalty winner after a draw and rejects contradictory results', () => {
     const clubIds = generateLeaguePyramid(4).divisions.flatMap((division) =>
       division.clubs.map((club) => club.id),

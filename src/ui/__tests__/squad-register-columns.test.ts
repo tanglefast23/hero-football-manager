@@ -161,6 +161,18 @@ describe('squad register column widths', () => {
     );
   });
 
+  it('raises desktop readability without changing native header sizing', () => {
+    const source = screenSource();
+
+    expect(source).toContainSource("wideColumns && Platform.OS === 'web'");
+    expect(source).toContainSource("? 'text-[13px]'");
+    expect(source).toContainSource("? 'text-xs'");
+    expect(source).toContainSource('`${labelSize} uppercase text-ink/70`');
+    expect(source).toContainSource(
+      'className="mt-0.5 text-sm text-ink/70" numberOfLines={2}',
+    );
+  });
+
   it('gives the train button a tap target the platform accepts', () => {
     // The comment here used to claim 44 for a button that was really 39: the
     // circle is `w-10`, which is 35pt and not 40. Written as a sum so the claim

@@ -1244,7 +1244,9 @@ function createCupRound(
         // recreating the old D2-v-D5 worst case through a high/low draw.
         round === 1
         ? unpairedClubIds
-        : highLowPairingOrder(unpairedClubIds);
+        : round === 2
+          ? roundOf32PairingOrder(unpairedClubIds, seedDivisionByClubId)
+          : highLowPairingOrder(unpairedClubIds);
   const fixtures: NationalCupFixture[] = [];
   for (let index = 0; index < playingClubIds.length; index += 2) {
     const firstClubId = playingClubIds[index];
@@ -1308,6 +1310,32 @@ function highLowPairingOrder(seededClubIds: readonly string[]): string[] {
   const stronger = seededClubIds.slice(0, half);
   const weaker = seededClubIds.slice(half).reverse();
   return stronger.flatMap((clubId, index) => [clubId, weaker[index]]);
+}
+
+/** Keeps the Round of 32 challenging without sending a surviving D5 club
+ * straight into D1. D1 faces D3/D4; D2 is the ceiling for D5. */
+function roundOf32PairingOrder(
+  seededClubIds: readonly string[],
+  divisionByClubId: Readonly<Record<string, DivisionLevel>>,
+): string[] {
+  const paired = highLowPairingOrder(seededClubIds);
+  const d1D5Pairs: number[] = [];
+  const d2D3Pairs: number[] = [];
+  for (let index = 0; index < paired.length; index += 2) {
+    const divisions = [
+      divisionByClubId[paired[index]],
+      divisionByClubId[paired[index + 1]],
+    ];
+    if (divisions.includes(1) && divisions.includes(5)) d1D5Pairs.push(index);
+    if (divisions.includes(2) && divisions.includes(3)) d2D3Pairs.push(index);
+  }
+  for (let index = 0; index < d1D5Pairs.length; index += 1) {
+    const d1D5 = d1D5Pairs[index];
+    const d2D3 = d2D3Pairs[index];
+    if (d2D3 === undefined) break;
+    [paired[d1D5 + 1], paired[d2D3 + 1]] = [paired[d2D3 + 1], paired[d1D5 + 1]];
+  }
+  return paired;
 }
 
 /** @i18n-fallback Persisted cup-round enum values; app consumers resolve their keys. */
