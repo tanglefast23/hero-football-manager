@@ -37,6 +37,8 @@ export const weeklySettlementAwardKeys = {
     season: number,
     contractId: string,
   ): string => `sponsor-objective:${clubId}:s${season}:${contractId}`,
+  sponsorWeeklyChallenge: (clubId: string, season: number): string =>
+    `sponsor-weekly-challenge:${clubId}:s${season}`,
   buzzHalf: (clubId: string, season: number, half: 1 | 2): string =>
     `buzz-half:${clubId}:s${season}:h${half}`,
 } as const;

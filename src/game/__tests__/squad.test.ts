@@ -249,6 +249,29 @@ describe('career squad integration', () => {
     ).toHaveLength(2);
   });
 
+  it('lets computer clubs bench a tired starter for a fresher same-role player', () => {
+    const state = career();
+    const opponentId = CLUB_IDS[1];
+    const tiredStarterId = `${opponentId}-p9`;
+    const freshReserveId = `${opponentId}-p11`;
+    const prepared = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === tiredStarterId
+          ? { ...player, condition: 0 }
+          : player.id === freshReserveId
+            ? { ...player, condition: 100 }
+            : player,
+      ),
+    };
+
+    const selectedIds = buildCareerTeamDef(prepared, opponentId).players.map(
+      (player) => player.id,
+    );
+    expect(selectedIds).toContain(freshReserveId);
+    expect(selectedIds).not.toContain(tiredStarterId);
+  });
+
   it('persists same-role bench swaps and rejects unavailable replacements', () => {
     const initial = career();
     const starterId = `${CLUB_IDS[0]}-p10`;

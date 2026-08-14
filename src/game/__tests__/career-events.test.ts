@@ -2,6 +2,7 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { advanceWeek, createCareer } from '../career';
 import {
   applyCareerEventOutcome,
+  applyCareerFacilityFire,
   awakeningPowerRollSize,
   chooseStatWeightedAwakeningPower,
   dismissCareerEvent,
@@ -118,6 +119,67 @@ describe('content-driven awakening powers', () => {
 });
 
 describe('career event state', () => {
+  it('burns two cheap small buildings safely or the highest-level fan shop', () => {
+    const initial = createCareer(createLaunchCareerSetup());
+    const grid = {
+      ...initial.facilities.grid!,
+      buildings: [
+        {
+          id: 'gym',
+          type: 'gym' as const,
+          level: 1 as const,
+          capitalInvested: 7_000,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: 'dorm',
+          type: 'dorm' as const,
+          level: 1 as const,
+          capitalInvested: 6_000,
+          x: 1,
+          y: 0,
+        },
+        {
+          id: 'shop-low',
+          type: 'fan-shop' as const,
+          level: 1 as const,
+          capitalInvested: 5_000,
+          x: 2,
+          y: 0,
+        },
+        {
+          id: 'shop-high',
+          type: 'fan-shop' as const,
+          level: 3 as const,
+          capitalInvested: 72_500,
+          x: 3,
+          y: 0,
+        },
+        {
+          id: 'stand',
+          type: 'stadium-stand' as const,
+          level: 3 as const,
+          capitalInvested: 110_000,
+          x: 4,
+          y: 0,
+        },
+      ],
+    };
+    const state = { ...initial, facilities: { ...initial.facilities, grid } };
+
+    expect(
+      applyCareerFacilityFire(state, 'TWO_SMALL').facilities.grid?.buildings.map(
+        (building) => building.id,
+      ),
+    ).toEqual(['gym', 'shop-high', 'stand']);
+    expect(
+      applyCareerFacilityFire(state, 'PRIMARY').facilities.grid?.buildings.map(
+        (building) => building.id,
+      ),
+    ).toEqual(['gym', 'dorm', 'shop-low', 'stand']);
+  });
+
   it("holds an injured story starter's exact lineup slot for their return", () => {
     const initial = createCareer(createLaunchCareerSetup());
     const lineup = initial.lineups.find(

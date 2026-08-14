@@ -120,7 +120,16 @@ function cupReadyCareer(
 
 describe('player-controlled Hero Cup match flow', () => {
   test('pauses a double-header week for the user tie, then settles after that tie', () => {
-    const initial = fullCareerAtPlayIn();
+    const base = fullCareerAtPlayIn();
+    const starterId = base.lineups.find(
+      (lineup) => lineup.clubId === base.userClubId,
+    )!.playerIds[0];
+    const initial = {
+      ...base,
+      players: base.players.map((player) =>
+        player.id === starterId ? { ...player, condition: 50 } : player,
+      ),
+    };
     const afterLeague = completeMatchday(initial, leagueDraws(initial));
     const cupMatchday = activeCareerMatchday(afterLeague);
 
@@ -134,9 +143,9 @@ describe('player-controlled Hero Cup match flow', () => {
       cupRoundLabel: 'Play-in',
     });
     const cupFixture = cupMatchday!.fixture;
-    const starterId = afterLeague.lineups.find(
-      (lineup) => lineup.clubId === afterLeague.userClubId,
-    )!.playerIds[0];
+    expect(
+      afterLeague.players.find((player) => player.id === starterId)?.condition,
+    ).toBe(46);
     const fameBeforeCup =
       afterLeague.players.find((player) => player.id === starterId)!.fame ?? 0;
     const userIsHome = cupFixture.homeClubId === afterLeague.userClubId;
@@ -161,6 +170,9 @@ describe('player-controlled Hero Cup match flow', () => {
     const resolvedRound = settled.m2!.nationalCups[0].rounds[0];
 
     expect(settled).toMatchObject({ week: PLAY_IN_WEEK + 1, phase: 'manage' });
+    expect(
+      settled.players.find((player) => player.id === starterId)?.condition,
+    ).toBe(52);
     expect(
       resolvedRound.fixtures.every((fixture) => fixture.status === 'played'),
     ).toBe(true);

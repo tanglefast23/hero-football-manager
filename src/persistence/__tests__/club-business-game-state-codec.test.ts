@@ -96,6 +96,16 @@ function fullClubBusinessCareer(): GameState {
         ],
         portfolioSeason: 3,
         offerSeason: 3,
+        weeklyChallenge: {
+          id: 'sponsor-sprint-s3',
+          kind: 'CLEAN_SHEET',
+          sponsorName: 'Northstar Tools',
+          season: 3,
+          chosenWeek: 15,
+          fixtureId: 'league-s3-r16',
+          fixtureWeek: 16,
+          nominalBonus: 8_400,
+        },
       },
       buzz: {
         value: 0,

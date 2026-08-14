@@ -239,4 +239,35 @@ describe('M4 difficulty and season recap', () => {
       detail: '7 goals',
     });
   });
+
+  it('prefers distinct eligible winners for the three season awards', () => {
+    const initial = career('COZY');
+    const roster = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const playerOfSeason = roster[0];
+    const youngPlayer = roster[1];
+    const heroOfSeason = roster[2];
+    const recap = buildSeasonRecap({
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === playerOfSeason.id
+          ? { ...player, age: 20, power: 'THUNDER_STRIKE', licensed: true }
+          : player.id === youngPlayer.id
+            ? { ...player, age: 19 }
+            : player.id === heroOfSeason.id
+              ? { ...player, power: 'BLINK_RUN', licensed: true }
+              : { ...player, age: 24 },
+      ),
+      seasonStatLines: [
+        statLine(playerOfSeason.id, playerOfSeason.clubId, 'league', 20),
+        statLine(youngPlayer.id, youngPlayer.clubId, 'league', 10),
+        statLine(heroOfSeason.id, heroOfSeason.clubId, 'league', 8),
+      ],
+    });
+
+    expect(recap.playerOfSeason?.playerId).toBe(playerOfSeason.id);
+    expect(recap.youngPlayer?.playerId).toBe(youngPlayer.id);
+    expect(recap.heroOfSeason?.playerId).toBe(heroOfSeason.id);
+  });
 });

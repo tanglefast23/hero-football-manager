@@ -12,7 +12,13 @@ import {
   shouldWithdrawTransferRequest,
   updatePlayerWellbeing,
 } from './pyramid';
-import type { CareerPlayer, GameState } from './types';
+import type {
+  CareerPlayer,
+  FixtureResult,
+  GameState,
+  LeagueFixture,
+} from './types';
+import type { DivisionLevel } from './pyramid';
 
 const WEEKLY_CONDITION_RECOVERY = 10;
 export const OVERTRAINING_CONDITION_THRESHOLD = 30;
@@ -26,6 +32,148 @@ export const OVERTRAINING_CONDITION_THRESHOLD = 30;
  * site at all beyond the Gym adjacency.
  */
 export const DORM_CONDITION_RECOVERY_PER_LEVEL = 3;
+const MATCH_CONDITION_COST_BY_DIVISION: Readonly<
+  Record<DivisionLevel, number>
+> = { 5: 4, 4: 6, 3: 8, 2: 10, 1: 12 };
+
+/** A played match costs more condition in each stronger division. */
+export function matchConditionCost(division: DivisionLevel): number {
+  return MATCH_CONDITION_COST_BY_DIVISION[division];
+}
+
+/** A substitute pays half the starter cost, rounded to a whole condition point. */
+export function substituteMatchConditionCost(
+  division: DivisionLevel,
+): number {
+  return Math.round(matchConditionCost(division) / 2);
+}
+
+/** Applies both clubs' starter/substitute costs as soon as a match finishes. */
+export function applyMatchConditionCosts(
+  state: GameState,
+  fixtures: readonly LeagueFixture[],
+  results: readonly FixtureResult[],
+): GameState {
+  const costs = new Map<string, number>();
+  const resultByFixtureId = new Map(
+    results.map((result) => [result.fixtureId, result]),
+  );
+
+  for (const fixture of fixtures) {
+    const result = resultByFixtureId.get(fixture.id);
+    if (result === undefined) continue;
+    addClubMatchCosts(
+      state,
+      fixture.homeClubId,
+      result.homeParticipantPlayerIds,
+      costs,
+    );
+    addClubMatchCosts(
+      state,
+      fixture.awayClubId,
+      result.awayParticipantPlayerIds,
+      costs,
+    );
+  }
+
+  if (costs.size === 0) return state;
+  const conditionAfterCost = (player: { id: string; condition?: number }) =>
+    Math.max(0, (player.condition ?? 100) - (costs.get(player.id) ?? 0));
+  return {
+    ...state,
+    players: state.players.map((player) =>
+      costs.has(player.id)
+        ? { ...player, condition: conditionAfterCost(player) }
+        : player,
+    ),
+    ...(state.m2 === undefined
+      ? {}
+      : {
+          m2: {
+            ...state.m2,
+            pyramid: {
+              ...state.m2.pyramid,
+              divisions: state.m2.pyramid.divisions.map((division) => ({
+                ...division,
+                clubs: division.clubs.map((club) => ({
+                  ...club,
+                  squad: club.squad.map((player) =>
+                    costs.has(player.id)
+                      ? { ...player, condition: conditionAfterCost(player) }
+                      : player,
+                  ),
+                })),
+              })),
+            },
+          },
+        }),
+  };
+}
+
+function addClubMatchCosts(
+  state: GameState,
+  clubId: string,
+  suppliedParticipantIds: readonly string[] | undefined,
+  costs: Map<string, number>,
+): void {
+  const playerClubById = new Map(
+    state.players.map((player) => [player.id, player.clubId]),
+  );
+  const pyramidClub = state.m2?.pyramid.divisions
+    .flatMap((division) => division.clubs)
+    .find((club) => club.id === clubId);
+  for (const player of pyramidClub?.squad ?? []) {
+    if (!playerClubById.has(player.id))
+      playerClubById.set(player.id, player.clubId);
+  }
+  const participantIds =
+    suppliedParticipantIds ??
+    state.lineups.find((lineup) => lineup.clubId === clubId)?.playerIds ??
+    defaultPyramidLineupIds(pyramidClub?.squad ?? []);
+  if (participantIds.length < 11) {
+    throw new Error(`club ${clubId} needs eleven match participants`);
+  }
+  if (new Set(participantIds).size !== participantIds.length) {
+    throw new Error(`club ${clubId} match participants must be unique`);
+  }
+  const division = divisionForClub(state, clubId);
+  const starterCost = matchConditionCost(division);
+  const substituteCost = substituteMatchConditionCost(division);
+  participantIds.forEach((playerId, index) => {
+    if (playerClubById.get(playerId) !== clubId) {
+      throw new Error(`match participant ${playerId} is outside club ${clubId}`);
+    }
+    costs.set(
+      playerId,
+      (costs.get(playerId) ?? 0) +
+        (index < 11 ? starterCost : substituteCost),
+    );
+  });
+}
+
+function defaultPyramidLineupIds(
+  squad: readonly { id: string; role: CareerPlayer['role'] }[],
+): string[] {
+  const take = (role: CareerPlayer['role'], count: number) =>
+    squad
+      .filter((player) => player.role === role)
+      .slice(0, count)
+      .map((player) => player.id);
+  return [
+    ...take('GK', 1),
+    ...take('DEF', 4),
+    ...take('MID', 4),
+    ...take('FWD', 2),
+  ];
+}
+
+function divisionForClub(state: GameState, clubId: string): DivisionLevel {
+  return (
+    state.m2?.pyramid.divisions.find((division) =>
+      division.clubs.some((club) => club.id === clubId),
+    )?.level ?? 5
+  );
+}
 
 interface WeeklyPlayerWellbeingContext {
   /** Results played outside the league fixture list, such as a Cup tie. */
@@ -47,6 +195,7 @@ interface WeeklyMatchParticipation {
 
 interface WeeklyPlayerWellbeingResult {
   readonly players: CareerPlayer[];
+  readonly m2?: GameState['m2'];
   readonly matchOutcome?: WeeklyMatchOutcome;
 }
 
@@ -54,7 +203,7 @@ interface WeeklyPlayerWellbeingResult {
  * Applies one user-club wellbeing tick for the settling week: condition
  * recovery, match/underpaid morale, and transfer-request checks. Training
  * costs and overtraining injuries resolve at drill tap time, not here.
- * Opponent players pass through unchanged.
+ * Computer clubs get the best Dorm recovery available in their division.
  */
 export function resolveWeeklyPlayerWellbeing(
   state: GameState,
@@ -113,9 +262,19 @@ export function resolveWeeklyPlayerWellbeing(
   const conditionDelta =
     weeklyConditionRecovery(bestDorm?.level ?? 0) +
     cappedFacilityBoost(bestDorm?.boosts, 'recoveryBonus');
-
   const players = state.players.map((player) => {
-    if (player.clubId !== state.userClubId) return player;
+    if (player.clubId !== state.userClubId) {
+      return {
+        ...player,
+        condition: Math.min(
+          100,
+          (player.condition ?? 100) +
+            weeklyConditionRecovery(
+              computerDormLevel(divisionForClub(state, player.clubId)),
+            ),
+        ),
+      };
+    }
 
     const matchMoraleDelta =
       participantSets === undefined
@@ -147,7 +306,10 @@ export function resolveWeeklyPlayerWellbeing(
         personality: player.personality ?? 'Professional',
         consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks ?? 0,
       },
-      { conditionDelta, moraleDelta: motivation.moraleDelta },
+      {
+        conditionDelta,
+        moraleDelta: motivation.moraleDelta,
+      },
     );
     const updatedCondition = updated.condition ?? 100;
     const {
@@ -169,13 +331,54 @@ export function resolveWeeklyPlayerWellbeing(
           : shouldRequestTransfer(updated),
     };
   });
+  const activePlayerById = new Map(
+    players.map((player) => [player.id, player]),
+  );
 
   return {
     players,
+    ...(state.m2 === undefined
+      ? {}
+      : {
+          m2: {
+            ...state.m2,
+            pyramid: {
+              ...state.m2.pyramid,
+              divisions: state.m2.pyramid.divisions.map((division) => ({
+                ...division,
+                clubs: division.clubs.map((club) => ({
+                  ...club,
+                  squad: club.squad.map((player) => {
+                    const activePlayer = activePlayerById.get(player.id);
+                    return activePlayer === undefined
+                      ? {
+                          ...player,
+                          condition: Math.min(
+                            100,
+                            player.condition +
+                              weeklyConditionRecovery(
+                                computerDormLevel(division.level),
+                              ),
+                          ),
+                        }
+                      : {
+                          ...player,
+                          condition: activePlayer.condition ?? 100,
+                        };
+                  }),
+                })),
+              })),
+            },
+          },
+        }),
     ...(matchOutcomes.length === 0
       ? {}
       : { matchOutcome: matchOutcomes[matchOutcomes.length - 1] }),
   };
+}
+
+function computerDormLevel(division: DivisionLevel): 1 | 2 | 3 {
+  return division === 5 ? 1 : division >= 3 ? 2 : 3;
 }
 
 function isUnderpaidPlayer(player: CareerPlayer): boolean {

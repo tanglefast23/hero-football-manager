@@ -78,8 +78,21 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     sortedScorers[0] === undefined
       ? 0
       : (goalsByPlayer.get(sortedScorers[0].id) ?? 0);
-  const young = sortedPlayers.filter((player) => (player.age ?? 99) <= 21)[0];
-  const hero = sortedPlayers.filter((player) => player.power !== undefined)[0];
+  const playerOfSeason = sortedPlayers[0];
+  const youngPlayers = sortedPlayers.filter(
+    (player) => (player.age ?? 99) <= 21,
+  );
+  const young =
+    youngPlayers.find((player) => player.id !== playerOfSeason?.id) ??
+    youngPlayers[0];
+  const heroes = sortedPlayers.filter(
+    (player) => player.power !== undefined && player.licensed,
+  );
+  const hero =
+    heroes.find(
+      (player) =>
+        player.id !== playerOfSeason?.id && player.id !== young?.id,
+    ) ?? heroes.find((player) => player.id !== playerOfSeason?.id) ?? heroes[0];
   const position = finalPosition(state);
   const latestResolvedEvent = state.resolvedEventHistory
     ?.filter((event) => event.season === state.season)
@@ -118,11 +131,11 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
             topScorerGoals,
           ),
         }),
-    ...(sortedPlayers[0] === undefined
+    ...(playerOfSeason === undefined
       ? {}
       : {
           playerOfSeason: award(
-            sortedPlayers[0],
+            playerOfSeason,
             'Player of the Season',
             'Goals, form, morale, and development',
             'recap.award.playerOfTheSeason',

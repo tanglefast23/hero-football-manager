@@ -132,6 +132,11 @@ export interface CareerPlayer {
    * striker is "recovering" from the Bahamas.
    */
   awayWeeks?: number;
+  /** Delayed story training applied when an authorised absence ends. */
+  returnTraining?: {
+    attribute: keyof Attrs;
+    points: number;
+  };
   /** Starting slot restored after a story injury or granted leave ends. */
   returnLineupSlot?: number;
   seasonsAtClub?: number;
@@ -184,6 +189,12 @@ interface FacilityState {
 interface CareerEventState {
   weeksWithoutEvent: number;
   riskyChoices: number;
+  /** One delayed direct-lane story. The season/week pair survives rollover. */
+  scheduledEvent?: {
+    eventId: string;
+    season: number;
+    week: number;
+  };
   /**
    * The week whose story offer has already been settled, so reconciling the
    * same desk twice cannot re-roll it. Absent on saves written before stories
@@ -295,6 +306,10 @@ export interface LeagueFixture {
 
 export interface FixtureResult extends FixtureScore {
   fixtureId: string;
+  /** Kickoff XI, then substitutes in first-entry order. Transient, never saved. */
+  homeParticipantPlayerIds?: string[];
+  /** Kickoff XI, then substitutes in first-entry order. Transient, never saved. */
+  awayParticipantPlayerIds?: string[];
   /** Ordered scorer IDs when the full simulation result is available. */
   scorerPlayerIds?: string[];
   /**
@@ -940,6 +955,8 @@ export interface GameState {
    * seed it from the length that produced their existing ids.
    */
   cashTransactionIdCounter?: number;
+  /** Players whose expired contracts the manager chose not to renew. */
+  releasedPlayerIds?: string[];
   /**
    * Absent on saves written before division-leader tracking. Those saves keep
    * loading, but their goal history does not survive: `seasonGoalTallies` is

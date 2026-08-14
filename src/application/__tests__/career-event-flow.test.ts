@@ -5,8 +5,10 @@ import {
   careerBuyingTransferQuote,
   createCareer,
   careerEventPlayerSaleBlocker,
+  advancePlayerRequests,
   offerCareerEvent,
   selectCareerEventPlayer,
+  sessionAttributeDelta,
   type GameState,
 } from '../../game';
 import { serializeGameState } from '../../persistence/game-state-codec';
@@ -67,6 +69,106 @@ function playerEvent(eventId: string): GameState {
 }
 
 describe('shared career event flow', () => {
+  test('applies both midfielder trade-off stats and delays trial growth until return', () => {
+    const midfielderState = playerEvent('mysterious-energy-salesman');
+    const midfielderId = midfielderState.pendingEvent?.selectedPlayerId!;
+    const midfielderBefore = midfielderState.players.find(
+      (player) => player.id === midfielderId,
+    )!;
+    const tackled = resolveCareerEventChoice(
+      midfielderState,
+      catalog,
+      'sample-mystery-drink',
+    );
+    const midfielderAfter = tackled.players.find(
+      (player) => player.id === midfielderId,
+    )!;
+    expect(midfielderAfter.attrs.def).toBeGreaterThan(
+      midfielderBefore.attrs.def,
+    );
+    expect(midfielderAfter.attrs.pas).toBeLessThan(
+      midfielderBefore.attrs.pas,
+    );
+
+    const initial = career();
+    const trial = event('meteor-shard-center-circle');
+    const eligibleId = careerEventTargetCandidates(initial, trial).playerIds[0]!;
+    const withWeakPace = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === eligibleId
+          ? { ...player, attrs: { ...player.attrs, pac: 1 } }
+          : player,
+      ),
+    };
+    const selected = selectCareerEventPlayer(
+      offerCareerEvent(withWeakPace, trial.id),
+      eligibleId,
+    );
+    const playerBefore = selected.players.find(
+      (player) => player.id === eligibleId,
+    )!;
+    const expectedGain = sessionAttributeDelta(
+      selected,
+      playerBefore,
+      'pac',
+      2,
+    );
+    let away = resolveCareerEventChoice(
+      selected,
+      catalog,
+      'display-meteor',
+    );
+    expect(away.players.find((player) => player.id === eligibleId)).toMatchObject(
+      {
+        awayWeeks: 4,
+        attrs: { pac: 1 },
+        returnTraining: { attribute: 'pac', points: expectedGain },
+      },
+    );
+    for (let week = 0; week < 4; week += 1) {
+      away = advancePlayerRequests(away, false);
+    }
+    expect(away.players.find((player) => player.id === eligibleId)).toMatchObject(
+      { awayWeeks: 0, attrs: { pac: 1 + expectedGain } },
+    );
+    expect(
+      away.players.find((player) => player.id === eligibleId)?.returnTraining,
+    ).toBeUndefined();
+  });
+
+  test('calls a powered player licensed only when their license is active', () => {
+    const offered = playerEvent('player-slump');
+    const playerId = offered.pendingEvent?.selectedPlayerId;
+    if (playerId === undefined) throw new Error('test event has no player');
+    const powered = {
+      ...offered,
+      players: offered.players.map((player) =>
+        player.id === playerId
+          ? { ...player, power: 'GRAVITY_WELL' as const, licensed: false }
+          : player,
+      ),
+    };
+
+    const unlicensed = storyEventViewModel(
+      powered,
+      loadLaunchContent(),
+    ).selectedPlayer;
+    const licensed = storyEventViewModel(
+      {
+        ...powered,
+        players: powered.players.map((player) =>
+          player.id === playerId ? { ...player, licensed: true } : player,
+        ),
+      },
+      loadLaunchContent(),
+    ).selectedPlayer;
+
+    expect(unlicensed?.detail).not.toContain('Licensed hero');
+    expect(unlicensed?.powerName).toBe('Gravity Well');
+    expect(licensed?.detail).toContain('Licensed hero');
+  });
+
   test('previews and charges the cameras setback as 10% of current cash', () => {
     const offered = playerEvent('the-cameras-want-him');
     const withCash: GameState = {

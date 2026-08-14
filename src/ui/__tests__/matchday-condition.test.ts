@@ -73,7 +73,7 @@ describe('matchday condition guidance', () => {
 
   it('uses the approved Bert copy with the affected player name', () => {
     expect(matchdayConditionWarningCopy('Jojo')).toBe(
-      "Boss, Jojo is below peak. The lower a player's COND, the more tired they start the game.",
+      'Boss, drills lower condition. Matches do too. Starters pay the full match cost, substitutes pay half, and rested bench players recover. Lower COND means worse play. Jojo is below peak.',
     );
   });
 

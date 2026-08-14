@@ -107,7 +107,7 @@ describe('quickResultForFixture', () => {
           fixture('auto-fire', UNITED.id, ROVERS.id, 77),
           TEAMS,
         ),
-      ).toEqual({
+      ).toMatchObject({
         fixtureId: 'auto-fire',
         homeGoals: 3,
         awayGoals: 2,
@@ -456,6 +456,11 @@ describe('production user-match adapter', () => {
       fixtureId: scheduled.id,
       homeGoals: 0,
       awayGoals: 0,
+      homeParticipantPlayerIds: [
+        ...ROVERS.players.map((player) => player.id),
+        substitute.id,
+      ],
+      awayParticipantPlayerIds: UNITED.players.map((player) => player.id),
       scorerPlayerIds: [],
     });
     expect(production.participantPlayerIds).toEqual([

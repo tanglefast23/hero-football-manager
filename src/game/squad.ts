@@ -1,4 +1,5 @@
 import type { TeamDef } from '../sim/types';
+import { conditionedRatingD64 } from '../sim/contest';
 import { buildTeamDef, isAvailableForSelection } from './lineup';
 import { compareIds } from './ordering';
 import { renewContract, selectLicensedHeroes } from './progression';
@@ -86,7 +87,13 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
   const team = buildTeamDef(
     club,
     matchRoster,
-    lineup.playerIds,
+    clubId === state.userClubId
+      ? lineup.playerIds
+      : fresherOpponentLineupIds(
+          matchRoster,
+          lineup.playerIds,
+          careerHeroLimit(state),
+        ),
     careerHeroLimit(state),
   );
   if (clubId !== state.userClubId) return team;
@@ -171,13 +178,59 @@ export function buildCareerMatchTeamDef(
       .filter((player) => player.role === role)
       .slice(0, count)
       .map((player) => player.id);
-  const lineupIds = [
+  const lineupTemplate = [
     ...take('GK', 1),
     ...take('DEF', 4),
     ...take('MID', 4),
     ...take('FWD', 2),
   ];
+  const lineupIds = fresherOpponentLineupIds(
+    roster,
+    lineupTemplate,
+    heroLimit,
+  );
   return buildTeamDef(club, roster, lineupIds, heroLimit);
+}
+
+function fresherOpponentLineupIds(
+  roster: readonly CareerPlayer[],
+  lineupTemplate: readonly string[],
+  heroLimit: number,
+): string[] {
+  const byId = new Map(roster.map((player) => [player.id, player]));
+  const selected = new Set<string>();
+  let licensedHeroes = 0;
+  return lineupTemplate.map((templateId) => {
+    const role = byId.get(templateId)?.role;
+    if (role === undefined)
+      throw new Error(`lineup template has unknown player ${templateId}`);
+    const player = roster
+      .filter(
+        (candidate) =>
+          candidate.role === role &&
+          !selected.has(candidate.id) &&
+          isAvailableForSelection(candidate) &&
+          (!candidate.licensed || licensedHeroes < heroLimit),
+      )
+      .sort((left, right) => {
+        const rating =
+          conditionedRatingD64(
+            roleOverall(right.role, right.attrs),
+            right.condition ?? 100,
+          ) -
+          conditionedRatingD64(
+            roleOverall(left.role, left.attrs),
+            left.condition ?? 100,
+          );
+        return rating || compareIds(left.id, right.id);
+      })[0];
+    if (player === undefined) {
+      throw new Error(`club has no available ${role} for its lineup`);
+    }
+    selected.add(player.id);
+    if (player.licensed) licensedHeroes += 1;
+    return player.id;
+  });
 }
 
 /**
@@ -642,6 +695,9 @@ export function releaseCareerPlayer(
 
   return reconcileBoardUltimatumCandidates({
     ...state,
+    releasedPlayerIds: [
+      ...new Set([...(state.releasedPlayerIds ?? []), playerId]),
+    ],
     clubs: state.clubs.map((club) => {
       if (club.id !== state.userClubId) return club;
       const weeklyWages =

@@ -7,13 +7,15 @@ import type {
   SponsorOfferSnapshot,
   SponsorProfileId,
   SponsorRules,
+  SponsorWeeklyChallengeKind,
   SponsorshipState,
 } from './club-business-types';
-import type { DifficultyMode, LeagueFixture } from './types';
+import { SEASON_WEEKS, type DifficultyMode, type LeagueFixture } from './types';
 
 export const SPONSOR_OFFER_LAST_WEEK = 4;
 export const SPONSOR_OFFER_EXPIRY_WEEK = 5;
 export const SPONSOR_PAYMENT_WEEKS = [4, 8, 12, 16, 20, 24, 28] as const;
+export const SPONSOR_WEEKLY_CHALLENGE_WEEK = 15;
 
 const SPONSOR_PROFILES: readonly SponsorProfileId[] = [
   'STEADY',
@@ -75,6 +77,23 @@ interface SponsorObjectiveSettlement {
   readonly sponsorship: SponsorshipState;
   /** Only met, newly settled objectives produce payment rows. */
   readonly payments: SponsorPaymentAllocation[];
+}
+
+export interface SponsorWeeklyChallengeOption {
+  readonly kind: SponsorWeeklyChallengeKind;
+  readonly sponsorName: string;
+  readonly fixtureId: string;
+  readonly fixtureWeek: number;
+  readonly nominalBonus: number;
+}
+
+interface SponsorWeeklyChallengeSettlement {
+  readonly sponsorship: SponsorshipState;
+  readonly payment?: {
+    readonly challengeId: string;
+    readonly sponsorName: string;
+    readonly actualAmount: number;
+  };
 }
 
 /**
@@ -447,6 +466,158 @@ export function actualSponsorPortfolioIncome(
       checkedAdd(total, allocation.actualAmount, 'actual sponsor portfolio'),
     0,
   );
+}
+
+/** Two one-match stretch targets, offered once from midseason onward. */
+export function sponsorWeeklyChallengeOptions(
+  sponsorship: SponsorshipState,
+  fixtures: readonly LeagueFixture[],
+  userClubId: string,
+  season: number,
+  week: number,
+): SponsorWeeklyChallengeOption[] {
+  validatePositiveInteger(season, 'sponsor challenge season');
+  validatePositiveInteger(week, 'sponsor challenge week');
+  if (
+    week < SPONSOR_WEEKLY_CHALLENGE_WEEK ||
+    week >= SEASON_WEEKS ||
+    sponsorship.portfolioSeason !== season ||
+    sponsorship.weeklyChallenge !== undefined ||
+    sponsorship.activeContracts.length === 0
+  ) {
+    return [];
+  }
+  const fixture = fixtures
+    .filter(
+      (candidate) =>
+        candidate.season === season &&
+        candidate.status === 'scheduled' &&
+        candidate.week >= week &&
+        (candidate.homeClubId === userClubId ||
+          candidate.awayClubId === userClubId),
+    )
+    .sort(
+      (left, right) =>
+        left.week - right.week ||
+        left.round - right.round ||
+        compareIds(left.id, right.id),
+    )[0];
+  if (fixture === undefined) return [];
+  const sponsor = [...sponsorship.activeContracts].sort(
+    (left, right) =>
+      left.slot - right.slot || compareIds(left.contractId, right.contractId),
+  )[0];
+  if (sponsor === undefined) return [];
+  const nominalBonus = checkedMultiply(
+    nominalSponsorPortfolioIncome(sponsorship.activeContracts),
+    2,
+    'sponsor weekly challenge bonus',
+  );
+  return (['SCORE_THREE', 'CLEAN_SHEET'] as const).map((kind) => ({
+    kind,
+    sponsorName: sponsor.sponsorName,
+    fixtureId: fixture.id,
+    fixtureWeek: fixture.week,
+    nominalBonus,
+  }));
+}
+
+export function acceptSponsorWeeklyChallenge(
+  sponsorship: SponsorshipState,
+  fixtures: readonly LeagueFixture[],
+  userClubId: string,
+  season: number,
+  week: number,
+  kind: SponsorWeeklyChallengeKind,
+): SponsorshipState {
+  const option = sponsorWeeklyChallengeOptions(
+    sponsorship,
+    fixtures,
+    userClubId,
+    season,
+    week,
+  ).find((candidate) => candidate.kind === kind);
+  if (option === undefined)
+    throw new Error('the sponsor weekly challenge is not available');
+  return {
+    ...sponsorship,
+    weeklyChallenge: {
+      id: `sponsor-sprint-s${season}`,
+      ...option,
+      season,
+      chosenWeek: week,
+    },
+  };
+}
+
+/** Settles against the exact next league fixture chosen on acceptance. */
+export function settleSponsorWeeklyChallenge(
+  sponsorship: SponsorshipState,
+  fixtures: readonly LeagueFixture[],
+  userClubId: string,
+  season: number,
+  sponsorIncomePercent: number,
+): SponsorWeeklyChallengeSettlement {
+  const challenge = sponsorship.weeklyChallenge;
+  if (
+    challenge === undefined ||
+    challenge.season !== season ||
+    challenge.outcome !== undefined
+  ) {
+    return { sponsorship };
+  }
+  const fixture = fixtures.find(
+    (candidate) => candidate.id === challenge.fixtureId,
+  );
+  if (fixture === undefined)
+    throw new Error('the sponsor weekly challenge fixture no longer exists');
+  if (fixture.status !== 'played') return { sponsorship };
+  if (fixture.score === undefined)
+    throw new Error('the sponsor weekly challenge fixture has no score');
+  const atHome = fixture.homeClubId === userClubId;
+  if (!atHome && fixture.awayClubId !== userClubId)
+    throw new Error('the sponsor weekly challenge fixture is not the user club');
+  const goalsFor = atHome
+    ? fixture.score.homeGoals
+    : fixture.score.awayGoals;
+  const goalsAgainst = atHome
+    ? fixture.score.awayGoals
+    : fixture.score.homeGoals;
+  const met =
+    challenge.kind === 'SCORE_THREE' ? goalsFor >= 3 : goalsAgainst === 0;
+  if (
+    !Number.isSafeInteger(sponsorIncomePercent) ||
+    sponsorIncomePercent < 0 ||
+    sponsorIncomePercent > 100
+  ) {
+    throw new Error('sponsor income percent must be an integer from 0 to 100');
+  }
+  const actualBonus = met
+    ? percentOfMoney(
+        challenge.nominalBonus,
+        sponsorIncomePercent,
+        'sponsor weekly challenge',
+      )
+    : 0;
+  const settled = {
+    ...sponsorship,
+    weeklyChallenge: {
+      ...challenge,
+      outcome: { met, actualBonus },
+    },
+  };
+  return {
+    sponsorship: settled,
+    ...(actualBonus === 0
+      ? {}
+      : {
+          payment: {
+            challengeId: challenge.id,
+            sponsorName: challenge.sponsorName,
+            actualAmount: actualBonus,
+          },
+        }),
+  };
 }
 
 /** Current progress, reconstructed only from persisted league fixtures. */

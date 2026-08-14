@@ -2,7 +2,9 @@ import type { EventCatalog } from '../content';
 import { copyFor, type CopyFn } from '../i18n';
 import {
   applyCareerEventOutcome,
+  applyCareerFacilityFire,
   applyCareerTransferFeeAdjustment,
+  attributeAffectsPlay,
   applyCoachEventEffect,
   applyFacilityEventEffect,
   completeCareerEventPlayerSale,
@@ -94,11 +96,12 @@ export function resolveCareerEventChoice(
     (effect) => effect.type === 'squadMorale',
   );
   const injury = outcome.effects.find((effect) => effect.type === 'injury');
+  const absence = outcome.effects.find((effect) => effect.type === 'absence');
   const injuryHeal = outcome.effects.find(
     (effect) => effect.type === 'injuryDelta',
   );
   const stat = outcome.effects.find((effect) => effect.type === 'statDelta');
-  const statSessions = outcome.effects.find(
+  const statSessions = outcome.effects.filter(
     (effect) => effect.type === 'statDeltaSessions',
   );
   const loyalty = outcome.effects.find((effect) => effect.type === 'loyalty');
@@ -108,6 +111,9 @@ export function resolveCareerEventChoice(
   const fame = outcome.effects.find((effect) => effect.type === 'fame');
   const playerSale = outcome.effects.find(
     (effect) => effect.type === 'playerSale',
+  );
+  const facilityFire = outcome.effects.find(
+    (effect) => effect.type === 'facilityFire',
   );
   const transferFee = outcome.effects.find(
     (effect) => effect.type === 'transferFeePercent',
@@ -128,26 +134,64 @@ export function resolveCareerEventChoice(
     Boolean(
       morale ||
       injury ||
+      absence ||
       injuryHeal ||
       stat ||
-      statSessions ||
+      statSessions.length > 0 ||
       loyalty ||
       condition ||
       fame,
     );
-  const resolvedSessionDelta = (() => {
-    if (statSessions?.type !== 'statDeltaSessions' || playerId === undefined)
+  const selectedPlayer = working.players.find(
+    (candidate) => candidate.id === playerId,
+  );
+  const attributeDeltas = statSessions.reduce<
+    Partial<Record<keyof NonNullable<typeof selectedPlayer>['attrs'], number>>
+  >((deltas, effect) => {
+    if (selectedPlayer === undefined) return deltas;
+    deltas[effect.attribute] =
+      (deltas[effect.attribute] ?? 0) +
+      sessionAttributeDelta(
+        working,
+        selectedPlayer,
+        effect.attribute,
+        effect.sessions,
+      );
+    return deltas;
+  }, {});
+  if (stat?.type === 'statDelta') {
+    attributeDeltas[stat.attribute] =
+      (attributeDeltas[stat.attribute] ?? 0) + stat.amount;
+  }
+  const returnTraining = (() => {
+    if (
+      absence?.type !== 'absence' ||
+      absence.returnTraining === undefined ||
+      selectedPlayer === undefined
+    )
       return undefined;
-    const player = working.players.find(
-      (candidate) => candidate.id === playerId,
-    );
-    if (player === undefined) return undefined;
-    return sessionAttributeDelta(
-      working,
-      player,
-      statSessions.attribute,
-      statSessions.sessions,
-    );
+    const attribute =
+      absence.returnTraining.attribute === 'WEAKEST'
+        ? (Object.keys(selectedPlayer.attrs) as (keyof typeof selectedPlayer.attrs)[])
+            .filter((candidate) =>
+              attributeAffectsPlay(selectedPlayer.role, candidate),
+            )
+            .sort(
+              (left, right) =>
+                selectedPlayer.attrs[left] - selectedPlayer.attrs[right] ||
+                (left < right ? -1 : left > right ? 1 : 0),
+            )[0]
+        : absence.returnTraining.attribute;
+    if (attribute === undefined) return undefined;
+    return {
+      attribute,
+      points: sessionAttributeDelta(
+        working,
+        selectedPlayer,
+        attribute,
+        absence.returnTraining.sessions,
+      ),
+    };
   })();
 
   let next = applyCareerEventOutcome(
@@ -177,22 +221,18 @@ export function resolveCareerEventChoice(
               ...(injury?.type === 'injury'
                 ? { injuryWeeks: injury.weeks }
                 : {}),
+              ...(absence?.type === 'absence'
+                ? {
+                    awayWeeks: absence.weeks,
+                    ...(returnTraining === undefined ? {} : { returnTraining }),
+                  }
+                : {}),
               ...(injuryHeal?.type === 'injuryDelta'
                 ? { injuryWeeksDelta: injuryHeal.weeks }
                 : {}),
-              ...(stat?.type === 'statDelta'
-                ? {
-                    attribute: stat.attribute,
-                    attributeDelta: stat.amount,
-                  }
-                : {}),
-              ...(statSessions?.type === 'statDeltaSessions' &&
-              resolvedSessionDelta !== undefined
-                ? {
-                    attribute: statSessions.attribute,
-                    attributeDelta: resolvedSessionDelta,
-                  }
-                : {}),
+              ...(Object.keys(attributeDeltas).length === 0
+                ? {}
+                : { attributeDeltas }),
               ...(loyalty?.type === 'loyalty'
                 ? { loyaltyDelta: loyalty.amount }
                 : {}),
@@ -271,6 +311,9 @@ export function resolveCareerEventChoice(
       playerId!,
       transferFee.percent,
     );
+  }
+  if (facilityFire?.type === 'facilityFire') {
+    next = applyCareerFacilityFire(next, facilityFire.mode);
   }
 
   const milestone = isCareerMilestoneEventId(pending.eventId);

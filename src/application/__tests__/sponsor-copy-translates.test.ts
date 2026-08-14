@@ -1,6 +1,7 @@
 import { loadLaunchContent } from '../../content';
 import {
   acceptSponsorOffer,
+  acceptSponsorWeeklyChallenge,
   createCareer,
   createSeasonSponsorship,
   type GameState,
@@ -14,7 +15,7 @@ import {
   serializeGameState,
 } from '../../persistence/game-state-codec';
 import { createLaunchCareerSetup } from '../launch';
-import { clubFinancesViewModel } from '../view-models';
+import { clubFinancesViewModel, homeProductAlerts } from '../view-models';
 
 /**
  * The sponsor desk, in a language that is not English.
@@ -254,6 +255,34 @@ describe('what a save written before any of this still shows', () => {
       .slots[0]!;
     expect(slot.sponsorName).toBe('Harborline Tractors');
     expect(slot.offerLine).toBe('Ploughing on since 1974.');
+  });
+
+  test('the midseason challenge stays visible after choosing a target', () => {
+    const state = { ...sponsorDeskCareer(), week: 15 };
+    const offer = clubFinancesViewModel(state, de).sponsorship!.weeklyChallenge;
+    expect(offer).toMatchObject({ status: 'OFFER' });
+    expect(offer?.options?.map((option) => option.targetLabel)).toEqual([
+      german('clubFinances.sponsorSprintScoreThree'),
+      german('clubFinances.sponsorSprintCleanSheet'),
+    ]);
+
+    const accepted = withSponsorship(
+      state,
+      acceptSponsorWeeklyChallenge(
+        state.clubBusiness.sponsorship,
+        state.fixtures,
+        state.userClubId,
+        state.season,
+        state.week,
+        'SCORE_THREE',
+      ),
+    );
+    expect(
+      clubFinancesViewModel(accepted, de).sponsorship!.weeklyChallenge,
+    ).toMatchObject({ status: 'ACTIVE' });
+    expect(homeProductAlerts(accepted).map((alert) => alert.id)).toContain(
+      'sponsor-sprint-active-s1',
+    );
   });
 });
 

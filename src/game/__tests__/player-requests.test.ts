@@ -1104,6 +1104,42 @@ describe('advancePlayerRequests', () => {
     expect(next.playerRequests!.weeksSinceRequest).toBe(41);
   });
 
+  it('does not give one player the same request twice in a season', () => {
+    const base = tickingCareer();
+    const onlyGoldBoots: PlayerRequestCatalog = {
+      ...CATALOG,
+      requests: CATALOG.requests.filter((request) => request.id === 'gold-boots'),
+    };
+    const eligible = eligibleAskers(
+      base.players.filter((player) => player.clubId === base.userClubId),
+      {
+        minSeasonsAtClub: onlyGoldBoots.tuning.minSeasonsAtClub,
+        absence: false,
+      },
+    );
+    const unserved = eligible.at(-1)!;
+    const overdue: GameState = {
+      ...atSeason(base, 3),
+      week: 10,
+      playerRequestRules: onlyGoldBoots,
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+        history: eligible.slice(0, -1).map((player, index) => ({
+          requestId: 'gold-boots',
+          playerId: player.id,
+          season: 3,
+          week: index + 1,
+          resolution: 'GRANTED' as const,
+        })),
+      },
+    };
+
+    expect(
+      advancePlayerRequests(overdue, true).playerRequests!.pending,
+    ).toMatchObject({ requestId: 'gold-boots', playerId: unserved.id });
+  });
+
   it('never offers a bare-eleven squad a leave request it cannot survive', () => {
     // With no bench at all, every player is a starter with no replacement, so
     // every absence request would throw inside lineup repair on Grant. A

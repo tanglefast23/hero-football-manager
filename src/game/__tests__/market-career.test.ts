@@ -14,6 +14,7 @@ import { startNextFullCareerSeason } from '../full-career';
 import { clubSquadStrength } from '../m2-career';
 import { COACH_WAGE_PER_LEVEL, sellingTransferQuote } from '../market';
 import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../contract-wages';
+import { roleOverall } from '../archetype-caps';
 import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
@@ -25,6 +26,7 @@ import {
   coachWeeklyWageForRole,
   careerCoachUnlockedFormationIds,
   careerEventPlayerSaleBlocker,
+  careerTransferTarget,
   completeCareerEventPlayerSale,
   completeCareerTransfer,
   createCareerMarketState,
@@ -154,6 +156,45 @@ describe('career market integration', () => {
       )?.cash,
     });
     expect(started.state.ledgers).toHaveLength(0);
+  });
+
+  test('the upgrade lane includes a better same-role player when one matches the brief', () => {
+    const initial = {
+      ...createCareer(createLaunchCareerSetup(1)),
+      week: 15,
+    };
+    const started = startCareerScoutMission(
+      initial,
+      initial.market!,
+      'EUROPE',
+      { kind: 'POSITION', role: 'FWD' },
+    );
+    expect(started.market.activeScoutMission!.missionSeed % 100).toBeLessThan(
+      35,
+    );
+    const due = {
+      ...started.state,
+      week: started.market.activeScoutMission!.dueWeek,
+    };
+    const reports = resolveCareerScoutClock(due, started.market).scoutReports;
+    const bestForward = Math.max(
+      ...initial.players
+        .filter(
+          (player) =>
+            player.clubId === initial.userClubId && player.role === 'FWD',
+        )
+        .map((player) => roleOverall('FWD', player.attrs)),
+    );
+
+    expect(
+      reports.some((report) => {
+        const target = careerTransferTarget(due, report.playerId);
+        return (
+          target !== undefined &&
+          roleOverall(target.player.role, target.player.attrs) > bestForward
+        );
+      }),
+    ).toBe(true);
   });
 
   test('international scouting draws reports from clubs outside the active division', () => {

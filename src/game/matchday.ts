@@ -225,15 +225,36 @@ function fixtureResultFromMatch(
 ): FixtureResult {
   const scorerPlayerIds = goalsFrom(match).map((goal) => goal.playerId);
   const contributions = contributionsFrom(match);
+  const [homeParticipantPlayerIds, awayParticipantPlayerIds] =
+    participantPlayerIdsFromMatch(match);
   return {
     fixtureId: fixture.id,
     homeGoals: match.score[0],
     awayGoals: match.score[1],
+    homeParticipantPlayerIds,
+    awayParticipantPlayerIds,
     ...(scorerPlayerIds.length === match.score[0] + match.score[1]
       ? { scorerPlayerIds }
       : {}),
     ...(contributions.length > 0 ? { contributions } : {}),
   };
+}
+
+function participantPlayerIdsFromMatch(
+  match: MatchState,
+): readonly [string[], string[]] {
+  const participants = match.teams.map((team) =>
+    team.players.map((player) => player.id),
+  ) as [string[], string[]];
+  const seen = participants.map((ids) => new Set(ids));
+  for (const event of match.events) {
+    if (event.kind !== 'SUBSTITUTION') continue;
+    if (!seen[event.team].has(event.inPlayerId)) {
+      seen[event.team].add(event.inPlayerId);
+      participants[event.team].push(event.inPlayerId);
+    }
+  }
+  return participants;
 }
 
 /**
@@ -267,7 +288,11 @@ export function productionResultFromMatch(
       .flatMap((team) => [...team.players, ...(team.bench ?? [])])
       .map((player) => [player.id, player] as const),
   );
-  const participants = match.teams[userTeam].players.map((player) => player.id);
+  const participants = [
+    ...(userTeam === 0
+      ? fixtureResult.homeParticipantPlayerIds!
+      : fixtureResult.awayParticipantPlayerIds!),
+  ];
   const participantSet = new Set(participants);
   const powerFiredPlayerIds: string[] = [];
   const powerFiredSet = new Set<string>();
@@ -505,6 +530,23 @@ function validateSuppliedResult(result: FixtureResult): void {
     ) {
       throw new Error(
         `supplied result for fixture ${result.fixtureId} has an invalid scorer ID`,
+      );
+    }
+  }
+  for (const [side, playerIds] of [
+    ['home', result.homeParticipantPlayerIds],
+    ['away', result.awayParticipantPlayerIds],
+  ] as const) {
+    if (playerIds === undefined) continue;
+    if (
+      playerIds.length < 11 ||
+      new Set(playerIds).size !== playerIds.length ||
+      playerIds.some(
+        (playerId) => typeof playerId !== 'string' || playerId.length === 0,
+      )
+    ) {
+      throw new Error(
+        `supplied result for fixture ${result.fixtureId} has invalid ${side} participants`,
       );
     }
   }

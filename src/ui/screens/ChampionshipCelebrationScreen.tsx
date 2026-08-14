@@ -455,7 +455,7 @@ export function ChampionshipCelebrationScreen({
           </Text>
           <Text className="mt-1 text-center font-pixel text-[10px] uppercase tracking-wider text-ink/70">
             {viewModel.star.hasRecordedGoals
-              ? t('championshipCelebration.goldenBoot', {
+              ? t('championshipCelebration.seasonGoals', {
                   n: viewModel.star.goals,
                 })
               : t('championshipCelebration.seasonStar')}

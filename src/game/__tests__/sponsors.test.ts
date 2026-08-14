@@ -6,6 +6,7 @@ import type {
 } from '../club-business-types';
 import {
   acceptSponsorOffer,
+  acceptSponsorWeeklyChallenge,
   actualSponsorPortfolioIncome,
   allocateSponsorPortfolioPayment,
   createProvisionalSponsorPortfolio,
@@ -16,8 +17,10 @@ import {
   managedSponsorCapacity,
   nominalSponsorPortfolioIncome,
   settleSponsorObjectivesAtWeek30,
+  settleSponsorWeeklyChallenge,
   sponsorBaselineShares,
   sponsorObjectiveProgressFromFixtures,
+  sponsorWeeklyChallengeOptions,
 } from '../sponsors';
 import type { LeagueFixture } from '../types';
 
@@ -413,6 +416,74 @@ describe('portfolio difficulty allocation', () => {
     expect(allocation.reduce((sum, line) => sum + line.actualAmount, 0)).toBe(
       8_000,
     );
+  });
+});
+
+describe('one-match sponsor challenge', () => {
+  it('offers two midseason targets and settles the chosen next fixture once', () => {
+    const sponsorship = createSeasonSponsorship(seasonContext());
+    const scheduled = fixture('sprint', 'user', 'b', 0, 0, {
+      week: 16,
+      status: 'scheduled',
+      score: undefined,
+    });
+
+    expect(
+      sponsorWeeklyChallengeOptions(
+        sponsorship,
+        [scheduled],
+        'user',
+        3,
+        14,
+      ),
+    ).toEqual([]);
+    const options = sponsorWeeklyChallengeOptions(
+      sponsorship,
+      [scheduled],
+      'user',
+      3,
+      15,
+    );
+    expect(options.map((option) => option.kind)).toEqual([
+      'SCORE_THREE',
+      'CLEAN_SHEET',
+    ]);
+    expect(options[0]).toMatchObject({ fixtureWeek: 16, nominalBonus: 8_000 });
+
+    const accepted = acceptSponsorWeeklyChallenge(
+      sponsorship,
+      [scheduled],
+      'user',
+      3,
+      15,
+      'SCORE_THREE',
+    );
+    expect(
+      settleSponsorWeeklyChallenge(accepted, [scheduled], 'user', 3, 80),
+    ).toEqual({ sponsorship: accepted });
+
+    const played = { ...scheduled, status: 'played' as const, score: { homeGoals: 3, awayGoals: 1 } };
+    const settled = settleSponsorWeeklyChallenge(
+      accepted,
+      [played],
+      'user',
+      3,
+      80,
+    );
+    expect(settled.sponsorship.weeklyChallenge?.outcome).toEqual({
+      met: true,
+      actualBonus: 6_400,
+    });
+    expect(settled.payment).toMatchObject({ actualAmount: 6_400 });
+    expect(
+      settleSponsorWeeklyChallenge(
+        settled.sponsorship,
+        [played],
+        'user',
+        3,
+        80,
+      ),
+    ).toEqual({ sponsorship: settled.sponsorship });
   });
 });
 

@@ -7,7 +7,11 @@ import {
   managedSponsorCapacity,
 } from '../game/sponsors';
 import { coachWeeklyWageForRole } from '../game/market-career';
-import { GAME_SCHEMA_VERSION, type GameState } from '../game/types';
+import {
+  GAME_SCHEMA_VERSION,
+  SEASON_WEEKS,
+  type GameState,
+} from '../game/types';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import {
@@ -712,12 +716,27 @@ const sponsorOfferSnapshotSchema = z.strictObject({
   objective: sponsorObjectiveSnapshotSchema,
 });
 
+const sponsorWeeklyChallengeSchema = z.strictObject({
+  id: nonemptyString,
+  kind: z.enum(['SCORE_THREE', 'CLEAN_SHEET']),
+  sponsorName: nonemptyString,
+  season: positiveInteger,
+  chosenWeek: positiveInteger.max(SEASON_WEEKS),
+  fixtureId: nonemptyString,
+  fixtureWeek: positiveInteger.max(SEASON_WEEKS),
+  nominalBonus: nonnegativeInteger,
+  outcome: z
+    .strictObject({ met: z.boolean(), actualBonus: nonnegativeInteger })
+    .optional(),
+});
+
 const sponsorshipStateSchema = z
   .strictObject({
     activeContracts: z.array(sponsorContractSnapshotSchema),
     offers: z.array(sponsorOfferSnapshotSchema),
     portfolioSeason: positiveInteger,
     offerSeason: positiveInteger.optional(),
+    weeklyChallenge: sponsorWeeklyChallengeSchema.optional(),
   })
   .superRefine((sponsorship, context) => {
     const contractIds = new Set<string>();
@@ -951,6 +970,13 @@ const eventClockSchema = z
   .object({
     weeksWithoutEvent: nonnegativeInteger,
     riskyChoices: nonnegativeInteger,
+    scheduledEvent: z
+      .object({
+        eventId: nonemptyString,
+        season: positiveInteger,
+        week: positiveInteger.max(SEASON_WEEKS),
+      })
+      .optional(),
   })
   .passthrough();
 

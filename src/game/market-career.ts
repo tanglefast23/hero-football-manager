@@ -37,6 +37,7 @@ import type { CareerPlayer, GameState, PlayerPersonality } from './types';
 import {
   developmentPotentialCeiling,
   potentialTierForDivision,
+  roleOverall,
 } from './archetype-caps';
 import { recordCashTransaction } from './cash-transactions';
 import {
@@ -331,12 +332,57 @@ export function resolveCareerScoutClock(
   const mission = currentMarket.activeScoutMission;
   if (mission === undefined || absoluteCareerWeek(state) < mission.dueWeek)
     return currentMarket;
-  const result = resolveScoutMission(
+  const candidates = scoutableCareerPlayers(state);
+  const shortlistSize = scoutShortlistSize(scoutOfficeLevel(state));
+  let result = resolveScoutMission(
     mission,
     absoluteCareerWeek(state),
-    scoutableCareerPlayers(state),
-    scoutShortlistSize(scoutOfficeLevel(state)),
+    candidates,
+    shortlistSize,
   );
+  if (mission.missionSeed % 100 < 35) {
+    const bestByRole = new Map(
+      (['GK', 'DEF', 'MID', 'FWD'] as const).map((role) => [
+        role,
+        Math.max(
+          ...state.players
+            .filter(
+              (player) =>
+                player.clubId === state.userClubId && player.role === role,
+            )
+            .map((player) => roleOverall(role, player.attrs)),
+        ),
+      ]),
+    );
+    const upgrades = new Set(
+      candidates
+        .filter(
+          (candidate) =>
+            roleOverall(candidate.role, candidate.attrs) >
+            (bestByRole.get(candidate.role) ?? -Infinity),
+        )
+        .map((candidate) => candidate.id),
+    );
+    if (!result.reports.some((report) => upgrades.has(report.playerId))) {
+      const upgrade = resolveScoutMission(
+        mission,
+        absoluteCareerWeek(state),
+        candidates.filter((candidate) => upgrades.has(candidate.id)),
+        1,
+      ).reports[0];
+      if (upgrade !== undefined) {
+        result = {
+          ...result,
+          reports: [
+            upgrade,
+            ...result.reports.filter(
+              (report) => report.playerId !== upgrade.playerId,
+            ),
+          ].slice(0, shortlistSize),
+        };
+      }
+    }
+  }
   return {
     ...currentMarket,
     activeScoutMission: undefined,

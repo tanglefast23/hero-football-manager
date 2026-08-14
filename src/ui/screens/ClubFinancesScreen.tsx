@@ -33,6 +33,7 @@ import type {
   FacilityTypeViewModel,
   SponsorOfferViewModel,
   SponsorSlotViewModel,
+  SponsorWeeklyChallengeKindViewModel,
   TrainingGroundDecisionViewModel,
   IncomeGenerationViewModel,
   TrainingPointIncomeViewModel,
@@ -184,6 +185,9 @@ export interface ClubFinancesScreenProps {
     offer: SponsorOfferViewModel,
     slot: SponsorSlotViewModel,
   ) => void;
+  onChooseSponsorWeeklyChallenge?: (
+    kind: SponsorWeeklyChallengeKindViewModel,
+  ) => void;
   guideTrainingGround?: boolean;
   guideFocus?: AssistantGuideFocus;
   onLoanGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
@@ -213,6 +217,7 @@ export function ClubFinancesScreen({
   onOpenCoachMarket,
   onDismissCoach,
   onReviewSponsorOffer,
+  onChooseSponsorWeeklyChallenge,
   guideTrainingGround = false,
   guideFocus,
   onLoanGuideAnchorChange,
@@ -738,6 +743,7 @@ export function ClubFinancesScreen({
                 selectedSlot={selectedSponsorSlot}
                 onSelectSlot={setSelectedSponsorSlot}
                 onReviewOffer={onReviewSponsorOffer}
+                onChooseWeeklyChallenge={onChooseSponsorWeeklyChallenge}
                 guideFocus={guideFocus}
                 sponsorDeskTargetRef={sponsorDeskTargetRef}
                 sponsorBuzzTargetRef={sponsorBuzzTargetRef}
@@ -1196,6 +1202,9 @@ interface SponsorBusinessSectionProps {
     offer: SponsorOfferViewModel,
     slot: SponsorSlotViewModel,
   ) => void;
+  onChooseWeeklyChallenge?: (
+    kind: SponsorWeeklyChallengeKindViewModel,
+  ) => void;
   guideFocus?: AssistantGuideFocus;
   sponsorDeskTargetRef: RefObject<View | null>;
   sponsorBuzzTargetRef: RefObject<View | null>;
@@ -1209,6 +1218,7 @@ function SponsorBusinessSection({
   selectedSlot,
   onSelectSlot,
   onReviewOffer,
+  onChooseWeeklyChallenge,
   guideFocus,
   sponsorDeskTargetRef,
   sponsorBuzzTargetRef,
@@ -1300,6 +1310,54 @@ function SponsorBusinessSection({
             penalty. The payment above is what arrives; nothing else is theirs
             to act on. */}
       </View>
+
+      {sponsorship.weeklyChallenge === undefined ? null : (
+        <PaperPanel
+          kicker={sponsorship.weeklyChallenge.sponsorName}
+          title={t('clubFinances.sponsorSprintTitle')}
+          stamp={
+            sponsorship.weeklyChallenge.status === 'OFFER'
+              ? t('clubFinances.statusChoose')
+              : sponsorship.weeklyChallenge.status === 'MET'
+                ? t('clubFinances.statusTargetMet')
+                : sponsorship.weeklyChallenge.status === 'FAILED'
+                  ? t('clubFinances.statusTargetMissed')
+                  : t('clubFinances.statusActive')
+          }
+        >
+          <Text className="text-sm leading-5 text-ink/70">
+            {sponsorship.weeklyChallenge.status === 'OFFER'
+              ? t('clubFinances.sponsorSprintOfferDetail', {
+                  week: sponsorship.weeklyChallenge.fixtureWeek,
+                })
+              : t('clubFinances.sponsorSprintTargetDetail', {
+                  target: sponsorship.weeklyChallenge.targetLabel ?? '',
+                  week: sponsorship.weeklyChallenge.fixtureWeek,
+                })}
+          </Text>
+          <Text className="mt-2 font-mono text-sm text-ink">
+            {t('clubFinances.sponsorSprintBonus', {
+              amount: formatCurrency(
+                t,
+                sponsorship.weeklyChallenge.actualBonus,
+              ),
+            })}
+          </Text>
+          {sponsorship.weeklyChallenge.options === undefined ||
+          onChooseWeeklyChallenge === undefined ? null : (
+            <View className="mt-3 gap-2">
+              {sponsorship.weeklyChallenge.options.map((option) => (
+                <ActionButton
+                  key={option.kind}
+                  label={option.targetLabel}
+                  accessibilityLabel={option.targetLabel}
+                  onPress={() => onChooseWeeklyChallenge(option.kind)}
+                />
+              ))}
+            </View>
+          )}
+        </PaperPanel>
+      )}
 
       <ScreenTabs
         tabs={sponsorship.slots.map((slot) => ({

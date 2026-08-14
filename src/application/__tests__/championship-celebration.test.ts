@@ -8,6 +8,7 @@ import {
 } from '../championship-celebration';
 import { playerLookId } from '../../render/sprites/player-look';
 import type { AwardCompetition, PlayerSeasonStatLine } from '../../game/types';
+import { copyFor } from '../../i18n';
 
 function statLine(
   playerId: string,
@@ -58,6 +59,12 @@ function championState() {
 }
 
 describe('league championship celebration', () => {
+  it('labels the parade total as season goals, not the league Golden Boot', () => {
+    expect(
+      copyFor('en')('championshipCelebration.seasonGoals', { n: 12 }),
+    ).toBe('Season goals · 12 goals');
+  });
+
   it('selects the actual leading scorer and includes the rest of the squad', () => {
     const state = championState();
     const finalFixture = state.fixtures

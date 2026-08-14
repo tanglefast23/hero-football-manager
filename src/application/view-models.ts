@@ -108,6 +108,7 @@ import {
   actualSponsorPortfolioIncome,
   allocateSponsorPortfolioPayment,
   nominalSponsorPortfolioIncome,
+  sponsorWeeklyChallengeOptions,
   sponsorObjectiveProgressFromFixtures,
   storyTrainingPointReward,
   DORM_CONDITION_RECOVERY_PER_LEVEL,
@@ -130,6 +131,7 @@ import {
   type SponsorObjectiveSnapshot,
   type SponsorOfferSnapshot,
   type SponsorProfileId,
+  type SponsorWeeklyChallengeKind,
 } from '../game';
 import type {
   AwakeningCutsceneViewModel,
@@ -1042,6 +1044,17 @@ function sponsorObjectiveCopy(
   );
 }
 
+function sponsorWeeklyChallengeTargetCopy(
+  t: CopyFn,
+  kind: SponsorWeeklyChallengeKind,
+): string {
+  return t(
+    kind === 'SCORE_THREE'
+      ? 'clubFinances.sponsorSprintScoreThree'
+      : 'clubFinances.sponsorSprintCleanSheet',
+  );
+}
+
 function clubSponsorshipViewModel(
   state: GameState,
   club: GameState['clubs'][number],
@@ -1077,6 +1090,49 @@ function clubSponsorshipViewModel(
   const nextSponsorPaymentWeek = SPONSOR_PAYMENT_WEEKS.find(
     (week) => week >= state.week,
   );
+  const weeklyChallengeOptions = sponsorWeeklyChallengeOptions(
+    sponsorship,
+    state.fixtures,
+    state.userClubId,
+    state.season,
+    state.week,
+  );
+  const acceptedChallenge = sponsorship.weeklyChallenge;
+  const weeklyChallenge =
+    weeklyChallengeOptions.length > 0
+      ? {
+          status: 'OFFER' as const,
+          sponsorName: weeklyChallengeOptions[0].sponsorName,
+          fixtureWeek: weeklyChallengeOptions[0].fixtureWeek,
+          actualBonus: Math.round(
+            (weeklyChallengeOptions[0].nominalBonus * sponsorPercent) / 100,
+          ),
+          options: weeklyChallengeOptions.map((option) => ({
+            kind: option.kind,
+            targetLabel: sponsorWeeklyChallengeTargetCopy(t, option.kind),
+          })),
+        }
+      : acceptedChallenge === undefined
+        ? undefined
+        : {
+            status:
+              acceptedChallenge.outcome === undefined
+                ? ('ACTIVE' as const)
+                : acceptedChallenge.outcome.met
+                  ? ('MET' as const)
+                  : ('FAILED' as const),
+            sponsorName: acceptedChallenge.sponsorName,
+            fixtureWeek: acceptedChallenge.fixtureWeek,
+            actualBonus:
+              acceptedChallenge.outcome?.actualBonus ??
+              Math.round(
+                (acceptedChallenge.nominalBonus * sponsorPercent) / 100,
+              ),
+            targetLabel: sponsorWeeklyChallengeTargetCopy(
+              t,
+              acceptedChallenge.kind,
+            ),
+          };
 
   const slots = sponsorship.activeContracts.map((contract) => {
     // "Current Sponsor" only loses its number when the club has a single slot,
@@ -1182,6 +1238,7 @@ function clubSponsorshipViewModel(
           }),
     ...(sponsorPercent === 100 ? {} : { chairmanPercent: sponsorPercent }),
     slots,
+    ...(weeklyChallenge === undefined ? {} : { weeklyChallenge }),
     ...(buzz === undefined ? {} : { buzz }),
   };
 }
@@ -1970,7 +2027,7 @@ export function storyEventViewModel(
                 n: player.injuryWeeks,
                 count: player.injuryWeeks,
               })
-            : player.power !== undefined
+            : player.power !== undefined && player.licensed
               ? t('storyEvent.licensedHero', {
                   status: starterIds.includes(player.id)
                     ? t('storyEvent.startingXi')
@@ -2633,6 +2690,14 @@ export function homeProductAlerts(
     state.facilities.grid?.construction?.kind === 'BUILD' &&
     state.facilities.grid.construction.type === 'training-pitch';
   const waitingRequest = state.playerRequests?.pending;
+  const sponsorChallengeOptions = sponsorWeeklyChallengeOptions(
+    state.clubBusiness.sponsorship,
+    state.fixtures,
+    state.userClubId,
+    state.season,
+    state.week,
+  );
+  const sponsorChallenge = state.clubBusiness.sponsorship.weeklyChallenge;
   const heroIds = new Set(
     roster
       .filter((player) => player.power !== undefined)
@@ -2772,6 +2837,45 @@ export function homeProductAlerts(
               latestBoardResolution.kind === 'TARGET_MET'
                 ? ('info' as const)
                 : ('urgent' as const),
+          },
+        ]),
+    ...(sponsorChallengeOptions.length === 0
+      ? []
+      : [
+          {
+            id: `sponsor-sprint-offer-s${state.season}`,
+            title: t('clubHome.sponsorSprintOfferTitle'),
+            detail: t('clubHome.sponsorSprintOfferDetail', {
+              week: sponsorChallengeOptions[0].fixtureWeek,
+              amount: formatMoneyForCopy(
+                t,
+                Math.round(
+                  (sponsorChallengeOptions[0].nominalBonus *
+                    difficultyRules(state).sponsorIncomePercent) /
+                    100,
+                ),
+              ),
+            }),
+            tone: 'event' as const,
+            destination: 'club-finances' as const,
+          },
+        ]),
+    ...(sponsorChallenge === undefined ||
+    sponsorChallenge.outcome !== undefined
+      ? []
+      : [
+          {
+            id: `sponsor-sprint-active-s${state.season}`,
+            title: t('clubHome.sponsorSprintActiveTitle'),
+            detail: t('clubHome.sponsorSprintActiveDetail', {
+              target: sponsorWeeklyChallengeTargetCopy(
+                t,
+                sponsorChallenge.kind,
+              ),
+              week: sponsorChallenge.fixtureWeek,
+            }),
+            tone: 'event' as const,
+            destination: 'club-finances' as const,
           },
         ]),
     // Stated in full, on purpose. A lapse charges exactly what a refusal
@@ -5454,6 +5558,40 @@ function eventRewardItems(
           count: effect.weeks,
         }),
         kind: 'injury',
+        positive: false,
+      });
+    }
+    if (effect.type === 'absence') {
+      rewards.push({
+        label: t('storyEvent.rewardWeeksAway', {
+          n: effect.weeks,
+          count: effect.weeks,
+        }),
+        kind: 'injury',
+        positive: false,
+      });
+      if (effect.returnTraining !== undefined) {
+        rewards.push({
+          label: t('storyEvent.rewardReturnTraining', {
+            n: effect.returnTraining.sessions,
+            count: effect.returnTraining.sessions,
+            attribute:
+              effect.returnTraining.attribute === 'WEAKEST'
+                ? t('storyEvent.weakestUsefulAttribute')
+                : effect.returnTraining.attribute.toUpperCase(),
+          }),
+          kind: 'stat',
+          positive: true,
+        });
+      }
+    }
+    if (effect.type === 'facilityFire') {
+      rewards.push({
+        label:
+          effect.mode === 'TWO_SMALL'
+            ? t('storyEvent.rewardLoseSmallFacilities', { n: 2, count: 2 })
+            : t('storyEvent.rewardRiskPrimaryFacility'),
+        kind: 'story',
         positive: false,
       });
     }

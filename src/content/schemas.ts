@@ -634,6 +634,20 @@ const EventEffectSchema = z.discriminatedUnion('type', [
     type: z.literal('injury'),
     weeks: z.number().int().min(1).max(8),
   }),
+  z.strictObject({
+    type: z.literal('absence'),
+    weeks: z.number().int().min(1).max(8),
+    returnTraining: z
+      .strictObject({
+        attribute: z.union([AttributeSchema, z.literal('WEAKEST')]),
+        sessions: z.number().int().min(1).max(4),
+      })
+      .optional(),
+  }),
+  z.strictObject({
+    type: z.literal('facilityFire'),
+    mode: z.enum(['TWO_SMALL', 'PRIMARY']),
+  }),
   /**
    * A heal. `injury` can only ever lengthen an absence (it resolves through
    * `max`), so shortening one needs its own effect and its own sign.
@@ -668,13 +682,12 @@ const EventEffectSchema = z.discriminatedUnion('type', [
    * Sessions hold their value as a fraction of a season at every tier.
    *
    * Resolved against the drill the club has actually bought, never a table
-   * copied into the engine — see `resolveSessionPoints`. Losses are capped at
-   * one session because two, at tier 5, is 44 points off a single attribute.
+   * copied into the engine — see `resolveSessionPoints`.
    */
   z.strictObject({
     type: z.literal('statDeltaSessions'),
     attribute: AttributeSchema,
-    sessions: z.number().int().min(-1).max(4),
+    sessions: z.number().int().min(-2).max(4),
   }),
   /**
    * A permanent change to the coach the manager pointed at.
@@ -765,6 +778,8 @@ const SINGULAR_EFFECT_TYPES = [
   'morale',
   'squadMorale',
   'injury',
+  'absence',
+  'facilityFire',
   'injuryDelta',
   'statDelta',
   'loyalty',
@@ -929,6 +944,13 @@ export const GameEventSchema = z
           .optional(),
         /** Prose that names a position: the picker offers only that role. */
         requiresPlayerRole: RoleSchema.optional(),
+        /** Prose that admits a small set of positions. */
+        requiresPlayerRoles: z.array(RoleSchema).min(1).optional(),
+        minPlayerAge: z.number().int().min(16).max(45).optional(),
+        maxPlayerAge: z.number().int().min(16).max(45).optional(),
+        minConsecutiveWins: z.number().int().min(1).max(30).optional(),
+        minPlayerDepartures: z.number().int().min(1).max(100).optional(),
+        guaranteed: z.boolean().optional(),
         /** Prose that names one objective squad leader: select and lock that player. */
         autoSelectPlayer: z
           .enum(['FASTEST', 'YOUNGEST', 'MOST_FAMOUS'])
@@ -1013,6 +1035,40 @@ export const GameEventSchema = z
           );
         }
         if (
+          (trigger.requiresPlayerRole !== undefined ||
+            trigger.requiresPlayerRoles !== undefined ||
+            trigger.minPlayerAge !== undefined ||
+            trigger.maxPlayerAge !== undefined) &&
+          trigger.requiresPlayer !== true
+        ) {
+          addIssue(
+            context,
+            ['requiresPlayer'],
+            'player target filters require requiresPlayer',
+          );
+        }
+        if (
+          trigger.requiresPlayerRole !== undefined &&
+          trigger.requiresPlayerRoles !== undefined
+        ) {
+          addIssue(
+            context,
+            ['requiresPlayerRoles'],
+            'requiresPlayerRole and requiresPlayerRoles cannot be combined',
+          );
+        }
+        if (
+          trigger.minPlayerAge !== undefined &&
+          trigger.maxPlayerAge !== undefined &&
+          trigger.minPlayerAge > trigger.maxPlayerAge
+        ) {
+          addIssue(
+            context,
+            ['minPlayerAge'],
+            'event minPlayerAge must not exceed maxPlayerAge',
+          );
+        }
+        if (
           trigger.autoSelectPlayer !== undefined &&
           trigger.requiresPlayer !== true
         ) {
@@ -1057,6 +1113,7 @@ export const GameEventSchema = z
       'playerSale',
       'morale',
       'injury',
+      'absence',
       'injuryDelta',
       'statDelta',
       'statDeltaSessions',

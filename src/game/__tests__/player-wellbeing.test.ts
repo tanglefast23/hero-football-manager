@@ -8,9 +8,12 @@ import {
   type FacilityGridState,
 } from '../facilities';
 import {
+  applyMatchConditionCosts,
   medicalBayRecoveryWeeks,
+  matchConditionCost,
   overtrainingInjuryChancePercent,
   resolveWeeklyPlayerWellbeing,
+  substituteMatchConditionCost,
   weeklyConditionRecovery,
 } from '../player-wellbeing';
 import { trainPlayerInstantly } from '../training';
@@ -92,7 +95,7 @@ describe('weekly player wellbeing', () => {
     const bench = result.players.find((player) => player.id === benchId);
 
     expect(result.matchOutcome).toBe('win');
-    // Drill costs land at tap time now, so settlement is pure +10 recovery.
+    // Match costs land when the match ends; this weekly tick only recovers.
     expect(starter).toMatchObject({
       condition: 60,
       morale: 55,
@@ -104,6 +107,61 @@ describe('weekly player wellbeing', () => {
       consecutiveLowMoraleWeeks: 0,
     });
     expect(JSON.stringify(state)).toBe(before);
+  });
+
+  test('raises match condition cost by two points per division', () => {
+    expect([5, 4, 3, 2, 1].map((division) =>
+      matchConditionCost(division as 1 | 2 | 3 | 4 | 5),
+    )).toEqual([4, 6, 8, 10, 12]);
+    expect([5, 4, 3, 2, 1].map((division) =>
+      substituteMatchConditionCost(division as 1 | 2 | 3 | 4 | 5),
+    )).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  test('charges both clubs in D5: starters full, substitutes half, unused bench zero', () => {
+    const state = career(12);
+    const fixture = state.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === state.userClubId ||
+        candidate.awayClubId === state.userClubId,
+    )!;
+    const participants = (clubId: string) => {
+      const lineup = state.lineups.find((row) => row.clubId === clubId)!;
+      const substitute = state.players.find(
+        (player) =>
+          player.clubId === clubId && !lineup.playerIds.includes(player.id),
+      )!;
+      return [...lineup.playerIds, substitute.id];
+    };
+    const homeParticipants = participants(fixture.homeClubId);
+    const awayParticipants = participants(fixture.awayClubId);
+    const next = applyMatchConditionCosts(
+      state,
+      [fixture],
+      [
+        {
+          fixtureId: fixture.id,
+          homeGoals: 0,
+          awayGoals: 0,
+          homeParticipantPlayerIds: homeParticipants,
+          awayParticipantPlayerIds: awayParticipants,
+        },
+      ],
+    );
+
+    for (const ids of [homeParticipants, awayParticipants]) {
+      expect(next.players.find((player) => player.id === ids[0])?.condition).toBe(
+        96,
+      );
+      expect(
+        next.players.find((player) => player.id === ids[11])?.condition,
+      ).toBe(98);
+      const clubId = next.players.find((player) => player.id === ids[0])!.clubId;
+      const unused = next.players.find(
+        (player) => player.clubId === clubId && !ids.includes(player.id),
+      )!;
+      expect(unused.condition).toBe(100);
+    }
   });
 
   test('speeds weekly condition recovery by 3 per Dorm level, best level only', () => {
@@ -343,16 +401,28 @@ describe('weekly player wellbeing', () => {
     expect(recoveryWeeksAt(building, injuringNonce)).toBe(openWeeks + 1);
   });
 
-  test('leaves opponents unchanged', () => {
-    const state = career(9);
+  test('gives opponents the best Dorm recovery available in their division', () => {
+    let state = career(9);
     const opponent = state.players.find(
       (player) => player.clubId !== state.userClubId,
     )!;
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === opponent.id ? { ...player, condition: 50 } : player,
+      ),
+    };
     const result = resolveWeeklyPlayerWellbeing(state);
 
-    expect(result.players.find((player) => player.id === opponent.id)).toBe(
-      opponent,
-    );
+    expect(
+      result.players.find((player) => player.id === opponent.id)?.condition,
+    ).toBe(63);
+    expect(
+      result.m2?.pyramid.divisions
+        .flatMap((division) => division.clubs)
+        .flatMap((club) => club.squad)
+        .find((player) => player.id === opponent.id)?.condition,
+    ).toBe(63);
   });
 
   test('drains an underpaid star, honors Motivator carry, and raises a transfer request', () => {

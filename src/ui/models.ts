@@ -881,6 +881,22 @@ export interface SponsorSlotViewModel {
   offers: readonly SponsorOfferViewModel[];
 }
 
+export type SponsorWeeklyChallengeKindViewModel =
+  | 'SCORE_THREE'
+  | 'CLEAN_SHEET';
+
+export interface SponsorWeeklyChallengeViewModel {
+  status: 'OFFER' | 'ACTIVE' | 'MET' | 'FAILED';
+  sponsorName: string;
+  fixtureWeek: number;
+  actualBonus: number;
+  targetLabel?: string;
+  options?: readonly {
+    kind: SponsorWeeklyChallengeKindViewModel;
+    targetLabel: string;
+  }[];
+}
+
 export interface ClubSponsorshipViewModel {
   managed: boolean;
   offerWindowOpen: boolean;
@@ -890,6 +906,7 @@ export interface ClubSponsorshipViewModel {
   nextPaymentLabel: string;
   chairmanPercent?: number;
   slots: readonly SponsorSlotViewModel[];
+  weeklyChallenge?: SponsorWeeklyChallengeViewModel;
   buzz?: {
     value: number;
     pendingPayout: number;

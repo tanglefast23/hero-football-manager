@@ -7,60 +7,54 @@
   "events": [
     {
       "id": "meteor-shard-center-circle",
-      "category": "mystery",
+      "category": "player",
       "rarity": "rare",
-      "art": "event-meteor-shard",
-      "title": "A Meteor Shard!",
-      "body": "A warm blue stone is humming in the center circle. The groundskeeper insists it was not there yesterday.",
+      "art": "event-ladder-fortnight",
+      "title": "The Youngster's Trial Abroad",
+      "body": "A partner club has offered one young player a month-long trial abroad.",
       "trigger": {
         "season": 1,
         "minWeek": 9,
-        "maxWeek": 30
+        "maxWeek": 26,
+        "requiresPlayer": true,
+        "maxPlayerAge": 20
       },
       "choices": [
         {
           "id": "display-meteor",
-          "label": "Put it in the trophy case",
-          "risky": true,
+          "label": "Send them for the month",
+          "risky": false,
           "outcomes": [
             {
-              "weight": 40,
+              "weight": 100,
               "id": "success",
-              "successHeadline": "The queue goes round the block",
-              "text": "The shard becomes a glittering local attraction and fans queue around the block.",
+              "text": "They leave for four weeks. The partner club promises focused work on the weakest useful part of their game.",
               "effects": [
                 {
-                  "type": "fans",
-                  "amount": 140
-                },
-                {
-                  "type": "flag",
-                  "flag": "meteor-museum",
-                  "value": true
+                  "type": "absence",
+                  "weeks": 4,
+                  "returnTraining": {
+                    "attribute": "WEAKEST",
+                    "sessions": 2
+                  }
                 }
               ]
-            },
-            {
-              "weight": 60,
-              "id": "setback",
-              "text": "It cools into a perfectly ordinary rock. The trophy cabinet looks embarrassed.",
-              "effects": []
             }
           ]
         },
         {
           "id": "sell-meteor",
-          "label": "Sell it to the university",
+          "label": "Keep them with the first team",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "A delighted geology department pays promptly and promises not to ask about the scorch mark.",
+              "text": "They stay, relieved that their place in the squad will not be interrupted.",
               "effects": [
                 {
-                  "type": "money",
-                  "amount": 1800
+                  "type": "morale",
+                  "amount": 5
                 }
               ]
             }
@@ -70,47 +64,38 @@
     },
     {
       "id": "mysterious-energy-salesman",
-      "category": "mystery",
+      "category": "player",
       "rarity": "rare",
-      "art": "event-energy-salesman",
-      "title": "Mysterious Energy Drink",
-      "body": "A salesman in mirrored glasses offers one unlabelled crate and refuses to blink.",
+      "art": "event-marking",
+      "title": "The Midfielder Learns to Tackle",
+      "body": "A midfielder wants to rebuild their game around winning the ball, even if their passing loses some polish.",
       "trigger": {
         "season": 1,
         "minWeek": 12,
-        "maxWeek": 30
+        "maxWeek": 30,
+        "requiresPlayer": true,
+        "requiresPlayerRole": "MID"
       },
       "choices": [
         {
           "id": "sample-mystery-drink",
-          "label": "Let the squad sample it",
-          "risky": true,
+          "label": "Rebuild them as a ball winner",
+          "risky": false,
           "outcomes": [
             {
-              "weight": 35,
+              "weight": 100,
               "id": "success",
-              "successHeadline": "The cones got alphabetized",
-              "text": "The squad trains at impossible speed and alphabetizes the cones before cooling down.",
+              "text": "They become much stronger in the tackle, while some of their passing rhythm fades.",
               "effects": [
                 {
-                  "type": "tp",
-                  "amount": 21
+                  "type": "statDeltaSessions",
+                  "attribute": "def",
+                  "sessions": 4
                 },
                 {
-                  "type": "flag",
-                  "flag": "mystery-drink-hit",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 65,
-              "id": "setback",
-              "text": "It tastes like warm cucumber. Everyone spends the afternoon burping in unison.",
-              "effects": [
-                {
-                  "type": "squadMorale",
-                  "amount": -4
+                  "type": "statDeltaSessions",
+                  "attribute": "pas",
+                  "sessions": -2
                 }
               ]
             }
@@ -118,17 +103,17 @@
         },
         {
           "id": "decline-mystery-drink",
-          "label": "Ask for proper labels",
+          "label": "Keep their current role",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "The salesman vanishes. One useful cooler remains behind.",
+              "text": "They keep sharpening the game that already earned their place.",
               "effects": [
                 {
-                  "type": "tp",
-                  "amount": 7
+                  "type": "morale",
+                  "amount": 4
                 }
               ]
             }
@@ -138,51 +123,43 @@
     },
     {
       "id": "abandoned-lab-field-trip",
-      "category": "mystery",
+      "category": "player",
       "rarity": "legendary",
-      "art": "event-abandoned-lab",
-      "title": "The Abandoned Lab",
-      "body": "A team-building bus takes a wrong turn and stops outside a laboratory marked DEFINITELY EMPTY.",
+      "art": "event-keeper-retrain",
+      "title": "The Sweeper-Keeper Experiment",
+      "body": "A goalkeeper wants to play higher and start attacks, but changing their game will cost something elsewhere.",
       "trigger": {
         "season": 2,
         "minWeek": 4,
-        "maxWeek": 26
+        "maxWeek": 26,
+        "requiresPlayer": true,
+        "requiresPlayerRole": "GK"
       },
       "choices": [
         {
           "id": "tour-abandoned-lab",
-          "label": "Take the educational tour",
-          "risky": true,
+          "label": "Train the sweeper role",
+          "risky": false,
           "outcomes": [
             {
-              "weight": 30,
+              "weight": 100,
               "id": "success",
-              "successHeadline": "The lab pays a grant",
-              "text": "The motion sensors wake up and award the club a research grant for excellent footwork.",
+              "text": "Their pace and distribution improve, but the new starting position takes a little sharpness from their reflexes.",
               "effects": [
                 {
-                  "type": "money",
-                  "amount": 4200
+                  "type": "statDeltaSessions",
+                  "attribute": "pac",
+                  "sessions": 2
                 },
                 {
-                  "type": "tp",
-                  "amount": 19
+                  "type": "statDeltaSessions",
+                  "attribute": "pas",
+                  "sessions": 2
                 },
                 {
-                  "type": "flag",
-                  "flag": "lab-grant",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 70,
-              "id": "setback",
-              "text": "The only discovery is a vending machine that accepts coins but gives nothing back.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -300
+                  "type": "statDeltaSessions",
+                  "attribute": "ref",
+                  "sessions": -1
                 }
               ]
             }
@@ -190,17 +167,23 @@
         },
         {
           "id": "leave-abandoned-lab",
-          "label": "Stay on the bus",
+          "label": "Protect the goal first",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "The driver finds the training camp. Nobody mentions the moving curtains.",
+              "text": "They sharpen their reflexes and stay closer to goal, at the cost of some passing confidence.",
               "effects": [
                 {
-                  "type": "squadMorale",
-                  "amount": 4
+                  "type": "statDeltaSessions",
+                  "attribute": "ref",
+                  "sessions": 3
+                },
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pas",
+                  "sessions": -1
                 }
               ]
             }
@@ -511,51 +494,45 @@
     },
     {
       "id": "haunted-scoreboard",
-      "category": "mystery",
+      "category": "player",
       "rarity": "legendary",
-      "art": "event-haunted-scoreboard",
-      "title": "The Scoreboard Predicts Tomorrow",
-      "body": "At midnight the scoreboard displays a result for a match that has not happened yet.",
+      "art": "event-sleep-room",
+      "title": "The Veteran's Recovery Plan",
+      "body": "An older player says their body needs a proper reset before the hardest part of the season.",
       "trigger": {
         "season": 2,
         "minWeek": 10,
-        "maxWeek": 28
+        "maxWeek": 28,
+        "requiresPlayer": true,
+        "minPlayerAge": 28
       },
       "choices": [
         {
           "id": "trust-scoreboard",
-          "label": "Train for the predicted match",
+          "label": "Keep them available",
           "risky": true,
           "outcomes": [
             {
-              "weight": 35,
+              "weight": 65,
               "id": "success",
-              "successHeadline": "The preparation looks like magic",
-              "text": "Every predicted moment arrives. The club's preparation looks like magic.",
+              "successHeadline": "The veteran manages the workload",
+              "text": "They stay available and get through the next stretch without a setback.",
               "effects": [
                 {
-                  "type": "tp",
-                  "amount": 23
-                },
-                {
-                  "type": "squadMorale",
-                  "amount": 8
-                },
-                {
                   "type": "flag",
-                  "flag": "scoreboard-prophecy",
+                  "flag": "veteran-managed-workload",
                   "value": true
                 }
               ]
             },
             {
-              "weight": 65,
+              "weight": 35,
               "id": "setback",
-              "text": "The display showed tomorrow's maintenance date, not a score. The training session still gives everyone a useful laugh.",
+              "text": "The warning was real. They break down in training and need three weeks to recover.",
               "effects": [
                 {
-                  "type": "squadMorale",
-                  "amount": 2
+                  "type": "injury",
+                  "weeks": 3
                 }
               ]
             }
@@ -563,17 +540,21 @@
         },
         {
           "id": "unplug-scoreboard",
-          "label": "Unplug it until morning",
+          "label": "Rest them for two weeks",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "It continues glowing for six seconds, then behaves perfectly forever.",
+              "text": "They step away for two weeks and follow a stamina plan before returning to their old place.",
               "effects": [
                 {
-                  "type": "tp",
-                  "amount": 6
+                  "type": "absence",
+                  "weeks": 2,
+                  "returnTraining": {
+                    "attribute": "sta",
+                    "sessions": 2
+                  }
                 }
               ]
             }
@@ -641,7 +622,7 @@
           "outcomes": [
             {
               "weight": 100,
-              "id": "only",
+              "id": "success",
               "text": "You name all eighteen players until the interview time runs out.",
               "effects": [
                 {
@@ -1027,51 +1008,45 @@
     },
     {
       "id": "old-boy-comes-home",
-      "category": "fan",
+      "category": "player",
       "rarity": "rare",
-      "art": "event-old-boot",
-      "title": "A Club Legend Walks In",
-      "body": "A man who played four hundred games here in the seventies is standing in reception holding his own boots.",
+      "art": "event-penalties",
+      "title": "The Set-Piece Specialist",
+      "body": "A midfielder or forward wants extra dead-ball work before the next match.",
       "trigger": {
         "season": 1,
         "minWeek": 7,
-        "maxWeek": 30
+        "maxWeek": 30,
+        "requiresPlayer": true,
+        "requiresPlayerRoles": [
+          "MID",
+          "FWD"
+        ]
       },
       "choices": [
         {
           "id": "legend-takes-a-session",
-          "label": "Ask him to take a session",
-          "risky": true,
+          "label": "Stay late for the full session",
+          "risky": false,
           "outcomes": [
             {
-              "weight": 70,
+              "weight": 100,
               "id": "success",
-              "successHeadline": "One drill, forty years old, still works",
-              "text": "He runs one drill he has sworn by since 1974. It is baffling, exhausting, and by Friday the squad asks for it again.",
+              "text": "Their shooting and technique improve, but the long session leaves them tired before the next match.",
               "effects": [
                 {
-                  "type": "tp",
-                  "amount": 19
+                  "type": "statDeltaSessions",
+                  "attribute": "sho",
+                  "sessions": 2
                 },
                 {
-                  "type": "squadMorale",
-                  "amount": 7
+                  "type": "statDeltaSessions",
+                  "attribute": "tec",
+                  "sessions": 2
                 },
                 {
-                  "type": "flag",
-                  "flag": "old-boy-drill",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 30,
-              "id": "setback",
-              "text": "He mostly tells stories. Excellent stories, and a warm afternoon for everyone.",
-              "effects": [
-                {
-                  "type": "squadMorale",
-                  "amount": 5
+                  "type": "condition",
+                  "amount": -20
                 }
               ]
             }
@@ -1079,17 +1054,89 @@
         },
         {
           "id": "legend-boots-in-cabinet",
-          "label": "Put the boots in the cabinet",
+          "label": "Keep the session short",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "The boots go on the middle shelf. He visits every other Saturday to check on them.",
+              "text": "They add one useful shooting routine without emptying the tank.",
               "effects": [
                 {
-                  "type": "fans",
-                  "amount": 80
+                  "type": "statDeltaSessions",
+                  "attribute": "sho",
+                  "sessions": 1
+                },
+                {
+                  "type": "condition",
+                  "amount": -8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "retaliation-facility-fire",
+      "category": "club",
+      "rarity": "legendary",
+      "art": "event-clipboard-fire",
+      "title": "The Firebreak Decision",
+      "body": "A fire has started in the facility block. Bert suspects someone resented how many teammates the club sent away, but he cannot prove it.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 1,
+        "maxWeek": 30,
+        "minConsecutiveWins": 8,
+        "minPlayerDepartures": 6,
+        "guaranteed": true
+      },
+      "choices": [
+        {
+          "id": "demolish-firebreaks",
+          "label": "Demolish two small buildings as firebreaks",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The crews flatten two small buildings. The empty squares stop the fire crossing into the main complex.",
+              "effects": [
+                {
+                  "type": "facilityFire",
+                  "mode": "TWO_SMALL"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "trace-live-wire",
+          "label": "Let Bert trace the live power line",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 30,
+              "id": "success",
+              "successHeadline": "Bert finds the switch",
+              "text": "Bert follows the sparking cable, flips one forgotten breaker, and saves every building.",
+              "effects": [
+                {
+                  "type": "flag",
+                  "flag": "facility-fire-averted",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 70,
+              "id": "setback",
+              "text": "The overloaded line flashes before Bert reaches the breaker. The club's main facility is lost.",
+              "effects": [
+                {
+                  "type": "facilityFire",
+                  "mode": "PRIMARY"
                 }
               ]
             }

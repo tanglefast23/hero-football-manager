@@ -3057,6 +3057,9 @@ function GameApp() {
       } else if (alertId === 'player-request-waiting') {
         setConciergeFocus('squad-requests');
         store.setActiveTab('squad');
+      } else if (alertId.startsWith('sponsor-sprint-')) {
+        setClubOfficeTab('finances');
+        store.setActiveTab('club');
       } else if (alertId.startsWith('training-cap:')) {
         if (alert?.playerId !== undefined) {
           store.selectPlayer(alert.playerId);
@@ -3441,6 +3444,9 @@ function GameApp() {
                   setConciergeFocus(null);
                 },
               })
+            }
+            onChooseSponsorWeeklyChallenge={(kind) =>
+              store.chooseSponsorWeeklyChallenge(kind)
             }
             guideTrainingGround={
               visibleAssistantObjectiveTarget === 'training-ground-facility'

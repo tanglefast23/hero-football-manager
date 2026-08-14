@@ -183,6 +183,11 @@ is idle. That was the main optimization error in Season 2.
 
 Scout during every useful transfer window.
 
+Each completed mission has a 35% seeded chance to include a player whose role
+rating beats the club's best player in that role, while still respecting the
+chosen region and focus. Track whether this creates real choices in every
+division without guaranteeing a purchase.
+
 Buy only a major Starting XI improvement. Avoid expensive marginal upgrades.
 Repair the weakest unit before adding another star to an already strong unit.
 
@@ -265,6 +270,13 @@ against Garnet. A later switch to `3-4-3 Attack` turned a 0-2 deficit into a
 
 ## Condition strategy
 
+Each start costs 4 / 6 / 8 / 10 / 12 condition in D5 / D4 / D3 / D2 / D1
+before weekly recovery. Substitutes pay half: 2 / 3 / 4 / 5 / 6.
+Unused bench players pay nothing, and a player who appears twice pays twice.
+Computer clubs use the same costs, get division-appropriate Dorm recovery, and
+favor fresher same-role players. Confirm the Dorm helps without erasing the
+higher-division cost, and check whether Save Energy and rotation now matter.
+
 - Avoid training a priority player at 90 condition or below.
 - Rotate a tired starter when the replacement is credible.
 - Preserve condition before Hero Cup weeks.
@@ -309,6 +321,19 @@ Check that each story's player wording matches its selection rule.
 Record every mismatch across the full story catalog, not only the story that
 first revealed the problem.
 
+Check the five lasting stories closely. Trial Abroad must show only players age
+20 or younger, hide without one, keep the chosen player out for four weeks, and
+apply two sessions to their weakest position-relevant attribute on return. The
+midfielder tackling story must give four DEF sessions and remove two PAS. The
+veteran recovery story must use only older players and rest the chosen player
+for two weeks. The keeper and set-piece stories must enforce their role filters.
+
+Once per career, eight consecutive league wins plus six unique player departures
+schedule the facility-fire story one to four seeded weeks later. The due week
+may land in the next season. Check that the safe choice removes the two cheapest
+1x1 facilities. Check that the risky choice either saves everything or removes
+the highest-level Fan Shop, with the documented fallback when none exists.
+
 ## Sponsors
 
 Choose the objective that best fits the squad or creates an affordable strategy
@@ -325,6 +350,12 @@ For the tactical objective design:
 Track whether the selected objective truly changes training, lineup, or live
 tactics. Record it as weak design if normal optimal play completes it without a
 meaningful decision.
+
+From Week 15 onward, Sponsor Desk offers one Sponsor Sprint per season for the
+next league match. Choose either three or more goals or a clean sheet. The offer
+must remain in the inbox until chosen. The accepted target must remain there
+until that exact match settles. Change the formation or energy plan to chase the
+one-match bonus; record it as weak if the choice does not affect strategy.
 
 ## Hero Cup planning
 

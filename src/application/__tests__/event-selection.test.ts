@@ -100,6 +100,114 @@ describe('M4 event selection', () => {
     });
   });
 
+  it('schedules the one-time fire one to four weeks after the threshold', () => {
+    const initial = createCareer(createLaunchCareerSetup(18));
+    let userFixtures = 0;
+    const fixtures = initial.fixtures.map((fixture) => {
+      const userMatch =
+        fixture.homeClubId === initial.userClubId ||
+        fixture.awayClubId === initial.userClubId;
+      if (!userMatch || userFixtures >= 8) return fixture;
+      userFixtures += 1;
+      const atHome = fixture.homeClubId === initial.userClubId;
+      return {
+        ...fixture,
+        status: 'played' as const,
+        score: atHome
+          ? { homeGoals: 2, awayGoals: 0 }
+          : { homeGoals: 0, awayGoals: 2 },
+      };
+    });
+    const grid = {
+      ...createFacilityGrid(),
+      buildings: [
+        {
+          id: 'small-a',
+          type: 'gym' as const,
+          level: 1 as const,
+          capitalInvested: 7_000,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: 'small-b',
+          type: 'dorm' as const,
+          level: 1 as const,
+          capitalInvested: 6_000,
+          x: 1,
+          y: 0,
+        },
+      ],
+    };
+    const ready = {
+      ...initial,
+      phase: 'manage' as const,
+      week: 30,
+      fixtures,
+      releasedPlayerIds: ['released-1', 'released-2', 'released-3'],
+      cashTransactions: [1, 2, 3].map((number) => ({
+        id: `sale-${number}`,
+        season: 1,
+        week: number,
+        kind: 'transfer-sell' as const,
+        label: 'Sold player',
+        amount: 1_000,
+        balanceAfter: 10_000,
+        referenceId: `sold-${number}`,
+      })),
+      facilities: { ...initial.facilities, grid },
+    };
+    const scheduled = eventOfferForWeek(ready, content, { deskClear: true });
+    expect(scheduled.eventId).not.toBe('retaliation-facility-fire');
+    expect(scheduled.eventClock.scheduledEvent).toMatchObject({
+      eventId: 'retaliation-facility-fire',
+      season: 2,
+    });
+    expect(scheduled.eventClock.scheduledEvent?.week).toBeGreaterThanOrEqual(1);
+    expect(scheduled.eventClock.scheduledEvent?.week).toBeLessThanOrEqual(4);
+    const due = scheduled.eventClock.scheduledEvent!;
+    expect(
+      eventOfferForWeek(
+        {
+          ...ready,
+          season: due.season,
+          week: due.week,
+          eventClock: scheduled.eventClock,
+        },
+        content,
+        { deskClear: false },
+      ).eventId,
+    ).toBe('retaliation-facility-fire');
+    const oneFirebreakLeft = {
+      ...ready,
+      season: due.season,
+      week: due.week,
+      eventClock: scheduled.eventClock,
+      facilities: {
+        ...ready.facilities,
+        grid: { ...grid, buildings: grid.buildings.slice(0, 1) },
+      },
+    };
+    expect(
+      eventOfferForWeek(oneFirebreakLeft, content, { deskClear: false })
+        .eventClock.scheduledEvent,
+    ).toBeUndefined();
+    expect(
+      eventOfferForWeek(
+        { ...ready, releasedPlayerIds: ['released-1', 'released-2'] },
+        content,
+        { deskClear: true },
+      ).eventId,
+    ).not.toBe('retaliation-facility-fire');
+    expect(
+      eventOfferForWeek(
+        { ...ready, resolvedEventIds: ['retaliation-facility-fire'] },
+        content,
+        { deskClear: true },
+      ).eventId,
+    ).not.toBe('retaliation-facility-fire');
+  });
+
   it('keeps the random deck off a week that already has something to read', () => {
     const initial = createCareer(createLaunchCareerSetup(99));
     const state = {

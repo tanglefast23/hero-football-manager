@@ -35,6 +35,7 @@ import {
   leaguePrizeMoney,
 } from './promotion-progression';
 import {
+  applyMatchConditionCosts,
   resolveWeeklyPlayerWellbeing,
   type WeeklyMatchOutcome,
 } from './player-wellbeing';
@@ -68,6 +69,7 @@ import {
   allocateSponsorPortfolioPayment,
   expireSponsorOfferWindow,
   settleSponsorObjectivesAtWeek30,
+  settleSponsorWeeklyChallenge,
 } from './sponsors';
 import {
   initializeSeasonYouthIntake,
@@ -353,6 +355,11 @@ export function completeMatchday(
   const resultByFixtureId = new Map(
     results.map((result) => [result.fixtureId, result]),
   );
+  const conditionedState = applyMatchConditionCosts(
+    state,
+    scheduledFixtures,
+    results,
+  );
   const fixtures = state.fixtures.map((fixture) => {
     const result = resultByFixtureId.get(fixture.id);
     if (result === undefined) return fixture;
@@ -395,7 +402,7 @@ export function completeMatchday(
           [pendingImpact.fixtureId, pendingImpact.participantPlayerIds],
         ]);
   const players = resolveCareerMatchFame(
-    state,
+    conditionedState,
     scheduledFixtures,
     resultByFixtureId,
     participantIdsByFixture,
@@ -403,7 +410,7 @@ export function completeMatchday(
 
   const playedLeagueState = bankHatTrickMilestone(
     {
-      ...state,
+      ...conditionedState,
       fixtures,
       players,
       seasonStatLines,
@@ -666,6 +673,46 @@ function settleWeekResults(
     throw new Error(`user club ${state.userClubId} does not exist`);
   }
 
+  const challengeSettlement = settleSponsorWeeklyChallenge(
+    state.clubBusiness.sponsorship,
+    state.fixtures,
+    state.userClubId,
+    state.season,
+    difficultyRules(state).sponsorIncomePercent,
+  );
+  if (challengeSettlement.sponsorship !== state.clubBusiness.sponsorship) {
+    state = {
+      ...state,
+      clubBusiness: {
+        ...state.clubBusiness,
+        sponsorship: challengeSettlement.sponsorship,
+      },
+    };
+  }
+  if (challengeSettlement.payment !== undefined) {
+    suppliedAwards = {
+      awards: [
+        ...suppliedAwards.awards,
+        {
+          line: {
+            kind: 'sponsor',
+            label: `${challengeSettlement.payment.sponsorName} weekly challenge bonus`,
+            labelKey: 'ledger.sponsorWeeklyChallengeBonus',
+            labelParams: {
+              sponsor: challengeSettlement.payment.sponsorName,
+            },
+            amount: challengeSettlement.payment.actualAmount,
+            idempotencyKey:
+              weeklySettlementAwardKeys.sponsorWeeklyChallenge(
+                state.userClubId,
+                state.season,
+              ),
+          },
+        },
+      ],
+    };
+  }
+
   if (
     state.week === SEASON_WEEKS &&
     state.clubBusiness.sponsorship.activeContracts.some(
@@ -740,12 +787,12 @@ function settleWeekResults(
             participantPlayerIds: currentLineup?.playerIds ?? [],
           })),
         ];
-  const weeklyPlayers = resolveWeeklyPlayerWellbeing(
+  const weeklyWellbeing = resolveWeeklyPlayerWellbeing(
     state,
     matchParticipations === undefined
       ? { additionalMatchOutcomes }
       : { matchParticipations },
-  ).players;
+  );
   const actualMonthlySponsorIncome = currentActualMonthlySponsorIncome(
     state,
     userClub,
@@ -759,7 +806,8 @@ function settleWeekResults(
   );
   const trainedState = {
     ...state,
-    players: weeklyPlayers,
+    players: weeklyWellbeing.players,
+    ...(weeklyWellbeing.m2 === undefined ? {} : { m2: weeklyWellbeing.m2 }),
     trainingPoints,
     clubBusiness: {
       ...state.clubBusiness,
@@ -1876,6 +1924,11 @@ function completeNationalCupMatchday(
     throw new Error('the matchday has no scheduled league or Hero Cup fixture');
   }
   validateResults(state, cupMatchday.fixtures, results);
+  const conditionedState = applyMatchConditionCosts(
+    state,
+    cupMatchday.fixtures,
+    results,
+  );
   const hatTrickScorerId = hatTrickScorer(state, cupMatchday.fixtures, results);
   const result = results[0];
   const cupFixture = nationalCupFixtureById(state, cupMatchday.fixture.id);
@@ -1899,7 +1952,7 @@ function completeNationalCupMatchday(
     production === undefined
       ? undefined
       : pendingImpactFromProduction({
-          state,
+          state: conditionedState,
           fixture: cupMatchday.fixture,
           production,
           competition: 'CUP',
@@ -1914,17 +1967,17 @@ function completeNationalCupMatchday(
   const progressed: GameState = queueCupGiantKillingCelebration(
     bankHatTrickMilestone(
       {
-        ...state,
-        m2: resolveNextM2NationalCupRound(state.m2, cupResult),
+        ...conditionedState,
+        m2: resolveNextM2NationalCupRound(conditionedState.m2!, cupResult),
         players: resolveCareerMatchFame(
-          state,
+          conditionedState,
           cupMatchday.fixtures,
           resultByFixtureId,
           participantIdsByFixture,
           new Map([[result.fixtureId, winnerClubId]]),
         ),
         seasonStatLines: recordStatLines(
-          state,
+          conditionedState,
           cupMatchday.fixtures,
           resultByFixtureId,
           'cup',
@@ -1943,7 +1996,7 @@ function completeNationalCupMatchday(
       },
       hatTrickScorerId,
     ),
-    cupGiantKillingCelebration(state, cupFixture, winnerClubId),
+    cupGiantKillingCelebration(conditionedState, cupFixture, winnerClubId),
   );
   const cupOutcome: WeeklyMatchOutcome =
     winnerClubId === state.userClubId ? 'win' : 'loss';

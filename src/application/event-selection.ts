@@ -3,12 +3,16 @@ import { copyFor, formatMoneyForCopy, type CopyFn } from '../i18n';
 import { facilityNameFromId, personalityName } from './name-copy';
 import {
   careerEventPlayerSaleBlocker,
+  careerConsecutiveWins,
+  careerFacilityFireTargets,
+  careerPlayerDepartureCount,
   compareIds,
   deterministicCareerEventRoll,
   currentUserDivision,
   isCareerMilestoneEventId,
   isFacilityOperational,
   rollWeeklyEvent,
+  SEASON_WEEKS,
   type GameState,
 } from '../game';
 import {
@@ -70,11 +74,30 @@ export function eventOfferForWeek(
    * story lane checked. It does not wait behind the normal week-after-story gap
    * or a busy desk, and it never resets the random deck's drought counter.
    */
+  let eventClock = scheduleGuaranteedEvent(state, catalog);
   const milestone = (state.pendingMilestones ?? []).find((entry) =>
     catalog.events.some((event) => event.id === entry.eventId),
   );
   if (milestone !== undefined) {
-    return { eventId: milestone.eventId, eventClock: { ...state.eventClock } };
+    return { eventId: milestone.eventId, eventClock };
+  }
+
+  const scheduled = eventClock.scheduledEvent;
+  const guaranteed = scheduled === undefined
+    ? undefined
+    : catalog.events.find((event) => event.id === scheduled.eventId);
+  if (scheduled !== undefined && careerWeekReached(state, scheduled)) {
+    const { scheduledEvent: _scheduledEvent, ...clearedClock } = eventClock;
+    if (guaranteed !== undefined && eventIsEligible(state, guaranteed, true)) {
+      return {
+        eventId: guaranteed.id,
+        eventClock: { ...clearedClock, weeksWithoutEvent: 0 },
+      };
+    }
+    // A manager can demolish a fire target during the 1-4 week delay. The
+    // consequence is then no longer legal, so do not leave the save carrying
+    // an event that can never fire or be replaced.
+    eventClock = clearedClock;
   }
 
   const hadStoryLastWeek =
@@ -84,14 +107,14 @@ export function eventOfferForWeek(
   if (hadStoryLastWeek) {
     return {
       eventClock: {
-        ...state.eventClock,
+        ...eventClock,
         weeksWithoutEvent: state.eventClock.weeksWithoutEvent + 1,
       },
     };
   }
 
   if (!options.deskClear) {
-    return { eventClock: { ...state.eventClock } };
+    return { eventClock };
   }
 
   const weeklyRoll = deterministicCareerEventRoll(
@@ -100,8 +123,9 @@ export function eventOfferForWeek(
     0,
     100,
   );
-  const weekly = rollWeeklyEvent(state.eventClock, weeklyRoll, catalog.tuning);
-  if (!weekly.offered) return { eventClock: weekly.state };
+  const weekly = rollWeeklyEvent(eventClock, weeklyRoll, catalog.tuning);
+  eventClock = { ...eventClock, ...weekly.state };
+  if (!weekly.offered) return { eventClock };
 
   const carriedOnly = carriedOnlyCareerEventIds(catalog);
   const candidates = catalog.events
@@ -109,6 +133,7 @@ export function eventOfferForWeek(
     // that the club has by definition once earned, so without this they would
     // also sit in the random deck and could be drawn out of queue order.
     .filter((event) => !isCareerMilestoneEventId(event.id))
+    .filter((event) => event.trigger.guaranteed !== true)
     // Authored chapters arrive only from their opener. Letting one sit in the
     // random deck would either re-cast its target or show part two first.
     .filter((event) => !carriedOnly.has(event.id))
@@ -127,7 +152,7 @@ export function eventOfferForWeek(
   if (candidates.length === 0) {
     return {
       eventClock: {
-        ...state.eventClock,
+        ...eventClock,
         weeksWithoutEvent: state.eventClock.weeksWithoutEvent + 1,
       },
     };
@@ -152,8 +177,47 @@ export function eventOfferForWeek(
 
   return {
     eventId: selected.id,
-    eventClock: { ...weekly.state, weeksWithoutEvent: 0 },
+    eventClock: { ...eventClock, weeksWithoutEvent: 0 },
   };
+}
+
+function scheduleGuaranteedEvent(
+  state: GameState,
+  catalog: EventCatalog,
+): GameState['eventClock'] {
+  if (state.eventClock.scheduledEvent !== undefined)
+    return { ...state.eventClock };
+  const event = catalog.events
+    .filter((candidate) => candidate.trigger.guaranteed === true)
+    .filter((candidate) => !state.resolvedEventIds.includes(candidate.id))
+    .filter((candidate) => eventIsEligible(state, candidate))
+    .sort((left, right) => compareIds(left.id, right.id))[0];
+  if (event === undefined) return { ...state.eventClock };
+  const delay = deterministicCareerEventRoll(
+    eventRollContext(state),
+    `${event.id}:delay`,
+    0,
+    4,
+  ) + 1;
+  const absoluteWeek = state.week + delay - 1;
+  return {
+    ...state.eventClock,
+    scheduledEvent: {
+      eventId: event.id,
+      season: state.season + Math.floor(absoluteWeek / SEASON_WEEKS),
+      week: (absoluteWeek % SEASON_WEEKS) + 1,
+    },
+  };
+}
+
+function careerWeekReached(
+  state: Pick<GameState, 'season' | 'week'>,
+  target: { season: number; week: number },
+): boolean {
+  return (
+    state.season > target.season ||
+    (state.season === target.season && state.week >= target.week)
+  );
 }
 
 /**
@@ -172,11 +236,19 @@ export function reconcilePendingStoryEvent(
 export function eventIsEligible(
   state: GameState,
   event: EventCatalog['events'][number],
+  ignoreAchievementThresholds = false,
 ): boolean {
   const trigger = event.trigger;
   // Authored season is the first eligible season. Unseen one-shot stories stay
   // in the deck in later years instead of silently expiring after Year 1/2.
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  const fireModes = event.choices.flatMap((choice) =>
+    choice.outcomes.flatMap((outcome) =>
+      outcome.effects.flatMap((effect) =>
+        effect.type === 'facilityFire' ? [effect.mode] : [],
+      ),
+    ),
+  );
   return (
     state.season >= trigger.season &&
     state.week >= trigger.minWeek &&
@@ -185,6 +257,15 @@ export function eventIsEligible(
       state.eventFlags.includes(trigger.requiredFlag)) &&
     (trigger.minDivision === undefined || division >= trigger.minDivision) &&
     (trigger.maxDivision === undefined || division <= trigger.maxDivision) &&
+    (ignoreAchievementThresholds || trigger.minConsecutiveWins === undefined ||
+      careerConsecutiveWins(state) >= trigger.minConsecutiveWins) &&
+    (ignoreAchievementThresholds || trigger.minPlayerDepartures === undefined ||
+      careerPlayerDepartureCount(state) >= trigger.minPlayerDepartures) &&
+    fireModes.every(
+      (mode) =>
+        careerFacilityFireTargets(state, mode).length ===
+        (mode === 'TWO_SMALL' ? 2 : 1),
+    ) &&
     careerEventHasLegalTarget(state, event) &&
     requirementsMet(state, trigger) &&
     event.choices.some(

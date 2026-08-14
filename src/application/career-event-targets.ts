@@ -41,6 +41,13 @@ export function careerEventTargetPlayers(
     (player) =>
       (event.trigger.requiresPlayerRole === undefined ||
         player.role === event.trigger.requiresPlayerRole) &&
+      (event.trigger.requiresPlayerRoles === undefined ||
+        event.trigger.requiresPlayerRoles.includes(player.role)) &&
+      (event.trigger.minPlayerAge === undefined ||
+        (player.age ?? 0) >= event.trigger.minPlayerAge) &&
+      (event.trigger.maxPlayerAge === undefined ||
+        (player.age ?? Number.MAX_SAFE_INTEGER) <=
+          event.trigger.maxPlayerAge) &&
       // A story that stands the hero opposite the chosen player cannot be
       // handed the hero as that player. Only these stories opt in, so every
       // other card still offers the whole squad.

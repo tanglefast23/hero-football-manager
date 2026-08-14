@@ -1,4 +1,5 @@
 import { recordCashTransaction } from './cash-transactions';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { careerDifficulty } from './difficulty';
 import {
   chooseWeightedOutcome,
@@ -738,16 +739,29 @@ export function advancePlayerRequests(
   state: GameState,
   openRequests: boolean,
 ): GameState {
+  const players = state.players.map((player) => {
+    if ((player.awayWeeks ?? 0) <= 0) return player;
+    const awayWeeks = player.awayWeeks! - 1;
+    if (awayWeeks > 0 || player.returnTraining === undefined) {
+      return { ...player, awayWeeks };
+    }
+    const { returnTraining: completed, ...returned } = player;
+    return {
+      ...returned,
+      awayWeeks,
+      attrs: {
+        ...player.attrs,
+        [completed.attribute]: Math.min(
+          MAX_PLAYER_ATTRIBUTE,
+          player.attrs[completed.attribute] + completed.points,
+        ),
+      },
+    };
+  });
   const catalog = state.playerRequestRules;
-  if (catalog === undefined) return state;
+  if (catalog === undefined) return { ...state, players };
   const requests = state.playerRequests ?? DEFAULT_PLAYER_REQUEST_STATE;
   const tuning = catalog.tuning;
-
-  const players = state.players.map((player) =>
-    (player.awayWeeks ?? 0) > 0
-      ? { ...player, awayWeeks: player.awayWeeks! - 1 }
-      : player,
-  );
   let next: GameState = cancelPendingPlayerRequestIfInvalid({
     ...state,
     players,
@@ -820,6 +834,19 @@ export function advancePlayerRequests(
     lineupSurvivesAbsence: (player: CareerPlayer) =>
       lineupSurvivesLeave(stateAtDraw, player),
   };
+  const requestAskerPool = (request: PlayerRequestDefinition) =>
+    eligibleAskers(roster, {
+      ...base,
+      absence: request.cost.kind === 'ABSENCE',
+    }).filter(
+      (player) =>
+        !next.playerRequests!.history.some(
+          (entry) =>
+            entry.season === next.season &&
+            entry.playerId === player.id &&
+            entry.requestId === request.id,
+        ),
+    );
   const drawn =
     catalog.requests[
       deterministicCareerEventRoll(
@@ -833,15 +860,13 @@ export function advancePlayerRequests(
   // or the calendar cannot collect what the draw costs, fall back to a request
   // the club can be charged for rather than swallowing a roll that has already
   // succeeded, which would read as the game forgetting about you.
-  const drawnPool = eligibleAskers(roster, {
-    ...base,
-    absence: drawn.cost.kind === 'ABSENCE',
-  });
+  const drawnPool = requestAskerPool(drawn);
   // The fallback pool applies the same collectability test, so a week with no
   // match ahead of it cannot swap a free absence for an equally free night out.
   const fallbacks = catalog.requests.filter(
     (request) =>
       request.cost.kind !== 'ABSENCE' &&
+      requestAskerPool(request).length > 0 &&
       costIsCollectable(next, request.cost, tuning.answerWeeks, difficulty),
   );
   const definition =
@@ -858,10 +883,7 @@ export function advancePlayerRequests(
         ];
   if (definition === undefined) return next;
 
-  const pool = eligibleAskers(roster, {
-    ...base,
-    absence: definition.cost.kind === 'ABSENCE',
-  });
+  const pool = requestAskerPool(definition);
   const totalWeight = totalAskerWeight(
     pool,
     qualifiers,

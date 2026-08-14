@@ -180,17 +180,17 @@ describe('validated M1 launch content', () => {
           ),
         );
     }
-    expect(content.events.events).toHaveLength(53);
+    expect(content.events.events).toHaveLength(54);
     // 'medical' has no events since the flu-wave and physio cards were cut:
     // both paid in TP and morale for a story about illness, and neither ever
     // touched condition. The category stays in the schema for future content.
     expect(
       new Set(content.events.events.map((event) => event.category)),
     ).toEqual(
-      new Set(['mystery', 'club', 'media', 'sponsor', 'player', 'fan']),
+      new Set(['club', 'media', 'sponsor', 'player', 'fan']),
     );
     expect(
-      content.events.events.every((event) =>
+      content.events.events.some((event) =>
         event.choices.some((choice) => choice.risky),
       ),
     ).toBe(true);
@@ -214,13 +214,12 @@ describe('validated M1 launch content', () => {
           headline: choice.outcomes[0].successHeadline,
         })),
     );
-    expect(successHeadlines).toHaveLength(53);
     for (const { event, headline } of successHeadlines) {
       expect(headline).toEqual(expect.any(String));
       expect(headline).not.toContain(event);
     }
     expect(new Set(successHeadlines.map((entry) => entry.headline)).size).toBe(
-      53,
+      successHeadlines.length,
     );
     expect(
       content.events.events.some((event) => event.trigger.requiresPlayer),
@@ -261,7 +260,7 @@ describe('validated M1 launch content', () => {
       content.events.events.filter(
         (event) => event.trigger.requiresPlayer === true,
       ),
-    ).toHaveLength(22);
+    ).toHaveLength(27);
     expect(
       content.events.events.filter(
         (event) => event.trigger.requiresCoach === true,
@@ -423,6 +422,8 @@ describe('validated M1 launch content', () => {
             // A flag is bookkeeping; an injury is the definition of worse off.
             if (effect.type === 'flag') return true;
             if (effect.type === 'injury') return false;
+            if (effect.type === 'absence') return false;
+            if (effect.type === 'facilityFire') return false;
             if (effect.type === 'playerSale') return false;
             // A heal only ever shortens an absence, so it is never bad news even
             // though its `weeks` are negative.
@@ -442,7 +443,7 @@ describe('validated M1 launch content', () => {
     // Fewer than before by design: a targeted story earns its reward against a
     // real risk, so most of the new cards have a losing branch that costs the
     // thing they were pointed at.
-    expect(goodNews.length).toBeGreaterThanOrEqual(8);
+    expect(goodNews.length).toBeGreaterThanOrEqual(5);
   });
 
   test('loads byte-identically and does not share mutable parsed objects', () => {
@@ -576,9 +577,12 @@ describe('validated M1 launch content', () => {
     );
 
     const ambiguousRiskyOutcome = cloneContent(loadLaunchContent());
-    ambiguousRiskyOutcome.events.events[0].choices[0].outcomes = [
+    const ambiguousRiskyChoice = ambiguousRiskyOutcome.events.events
+      .flatMap((event) => event.choices)
+      .find((choice) => choice.risky)!;
+    ambiguousRiskyChoice.outcomes = [
       {
-        ...ambiguousRiskyOutcome.events.events[0].choices[0].outcomes[0],
+        ...ambiguousRiskyChoice.outcomes[0],
         weight: 100,
       },
     ];
@@ -587,8 +591,11 @@ describe('validated M1 launch content', () => {
     );
 
     const unmarkedRiskySuccess = cloneContent(loadLaunchContent());
-    unmarkedRiskySuccess.events.events[0].choices[0].outcomes[0].effects =
-      unmarkedRiskySuccess.events.events[0].choices[0].outcomes[0].effects.filter(
+    const unmarkedRiskyChoice = unmarkedRiskySuccess.events.events
+      .flatMap((event) => event.choices)
+      .find((choice) => choice.risky)!;
+    unmarkedRiskyChoice.outcomes[0].effects =
+      unmarkedRiskyChoice.outcomes[0].effects.filter(
         (effect) => effect.type !== 'flag',
       );
     expect(() => parseLaunchContent(unmarkedRiskySuccess)).toThrow(

@@ -7,7 +7,12 @@ import { recordCashTransaction } from './cash-transactions';
 import { recordFanGain } from './fan-growth';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
 import { COACH_BOOST_CAPS, type CoachSpecialty } from './market';
-import { FACILITY_BOOST_CAPS, isFacilityOperational } from './facilities';
+import {
+  FACILITY_BOOST_CAPS,
+  FACILITY_CATALOG,
+  isFacilityOperational,
+  type PlacedFacility,
+} from './facilities';
 import { FAME_CEILING, type DivisionLevel } from './pyramid';
 import { currentUserDivision } from './m2-career';
 import { isAvailableForSelection } from './lineup';
@@ -32,6 +37,105 @@ export function careerEventCashLoss(
   return loss;
 }
 
+export type CareerFacilityFireMode = 'TWO_SMALL' | 'PRIMARY';
+
+/** Buildings a one-time retaliation fire would destroy for the chosen response. */
+export function careerFacilityFireTargets(
+  state: GameState,
+  mode: CareerFacilityFireMode,
+): PlacedFacility[] {
+  const grid = state.facilities.grid;
+  if (grid === undefined) return [];
+  const candidates = grid.buildings.filter(
+    (building) =>
+      building.type !== 'coaching-office' &&
+      grid.construction?.buildingId !== building.id,
+  );
+  if (mode === 'TWO_SMALL') {
+    return candidates
+      .filter(({ type }) => {
+        const footprint = FACILITY_CATALOG[type].footprint;
+        return footprint.width === 1 && footprint.height === 1;
+      })
+      .sort(
+        (left, right) =>
+          left.capitalInvested - right.capitalInvested ||
+          compareIds(left.id, right.id),
+      )
+      .slice(0, 2);
+  }
+  const fanShops = candidates.filter(
+    (building) => building.type === 'fan-shop',
+  );
+  const pool = fanShops.length > 0 ? fanShops : candidates;
+  return pool
+    .sort((left, right) => {
+      const leftFootprint = FACILITY_CATALOG[left.type].footprint;
+      const rightFootprint = FACILITY_CATALOG[right.type].footprint;
+      const leftArea = leftFootprint.width * leftFootprint.height;
+      const rightArea = rightFootprint.width * rightFootprint.height;
+      return fanShops.length > 0
+        ? right.level - left.level ||
+            right.capitalInvested - left.capitalInvested ||
+            compareIds(left.id, right.id)
+        : rightArea - leftArea ||
+            right.capitalInvested - left.capitalInvested ||
+            compareIds(left.id, right.id);
+    })
+    .slice(0, 1);
+}
+
+/** Destroys facilities without a demolition refund. */
+export function applyCareerFacilityFire(
+  state: GameState,
+  mode: CareerFacilityFireMode,
+): GameState {
+  const targets = careerFacilityFireTargets(state, mode);
+  if (targets.length !== (mode === 'TWO_SMALL' ? 2 : 1)) {
+    throw new Error('the facility fire has no valid loss target');
+  }
+  const lost = new Set(targets.map((building) => building.id));
+  const grid = state.facilities.grid!;
+  const buildings = grid.buildings.filter((building) => !lost.has(building.id));
+  return {
+    ...state,
+    facilities: {
+      ...state.facilities,
+      trainingGroundBuilt: buildings.some(
+        (building) => building.type === 'training-pitch',
+      ),
+      grid: { ...grid, buildings },
+    },
+  };
+}
+
+/** Current league winning streak, ending at the most recent played match. */
+export function careerConsecutiveWins(state: GameState): number {
+  const results = userLeagueResults(state).filter(
+    (result) => result.season === state.season,
+  );
+  let wins = 0;
+  for (let index = results.length - 1; index >= 0; index -= 1) {
+    const result = results[index];
+    if (result === undefined || result.goalsFor <= result.goalsAgainst) break;
+    wins += 1;
+  }
+  return wins;
+}
+
+/** Unique players sold or released by the manager across this career. */
+export function careerPlayerDepartureCount(state: GameState): number {
+  return new Set([
+    ...(state.releasedPlayerIds ?? []),
+    ...(state.cashTransactions ?? []).flatMap((transaction) =>
+      transaction.kind === 'transfer-sell' &&
+      transaction.referenceId !== undefined
+        ? [transaction.referenceId]
+        : [],
+    ),
+  ]).size;
+}
+
 interface CareerEventPlayerEffect {
   playerId: string;
   moraleDelta?: number;
@@ -39,9 +143,12 @@ interface CareerEventPlayerEffect {
   injuryWeeks?: number;
   /** A heal, in negative weeks. The only way an event can shorten an absence. */
   injuryWeeksDelta?: number;
+  awayWeeks?: number;
+  returnTraining?: { attribute: keyof Attrs; points: number };
   attribute?: keyof Attrs;
   /** Already resolved to points — sessions are converted before they get here. */
   attributeDelta?: number;
+  attributeDeltas?: Partial<Record<keyof Attrs, number>>;
   loyaltyDelta?: number;
   conditionDelta?: number;
   fameDelta?: number;
@@ -950,6 +1057,10 @@ function applyPlayerEffect(
       'event injury weeks',
     ),
   );
+  const awaySetback = safeDelta(effect.awayWeeks ?? 0, 'event away weeks');
+  if (awaySetback < 0)
+    throw new Error('event away weeks cannot be negative');
+  const awayWeeks = Math.max(player.awayWeeks ?? 0, awaySetback);
 
   const loyaltyDelta = safeDelta(effect.loyaltyDelta ?? 0, 'event loyalty');
   const conditionDelta = safeDelta(
@@ -964,6 +1075,18 @@ function applyPlayerEffect(
       Math.min(100, safeAdd(candidate.morale, moraleDelta, 'event morale')),
     );
     const attrs = { ...candidate.attrs };
+    for (const [attribute, rawDelta] of Object.entries(
+      effect.attributeDeltas ?? {},
+    ) as [keyof Attrs, number][]) {
+      const delta = safeDelta(rawDelta, 'event attribute');
+      attrs[attribute] = Math.max(
+        1,
+        Math.min(
+          MAX_PLAYER_ATTRIBUTE,
+          safeAdd(attrs[attribute], delta, 'event attribute'),
+        ),
+      );
+    }
     if (effect.attribute !== undefined) {
       const delta = safeDelta(effect.attributeDelta ?? 0, 'event attribute');
       attrs[effect.attribute] = Math.max(
@@ -981,6 +1104,18 @@ function applyPlayerEffect(
       attrs,
       morale,
       injuryWeeks,
+      ...(effect.awayWeeks === undefined ? {} : { awayWeeks }),
+      ...(effect.returnTraining === undefined
+        ? {}
+        : {
+            returnTraining: {
+              attribute: effect.returnTraining.attribute,
+              points: safeDelta(
+                effect.returnTraining.points,
+                'event return training',
+              ),
+            },
+          }),
       // Loyalty is absent until something moves it, and absent means "the value
       // derived from the career seed" rather than zero. `playerLoyalty` is the
       // only honest way to read it; a raw `?? 0` would silently demote every

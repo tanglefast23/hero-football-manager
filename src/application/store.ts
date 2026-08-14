@@ -52,6 +52,7 @@ import {
   listCareerPlayer,
   acceptCareerTransferBid,
   acceptSponsorOffer as acceptCareerSponsorOffer,
+  acceptSponsorWeeklyChallenge as acceptCareerSponsorWeeklyChallenge,
   allocateSponsorPortfolioPayment,
   difficultyRules,
   hasAssistantGuideMilestone,
@@ -100,6 +101,7 @@ import {
   type ManagerMatchPreferences,
   type NationalCupRoundLabel,
   type RivalHeroIntroHeroId,
+  type SponsorWeeklyChallengeKind,
 } from '../game';
 import type { PlayerRequestResolution } from '../game/types';
 import type { ContractOffer, PitchCard } from '../game/market';
@@ -585,6 +587,7 @@ interface M1Store {
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
   acceptSponsorOffer: (offerId: string) => void;
+  chooseSponsorWeeklyChallenge: (kind: SponsorWeeklyChallengeKind) => void;
   /** Passing undefined clears the selection — sorting the register deselects. */
   selectPlayer: (playerId: string | undefined) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
@@ -2586,6 +2589,33 @@ export const useM1Store = create<M1Store>((set, get) => ({
                         actual: formatIntegerForCopy(t, actualSigned),
                       }),
               },
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  chooseSponsorWeeklyChallenge(kind) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const sponsorship = acceptCareerSponsorWeeklyChallenge(
+        career.clubBusiness.sponsorship,
+        career.fixtures,
+        career.userClubId,
+        career.season,
+        career.week,
+        kind,
+      );
+      const next = {
+        ...career,
+        clubBusiness: { ...career.clubBusiness, sponsorship },
+      };
+      set({
+        career: next,
+        error: null,
+        notice: {
+          tone: 'success',
+          message: t('store.sponsorSprintAccepted'),
+        },
       });
       queueCareerSave(get, set, next);
     });

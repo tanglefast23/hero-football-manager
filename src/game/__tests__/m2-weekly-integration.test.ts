@@ -459,7 +459,12 @@ describe('M2 weekly sidecars', () => {
       ...state,
       players: state.players.map((player) =>
         player.id === starterId || player.id === benchId
-          ? { ...player, morale: 50, consecutiveLowMoraleWeeks: 0 }
+          ? {
+              ...player,
+              condition: 80,
+              morale: 50,
+              consecutiveLowMoraleWeeks: 0,
+            }
           : player,
       ),
     };
@@ -485,6 +490,13 @@ describe('M2 weekly sidecars', () => {
     expect(
       settled.players.find((player) => player.id === benchId)?.morale,
     ).toBe(52);
+    // One D5 start costs 4 before the normal 10-point weekly recovery.
+    expect(
+      settled.players.find((player) => player.id === starterId)?.condition,
+    ).toBe(86);
+    expect(
+      settled.players.find((player) => player.id === benchId)?.condition,
+    ).toBe(90);
   });
 
   test('benches a starter the moment an exhausted drill injures them', () => {

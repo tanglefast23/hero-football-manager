@@ -110,6 +110,24 @@ export interface SponsorshipState {
   readonly offers: SponsorOfferSnapshot[];
   readonly portfolioSeason: number;
   readonly offerSeason?: number;
+  readonly weeklyChallenge?: SponsorWeeklyChallenge;
+}
+
+export type SponsorWeeklyChallengeKind = 'SCORE_THREE' | 'CLEAN_SHEET';
+
+export interface SponsorWeeklyChallenge {
+  readonly id: string;
+  readonly kind: SponsorWeeklyChallengeKind;
+  readonly sponsorName: string;
+  readonly season: number;
+  readonly chosenWeek: number;
+  readonly fixtureId: string;
+  readonly fixtureWeek: number;
+  readonly nominalBonus: number;
+  readonly outcome?: {
+    readonly met: boolean;
+    readonly actualBonus: number;
+  };
 }
 
 export type UserMatchCompetition = 'LEAGUE' | 'CUP';
