@@ -133,6 +133,7 @@ export function CupMismatchWarningReel({
         onSwapStartingPlayer={() => {}}
         onWatchMatch={() => {}}
         onQuickResult={() => {}}
+        onCycleFormation={() => {}}
         onOpenSettings={() => {}}
       />
       {visible ? (

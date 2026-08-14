@@ -25,4 +25,16 @@ describe('first player request tutorial', () => {
     );
     expect(guide).not.toContainSource('state.week >= requestTuning.startWeek');
   });
+
+  it('routes a later Home reminder to the actionable Requests page', () => {
+    const app = source('App.tsx');
+
+    expect(app).toContainSource("alertId === 'player-request-waiting'");
+    expect(app).toMatchSource(
+      /alertId === 'player-request-waiting'[\s\S]*?setConciergeFocus\('squad-requests'\)[\s\S]*?store\.setActiveTab\('squad'\)/,
+    );
+    expect(app).toMatchSource(
+      /initialSquadTab=\{[\s\S]*?conciergeFocus === 'squad-requests'[\s\S]*?\? 'requests' : 'drills'[\s\S]*?\}/,
+    );
+  });
 });

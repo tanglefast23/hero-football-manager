@@ -17,10 +17,11 @@ describe('facilityBenefit', () => {
     expect(gym).toMatch(/pace/);
     expect(gym).toMatch(/stamina/);
     // Previously pinned "Level 2+", from the era when a level-1 facility gave
-    // exactly x1.0 and the copy had to admit it. Level 1 is now +25%, so the
+    // exactly x1.0 and the copy had to admit it. Level 1 is now +10%, so the
     // guarantee is that the line quotes a real per-level figure.
     expect(gym).toMatch(/Level 1/);
-    expect(gym).toMatch(/%/);
+    expect(gym).toContain('+10%');
+    expect(gym).toContain('+30%');
   });
 
   it('never tells the player a facility does nothing', () => {

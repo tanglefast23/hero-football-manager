@@ -18,43 +18,44 @@
     "STEADY": {
       "monthlyPercent": 105,
       "objectiveLevel": "EASY",
-      "bonusPercent": 25,
-      "bonusPercentByObjective": { "LEAGUE_GOALS": 27 }
+      "bonusPercent": 25
     },
     "BALANCED": {
       "monthlyPercent": 100,
       "objectiveLevel": "NORMAL",
-      "bonusPercent": 100,
-      "bonusPercentByObjective": { "LEAGUE_WINS": 85, "LEAGUE_FINISH": 110 }
+      "bonusPercent": 100
     },
     "BOLD": {
       "monthlyPercent": 99,
       "objectiveLevel": "HARD",
       "bonusPercent": 650,
-      "bonusPercentByObjective": { "LEAGUE_FINISH": 280 }
+      "bonusPercentByObjective": {
+        "LEAGUE_CLEAN_SHEETS": 165,
+        "LEAGUE_AWAY_POINTS": 450
+      }
     }
   },
   "objectives": [
     {
-      "id": "league-wins",
-      "kind": "LEAGUE_WINS",
-      "labelTemplate": "Win {target} league matches",
-      "targets": { "EASY": 5, "NORMAL": 8, "HARD": 12 },
-      "chairmanDelta": 2
+      "id": "iron-wall",
+      "kind": "LEAGUE_CLEAN_SHEETS",
+      "labelTemplate": "Keep {target} league clean sheets",
+      "targets": { "EASY": 3, "NORMAL": 5, "HARD": 7 },
+      "chairmanDelta": 1
     },
     {
-      "id": "league-goals",
-      "kind": "LEAGUE_GOALS",
-      "labelTemplate": "Score {target} league goals",
-      "targets": { "EASY": 18, "NORMAL": 26, "HARD": 36 },
-      "chairmanDelta": 4
+      "id": "goal-rush",
+      "kind": "LEAGUE_THREE_GOAL_GAMES",
+      "labelTemplate": "Score 3+ goals in {target} league matches",
+      "targets": { "EASY": 3, "NORMAL": 5, "HARD": 7 },
+      "chairmanDelta": 1
     },
     {
-      "id": "league-finish",
-      "kind": "LEAGUE_FINISH",
-      "labelTemplate": "Finish in the league's top {target}",
-      "targets": { "EASY": 7, "NORMAL": 4, "HARD": 2 },
-      "chairmanDelta": -1
+      "id": "road-warriors",
+      "kind": "LEAGUE_AWAY_POINTS",
+      "labelTemplate": "Earn {target} league points away",
+      "targets": { "EASY": 6, "NORMAL": 11, "HARD": 17 },
+      "chairmanDelta": 1
     }
   ]
 }

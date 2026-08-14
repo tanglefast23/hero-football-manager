@@ -9,8 +9,11 @@ import {
   currentUserDivision,
   expireSponsorOfferWindow,
   generateSponsorOffers,
+  CUP_SETTLEMENT_WEEKS,
+  leagueWeekForRound,
   potentialTierForDivision,
   scaledTrainingPoints,
+  SEASON_WEEKS,
 } from '../game';
 import {
   assignDistinctPlayerLooks,
@@ -48,6 +51,99 @@ const PLAYER_PERSONALITIES: readonly PlayerPersonality[] = [
 const SPECIAL_HERO_BY_ID = new Map(
   SPECIAL_HERO_ROSTER.map((hero) => [hero.id, hero] as const),
 );
+
+const CUP_CALENDAR_MIGRATION_FLAG =
+  'migration:cup-calendar:10-14-18-22-26-29';
+
+/**
+ * Moves only unplayed league rounds around the new Cup calendar.
+ *
+ * Played fixtures keep their historical week and result. Remaining rounds use
+ * the closest legal future week while preserving their order, so a save opened
+ * on an old double-header never strands an unplayed fixture in the past.
+ */
+function reconcileCupCalendar(state: GameState): GameState {
+  if (
+    state.m2 === undefined ||
+    state.eventFlags.includes(CUP_CALENDAR_MIGRATION_FLAG)
+  ) {
+    return state;
+  }
+  const currentFixtures = state.fixtures.filter(
+    (fixture) => fixture.season === state.season,
+  );
+  const stale = currentFixtures.some(
+    (fixture) =>
+      fixture.week !== leagueWeekForRound(fixture.round, fixture.season),
+  );
+  if (!stale) {
+    return {
+      ...state,
+      eventFlags: [...state.eventFlags, CUP_CALENDAR_MIGRATION_FLAG],
+    };
+  }
+
+  const scheduledRounds = [
+    ...new Set(
+      currentFixtures
+        .filter((fixture) => fixture.status === 'scheduled')
+        .map((fixture) => fixture.round),
+    ),
+  ].sort((left, right) => left - right);
+  const occupiedWeeks = new Set(
+    currentFixtures
+      .filter((fixture) => fixture.status === 'played')
+      .map((fixture) => fixture.week),
+  );
+  const availableWeeks = Array.from(
+    { length: SEASON_WEEKS - state.week + 1 },
+    (_, index) => state.week + index,
+  ).filter(
+    (week) =>
+      !occupiedWeeks.has(week) &&
+      !CUP_SETTLEMENT_WEEKS.includes(
+        week as (typeof CUP_SETTLEMENT_WEEKS)[number],
+      ),
+  );
+  if (availableWeeks.length < scheduledRounds.length) return state;
+
+  const weekByRound = new Map<number, number>();
+  let minimumIndex = 0;
+  for (let index = 0; index < scheduledRounds.length; index += 1) {
+    const round = scheduledRounds[index];
+    const desired = leagueWeekForRound(round, state.season);
+    const maximumIndex =
+      availableWeeks.length - (scheduledRounds.length - index);
+    let selectedIndex = minimumIndex;
+    for (
+      let candidate = minimumIndex;
+      candidate <= maximumIndex;
+      candidate += 1
+    ) {
+      if (
+        Math.abs(availableWeeks[candidate] - desired) <
+        Math.abs(availableWeeks[selectedIndex] - desired)
+      ) {
+        selectedIndex = candidate;
+      }
+    }
+    weekByRound.set(round, availableWeeks[selectedIndex]);
+    minimumIndex = selectedIndex + 1;
+  }
+
+  return {
+    ...state,
+    fixtures: state.fixtures.map((fixture) => {
+      if (fixture.season !== state.season || fixture.status === 'played')
+        return fixture;
+      const week = weekByRound.get(fixture.round);
+      return week === undefined || week === fixture.week
+        ? fixture
+        : { ...fixture, week };
+    }),
+    eventFlags: [...state.eventFlags, CUP_CALENDAR_MIGRATION_FLAG],
+  };
+}
 
 /** Produces a fresh uint32 seed without importing nondeterminism into the sim. */
 export function generateCareerSeed(now = Date.now()): number {
@@ -270,6 +366,7 @@ export function reconcileLaunchRoster(
   state: GameState,
   content: LaunchContent = loadLaunchContent(),
 ): GameState {
+  state = reconcileCupCalendar(state);
   const savedAwakening = (
     state as Omit<GameState, 'awakening'> & {
       awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & {
@@ -344,6 +441,15 @@ export function reconcileLaunchRoster(
       state.trainingRules.focusDrills,
       launch.trainingRules.focusDrills,
     );
+  const stalePlayerRequestRules =
+    state.playerRequestRules !== undefined &&
+    state.playerRequests?.pending === undefined &&
+    JSON.stringify(state.playerRequestRules) !==
+      JSON.stringify(content.playerRequests);
+  const staleSponsorRules =
+    state.sponsorRules !== undefined &&
+    launch.sponsorRules !== undefined &&
+    JSON.stringify(state.sponsorRules) !== JSON.stringify(launch.sponsorRules);
   let changed =
     state.launchRosterVersion !== LAUNCH_ROSTER_VERSION ||
     missing.length > 0 ||
@@ -352,7 +458,9 @@ export function reconcileLaunchRoster(
     needsPlayerWageReduction ||
     needsCoachWageReduction ||
     state.playerRequestRules === undefined ||
+    stalePlayerRequestRules ||
     state.sponsorRules === undefined ||
+    staleSponsorRules ||
     savedAwakening === undefined ||
     savedAwakening.usedTriggerIds === undefined ||
     state.facilities.grid === undefined;
@@ -496,14 +604,15 @@ export function reconcileLaunchRoster(
     // Careers saved before requests existed have no baked catalog, and without
     // one the tab would stay empty forever. Reconciliation supplies it the same
     // way it supplies training rules.
-    ...(state.playerRequestRules === undefined
+    ...(state.playerRequestRules === undefined || stalePlayerRequestRules
       ? {
           playerRequestRules: JSON.parse(
             JSON.stringify(content.playerRequests),
           ),
         }
       : {}),
-    ...(state.sponsorRules === undefined && launch.sponsorRules !== undefined
+    ...((state.sponsorRules === undefined || staleSponsorRules) &&
+    launch.sponsorRules !== undefined
       ? { sponsorRules: launch.sponsorRules }
       : {}),
     clubs: state.clubs.map((club) => ({

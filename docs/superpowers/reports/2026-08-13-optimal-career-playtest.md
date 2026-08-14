@@ -58,27 +58,44 @@ transfers, contracts, and match tactics.
 
 - Cup draws can show a loss without a visible tiebreak. A separate implementation
   handoff now covers the penalty-shootout presentation.
-- The selected live formation does not persist into the next match.
-- Quick Result does not expose a starting-formation choice.
-- The saved XI selected a weaker player over Eli until manually corrected.
-- The first transfer can still begin before the inbox teaches negotiation. A
-  signed transfer no longer leaves a stale tutorial, but a just-in-time lesson
-  should eventually replace the inbox timing.
-- An in-progress save kept its old league schedule after the Cup-week update.
-  Week 10 first played Thunder Borough in the league, then loaded the Hero Cup
-  Play-in against Harbour Wanderers. The financial report paid both home gates.
-  New Cup weeks need an explicit saved-career schedule migration.
-- Home inbox cards become stale. The 17-player full-roster card remained after
-  the squad fell to 15. The transfer-window-open card remained after Week 18.
-- Signing Ari Stone at a 15-player roster showed “the squad is now full,” even
-  though the 17-player cap still had two spaces.
-- Tapping a pending request from Home said it was resolved from the season
-  review. The same request remained actionable under Squad > Requests.
-- Shooting Range and Keeper Court cards and receipts say +10% training. Their
-  placement helper says +25% at Level 1 and up to +100% at Level 3.
-- The Week 8 upgrade lesson can select the already-Level-2 Training Pitch. The
-  tutorial then points at a D2-locked Level 3 button instead of an upgrade the
-  player can buy.
+
+## Implemented in the 2026-08-14 findings pass
+
+- Live formation choices now become the next match's opening formation.
+- Match Day exposes a starting-formation button for Quick Result. The built-in
+  browser verified the visible `4-4-2 ▸` control and its accessible label.
+- Automatic saved-XI repair now chooses the strongest legal same-role reserve.
+  Manual lineup choices remain untouched.
+- The first successful transfer approach now opens the negotiation lesson
+  immediately.
+- Existing careers move only unplayed league rounds around Cup Weeks 10, 14,
+  18, 22, 26, and 29. Played results and their historical weeks stay intact.
+- Roster-cap and transfer-list inbox cards now reconcile with the current
+  roster, transfer window, and scouting state.
+- Transfer completion says the squad is full only at the real roster cap.
+- A pending request opened from Home now routes to Squad > Requests.
+- Training facility helper copy now uses the real +10% per Level, up to +30%.
+- The Week 8 facility lesson skips upgrades blocked by a division lock.
+- Money-only player requests now cost absence, condition, or reduced drills.
+  Reduced-drill costs last at least two weeks, so answering after training cannot
+  erase the whole cost before the next training week.
+  Existing open requests keep their snapshotted cost until settled.
+- New sponsor offers use Iron Wall, Goal Rush, or Road Warriors. Existing
+  contracts keep their snapshotted legacy objective and remain settleable.
+
+The sponsor approval gate passed two independent 3,000-seed cohorts, starting
+at Seeds 0 and 40,000. Goal Rush's higher Bold bonus is measured compensation
+for its lower completion rate, not an unchecked fallback.
+
+Opus 5 reviewed the full uncommitted pass. Its one-week drill-cost and Advisor
+mode request-routing findings were confirmed and fixed. The calendar collector
+test now uses a reachable pre-season state, and whitespace-pinned source checks
+were loosened. Its Goal Rush payout warning was rejected because both measured
+approval cohorts passed the profile-spread and dominance gates.
+
+Automated checks cover these paths. The Match Day formation control also passed
+local built-in-browser QA. The saved-career migration and multi-week request and
+sponsor behavior still need confirmation after deployment in the same career.
 
 ## Balance watchlist
 
@@ -142,16 +159,16 @@ transfers, contracts, and match tactics.
 
 - The commercial upgrade nerf works. Three Level 2 Fan Shops now return about
   $3,400-$4,340 per week. That roughly covers wages, staff, and most upkeep.
-- Separate Level 1 Stadium Stands remain the exploit. Three stands produce a
-  400% total gate. D4 home gates regularly paid about $18,500-$22,000.
+- Three Level 1 Stadium Stands produced a 400% total gate. D4 home gates
+  regularly paid about $18,500-$22,000.
 - Week 10's saved-career doubleheader paid two home gates and created a false
   $41,253 weekly surplus. Exclude that week from normal economy tuning.
 - Even after a $69,041 transfer, four new training facilities, a Scout Office,
   a Youth Field, one drill upgrade, scouting, and three granted favors, closing
   cash reached $109,632. Season cash change was +$65,659.
-- Cap Stadium Stands at two. Keep the new upgrade scaling and the current Fan
-  Shop values. The shop economy is close to healthy; the third full-strength
-  stand is the remaining money printer.
+- Keep all three Stadium Stands available. The optimized club used all three
+  and still finished fourth. The missed opportunity was leaving late cash
+  unspent instead of continuously upgrading performance facilities.
 - One construction crew was a useful limiter. It kept the facility build order
   meaningful even after cash stopped being scarce.
 
@@ -160,10 +177,14 @@ transfers, contracts, and match tactics.
 - In D4, Team Trip spent 44 TP and gave all 15 players +2 to all seven stored
   attributes. That is 210 raw attribute points before caps.
 - The -10 condition cost left everyone at 90, which was still safe and recovered
-  quickly. Taking the trip was automatic, not a hard choice.
-- Keep the visible condition cost, but make the reward +1 per stat in every
-  division. Division scaling makes the already-efficient team-wide reward grow
-  faster than focused drills.
+  quickly. Taking the trip was strong, but the boost helped the squad stay
+  competitive after promotion to D4.
+- Keep the division-scaled reward: +1 in D5, +2 in D4, through +5 in D1. Keep
+  the visible -10 condition cost. Do not flatten the reward unless later
+  division playtests show that it makes promotion too easy.
+- Spending banked TP before Week 19 is an intentional optimization, not an
+  exploit. The trip is a fun power spike, its growth is spread across every
+  player and stat, and many recipients will later leave the club.
 
 ### Player favors
 
@@ -176,7 +197,9 @@ transfers, contracts, and match tactics.
 - The first three favors were easy yes decisions once gate money snowballed.
   The call-up was the first favor that genuinely disrupted the optimal plan.
 - Requests appeared exactly every seven weeks: 5, 12, 19, and 26. Vary the
-  interval slightly so the system feels like people, not a timer.
+  interval slightly so the system feels like people, not a timer. Code review
+  confirmed the cadence already varies from a seeded probability curve; this
+  career's exact seven-week rhythm was a coincidence, so no tuning changed.
 - More good requests should trade availability, condition, a promise, or a
   sponsor goal. Cash-only favors stop mattering once the third stand pays out.
 
@@ -198,17 +221,26 @@ defender, and change live tactics.
 
 The main balance problems are narrower:
 
-1. Three full-strength Stadium Stands remove financial pressure.
-2. D4 Team Trip is overwhelmingly efficient at +2 to every stored attribute.
-3. Rival scorelines and league goal differences are too extreme.
-4. Most cash favors become automatic yes decisions.
-5. The 14-win sponsor target records success but does not shape how success is
+1. Rival scorelines and league goal differences are too extreme.
+2. Most cash favors become automatic yes decisions.
+3. The 14-win sponsor target records success but does not shape how success is
    pursued.
 
-The best next balance pass is small: cap Stadium Stands at two, flatten Team Trip
-to +1, and narrow D4 opponent scoring extremes. Do not weaken the player's whole
-team. The fourth-place finish shows the overall difficulty is already doing its
-job.
+The best next balance pass is small: narrow D4 opponent scoring extremes and
+make favors and sponsors alter the optimal plan. Keep all three Stadium Stands
+and Team Trip's promotion catch-up boost. Do not weaken the player's whole team.
+The fourth-place finish shows the overall difficulty is already doing its job.
+
+The D4 scoreline concern was measured before changing the match engine. A
+20-match-per-cell probe produced 3.73 goals and 17.5% draws in D4 peer matches,
+and 3.60 goals with 25% draws in D4 mismatch matches. D5 mismatches were more
+extreme at 5.20 goals and no draws. The single played D4 season was an outlier,
+not evidence that average D4 opponents need a buff. No D4 engine tuning changed.
+
+The intended pace is one season for an expert in some early divisions, about
+two seasons per division for a casual player, and up to three seasons for the
+final D1 plus Hero Cup challenge. Difficulty should rise gradually rather than
+making three seasons normal before D1.
 
 ## Season 2 counter-pressure test
 

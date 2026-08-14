@@ -16,6 +16,7 @@ import {
   absenceWeeksFor,
   advancePlayerRequests,
   canAffordRequest,
+  costIsCollectable,
   drillMultiplierPercent,
   eligibleAskers,
   pickAsker,
@@ -30,7 +31,12 @@ import {
   totalAskerWeight,
   weightForPlayer,
 } from '../player-requests';
-import { SEASON_WEEKS, type CareerPlayer, type GameState } from '../types';
+import {
+  SEASON_WEEKS,
+  type CareerPlayer,
+  type GameState,
+  type PlayerRequestCatalog,
+} from '../types';
 
 /**
  * Tests may read content; production `src/game/*` may not. Every entry point
@@ -38,6 +44,16 @@ import { SEASON_WEEKS, type CareerPlayer, type GameState } from '../types';
  * tests that touches the loader.
  */
 const CATALOG = loadLaunchContent().playerRequests;
+const LEGACY_MONEY_CATALOG: PlayerRequestCatalog = {
+  ...CATALOG,
+  requests: CATALOG.requests.map((request) =>
+    request.id === 'gold-boots'
+      ? { ...request, cost: { kind: 'MONEY_PLAYER', wageMultiple: 4 } }
+      : request.id === 'the-car'
+        ? { ...request, cost: { kind: 'MONEY_PLAYER', wageMultiple: 12 } }
+        : request,
+  ),
+};
 
 function player(
   overrides: Partial<CareerPlayer> & { id: string },
@@ -449,7 +465,10 @@ describe('resolutionDeltas', () => {
  * active one), so bumping `state.season` alone produces a state the codec
  * rightly refuses for a reason that has nothing to do with requests.
  */
-function requestFixture(requestId: string): GameState {
+function requestFixture(
+  requestId: string,
+  catalog: PlayerRequestCatalog = CATALOG,
+): GameState {
   const base = createCareer(createLaunchCareerSetup(20260801));
   const roster = base.players.filter(
     (player) => player.clubId === base.userClubId,
@@ -458,7 +477,7 @@ function requestFixture(requestId: string): GameState {
   const club = base.clubs.find(
     (candidate) => candidate.id === base.userClubId,
   )!;
-  const definition = requestDefinition(CATALOG, requestId);
+  const definition = requestDefinition(catalog, requestId);
   const costAmount = requestMoneyCost(definition.cost, {
     playerWeeklyWage: asker.weeklyWage,
     squadWeeklyWageBill: club.weeklyWages,
@@ -492,9 +511,9 @@ const cashOf = (state: GameState) =>
 
 describe('resolvePlayerRequest', () => {
   it('grants a money request, charging cash and lifting loyalty and morale', () => {
-    const state = requestFixture('gold-boots');
+    const state = requestFixture('gold-boots', LEGACY_MONEY_CATALOG);
     const cost = state.playerRequests!.pending!.costAmount!;
-    const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
+    const next = resolvePlayerRequest(state, LEGACY_MONEY_CATALOG, 'GRANTED');
     const asker = next.players.find((p) => p.id === askerOf(state))!;
     const before = state.players.find((p) => p.id === askerOf(state))!;
 
@@ -510,8 +529,8 @@ describe('resolvePlayerRequest', () => {
   });
 
   it('records the spend as a player-request cash transaction', () => {
-    const state = requestFixture('gold-boots');
-    const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
+    const state = requestFixture('gold-boots', LEGACY_MONEY_CATALOG);
+    const next = resolvePlayerRequest(state, LEGACY_MONEY_CATALOG, 'GRANTED');
     const entry = (next.cashTransactions ?? []).at(-1)!;
 
     // recordCashTransaction stamps balanceAfter from the club's current cash and
@@ -702,7 +721,7 @@ describe('resolvePlayerRequest', () => {
   });
 
   it('refuses to grant what the club cannot pay for', () => {
-    const state = requestFixture('the-car');
+    const state = requestFixture('the-car', LEGACY_MONEY_CATALOG);
     const broke: GameState = {
       ...state,
       clubs: state.clubs.map((c) =>
@@ -710,10 +729,12 @@ describe('resolvePlayerRequest', () => {
       ),
     };
 
-    expect(() => resolvePlayerRequest(broke, CATALOG, 'GRANTED')).toThrow(
-      'cannot afford',
-    );
-    expect(() => resolvePlayerRequest(broke, CATALOG, 'REFUSED')).not.toThrow();
+    expect(() =>
+      resolvePlayerRequest(broke, LEGACY_MONEY_CATALOG, 'GRANTED'),
+    ).toThrow('cannot afford');
+    expect(() =>
+      resolvePlayerRequest(broke, LEGACY_MONEY_CATALOG, 'REFUSED'),
+    ).not.toThrow();
   });
 
   it('throws when there is nothing pending', () => {
@@ -741,7 +762,7 @@ describe('resolvePlayerRequest', () => {
 
 describe('canAffordRequest', () => {
   it('is false when the club cannot pay in full', () => {
-    const state = requestFixture('the-car');
+    const state = requestFixture('the-car', LEGACY_MONEY_CATALOG);
     const broke: GameState = {
       ...state,
       clubs: state.clubs.map((c) =>
@@ -971,27 +992,45 @@ describe('advancePlayerRequests', () => {
   });
 
   it('never offers a cost the calendar cannot collect', () => {
-    // Week 30 is past the last league round and past every cup week, so leave
-    // and a squad condition hit both cost exactly nothing. A request still
-    // opens — the roll succeeded — but it has to be one the club can be
-    // charged for.
-    const empty: GameState = {
+    // Season 3 Week 1 is a real fixture-free stretch before league play starts.
+    // A request still opens, but it must be one the calendar can charge for.
+    const preseason: GameState = {
       ...atSeason(tickingCareer(), 3),
-      week: 30,
+      week: 1,
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
         weeksSinceRequest: 40,
       },
     };
-    const pending = advancePlayerRequests(empty, true).playerRequests?.pending;
+    const pending = advancePlayerRequests(preseason, true).playerRequests
+      ?.pending;
 
     expect(pending).toBeDefined();
-    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind).not.toBe(
-      'ABSENCE',
-    );
-    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind).not.toBe(
-      'CONDITION_SQUAD',
-    );
+    const cost = requestDefinition(CATALOG, pending!.requestId).cost;
+    expect(
+      costIsCollectable(
+        preseason,
+        cost,
+        CATALOG.tuning.answerWeeks,
+        careerDifficulty(preseason),
+      ),
+    ).toBe(true);
+    expect(
+      costIsCollectable(
+        preseason,
+        { kind: 'ABSENCE', weeks: 1 },
+        2,
+        'CHAIRMAN',
+      ),
+    ).toBe(false);
+    expect(
+      costIsCollectable(
+        preseason,
+        { kind: 'CONDITION_SQUAD', amount: 6 },
+        2,
+        'CHAIRMAN',
+      ),
+    ).toBe(false);
   });
 
   it('still offers leave in a week with football ahead of it', () => {

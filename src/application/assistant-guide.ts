@@ -588,6 +588,24 @@ export function reconcileSatisfiedAssistantGuideSequences(
     // had asked for anything. It will queue again with the first real request.
     premature.push('player-requests');
   }
+  const rosterFull =
+    next.players.filter((player) => player.clubId === next.userClubId).length >=
+    careerRosterCapacity(next);
+  const scoutingUnlocked =
+    !isStoryFeaturePacingActive(next) ||
+    isStoryScoutingUnlocked(next) ||
+    next.market?.activeScoutMission !== undefined ||
+    (next.market?.scoutReports.length ?? 0) > 0;
+  if (!scoutingUnlocked || !isTransferWindowOpen(next.week)) {
+    if (!hasAssistantGuideSequenceCompleted(next, 'roster-cap'))
+      premature.push('roster-cap');
+    if (!hasAssistantGuideSequenceCompleted(next, 'transfer-list'))
+      premature.push('transfer-list');
+  } else if (isStoryFeaturePacingActive(next)) {
+    const staleSequence = rosterFull ? 'transfer-list' : 'roster-cap';
+    if (!hasAssistantGuideSequenceCompleted(next, staleSequence))
+      premature.push(staleSequence);
+  }
   if (!isStoryFeaturePacingActive(next)) {
     return deferAssistantGuideSequencesUntilUnlock(next, premature);
   }

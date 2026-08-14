@@ -59,6 +59,7 @@ export {
   createPreferencesRepository,
   availableFormationIds,
   DEFAULT_APP_PREFERENCES,
+  rememberInitialFormation,
   replaceFormationPreset,
   SQUAD_SORT_KEYS,
   type AppPreferences,

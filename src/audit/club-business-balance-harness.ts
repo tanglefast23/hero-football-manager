@@ -629,7 +629,14 @@ function validateScenario(scenario: ClubBusinessBalanceScenario): void {
     scenario.profileObjectiveBonusPercent ?? {},
   )) {
     if (
-      !['LEAGUE_WINS', 'LEAGUE_GOALS', 'LEAGUE_FINISH'].includes(kind) ||
+      ![
+        'LEAGUE_WINS',
+        'LEAGUE_GOALS',
+        'LEAGUE_FINISH',
+        'LEAGUE_CLEAN_SHEETS',
+        'LEAGUE_THREE_GOAL_GAMES',
+        'LEAGUE_AWAY_POINTS',
+      ].includes(kind) ||
       !Number.isSafeInteger(percent) ||
       percent < 0 ||
       percent > 1_000

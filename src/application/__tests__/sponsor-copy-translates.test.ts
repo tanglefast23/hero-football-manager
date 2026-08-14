@@ -5,6 +5,7 @@ import {
   createSeasonSponsorship,
   type GameState,
   type SponsorContractSnapshot,
+  type SponsorObjectiveKind,
   type SponsorshipState,
 } from '../../game';
 import { copyFor, loadCatalog } from '../../i18n';
@@ -160,7 +161,7 @@ describe('the sponsor desk reads in the player s language', () => {
     )!;
 
     expect(contract.objective?.labelKey).toBe(
-      'sponsor.objective.league-wins.label',
+      'sponsor.objective.iron-wall.label',
     );
     expect(contract.objective?.labelParams).toEqual({
       target: contract.objective!.target,
@@ -170,7 +171,7 @@ describe('the sponsor desk reads in the player s language', () => {
       (candidate) => !candidate.provisional,
     )!;
     expect(slot.objectiveLabel).toBe(
-      german('sponsor.objective.league-wins.label').replace(
+      german('sponsor.objective.iron-wall.label').replace(
         '{target}',
         String(contract.objective!.target),
       ),
@@ -218,7 +219,7 @@ describe('what a save written before any of this still shows', () => {
         (candidate) => !candidate.provisional,
       )!.objective!.label;
     expect(old.objectiveLabel).toBe(englishInTheSave);
-    expect(old.objectiveLabel).toMatch(/^Win \d+ league match/);
+    expect(old.objectiveLabel).toMatch(/^Keep \d+ league clean sheet/);
     // The pairing that makes the assertion above mean something: the same save
     // WITH the key reads German, so the fallback is a fallback and not the only
     // thing this view model has ever done.
@@ -258,7 +259,7 @@ describe('what a save written before any of this still shows', () => {
 
 /** The objective family ids in `content/sponsors.json`, by the kind they carry. */
 function objectiveIdOf(
-  kind: 'LEAGUE_WINS' | 'LEAGUE_GOALS' | 'LEAGUE_FINISH',
+  kind: SponsorObjectiveKind,
 ): string {
   const definition = content.sponsors.objectives.find(
     (candidate) => candidate.kind === kind,
@@ -272,7 +273,7 @@ function objectiveIdOf(
 
 function signFirstOffer(state: GameState): GameState {
   const offer = state.clubBusiness.sponsorship.offers.find(
-    (candidate) => candidate.objective.kind === 'LEAGUE_WINS',
+    (candidate) => candidate.objective.kind === 'LEAGUE_CLEAN_SHEETS',
   )!;
   return withSponsorship(
     state,

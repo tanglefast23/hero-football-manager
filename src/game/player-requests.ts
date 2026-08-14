@@ -383,7 +383,7 @@ function hasUserMatchThrough(
  * the last possible moment still runs `absenceWeeks` from there, and a
  * condition hit taken then still meets that week's match.
  */
-function costIsCollectable(
+export function costIsCollectable(
   state: Pick<GameState, 'fixtures' | 'm2' | 'season' | 'userClubId' | 'week'>,
   cost: PlayerRequestCost,
   answerWeeks: number,

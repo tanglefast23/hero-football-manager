@@ -618,6 +618,49 @@ describe('assistant guide application flow', () => {
     ).toBe(true);
   });
 
+  test('retires transfer cards when the window or roster state changes', () => {
+    const full = {
+      ...createCareer(createLaunchCareerSetup(2_006)),
+      week: 17,
+    };
+    const queued = (state: GameState): GameState => ({
+      ...state,
+      eventFlags: [
+        ...state.eventFlags,
+        'guide:bert:inbox:queued:roster-cap',
+        'guide:bert:inbox:queued:transfer-list',
+      ],
+    });
+
+    const fullWindow = reconcileSatisfiedAssistantGuideSequences(queued(full));
+    expect(fullWindow.eventFlags).toContain(
+      'guide:bert:inbox:queued:roster-cap',
+    );
+    expect(fullWindow.eventFlags).not.toContain(
+      'guide:bert:inbox:queued:transfer-list',
+    );
+
+    const openRoster = reconcileSatisfiedAssistantGuideSequences(
+      queued(withOneRosterSpace(full)),
+    );
+    expect(openRoster.eventFlags).not.toContain(
+      'guide:bert:inbox:queued:roster-cap',
+    );
+    expect(openRoster.eventFlags).toContain(
+      'guide:bert:inbox:queued:transfer-list',
+    );
+
+    const closedWindow = reconcileSatisfiedAssistantGuideSequences(
+      queued({ ...full, week: 19 }),
+    );
+    expect(closedWindow.eventFlags).not.toEqual(
+      expect.arrayContaining([
+        'guide:bert:inbox:queued:roster-cap',
+        'guide:bert:inbox:queued:transfer-list',
+      ]),
+    );
+  });
+
   test('strips an upgrade lesson a story-season save was already handed', () => {
     let state = createCareer(createLaunchCareerSetup(938));
     state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;

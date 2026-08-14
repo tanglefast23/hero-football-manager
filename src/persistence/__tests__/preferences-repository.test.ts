@@ -3,6 +3,7 @@ import {
   createPreferencesRepository,
   DEFAULT_APP_PREFERENCES,
   replaceFormationPreset,
+  rememberInitialFormation,
   type AppPreferences,
 } from '../preferences-repository';
 import { FakePersistenceDatabase } from './fake-database';
@@ -225,6 +226,16 @@ describe('app preferences repository', () => {
     const next = replaceFormationPreset(DEFAULT_APP_PREFERENCES, 0);
     expect(next.formationPresets).toEqual(['5-3-2', '3-4-3', '4-4-2']);
     expect(new Set(next.formationPresets).size).toBe(3);
+  });
+
+  it('remembers the last live formation as the next opening shape', () => {
+    const remembered = rememberInitialFormation(
+      DEFAULT_APP_PREFERENCES,
+      '3-4-3',
+    );
+
+    expect(remembered.formationPresets).toEqual(['3-4-3', '4-4-2', '5-3-2']);
+    expect(rememberInitialFormation(remembered, '3-4-3')).toBe(remembered);
   });
 
   it('does not offer coach-gated formations before a coach teaches them', () => {

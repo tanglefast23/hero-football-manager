@@ -606,12 +606,18 @@ const sponsorObjectiveKindSchema = z.enum([
   'LEAGUE_WINS',
   'LEAGUE_GOALS',
   'LEAGUE_FINISH',
+  'LEAGUE_CLEAN_SHEETS',
+  'LEAGUE_THREE_GOAL_GAMES',
+  'LEAGUE_AWAY_POINTS',
 ]);
 const sponsorSlotSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
 const sponsorBonusPercentByObjectiveSchema = z.strictObject({
   LEAGUE_WINS: nonnegativeInteger.optional(),
   LEAGUE_GOALS: nonnegativeInteger.optional(),
   LEAGUE_FINISH: nonnegativeInteger.optional(),
+  LEAGUE_CLEAN_SHEETS: nonnegativeInteger.optional(),
+  LEAGUE_THREE_GOAL_GAMES: nonnegativeInteger.optional(),
+  LEAGUE_AWAY_POINTS: nonnegativeInteger.optional(),
 });
 
 const sponsorRulesSchema = z.strictObject({

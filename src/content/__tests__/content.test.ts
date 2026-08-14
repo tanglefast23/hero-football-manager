@@ -133,7 +133,11 @@ describe('validated M1 launch content', () => {
     ]);
     expect(
       content.sponsors.objectives.map((objective) => objective.kind),
-    ).toEqual(['LEAGUE_WINS', 'LEAGUE_GOALS', 'LEAGUE_FINISH']);
+    ).toEqual([
+      'LEAGUE_CLEAN_SHEETS',
+      'LEAGUE_THREE_GOAL_GAMES',
+      'LEAGUE_AWAY_POINTS',
+    ]);
     const drillPaths = new Map<string, number[]>();
     for (const drill of content.training.focusDrills) {
       expect(Object.keys(drill.gains)).toHaveLength(1);

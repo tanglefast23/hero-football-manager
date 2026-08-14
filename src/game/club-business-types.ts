@@ -1,7 +1,12 @@
 export type SponsorProfileId = 'STEADY' | 'BALANCED' | 'BOLD';
 type SponsorObjectiveLevel = 'EASY' | 'NORMAL' | 'HARD';
 export type SponsorObjectiveKind =
-  'LEAGUE_WINS' | 'LEAGUE_GOALS' | 'LEAGUE_FINISH';
+  | 'LEAGUE_WINS'
+  | 'LEAGUE_GOALS'
+  | 'LEAGUE_FINISH'
+  | 'LEAGUE_CLEAN_SHEETS'
+  | 'LEAGUE_THREE_GOAL_GAMES'
+  | 'LEAGUE_AWAY_POINTS';
 
 interface SponsorBrandDefinition {
   readonly id: string;

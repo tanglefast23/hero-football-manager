@@ -102,6 +102,10 @@ import {
 } from '../game';
 import type { PlayerRequestResolution } from '../game/types';
 import type { ContractOffer, PitchCard } from '../game/market';
+import {
+  careerRosterCapacity,
+  userCareerRosterCount,
+} from '../game/youth-intake';
 import type {
   CareerBackupSummary,
   CareerRepository,
@@ -3117,7 +3121,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
           error: null,
           notice: {
             tone: 'success',
-            message: t('store.transferCompleteSquadFull'),
+            message:
+              userCareerRosterCount(next) >= careerRosterCapacity(next)
+                ? t('store.transferCompleteSquadFull')
+                : t('playerSigning.transferComplete'),
           },
         });
         queueCareerSave(get, set, next);

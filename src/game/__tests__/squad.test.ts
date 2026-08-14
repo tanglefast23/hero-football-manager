@@ -232,6 +232,57 @@ describe('career squad integration', () => {
     ).toThrow('injured and unavailable');
   });
 
+  it('repairs an unavailable starter with the strongest legal same-role reserve', () => {
+    const initial = career();
+    const injuredId = `${CLUB_IDS[0]}-p9`;
+    const weakReserveId = `${CLUB_IDS[0]}-p12`;
+    const strongReserveId = `${CLUB_IDS[0]}-p13`;
+    const strongReserve = {
+      ...makePlayer(CLUB_IDS[0], 13),
+      attrs: {
+        pac: 80,
+        sho: 80,
+        pas: 80,
+        def: 80,
+        tec: 80,
+        sta: 80,
+        ref: 80,
+      },
+    };
+    const unavailable = {
+      ...initial,
+      players: [
+        ...initial.players.map((player) =>
+          player.id === injuredId
+            ? { ...player, injuryWeeks: 2 }
+            : player.id === weakReserveId
+              ? {
+                  ...player,
+                  attrs: {
+                    pac: 20,
+                    sho: 20,
+                    pas: 20,
+                    def: 20,
+                    tec: 20,
+                    sta: 20,
+                    ref: 20,
+                  },
+                }
+              : player,
+        ),
+        strongReserve,
+      ],
+    };
+
+    const repaired = repairCareerLineupForInjuries(unavailable);
+    const lineup = repaired.lineups.find(
+      (candidate) => candidate.clubId === repaired.userClubId,
+    )!;
+
+    expect(lineup.playerIds).toContain(strongReserveId);
+    expect(lineup.playerIds).not.toContain(weakReserveId);
+  });
+
   it('applies the low-morale penalty at the sim boundary and never rewards high morale', () => {
     const playerId = `${CLUB_IDS[0]}-p0`;
     const withMorale = (state: GameState, morale: number): GameState => ({

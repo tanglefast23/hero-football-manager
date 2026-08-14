@@ -51,6 +51,23 @@ function withPending(
   };
 }
 
+function withLegacyMoneyCost(state: GameState, requestId: string): GameState {
+  return {
+    ...state,
+    playerRequestRules: {
+      ...CATALOG,
+      requests: CATALOG.requests.map((request) =>
+        request.id === requestId
+          ? {
+              ...request,
+              cost: { kind: 'MONEY_PLAYER' as const, wageMultiple: 4 },
+            }
+          : request,
+      ),
+    },
+  };
+}
+
 describe('playerRequestViewModel', () => {
   it('is unavailable before the start season, so the tab row never renders', () => {
     // Season 1 is the whole of the gate now: the tab opens in season 2 week 1,
@@ -102,14 +119,20 @@ describe('playerRequestViewModel', () => {
 
   it('prints a money cost from the snapshot the request was opened with', () => {
     const model = playerRequestViewModel(
-      withPending(atStartWeek(career()), 'gold-boots', 4200),
+      withLegacyMoneyCost(
+        withPending(atStartWeek(career()), 'gold-boots', 4200),
+        'gold-boots',
+      ),
     );
 
     expect(model.pending!.grantLabel).toBe('-4,200');
   });
 
   it('disables granting when the club cannot pay', () => {
-    const state = withPending(atStartWeek(career()), 'the-car', 500_000);
+    const state = withLegacyMoneyCost(
+      withPending(atStartWeek(career()), 'the-car', 500_000),
+      'the-car',
+    );
     const broke: GameState = {
       ...state,
       clubs: state.clubs.map((club) =>
