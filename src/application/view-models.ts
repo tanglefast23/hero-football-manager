@@ -1485,7 +1485,11 @@ function facilityGridViewModel(
             )
           : undefined;
       const upgradeBlockedReason =
-        blocked === undefined ? undefined : resolveRingCopy(t, blocked);
+        building.type === 'coaching-office' && building.level < 3
+          ? t('facilityError.coachingOfficeUpgrade')
+          : blocked === undefined
+            ? undefined
+            : resolveRingCopy(t, blocked);
       // The rung as data. The screen used to read it back out of the sentence
       // with `/D[1-5]/`, which only worked while every translation kept an
       // English-authored token.

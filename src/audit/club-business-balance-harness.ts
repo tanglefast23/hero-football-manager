@@ -45,7 +45,7 @@ const SEASON = 3;
 const SEASON_WEEKS = 30;
 
 /** Exact schema-3 to current Level-2/3 uplift across every non-office facility. */
-export const CLUB_BUSINESS_FACILITY_UPGRADE_UPLIFT = 442_500;
+export const CLUB_BUSINESS_FACILITY_UPGRADE_UPLIFT = 670_000;
 
 export interface ClubBusinessBalanceScenario {
   readonly seed: number;

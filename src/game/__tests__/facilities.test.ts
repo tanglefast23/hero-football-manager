@@ -81,17 +81,17 @@ describe('facility catalog and grid', () => {
           .map(([type, entry]) => [type, entry.upgradeCosts]),
       ),
     ).toEqual({
-      'training-pitch': [20_000, 40_000],
-      gym: [18_000, 36_000],
-      'tech-center': [22_000, 44_000],
-      'shooting-range': [20_000, 40_000],
-      'keeper-court': [20_000, 40_000],
-      'medical-bay': [25_000, 50_000],
-      dorm: [15_000, 35_000],
-      'scout-office': [15_000, 35_000],
-      'youth-field': [25_000, 50_000],
-      'fan-shop': [15_000, 35_000],
-      'stadium-stand': [25_000, 50_000],
+      'training-pitch': [20_000, 60_000],
+      gym: [18_000, 54_000],
+      'tech-center': [22_000, 66_000],
+      'shooting-range': [20_000, 60_000],
+      'keeper-court': [20_000, 60_000],
+      'medical-bay': [25_000, 75_000],
+      dorm: [15_000, 52_500],
+      'scout-office': [15_000, 52_500],
+      'youth-field': [25_000, 75_000],
+      'fan-shop': [15_000, 52_500],
+      'stadium-stand': [25_000, 75_000],
     });
   });
 
@@ -242,16 +242,16 @@ describe('facility upgrades and upkeep', () => {
       'facility-1',
       levelTwoProject.cashAfter,
     );
-    expect(levelThreeProject.grid.buildings[0].capitalInvested).toBe(61_000);
+    expect(levelThreeProject.grid.buildings[0].capitalInvested).toBe(79_000);
     const levelThreeGrid = finishConstruction(levelThreeProject.grid);
 
     expect(levelTwoProject).toMatchObject({ cost: 18_000, cashAfter: 75_000 });
     expect(levelThreeProject).toMatchObject({
-      cost: 36_000,
-      cashAfter: 39_000,
+      cost: 54_000,
+      cashAfter: 21_000,
     });
     expect(levelThreeGrid.buildings[0].level).toBe(3);
-    expect(levelThreeGrid.buildings[0].capitalInvested).toBe(61_000);
+    expect(levelThreeGrid.buildings[0].capitalInvested).toBe(79_000);
     expect(weeklyFacilityUpkeep(levelThreeGrid)).toBe(210);
     expect(() =>
       upgradeFacility(levelThreeGrid, 'facility-1', 100_000),

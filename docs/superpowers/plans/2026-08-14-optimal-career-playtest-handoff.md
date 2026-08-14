@@ -170,7 +170,11 @@ Once income is stable, convert cash into team strength immediately:
 8. Youth Field after immediate performance needs are covered.
 
 Start Level 2 performance upgrades as soon as the division allows them. Level 3
-facilities remain locked until D2.
+facilities remain locked until D2. Their upgrade prices are 50% higher than the
+earlier draft, while Level 2 prices stay unchanged. Drill upgrades cost $5,000
+for Tier 2, $15,000 for Tier 3, $30,000 for Tier 4, and $60,000 for Tier 5.
+Together with Green Bull Training, these are the approved later-career money
+sinks. Do not add another sink unless the live D3 career still piles up cash.
 
 Do not finish a season with a large unused balance while the construction crew
 is idle. That was the main optimization error in Season 2.

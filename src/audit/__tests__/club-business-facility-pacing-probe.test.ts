@@ -61,17 +61,17 @@ const SCHEMA_3_PRICES: Readonly<
 const APPROVED_UPGRADE_PRICES: Readonly<
   Record<keyof typeof SCHEMA_3_PRICES, readonly [number, number]>
 > = {
-  'training-pitch': [20_000, 40_000],
-  gym: [18_000, 36_000],
-  'tech-center': [22_000, 44_000],
-  'shooting-range': [20_000, 40_000],
-  'keeper-court': [20_000, 40_000],
-  'medical-bay': [25_000, 50_000],
-  dorm: [15_000, 35_000],
-  'scout-office': [15_000, 35_000],
-  'youth-field': [25_000, 50_000],
-  'fan-shop': [15_000, 35_000],
-  'stadium-stand': [25_000, 50_000],
+  'training-pitch': [20_000, 60_000],
+  gym: [18_000, 54_000],
+  'tech-center': [22_000, 66_000],
+  'shooting-range': [20_000, 60_000],
+  'keeper-court': [20_000, 60_000],
+  'medical-bay': [25_000, 75_000],
+  dorm: [15_000, 52_500],
+  'scout-office': [15_000, 52_500],
+  'youth-field': [25_000, 75_000],
+  'fan-shop': [15_000, 52_500],
+  'stadium-stand': [25_000, 75_000],
 };
 
 describe('Club Business facility repricing and pacing probe', () => {
@@ -94,7 +94,7 @@ describe('Club Business facility repricing and pacing probe', () => {
     }
 
     expect(level2Uplift).toBe(127_000);
-    expect(level3Uplift).toBe(315_500);
+    expect(level3Uplift).toBe(543_000);
     expect(level2Uplift + level3Uplift).toBe(
       CLUB_BUSINESS_FACILITY_UPGRADE_UPLIFT,
     );

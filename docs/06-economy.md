@@ -54,20 +54,20 @@ Facility quality is partly promotion-gated: Levels 1 and 2 are available from D5
 
 The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. New careers receive an extra **$8,000** in their starting budget and are guided to place the Training Pitch as their first build, so paying for it returns cash to the previously balanced opening level. It pays nothing before it opens; from then on every weekly settlement creates **+12 TP per completed level**. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
 
-Additional sponsor and Buzz income is paired with higher later upgrade prices while every Level-1 build remains unchanged. Level-2 upgrades cost $15,000–$25,000 and Level-3 upgrades cost $35,000–$50,000. A building records the cash actually invested, so closing it refunds half its historical basis rather than half today's catalog price. Coaching Office Levels 2–3 are disabled until those levels have a real benefit; charging for a no-effect upgrade is not allowed.
+Additional sponsor and Buzz income is paired with higher later upgrade prices while every Level-1 build remains unchanged. Level-2 upgrades cost $15,000–$25,000 and Level-3 upgrades cost $52,500–$75,000. A building records the cash actually invested, so closing it refunds half its historical basis rather than half today's catalog price. Coaching Office Levels 2–3 are disabled until those levels have a real benefit; charging for a no-effect upgrade is not allowed.
 
 | Facility                      |         Lv1 build |       Lv2 upgrade |       Lv3 upgrade |
 | ----------------------------- | ----------------: | ----------------: | ----------------: |
-| Training Pitch                |  $8,000 · 2 weeks | $20,000 · 2 weeks | $40,000 · 3 weeks |
-| Gym                           |  $7,000 · 2 weeks | $18,000 · 2 weeks | $36,000 · 3 weeks |
-| Tech Center                   |  $9,000 · 2 weeks | $22,000 · 2 weeks | $44,000 · 3 weeks |
-| Shooting Range / Keeper Court |  $7,500 · 2 weeks | $20,000 · 2 weeks | $40,000 · 3 weeks |
-| Medical Bay                   | $10,000 · 2 weeks | $25,000 · 2 weeks | $50,000 · 3 weeks |
-| Dorm / Scout Office           |   $6,000 · 1 week | $15,000 · 1 week | $35,000 · 2 weeks |
+| Training Pitch                |  $8,000 · 2 weeks | $20,000 · 2 weeks | $60,000 · 3 weeks |
+| Gym                           |  $7,000 · 2 weeks | $18,000 · 2 weeks | $54,000 · 3 weeks |
+| Tech Center                   |  $9,000 · 2 weeks | $22,000 · 2 weeks | $66,000 · 3 weeks |
+| Shooting Range / Keeper Court |  $7,500 · 2 weeks | $20,000 · 2 weeks | $60,000 · 3 weeks |
+| Medical Bay                   | $10,000 · 2 weeks | $25,000 · 2 weeks | $75,000 · 3 weeks |
+| Dorm / Scout Office           |   $6,000 · 1 week | $15,000 · 1 week | $52,500 · 2 weeks |
 | Coaching Office               |   $6,500 · 1 week |          Disabled |          Disabled |
-| Fan Shop                      |   $5,000 · 1 week | $15,000 · 1 week | $35,000 · 2 weeks |
-| Youth Field                   | $12,000 · 3 weeks | $25,000 · 2 weeks | $50,000 · 3 weeks |
-| Stadium Stand                 | $10,000 · 3 weeks | $25,000 · 2 weeks | $50,000 · 3 weeks |
+| Fan Shop                      |   $5,000 · 1 week | $15,000 · 1 week | $52,500 · 2 weeks |
+| Youth Field                   | $12,000 · 3 weeks | $25,000 · 2 weeks | $75,000 · 3 weeks |
+| Stadium Stand                 | $10,000 · 3 weeks | $25,000 · 2 weeks | $75,000 · 3 weeks |
 
 **Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Each named bonus applies once even when several copies form the same pairing. Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 
@@ -85,7 +85,7 @@ Additional sponsor and Buzz income is paired with higher later upgrade prices wh
 | Cup: per round win / trophy | 2,000–8,000 / 25,000 |
 | Facility Lv1 build | 5,000–12,000 |
 | Focus drill (single-stat) | TP only, five tiers; tier 1 is the D5 starting drill and each tier up costs more TP for a bigger gain (exact gains and TP costs: `content/training.json`) |
-| Drill tier upgrade (per path) | $3,000 / $8,000 / $18,000 / $40,000 for tiers 2–5 |
+| Drill tier upgrade (per path) | $5,000 / $15,000 / $30,000 / $60,000 for tiers 2–5 |
 | Weekly TP income | 10 baseline; Training Pitch +12/completed level; head coach 5/6/7/8/9 by level; assistant 3/3/4/4/4; match result +0. Every positive TP grant in the game — these rates, the 12 TP launch grant, and event rewards — is its original figure cut to 40% and rounded up |
 | Transfer (decent D5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |

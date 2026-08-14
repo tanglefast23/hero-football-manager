@@ -62,16 +62,16 @@ const TRAINING_DRILL_TIER_SUFFIX: Readonly<Record<TrainingDrillTier, string>> =
 /**
  * What the club pays, per path, to own the next tier. Reaching the division
  * only puts the upgrade on the shelf; buying it, seven paths over, is the
- * decision. Each price is roughly the previous one doubled, so no club ever
- * owns the whole board at once.
+ * decision. Later-division prices double, so no club ever owns the whole board
+ * at once.
  */
 const TRAINING_DRILL_UPGRADE_COST: Readonly<
   Record<Exclude<TrainingDrillTier, 1>, number>
 > = {
   2: 5_000,
-  3: 10_000,
-  4: 20_000,
-  5: 40_000,
+  3: 15_000,
+  4: 30_000,
+  5: 60_000,
 };
 
 /**

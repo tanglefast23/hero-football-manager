@@ -91,6 +91,31 @@ describe('club finances immediate transaction history', () => {
     ).toMatchObject({ affordable: true, blockedByOpeningTrainingPitch: false });
   });
 
+  test('does not offer a no-effect Coaching Office upgrade', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260814));
+    const project = buildCareerFacility(initial, 'coaching-office', {
+      x: 0,
+      y: 0,
+    }).state;
+    const ready = {
+      ...project,
+      facilities: {
+        ...project.facilities,
+        grid: finishConstruction(project.facilities.grid!),
+      },
+    };
+
+    expect(
+      clubFinancesViewModel(ready).facilities.buildings.find(
+        (building) => building.type === 'coaching-office',
+      ),
+    ).toMatchObject({
+      canUpgrade: false,
+      upgradeBlockedReason:
+        'The Coaching Office has no upgrade available yet, boss.',
+    });
+  });
+
   test('shows newest M2 purchases separately from the weekly statement', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719));
     const building = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
@@ -582,7 +607,7 @@ describe('club finances immediate transaction history', () => {
     expect(gymBuilding).toMatchObject({
       effectLabel: '+10% PAC + STA training',
       canUpgrade: false,
-      upgradeShortfall: 9_000,
+      upgradeShortfall: 18_000,
       canRelocate: false,
       relocationShortfall: 350,
       activeAdjacencyIds: ['gym-dorm'],

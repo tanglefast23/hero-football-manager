@@ -322,7 +322,7 @@ describe('Club Business frozen-outcome accounting probe', () => {
       );
     }
 
-    expect(CLUB_BUSINESS_FACILITY_UPGRADE_UPLIFT).toBe(442_500);
+    expect(CLUB_BUSINESS_FACILITY_UPGRADE_UPLIFT).toBe(670_000);
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
   });

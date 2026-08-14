@@ -71,13 +71,13 @@ describe('permanent promotion progression', () => {
     // Each promotion puts exactly one drill tier up for sale, never grants it.
     expect(
       promotionRewardsForDivision(3).map((reward) => reward.title),
-    ).toContain('Tier 3 drills · $10,000 each');
+    ).toContain('Tier 3 drills · $15,000 each');
     expect(
       promotionRewardsForDivision(2).map((reward) => reward.title),
-    ).toContain('Tier 4 drills · $20,000 each');
+    ).toContain('Tier 4 drills · $30,000 each');
     expect(
       promotionRewardsForDivision(1).map((reward) => reward.title),
-    ).toContain('Tier 5 drills · $40,000 each');
+    ).toContain('Tier 5 drills · $60,000 each');
   });
 
   test('pays a smaller season-end purse to every league position', () => {
