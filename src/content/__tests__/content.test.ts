@@ -998,6 +998,25 @@ describe('plain and truthful career event copy', () => {
     expect(visibleCopy.join(' ')).not.toMatch(/\b(?:he|him|his)\b/i);
   });
 
+  test('player-targeted stories do not assume the selected player is male', () => {
+    const playerStories = loadLaunchContent().events.events.filter(
+      (event) => event.trigger.requiresPlayer,
+    );
+    const visibleCopy = playerStories.flatMap((event) => [
+      event.title,
+      event.body,
+      ...event.choices.flatMap((choice) => [
+        choice.label,
+        ...choice.outcomes.flatMap((outcome) => [
+          outcome.successHeadline ?? '',
+          outcome.text,
+        ]),
+      ]),
+    ]);
+
+    expect(visibleCopy.join(' ')).not.toMatch(/\b(?:he|him|his)\b/i);
+  });
+
   test('the deadline fee is one real player sale, not cash beside suggestive prose', () => {
     const content = loadLaunchContent();
     const event = content.events.events.find(
@@ -1007,7 +1026,7 @@ describe('plain and truthful career event copy', () => {
       (choice) => choice.id === 'take-the-deadline-fee',
     )!;
 
-    expect(sale.label).toBe('Accept $2,600 and sell him');
+    expect(sale.label).toBe('Accept $2,600 and sell them');
     expect(sale.outcomes[0].effects).toEqual([
       { type: 'playerSale', fee: 2600 },
     ]);

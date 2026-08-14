@@ -347,7 +347,7 @@
             {
               "weight": 100,
               "id": "only",
-              "text": "A quiet day away from training clears his head.",
+              "text": "A quiet day away from training clears their head.",
               "effects": [
                 {
                   "type": "morale",
@@ -827,7 +827,7 @@
               "weight": 60,
               "id": "success",
               "successHeadline": "The answer travels faster than the bid",
-              "text": "Your flat refusal reaches the dressing room before it reaches their chairman. He decides you meant it about all of them.",
+              "text": "Your flat refusal reaches the dressing room before it reaches their chairman. The rival chairman decides you meant it about all of them.",
               "effects": [
                 {
                   "type": "morale",
@@ -893,14 +893,14 @@
       "choices": [
         {
           "id": "hold-past-the-deadline",
-          "label": "Reject the offer and keep him",
+          "label": "Reject the offer and keep them",
           "risky": true,
           "outcomes": [
             {
               "weight": 55,
               "id": "success",
-              "successHeadline": "He stays after the 5 p.m. deadline",
-              "text": "The deadline passes. He stays at the club and is pleased that you rejected the offer.",
+              "successHeadline": "They stay after the 5 p.m. deadline",
+              "text": "The deadline passes. They stay at the club and are pleased that you rejected the offer.",
               "effects": [
                 {
                   "type": "morale",
@@ -920,7 +920,7 @@
             {
               "weight": 45,
               "id": "setback",
-              "text": "The offer expires, but he is upset that you never discussed it with him.",
+              "text": "The offer expires, but they are upset that you never discussed it with them.",
               "effects": [
                 {
                   "type": "morale",
@@ -932,13 +932,13 @@
         },
         {
           "id": "take-the-deadline-fee",
-          "label": "Accept $2,600 and sell him",
+          "label": "Accept $2,600 and sell them",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "The rival pays $2,600. He leaves for their club that afternoon.",
+              "text": "The rival pays $2,600. They leave for their club that afternoon.",
               "effects": [
                 {
                   "type": "playerSale",
@@ -1114,14 +1114,14 @@
       "choices": [
         {
           "id": "promote-the-kid-early",
-          "label": "Put him in with the first team",
+          "label": "Put them in with the first team",
           "risky": true,
           "outcomes": [
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "His scoring record was real",
-              "text": "He scores twice in front of the senior squad. They stay after training to watch him.",
+              "successHeadline": "Their scoring record was real",
+              "text": "They score twice in front of the senior squad. The team stays after training to watch them.",
               "effects": [
                 {
                   "type": "statDelta",
@@ -1142,7 +1142,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "He struggles with the senior team for the full match, but learns more in that hour than in a month.",
+              "text": "They struggle with the senior team for the full match, but learn more in that hour than in a month.",
               "effects": [
                 {
                   "type": "morale",
@@ -1154,13 +1154,13 @@
         },
         {
           "id": "keep-the-kid-in-youth",
-          "label": "Leave him where he is winning",
+          "label": "Leave them where they are winning",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "The youth coach is delighted, which is rare, and hands over a session plan built around him.",
+              "text": "The youth coach is delighted, which is rare, and hands over a session plan built around them.",
               "effects": [
                 {
                   "type": "tp",
@@ -1212,7 +1212,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "The director learns that the leak came from your club. He adds 10% to the asking fee.",
+              "text": "The director learns that the leak came from your club and adds 10% to the asking fee.",
               "effects": [
                 {
                   "type": "transferFeePercent",
@@ -1544,8 +1544,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-sprint-race",
-      "title": "The Postman Says He Is Faster",
-      "body": "The postman has told the whole street he is quicker than your quickest player. Your quickest player has heard.",
+      "title": "The Postman Claims To Be Faster",
+      "body": "The postman has told the whole street they are quicker than your quickest player. Your quickest player has heard.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -1555,7 +1555,7 @@
       "choices": [
         {
           "id": "race-the-postman",
-          "label": "Race him at half time",
+          "label": "Race them at half time",
           "risky": true,
           "outcomes": [
             {
@@ -1587,7 +1587,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "He stops after forty metres with a pulled hamstring, in front of everyone.",
+              "text": "Your player stops after forty metres with a pulled hamstring, in front of everyone.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1604,13 +1604,13 @@
         },
         {
           "id": "time-him-privately",
-          "label": "Time him privately",
+          "label": "Time them privately",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "He runs on an empty pitch with a stopwatch. His sprint time improves without an audience.",
+              "text": "They run on an empty pitch with a stopwatch. Their sprint time improves without an audience.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1629,7 +1629,7 @@
       "rarity": "common",
       "art": "event-crossbar",
       "title": "Hit the Crossbar Ten Times",
-      "body": "A player wants to stay until he has hit the crossbar ten times. It is already dark.",
+      "body": "A player wants to stay until they have hit the crossbar ten times. It is already dark.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -1646,7 +1646,7 @@
               "weight": 55,
               "id": "success",
               "successHeadline": "The tenth shot hits the underside of the crossbar",
-              "text": "After nine hundred shots, the tenth hits the crossbar and he finally goes home.",
+              "text": "After nine hundred shots, the tenth hits the crossbar and they finally go home.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1663,7 +1663,7 @@
             {
               "weight": 45,
               "id": "setback",
-              "text": "After six hundred shots, his technique gets worse instead of better.",
+              "text": "After six hundred shots, their technique gets worse instead of better.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1705,7 +1705,7 @@
       "rarity": "common",
       "art": "event-rondo",
       "title": "The Keep-Away Drill Never Ends",
-      "body": "The squad has made a keep-away drill where one player stays in the middle until he wins the ball. He has been there since Tuesday.",
+      "body": "The squad has made a keep-away drill where one player stays in the middle until they win the ball. They have been there since Tuesday.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -1715,14 +1715,14 @@
       "choices": [
         {
           "id": "leave-him-in",
-          "label": "Keep him in the middle all week",
+          "label": "Keep them in the middle all week",
           "risky": true,
           "outcomes": [
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "He learns to read every pass early",
-              "text": "By Friday he is intercepting passes the passer has not decided to make yet.",
+              "successHeadline": "They learn to read every pass early",
+              "text": "By Friday they are intercepting passes the passer has not decided to make yet.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1743,7 +1743,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "By Friday he has stopped chasing it at all.",
+              "text": "By Friday they have stopped chasing it at all.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1785,7 +1785,7 @@
       "rarity": "common",
       "art": "event-marking",
       "title": "Mark The Hero All Week",
-      "body": "One of your defenders wants to spend the week training against your best attacker: stick to him all session, block every ball. The hero thinks it is a great idea.",
+      "body": "One of your defenders wants to spend the week training against your best attacker: stay tight to them all session, block every ball. The hero thinks it is a great idea.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -1804,8 +1804,8 @@
             {
               "weight": 55,
               "id": "success",
-              "successHeadline": "By Thursday the hero asks him to stop",
-              "text": "The hero spends four days going nowhere and asks, on Thursday, whether he can mark somebody else.",
+              "successHeadline": "By Thursday the hero asks them to stop",
+              "text": "The hero spends four days going nowhere and asks, on Thursday, whether the defender can mark somebody else.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1826,7 +1826,7 @@
             {
               "weight": 45,
               "id": "setback",
-              "text": "The hero beats him again and again in front of the squad for four days.",
+              "text": "The hero beats them again and again in front of the squad for four days.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1878,14 +1878,14 @@
       "choices": [
         {
           "id": "sign-up-for-the-run",
-          "label": "Let him join the six-week league",
+          "label": "Let them join the six-week league",
           "risky": true,
           "outcomes": [
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "His ball control improves",
-              "text": "Six weeks of indoor football gives him much better control of the ball.",
+              "successHeadline": "Their ball control improves",
+              "text": "Six weeks of indoor football gives them much better control of the ball.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1906,7 +1906,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "A bad landing on the concrete floor leaves him injured.",
+              "text": "A bad landing on the concrete floor leaves them injured.",
               "effects": [
                 {
                   "type": "injury",
@@ -1918,7 +1918,7 @@
         },
         {
           "id": "one-friendly-game",
-          "label": "Let him play one practice game",
+          "label": "Let them play one practice game",
           "risky": false,
           "outcomes": [
             {
@@ -1942,8 +1942,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-double-session",
-      "title": "He Has Asked, In Writing",
-      "body": "He has asked to train twice a day. In writing. With a schedule attached, and a second schedule for the first schedule.",
+      "title": "They Have Asked, In Writing",
+      "body": "They have asked to train twice a day. In writing. With a schedule attached, and a second schedule for the first schedule.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -1961,8 +1961,8 @@
             {
               "weight": 55,
               "id": "success",
-              "successHeadline": "He finishes the week fitter than anyone at the club",
-              "text": "Ten sessions in five days, and on Saturday he is still running when everyone else has stopped.",
+              "successHeadline": "They finish the week fitter than anyone at the club",
+              "text": "Ten sessions in five days, and on Saturday they are still running when everyone else has stopped.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -1979,7 +1979,7 @@
             {
               "weight": 45,
               "id": "setback",
-              "text": "He trains himself into the treatment room by Wednesday afternoon.",
+              "text": "The extra work sends them into the treatment room by Wednesday afternoon.",
               "effects": [
                 {
                   "type": "condition",
@@ -2020,7 +2020,7 @@
       "rarity": "common",
       "art": "event-penalties",
       "title": "Forty Penalties, Right Now",
-      "body": "The squad has decided your keeper should face forty penalties. Your keeper has decided he agrees.",
+      "body": "The squad has decided your keeper should face forty penalties. Your keeper has agreed.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -2037,8 +2037,8 @@
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "He saves the last one and lies down on the goal line",
-              "text": "By the thirtieth he has stopped diving early and started reading hips.",
+              "successHeadline": "They save the last one and lie down on the goal line",
+              "text": "By the thirtieth they have stopped diving early and started reading hips.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -2059,7 +2059,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "By the thirtieth he has stopped reading anything and started guessing.",
+              "text": "By the thirtieth they have stopped reading anything and started guessing.",
               "effects": [
                 {
                   "type": "statDeltaSessions",
@@ -2100,8 +2100,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-testimonial",
-      "title": "His Childhood Club Invites Him Back",
-      "body": "His childhood club has invited him to play all 90 minutes in a tribute match on Sunday.",
+      "title": "Their Childhood Club Invites Them Back",
+      "body": "Their childhood club has invited them to play all 90 minutes in a tribute match on Sunday.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -2111,14 +2111,14 @@
       "choices": [
         {
           "id": "play-the-whole-ninety",
-          "label": "Let him play the full match",
+          "label": "Let them play the full match",
           "risky": true,
           "outcomes": [
             {
               "weight": 65,
               "id": "success",
-              "successHeadline": "He gets a standing ovation from four hundred people",
-              "text": "Four hundred people who watched him grow up give him a standing ovation when he leaves the field.",
+              "successHeadline": "They get a standing ovation from four hundred people",
+              "text": "Four hundred people who watched them grow up give them a standing ovation when they leave the field.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -2138,7 +2138,7 @@
             {
               "weight": 35,
               "id": "setback",
-              "text": "After twenty minutes on a badly maintained pitch, he leaves the field injured.",
+              "text": "After twenty minutes on a badly maintained pitch, they leave the field injured.",
               "effects": [
                 {
                   "type": "injury",
@@ -2178,8 +2178,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-homesick",
-      "title": "He Misses A Specific Bakery",
-      "body": "A young player misses his mother, his dog, and his favourite bakery back home.",
+      "title": "They Miss A Specific Bakery",
+      "body": "A young player misses their mother, their dog, and their favourite bakery back home.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -2195,8 +2195,8 @@
             {
               "weight": 70,
               "id": "success",
-              "successHeadline": "His mother is at every home game by October",
-              "text": "The club pays the deposit. By October his mother has a seat she considers hers.",
+              "successHeadline": "Their mother is at every home game by October",
+              "text": "The club pays the deposit. By October their mother has a seat she considers hers.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -2269,8 +2269,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-handshake",
-      "title": "He Wants Regular Playing Time",
-      "body": "His agent is discussing a new contract. The player wants regular playing time before he signs.",
+      "title": "They Want Regular Playing Time",
+      "body": "Their agent is discussing a new contract. The player wants regular playing time before they sign.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -2280,14 +2280,14 @@
       "choices": [
         {
           "id": "promise-him-the-shirt",
-          "label": "Promise him a regular starting place",
+          "label": "Promise them a regular starting place",
           "risky": true,
           "outcomes": [
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "He signs before the agent finishes his coffee",
-              "text": "You say it plainly and he signs before his agent has finished the coffee.",
+              "successHeadline": "They sign before the agent finishes their coffee",
+              "text": "You say it plainly and they sign before their agent has finished the coffee.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -2308,7 +2308,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "He repeats the promise to a local reporter, word for word, on the record.",
+              "text": "They repeat the promise to a local reporter, word for word, on the record.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -2331,7 +2331,7 @@
             {
               "weight": 100,
               "id": "only",
-              "text": "You tell him what you honestly think, which is more than most managers offer.",
+              "text": "You tell them what you honestly think, which is more than most managers offer.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -2365,8 +2365,8 @@
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "The show airs twice and his shirts sell out",
-              "text": "The show airs twice in one weekend, and the shop sells out of shirts with his squad number.",
+              "successHeadline": "The show airs twice and their shirts sell out",
+              "text": "The show airs twice in one weekend, and the shop sells out of shirts with their squad number.",
               "effects": [
                 {
                   "type": "fame",
@@ -2440,14 +2440,14 @@
       "choices": [
         {
           "id": "send-him-up-the-mountain",
-          "label": "Send him up the mountain",
+          "label": "Send them up the mountain",
           "risky": true,
           "outcomes": [
             {
               "weight": 65,
               "id": "success",
-              "successHeadline": "He comes back down looking like a different athlete",
-              "text": "Six days of thin air and terrible food, and he comes back down transformed.",
+              "successHeadline": "They come back down looking like a different athlete",
+              "text": "Six days of thin air and terrible food, and they come back down transformed.",
               "effects": [
                 {
                   "type": "condition",
@@ -2471,7 +2471,7 @@
             {
               "weight": 35,
               "id": "setback",
-              "text": "Altitude, bad sleep, worse food, and legs heavier than when he left.",
+              "text": "Altitude, bad sleep, worse food, and legs heavier than when they left.",
               "effects": [
                 {
                   "type": "money",
@@ -2496,7 +2496,7 @@
             {
               "weight": 100,
               "id": "only",
-              "text": "A quiet week, no travel, and legs that feel like his own again.",
+              "text": "A quiet week, no travel, and legs that feel like their own again.",
               "effects": [
                 {
                   "type": "condition",
@@ -3603,8 +3603,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-testimonial",
-      "title": "His Childhood Club Offers to Help",
-      "body": "His childhood club knows he was injured in their tribute match. Their chairman has called twice to offer help.",
+      "title": "Their Childhood Club Offers to Help",
+      "body": "Their childhood club knows they were injured in the tribute match. The chairman has called twice to offer help.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -3620,8 +3620,8 @@
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "He returns two weeks early and they pay the bill",
-              "text": "They pay for the specialist, refuse repayment, and he returns two weeks early.",
+              "successHeadline": "They return two weeks early and the old club pays the bill",
+              "text": "The old club pays for the specialist, refuses repayment, and the player returns two weeks early.",
               "effects": [
                 {
                   "type": "injuryDelta",
@@ -3641,7 +3641,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "A second doctor and a third scan delay his recovery longer than either club expected.",
+              "text": "A second doctor and a third scan delay their recovery longer than either club expected.",
               "effects": [
                 {
                   "type": "injury",
@@ -3755,8 +3755,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-handshake",
-      "title": "He Wants the Promise in His Contract",
-      "body": "You promised him regular starts, and he has started every match since. He wants that promise added to his contract now.",
+      "title": "They Want the Promise in Their Contract",
+      "body": "You promised them regular starts, and they have started every match since. They want that promise added to their contract now.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -3766,14 +3766,14 @@
       "choices": [
         {
           "id": "put-it-in-writing",
-          "label": "Add the starting promise to his contract",
+          "label": "Add the starting promise to their contract",
           "risky": true,
           "outcomes": [
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "He signs for one extra year",
-              "text": "The promise goes into his contract, and he signs for one year longer than his agent advised.",
+              "successHeadline": "They sign for one extra year",
+              "text": "The promise goes into their contract, and they sign for one year longer than their agent advised.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -3793,7 +3793,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "He reads the contract and finds it guarantees fewer starts than you promised.",
+              "text": "They read the contract and find it guarantees fewer starts than you promised.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -3811,7 +3811,7 @@
             {
               "weight": 100,
               "id": "only",
-              "text": "You say it again, out loud, and he takes you at your word again.",
+              "text": "You say it again, out loud, and they take you at your word again.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -3828,8 +3828,8 @@
       "category": "player",
       "rarity": "common",
       "art": "event-handshake",
-      "title": "His Agent Saved Your Promise",
-      "body": "You promised him regular starts, but he has not played. His agent saved the newspaper quote.",
+      "title": "Their Agent Saved Your Promise",
+      "body": "You promised them regular starts, but they have not played. Their agent saved the newspaper quote.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -3839,14 +3839,14 @@
       "choices": [
         {
           "id": "start-him-saturday",
-          "label": "Start him in Saturday's match anyway",
+          "label": "Start them in Saturday's match anyway",
           "risky": true,
           "outcomes": [
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "He proves he should have been playing",
-              "text": "He plays well and proves he deserved more starts.",
+              "successHeadline": "They prove they should have been playing",
+              "text": "They play well and prove they deserved more starts.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -3866,7 +3866,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "He is not ready, and a full match makes that clear to everyone.",
+              "text": "They are not ready, and a full match makes that clear to everyone.",
               "effects": [
                 {
                   "type": "loyalty",
@@ -3910,7 +3910,7 @@
       "rarity": "common",
       "art": "event-hat-trick",
       "title": "A Three-Goal Match",
-      "body": "He scored three goals and took the match ball home. He has not put it down since.",
+      "body": "They scored three goals and took the match ball home. They have not put it down since.",
       "trigger": {
         "season": 1,
         "minWeek": 1,
@@ -3921,14 +3921,14 @@
       "choices": [
         {
           "id": "player-of-the-month",
-          "label": "Nominate him for Player of the Month",
+          "label": "Nominate them for Player of the Month",
           "risky": true,
           "outcomes": [
             {
               "weight": 60,
               "id": "success",
-              "successHeadline": "They read his name out at the ground",
-              "text": "He wins it, and they read his name out at the ground before kickoff.",
+              "successHeadline": "They read their name out at the ground",
+              "text": "They win it, and the announcer reads their name out at the ground before kickoff.",
               "effects": [
                 {
                   "type": "fame",
@@ -3953,7 +3953,7 @@
             {
               "weight": 40,
               "id": "setback",
-              "text": "He reads every article about himself and loses focus in training.",
+              "text": "They read every article about themself and lose focus in training.",
               "effects": [
                 {
                   "type": "morale",
