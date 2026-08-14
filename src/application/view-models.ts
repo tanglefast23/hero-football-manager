@@ -2621,10 +2621,7 @@ export function homeProductAlerts(
   const trainingGroundUnderConstruction =
     state.facilities.grid?.construction?.kind === 'BUILD' &&
     state.facilities.grid.construction.type === 'training-pitch';
-  const waitingRequest =
-    state.playerRequests?.pending?.warned === true
-      ? state.playerRequests.pending
-      : undefined;
+  const waitingRequest = state.playerRequests?.pending;
   const heroIds = new Set(
     roster
       .filter((player) => player.power !== undefined)

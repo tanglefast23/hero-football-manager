@@ -4,6 +4,7 @@ import { DEFAULT_PLAYER_REQUEST_STATE } from '../../game/player-requests';
 import type { GameState } from '../../game/types';
 import { createLaunchCareerSetup } from '../launch';
 import { playerRequestViewModel } from '../player-request-view-model';
+import { homeViewModel } from '../view-models';
 
 const CATALOG = loadLaunchContent().playerRequests;
 
@@ -104,6 +105,33 @@ describe('playerRequestViewModel', () => {
     expect(model.pending!.refuseLabel).toBe('-3 loyalty · -4 morale');
     expect(model.pending!.artKey).toBe('request-bahamas-fortnight');
     expect(model.pending!.weeksToAnswer).toBe(CATALOG.tuning.answerWeeks);
+  });
+
+  it('keeps every pending request in the Home inbox until a decision', () => {
+    const pending = withPending(
+      atStartWeek(career()),
+      'bahamas-fortnight',
+    );
+
+    const beforeOpening = homeViewModel(pending).alerts.map(
+      (alert) => alert.id,
+    );
+    const afterOpening = homeViewModel(pending).alerts.map(
+      (alert) => alert.id,
+    );
+    expect(beforeOpening).toContain('player-request-waiting');
+    expect(afterOpening).toContain('player-request-waiting');
+
+    const decided: GameState = {
+      ...pending,
+      playerRequests: {
+        ...pending.playerRequests!,
+        pending: undefined,
+      },
+    };
+    expect(homeViewModel(decided).alerts.map((alert) => alert.id)).not.toContain(
+      'player-request-waiting',
+    );
   });
 
   it('states the harder Chairman refusal', () => {
