@@ -1879,6 +1879,14 @@ export function NegotiationPanel({
               }
             />
           </View>
+          <View className="mt-2">
+            <ActionButton
+              label={t('market.closeAgentFile')}
+              accessibilityLabel={t('market.closeAgentFile')}
+              variant="paper"
+              onPress={onClose}
+            />
+          </View>
           {/* The rule, at the moment it applies, with the number in it. It used
               to be one line of grey print saying "below half their ask" — the
               half was never worked out for the manager, so the first they knew

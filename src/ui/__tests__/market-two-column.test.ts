@@ -35,6 +35,16 @@ describe('market two-column layout', () => {
     );
     expect(seasonEnd).not.toContain('flush');
   });
+
+  it('lets the manager close active talks before making an offer', () => {
+    const offerButton = source.indexOf("t('market.makeTheOfferArrow')");
+    const closeButton = source.indexOf(
+      "t('market.closeAgentFile')",
+      offerButton,
+    );
+    expect(offerButton).toBeGreaterThan(-1);
+    expect(closeButton).toBeGreaterThan(offerButton);
+  });
 });
 
 describe('youth prospect card on the narrowest phone', () => {
