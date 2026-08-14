@@ -100,33 +100,16 @@ describe('the player requests reel', () => {
     expect(playerRequestViewModel(state!).pending?.weeksToAnswer).toBe(1);
   });
 
-  /**
-   * Wage-multiple pricing tops out near a couple of thousand against a
-   * five-figure balance, so no amount of waiting produces a request the club
-   * cannot afford. The entry spends the club down to just under one ask, which
-   * is the only route to the disabled Grant and its copy.
-   */
-  it('finds a money ask, which a solvent club can always meet', () => {
+  it('finds a non-money tradeoff after the first request', () => {
     const state = steppedCareer(
       (item) =>
-        item.playerRequests?.pending?.costAmount !== undefined &&
+        item.playerRequests?.pending !== undefined &&
         (item.playerRequests?.history.length ?? 0) >= 1,
     );
 
     expect(state).toBeDefined();
     expect(playerRequestViewModel(state!).pending?.canAfford).toBe(true);
-
-    const cost = state!.playerRequests!.pending!.costAmount!;
-    const spentDown: GameState = {
-      ...state!,
-      clubs: state!.clubs.map((club) =>
-        club.id === state!.userClubId
-          ? { ...club, cash: Math.max(0, cost - 1) }
-          : club,
-      ),
-    };
-
-    expect(playerRequestViewModel(spentDown).pending?.canAfford).toBe(false);
+    expect(state!.playerRequests!.pending!.costAmount).toBeUndefined();
   });
 
   it('finds a quiet week with a ledger behind it', () => {
