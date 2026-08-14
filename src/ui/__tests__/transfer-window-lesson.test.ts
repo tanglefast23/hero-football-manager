@@ -46,6 +46,29 @@ describe('the shut-window lesson', () => {
   });
 });
 
+describe('the first transfer negotiation lesson', () => {
+  it('opens immediately after the first successful transfer approach', () => {
+    const app = source('App.tsx');
+
+    expect(app).toMatchSource(
+      /!hasAssistantGuideSequenceCompleted\(\s*store\.career,\s*'transfer-negotiation'/,
+    );
+    expect(app).toMatchSource(
+      /openAssistantGuide\(\s*'transfer-negotiation',\s*'market-transfers'/,
+    );
+  });
+
+  it('only calls the completed transfer squad full when the squad is full', () => {
+    const store = source('src/application/store.ts');
+
+    expect(store).toContainSource(
+      'userCareerRosterCount(next) >= careerRosterCapacity(next)',
+    );
+    expect(store).toContainSource("? t('store.transferCompleteSquadFull')");
+    expect(store).toContainSource(": t('playerSigning.transferComplete')");
+  });
+});
+
 describe('the emergency-loan briefing', () => {
   it('no longer stops for a tap on the cash panel', () => {
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');

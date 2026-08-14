@@ -66,7 +66,7 @@ interface SponsorPaymentAllocation {
 interface SponsorObjectiveProgress {
   readonly kind: SponsorObjectiveKind;
   readonly target: number;
-  /** Wins, goals, or current/final table position according to `kind`. */
+  /** Current/final fixture-derived count according to `kind`. */
   readonly value: number;
   readonly met: boolean;
 }
@@ -449,7 +449,7 @@ export function actualSponsorPortfolioIncome(
   );
 }
 
-/** Current wins/goals/table place, reconstructed only from persisted league fixtures. */
+/** Current progress, reconstructed only from persisted league fixtures. */
 export function sponsorObjectiveProgressFromFixtures(
   objective: SponsorObjectiveSnapshot,
   fixtures: readonly LeagueFixture[],
@@ -469,12 +469,39 @@ export function sponsorObjectiveProgressFromFixtures(
   if (user === undefined)
     throw new Error(`league fixtures do not contain user club ${userClubId}`);
 
-  const value =
-    objective.kind === 'LEAGUE_WINS'
-      ? user.won
-      : objective.kind === 'LEAGUE_GOALS'
-        ? user.goalsFor
-        : user.position;
+  const playedUserFixtures = fixtures.filter(
+    (fixture) =>
+      fixture.season === season &&
+      fixture.status === 'played' &&
+      (fixture.homeClubId === userClubId || fixture.awayClubId === userClubId),
+  );
+  const value = (() => {
+    if (objective.kind === 'LEAGUE_WINS') return user.won;
+    if (objective.kind === 'LEAGUE_GOALS') return user.goalsFor;
+    if (objective.kind === 'LEAGUE_FINISH') return user.position;
+    if (objective.kind === 'LEAGUE_CLEAN_SHEETS') {
+      return playedUserFixtures.filter((fixture) =>
+        fixture.homeClubId === userClubId
+          ? fixture.score!.awayGoals === 0
+          : fixture.score!.homeGoals === 0,
+      ).length;
+    }
+    if (objective.kind === 'LEAGUE_THREE_GOAL_GAMES') {
+      return playedUserFixtures.filter((fixture) =>
+        fixture.homeClubId === userClubId
+          ? fixture.score!.homeGoals >= 3
+          : fixture.score!.awayGoals >= 3,
+      ).length;
+    }
+    return playedUserFixtures.reduce((points, fixture) => {
+      if (fixture.awayClubId !== userClubId) return points;
+      if (fixture.score!.awayGoals > fixture.score!.homeGoals)
+        return points + 3;
+      return fixture.score!.awayGoals === fixture.score!.homeGoals
+        ? points + 1
+        : points;
+    }, 0);
+  })();
   const met =
     objective.kind === 'LEAGUE_FINISH'
       ? value <= objective.target
@@ -906,9 +933,14 @@ function validateOfferContextBase(
 
 function validateObjectiveSnapshot(objective: SponsorObjectiveSnapshot): void {
   if (
-    objective.kind !== 'LEAGUE_WINS' &&
-    objective.kind !== 'LEAGUE_GOALS' &&
-    objective.kind !== 'LEAGUE_FINISH'
+    ![
+      'LEAGUE_WINS',
+      'LEAGUE_GOALS',
+      'LEAGUE_FINISH',
+      'LEAGUE_CLEAN_SHEETS',
+      'LEAGUE_THREE_GOAL_GAMES',
+      'LEAGUE_AWAY_POINTS',
+    ].includes(objective.kind)
   ) {
     throw new Error(`unknown sponsor objective ${String(objective.kind)}`);
   }

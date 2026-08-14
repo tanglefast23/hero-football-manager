@@ -67,6 +67,7 @@ import {
   isBrowserDatabaseLockError,
   migrateDatabase,
   reloadBrowserDocument,
+  rememberInitialFormation,
   replaceFormationPreset,
   requestPersistentStorage,
   resetCareerDatabase,
@@ -867,6 +868,14 @@ function GameApp() {
           market === undefined ? [] : careerCoachUnlockedFormationIds(market),
         ),
       );
+    },
+    [savePreferences],
+  );
+  const rememberMatchFormation = useCallback(
+    (formation: AppPreferences['formationPresets'][number]) => {
+      const current = preferencesRef.current;
+      const next = rememberInitialFormation(current, formation);
+      if (next !== current) savePreferences(next);
     },
     [savePreferences],
   );
@@ -2733,6 +2742,7 @@ function GameApp() {
         colorSafeKits={preferences.colorSafeKits}
         autoSubs={preferences.autoSubs}
         onAutoSubsChange={saveAutoSubs}
+        onFormationChange={rememberMatchFormation}
         performanceLimit={preferences.performanceLimit}
         onPerformanceLimitChange={saveMatchPerformanceLimit}
         pausedExternally={globalSettingsOpen}
@@ -2812,9 +2822,10 @@ function GameApp() {
             )
           }
           onWatchMatch={store.watchMatch}
+          onCycleFormation={() => cycleFormationPreset(0)}
           onQuickResult={() =>
             store.quickResult({
-              initialFormation: preferences.formationPresets[0],
+              initialFormation: preferencesRef.current.formationPresets[0],
             })
           }
           onOpenSettings={() => setGlobalSettingsOpen(true)}
@@ -3043,6 +3054,9 @@ function GameApp() {
       } else if (alertId.startsWith('transfer-request-')) {
         store.selectPlayer(alertId.slice('transfer-request-'.length));
         store.setActiveTab('squad');
+      } else if (alertId === 'player-request-waiting') {
+        setConciergeFocus('squad-requests');
+        store.setActiveTab('squad');
       } else if (alertId.startsWith('training-cap:')) {
         if (alert?.playerId !== undefined) {
           store.selectPlayer(alert.playerId);
@@ -3172,6 +3186,9 @@ function GameApp() {
           <SquadTrainingScreen
             requestViewModel={playerRequestVm}
             onOpenRequest={() => setRequestStage('walk-on')}
+            initialSquadTab={
+              conciergeFocus === 'squad-requests' ? 'requests' : 'drills'
+            }
             squadSort={preferences.squadSort}
             onChangeSquadSort={saveSquadSort}
             viewModel={squadTrainingVm!}
@@ -3442,11 +3459,29 @@ function GameApp() {
             }}
             onTransferAction={(playerId, direction, bidId) => {
               if (direction === 'BUY') {
+                const lessonOwed =
+                  careerTeaches &&
+                  store.career !== null &&
+                  !hasAssistantGuideSequenceCompleted(
+                    store.career,
+                    'transfer-negotiation',
+                  );
                 performManagementAction(
                   () => store.actOnTransfer(playerId, direction),
                   'card',
                   'select',
                 );
+                if (
+                  lessonOwed &&
+                  useM1Store.getState().error === null &&
+                  useM1Store.getState().career?.market?.transferTalks !==
+                    undefined
+                ) {
+                  openAssistantGuide(
+                    'transfer-negotiation',
+                    'market-transfers',
+                  );
+                }
                 return;
               }
               const market = marketViewModel(

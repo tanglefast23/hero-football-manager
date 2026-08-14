@@ -246,6 +246,21 @@ describe('player-facing acceptance audit regressions', () => {
     expect(strings['fixtureMatchDay.playMatch']).not.toMatchSource(/watch/i);
   });
 
+  test('lets each match choose and remember its opening formation', () => {
+    const app = source('App.tsx');
+    const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
+    const liveMatch = source('src/render/MatchScreen.tsx');
+
+    expect(matchDay).toContainSource('onCycleFormation: () => void;');
+    expect(app).toContainSource(
+      'onCycleFormation={() => cycleFormationPreset(0)}',
+    );
+    expect(app).toContainSource(
+      'initialFormation: preferencesRef.current.formationPresets[0]',
+    );
+    expect(liveMatch).toContainSource('onFormationChange?.(formation);');
+  });
+
   test('keeps the match-day docket free of redundant live-coaching and auto-context blocks', () => {
     const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
 

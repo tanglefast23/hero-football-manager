@@ -1563,6 +1563,9 @@ export const SponsorObjectiveKindSchema = z.enum([
   'LEAGUE_WINS',
   'LEAGUE_GOALS',
   'LEAGUE_FINISH',
+  'LEAGUE_CLEAN_SHEETS',
+  'LEAGUE_THREE_GOAL_GAMES',
+  'LEAGUE_AWAY_POINTS',
 ]);
 
 const SponsorProfileSchema = z.strictObject({
@@ -1574,6 +1577,9 @@ const SponsorProfileSchema = z.strictObject({
       LEAGUE_WINS: z.number().int().nonnegative().max(1_000).optional(),
       LEAGUE_GOALS: z.number().int().nonnegative().max(1_000).optional(),
       LEAGUE_FINISH: z.number().int().nonnegative().max(1_000).optional(),
+      LEAGUE_CLEAN_SHEETS: z.number().int().nonnegative().max(1_000).optional(),
+      LEAGUE_THREE_GOAL_GAMES: z.number().int().nonnegative().max(1_000).optional(),
+      LEAGUE_AWAY_POINTS: z.number().int().nonnegative().max(1_000).optional(),
     })
     .optional(),
 });
@@ -1643,31 +1649,39 @@ export const SponsorCatalogSchema = z
       'sponsor objective kind',
     );
 
-    const expectedProfiles = {
+    const expectedProfiles: Record<
+      (typeof SponsorProfileIdSchema.options)[number],
+      {
+        readonly monthlyPercent: number;
+        readonly objectiveLevel: (typeof SponsorObjectiveLevelSchema.options)[number];
+        readonly bonusPercent: number;
+        readonly bonusPercentByObjective: Partial<
+          Record<(typeof SponsorObjectiveKindSchema.options)[number], number>
+        >;
+      }
+    > = {
       STEADY: {
         monthlyPercent: 105,
         objectiveLevel: 'EASY',
-        bonusPercent: { LEAGUE_WINS: 25, LEAGUE_GOALS: 27, LEAGUE_FINISH: 25 },
+        bonusPercent: 25,
+        bonusPercentByObjective: {},
       },
       BALANCED: {
         monthlyPercent: 100,
         objectiveLevel: 'NORMAL',
-        bonusPercent: {
-          LEAGUE_WINS: 85,
-          LEAGUE_GOALS: 100,
-          LEAGUE_FINISH: 110,
-        },
+        bonusPercent: 100,
+        bonusPercentByObjective: {},
       },
       BOLD: {
         monthlyPercent: 99,
         objectiveLevel: 'HARD',
-        bonusPercent: {
-          LEAGUE_WINS: 650,
-          LEAGUE_GOALS: 650,
-          LEAGUE_FINISH: 280,
+        bonusPercent: 650,
+        bonusPercentByObjective: {
+          LEAGUE_CLEAN_SHEETS: 165,
+          LEAGUE_AWAY_POINTS: 450,
         },
       },
-    } as const;
+    };
     for (const profile of SponsorProfileIdSchema.options) {
       const actual = catalog.profiles[profile];
       const expected = expectedProfiles[profile];
@@ -1677,7 +1691,8 @@ export const SponsorCatalogSchema = z
         SponsorObjectiveKindSchema.options.some(
           (kind) =>
             (actual.bonusPercentByObjective?.[kind] ?? actual.bonusPercent) !==
-            expected.bonusPercent[kind],
+            (expected.bonusPercentByObjective?.[kind] ??
+              expected.bonusPercent),
         )
       ) {
         addIssue(
@@ -1691,9 +1706,7 @@ export const SponsorCatalogSchema = z
     catalog.objectives.forEach((objective, index) => {
       const { EASY, NORMAL, HARD } = objective.targets;
       const ordered =
-        objective.kind === 'LEAGUE_FINISH'
-          ? EASY > NORMAL && NORMAL > HARD && objective.chairmanDelta === -1
-          : EASY < NORMAL && NORMAL < HARD && objective.chairmanDelta > 0;
+        EASY < NORMAL && NORMAL < HARD && objective.chairmanDelta > 0;
       if (!ordered) {
         addIssue(
           context,

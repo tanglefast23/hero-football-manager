@@ -17,21 +17,24 @@ describe('validated player request catalog', () => {
     );
   });
 
-  test('covers every cost archetype, so the tab is not thirty invoices', () => {
+  test('uses only costs that disrupt the usual team plan', () => {
     const kinds = new Set(
       loadLaunchContent().playerRequests.requests.map((r) => r.cost.kind),
     );
 
     expect(kinds).toEqual(
-      new Set([
-        'MONEY_PLAYER',
-        'MONEY_SQUAD',
-        'ABSENCE',
-        'CONDITION_SQUAD',
-        'DRILL_PLAYER',
-        'DRILL_SQUAD',
-      ]),
+      new Set(['ABSENCE', 'CONDITION_SQUAD', 'DRILL_PLAYER', 'DRILL_SQUAD']),
     );
+  });
+
+  test('keeps drill costs alive through at least the next training week', () => {
+    const drillCosts = loadLaunchContent()
+      .playerRequests.requests.map((request) => request.cost)
+      .filter(
+        (cost) => cost.kind === 'DRILL_PLAYER' || cost.kind === 'DRILL_SQUAD',
+      );
+
+    for (const cost of drillCosts) expect(cost.weeks).toBeGreaterThanOrEqual(2);
   });
 
   test('carries no status perk, which would collide with contractPromise', () => {
@@ -51,14 +54,14 @@ describe('validated player request catalog', () => {
     }
   });
 
-  test('gives a themed bonus only to squad requests, never to an individual ask', () => {
+  test('gives a themed bonus only to requests with a squad-wide cost', () => {
     const withBonus = loadLaunchContent().playerRequests.requests.filter(
       (request) => request.grantBonus !== undefined,
     );
 
     expect(withBonus.length).toBeGreaterThan(0);
     for (const request of withBonus) {
-      expect(request.cost.kind).toBe('MONEY_SQUAD');
+      expect(['CONDITION_SQUAD', 'DRILL_SQUAD']).toContain(request.cost.kind);
     }
   });
 
@@ -138,8 +141,10 @@ describe('validated player request catalog', () => {
   test('is rejected by the launch content schema when a request is malformed', () => {
     const content = cloneContent(loadLaunchContent());
     (
-      content.playerRequests.requests[0].cost as { wageMultiple: number }
-    ).wageMultiple = 0;
+      content.playerRequests.requests[0].cost as {
+        multiplierPercent: number;
+      }
+    ).multiplierPercent = 0;
 
     expect(() => parseLaunchContent(content)).toThrow();
   });

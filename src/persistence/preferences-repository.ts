@@ -597,6 +597,23 @@ export function replaceFormationPreset(
   return { ...preferences, formationPresets };
 }
 
+/** Makes the last live choice the opening shape for the next match. */
+export function rememberInitialFormation(
+  preferences: AppPreferences,
+  formation: FormationId,
+): AppPreferences {
+  const occupiedSlot = preferences.formationPresets.indexOf(formation);
+  if (occupiedSlot <= 0) return preferences;
+  const formationPresets: [FormationId, FormationId, FormationId] = [
+    ...preferences.formationPresets,
+  ];
+  [formationPresets[0], formationPresets[occupiedSlot]] = [
+    formationPresets[occupiedSlot],
+    formationPresets[0],
+  ];
+  return { ...preferences, formationPresets };
+}
+
 /**
  * Settings exposes the proven base shapes plus formations taught by a hired
  * coach. A formation already present in an older settings row is retained as

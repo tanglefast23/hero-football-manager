@@ -29,7 +29,7 @@ describe('concierge actionable targets', () => {
     ).toBe('actual-assistant');
   });
 
-  it('skips max-level facilities when choosing the upgrade target', () => {
+  it('skips max-level and division-locked facilities when choosing the upgrade target', () => {
     const maxed = {
       id: 'level-three',
       upgradeCost: undefined,
@@ -38,7 +38,12 @@ describe('concierge actionable targets', () => {
       id: 'level-two',
       upgradeCost: 12_000,
     } as ClubFacilityBuildingViewModel;
-    expect(firstGuidedFacilityUpgradeId([maxed, upgradeable])).toBe(
+    const locked = {
+      id: 'division-locked',
+      upgradeCost: 18_000,
+      upgradeBlockedReason: 'Level 3 facilities unlock in D2.',
+    } as ClubFacilityBuildingViewModel;
+    expect(firstGuidedFacilityUpgradeId([maxed, locked, upgradeable])).toBe(
       'level-two',
     );
   });

@@ -240,13 +240,10 @@ describe('deterministic offers', () => {
     for (let index = 0; index < cozy.length; index += 1) {
       const base = cozy[index].objective;
       const hard = chairman[index].objective;
-      const expected =
-        base.kind === 'LEAGUE_WINS'
-          ? base.target + 2
-          : base.kind === 'LEAGUE_GOALS'
-            ? base.target + 4
-            : Math.max(1, base.target - 1);
-      expect(hard.target).toBe(expected);
+      const definition = RULES.objectives.find(
+        (objective) => objective.kind === base.kind,
+      )!;
+      expect(hard.target).toBe(base.target + definition.chairmanDelta);
     }
   });
 
@@ -465,6 +462,54 @@ describe('fixture-derived sponsor objectives', () => {
         3,
       ),
     ).toEqual({ kind: 'LEAGUE_FINISH', target: 1, value: 1, met: true });
+  });
+
+  it('derives tactical goals from clean sheets, three-goal games, and away points', () => {
+    const tacticalFixtures = [
+      ...FINAL_FIXTURES,
+      fixture('b-user', 'b', 'user', 1, 3, { round: 3, week: 9 }),
+      fixture('d-user', 'd', 'user', 0, 0, { round: 4, week: 11 }),
+    ];
+
+    expect(
+      sponsorObjectiveProgressFromFixtures(
+        objective('LEAGUE_CLEAN_SHEETS', 2),
+        tacticalFixtures,
+        'user',
+        3,
+      ),
+    ).toEqual({
+      kind: 'LEAGUE_CLEAN_SHEETS',
+      target: 2,
+      value: 2,
+      met: true,
+    });
+    expect(
+      sponsorObjectiveProgressFromFixtures(
+        objective('LEAGUE_THREE_GOAL_GAMES', 2),
+        tacticalFixtures,
+        'user',
+        3,
+      ),
+    ).toEqual({
+      kind: 'LEAGUE_THREE_GOAL_GAMES',
+      target: 2,
+      value: 1,
+      met: false,
+    });
+    expect(
+      sponsorObjectiveProgressFromFixtures(
+        objective('LEAGUE_AWAY_POINTS', 4),
+        tacticalFixtures,
+        'user',
+        3,
+      ),
+    ).toEqual({
+      kind: 'LEAGUE_AWAY_POINTS',
+      target: 4,
+      value: 4,
+      met: true,
+    });
   });
 
   it('settles Week 30 outcomes once and pays only met bonuses after portfolio difficulty', () => {

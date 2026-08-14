@@ -426,6 +426,7 @@ export function MatchScreen({
   firstMatchTutorial = false,
   autoSubs: initialAutoSubs = false,
   onAutoSubsChange,
+  onFormationChange,
   maximumSpeed = 3,
   performanceLimit,
   onPerformanceLimitChange,
@@ -457,6 +458,8 @@ export function MatchScreen({
   autoSubs?: boolean;
   /** Fires only when the substitution board saves a different setting. */
   onAutoSubsChange?: (autoSubs: boolean) => void;
+  /** Remembers a live selection as the opening shape for the next match. */
+  onFormationChange?: (formation: FormationId) => void;
   /** Seasons 1–2 cap at 2×; the veteran 3× option unlocks in Season 3. */
   maximumSpeed?: MatchSpeed;
   /** A time-limited device cap created from measured frame pacing. */
@@ -2901,6 +2904,7 @@ export function MatchScreen({
       formation,
     });
     if (!recorded) return;
+    onFormationChange?.(formation);
     pushInputBanner(
       `formation-input:${match.tick}`,
       `${formation} · ${t(`formation.${formation}.blurb`).toUpperCase()}`,

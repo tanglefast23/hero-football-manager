@@ -37,6 +37,7 @@ export interface FixtureMatchDayScreenProps {
   onSwapStartingPlayer: (starterId: string, replacementId: string) => void;
   onWatchMatch: () => void;
   onQuickResult: () => void;
+  onCycleFormation: () => void;
   watchDisabled?: boolean;
   quickResultDisabled?: boolean;
   onOpenSettings: () => void;
@@ -264,6 +265,7 @@ export function FixtureMatchDayScreen({
   onSwapStartingPlayer,
   onWatchMatch,
   onQuickResult,
+  onCycleFormation,
   watchDisabled = false,
   quickResultDisabled = false,
   onOpenSettings,
@@ -415,7 +417,17 @@ export function FixtureMatchDayScreen({
       <StageSection
         eyebrow={t('fixtureMatchDay.teamSheet')}
         title={t('fixtureMatchDay.startingEleven')}
-        right={<StatusChip label={viewModel.formationLabel} />}
+        right={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('matchScreen.a11y.formation', {
+              formation: viewModel.formationLabel,
+            })}
+            onPress={onCycleFormation}
+          >
+            <StatusChip label={`${viewModel.formationLabel}  ▸`} />
+          </Pressable>
+        }
       />
       <Text className="mb-3 text-sm leading-5 text-paper/75">
         {t('fixtureMatchDay.toChangeStartersTap')}

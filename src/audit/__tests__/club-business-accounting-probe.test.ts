@@ -48,9 +48,9 @@ const CELLS: readonly {
 ] as const;
 const PROFILES: readonly SponsorProfileId[] = ['STEADY', 'BALANCED', 'BOLD'];
 const OBJECTIVE_KINDS: readonly SponsorObjectiveKind[] = [
-  'LEAGUE_WINS',
-  'LEAGUE_GOALS',
-  'LEAGUE_FINISH',
+  'LEAGUE_CLEAN_SHEETS',
+  'LEAGUE_THREE_GOAL_GAMES',
+  'LEAGUE_AWAY_POINTS',
 ];
 const SAMPLE_CACHE = new Map<string, ClubBusinessBalanceResult[]>();
 const BUZZ_SAMPLE_CACHE = new Map<string, ClubBusinessBalanceResult[]>();

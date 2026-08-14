@@ -21,6 +21,7 @@ import {
 } from './promotion-progression';
 import type { CareerPlayer, GameState } from './types';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
+import { roleOverall } from './archetype-caps';
 
 const DEFAULT_HERO_LIMIT = 2;
 const TRAINING_GROUND_COST = 8000;
@@ -260,6 +261,10 @@ function repairLineupForInjuries(
         if (leftRolePenalty !== rightRolePenalty)
           return leftRolePenalty - rightRolePenalty;
         if (left.licensed !== right.licensed) return left.licensed ? 1 : -1;
+        const ratingDifference =
+          roleOverall(right.role, right.attrs) -
+          roleOverall(left.role, left.attrs);
+        if (ratingDifference !== 0) return ratingDifference;
         return compareIds(left.id, right.id);
       })[0];
     if (replacement === undefined) {

@@ -4,6 +4,7 @@ import {
   beginStoryOnboarding,
   buildCareerTeams,
   createCareer,
+  CUP_SETTLEMENT_WEEKS,
   enableFullCareer,
   playerAttributeCaps,
   playerPotentialGrade,
@@ -77,6 +78,48 @@ describe('launch career adapter', () => {
     expect(
       reconciled.players.find((player) => player.id === 'special-f171'),
     ).toMatchObject({ name: 'Larry Alan', lookId: 'f171' });
+  });
+
+  it('moves an old saved league schedule off future Cup weeks without rewriting results', () => {
+    const current = createCareer(createLaunchCareerSetup(2_608_140));
+    const oldWeek = (round: number) =>
+      round === 18 ? 30 : 5 + Math.floor(((round - 1) * 23) / 17);
+    const stale = {
+      ...current,
+      season: 2,
+      week: 10,
+      fixtures: current.fixtures.map((fixture) => ({
+        ...fixture,
+        season: 2,
+        week: oldWeek(fixture.round),
+        ...(fixture.round < 5
+          ? { status: 'played' as const, score: { homeGoals: 1, awayGoals: 0 } }
+          : { status: 'scheduled' as const, score: undefined }),
+      })),
+    };
+    const playedBefore = stale.fixtures
+      .filter((fixture) => fixture.status === 'played')
+      .map((fixture) => ({ id: fixture.id, week: fixture.week, score: fixture.score }));
+
+    const migrated = reconcileLaunchRoster(stale);
+    const scheduled = migrated.fixtures.filter(
+      (fixture) => fixture.season === 2 && fixture.status === 'scheduled',
+    );
+
+    expect(
+      migrated.fixtures
+        .filter((fixture) => fixture.status === 'played')
+        .map((fixture) => ({ id: fixture.id, week: fixture.week, score: fixture.score })),
+    ).toEqual(playedBefore);
+    expect(scheduled.every((fixture) => fixture.week >= stale.week)).toBe(true);
+    expect(
+      scheduled.some((fixture) =>
+        CUP_SETTLEMENT_WEEKS.includes(
+          fixture.week as (typeof CUP_SETTLEMENT_WEEKS)[number],
+        ),
+      ),
+    ).toBe(false);
+    expect(reconcileLaunchRoster(migrated)).toEqual(migrated);
   });
 
   it('repairs the old default club name in the saved pyramid', () => {
@@ -285,6 +328,87 @@ describe('launch career adapter', () => {
     // And a catalog that already matches is left alone, so resuming a current
     // save is not a write every time.
     expect(reconcileLaunchRoster(rebased, content)).toStrictEqual(rebased);
+  });
+
+  it('rebases settled player requests but leaves an open decision unchanged', () => {
+    const content = loadLaunchContent();
+    const current = createCareer(
+      createLaunchCareerSetup(20260814, undefined, content),
+    );
+    const legacyRules = {
+      ...content.playerRequests,
+      requests: content.playerRequests.requests.map((request) =>
+        request.id === 'gold-boots'
+          ? {
+              ...request,
+              cost: { kind: 'MONEY_PLAYER' as const, wageMultiple: 4 },
+            }
+          : request,
+      ),
+    };
+    const stale = { ...current, playerRequestRules: legacyRules };
+
+    const rebased = reconcileLaunchRoster(stale, content);
+    expect(
+      rebased.playerRequestRules?.requests.find(
+        (request) => request.id === 'gold-boots',
+      )?.cost,
+    ).toEqual({ kind: 'DRILL_PLAYER', multiplierPercent: 80, weeks: 2 });
+
+    const open = {
+      ...stale,
+      playerRequests: {
+        weeksSinceRequest: 0,
+        effects: [],
+        history: [],
+        pending: {
+          requestId: 'gold-boots',
+          playerId: stale.players.find(
+            (player) => player.clubId === stale.userClubId,
+          )!.id,
+          askedSeason: stale.season,
+          askedWeek: stale.week,
+          costAmount: 1_000,
+          warned: false,
+        },
+      },
+    };
+    expect(reconcileLaunchRoster(open, content).playerRequestRules).toEqual(
+      legacyRules,
+    );
+  });
+
+  it('rebases future sponsor rules without rewriting signed terms', () => {
+    const content = loadLaunchContent();
+    const current = enableFullCareer(
+      createCareer(createLaunchCareerSetup(20260814, undefined, content)),
+    );
+    const legacyRules = {
+      ...current.sponsorRules!,
+      objectives: [
+        {
+          id: 'league-wins',
+          kind: 'LEAGUE_WINS' as const,
+          labelTemplate: 'Win {target} league matches',
+          targets: { EASY: 5, NORMAL: 8, HARD: 12 },
+          chairmanDelta: 2,
+        },
+        ...current.sponsorRules!.objectives.slice(1),
+      ],
+    };
+    const signed = current.clubBusiness.sponsorship.activeContracts[0];
+    const stale = { ...current, sponsorRules: legacyRules };
+
+    const rebased = reconcileLaunchRoster(stale, content);
+
+    expect(rebased.sponsorRules?.objectives.map((rule) => rule.kind)).toEqual([
+      'LEAGUE_CLEAN_SHEETS',
+      'LEAGUE_THREE_GOAL_GAMES',
+      'LEAGUE_AWAY_POINTS',
+    ]);
+    expect(rebased.clubBusiness.sponsorship.activeContracts[0]).toEqual(
+      signed,
+    );
   });
 
   it('marks an established full career without restoring departed launch players', () => {
