@@ -2524,14 +2524,14 @@
       "choices": [
         {
           "id": "send-him-properly",
-          "label": "Send him properly, miss the Tuesdays",
+          "label": "Send them properly, miss the Tuesdays",
           "risky": true,
           "outcomes": [
             {
               "weight": 32,
               "id": "success",
-              "successHeadline": "He comes back running sessions nobody here has seen",
-              "text": "Six Tuesdays gone and he returns with sessions nobody at this level has run before.",
+              "successHeadline": "They come back running sessions nobody here has seen",
+              "text": "Six Tuesdays gone and they return with sessions nobody at this level has run before.",
               "effects": [
                 {
                   "type": "coachBoost",
@@ -2567,7 +2567,7 @@
             {
               "weight": 100,
               "id": "only",
-              "text": "He does the evenings, keeps his Tuesdays, and picks up two useful things.",
+              "text": "They do the evenings, keep their Tuesdays, and pick up two useful things.",
               "effects": [
                 {
                   "type": "tp",
@@ -2585,7 +2585,7 @@
       "rarity": "common",
       "art": "event-ladder-fortnight",
       "title": "Two Weeks at a Bigger Club",
-      "body": "A club two divisions higher will let one of your coaches watch their work for two weeks. They have offered him a bed at their training ground.",
+      "body": "A club two divisions higher will let one of your coaches watch their work for two weeks. They have offered them a bed at their training ground.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -2595,14 +2595,14 @@
       "choices": [
         {
           "id": "send-him-for-the-fortnight",
-          "label": "Send him for two weeks",
+          "label": "Send them for two weeks",
           "risky": true,
           "outcomes": [
             {
               "weight": 30,
               "id": "success",
-              "successHeadline": "He comes home with new coaching ideas",
-              "text": "He spends fourteen days watching the bigger club train and brings their best ideas home.",
+              "successHeadline": "They come home with new coaching ideas",
+              "text": "They spend fourteen days watching the bigger club train and bring their best ideas home.",
               "effects": [
                 {
                   "type": "coachBoost",
@@ -2620,7 +2620,7 @@
             {
               "weight": 70,
               "id": "setback",
-              "text": "He returns with a system that needs players with skills this club does not have.",
+              "text": "They return with a system that needs players with skills this club does not have.",
               "effects": [
                 {
                   "type": "coachBoost",
@@ -2736,8 +2736,8 @@
       "category": "club",
       "rarity": "common",
       "art": "event-dark-room",
-      "title": "He Wants The Lights Off",
-      "body": "He wants to give the team talk in the dark. He has explained why twice and it has not helped.",
+      "title": "They Want The Lights Off",
+      "body": "They want to give the team talk in the dark. They have explained why twice and it has not helped.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -2792,13 +2792,13 @@
         },
         {
           "id": "lights-on-please",
-          "label": "Let him speak, lights on",
+          "label": "Let them speak, lights on",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "He speaks well. The lights stay on. Everyone is slightly relieved.",
+              "text": "They speak well. The lights stay on. Everyone is slightly relieved.",
               "effects": [
                 {
                   "type": "squadMorale",
@@ -2897,14 +2897,14 @@
       "choices": [
         {
           "id": "run-the-one-you-backed",
-          "label": "Use his drill all week",
+          "label": "Use their drill all week",
           "risky": true,
           "outcomes": [
             {
               "weight": 27,
               "id": "success",
               "successHeadline": "The chosen drill works",
-              "text": "You support one coach in front of the other. His drill works, and the argument ends by Friday.",
+              "text": "You support one coach in front of the other. Their drill works, and the argument ends by Friday.",
               "effects": [
                 {
                   "type": "coachBoost",
@@ -2921,7 +2921,7 @@
             {
               "weight": 73,
               "id": "setback",
-              "text": "His drill does not work, and the whole squad sees it fail all week.",
+              "text": "Their drill does not work, and the whole squad sees it fail all week.",
               "effects": [
                 {
                   "type": "coachBoost",
@@ -3001,7 +3001,7 @@
             {
               "weight": 73,
               "id": "setback",
-              "text": "Half of what he writes from memory turns out to be wrong.",
+              "text": "Half of what they write from memory turns out to be wrong.",
               "effects": [
                 {
                   "type": "coachBoost",
@@ -3020,7 +3020,7 @@
             {
               "weight": 100,
               "id": "only",
-              "text": "The club had four seasons backed up. He takes what he can get.",
+              "text": "The club had four seasons backed up. They take what they can get.",
               "effects": [
                 {
                   "type": "tp",
@@ -3038,7 +3038,7 @@
       "rarity": "common",
       "art": "event-laptop-salesman",
       "title": "A Salesman With a Tracking System",
-      "body": "A salesman says his laptop can track eleven player statistics. He claims all eleven will improve training.",
+      "body": "A salesperson says their laptop can track eleven player statistics. They claim all eleven will improve training.",
       "trigger": {
         "season": 1,
         "minWeek": 4,

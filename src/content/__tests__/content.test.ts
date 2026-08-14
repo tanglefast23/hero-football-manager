@@ -980,8 +980,8 @@ describe('event outcome ids', () => {
 
 describe('plain and truthful career event copy', () => {
   test('coach-targeted stories do not assume the selected coach is male', () => {
-    const coachStories = loadLaunchContent().events.events.filter((event) =>
-      ['assistant-takes-the-week', 'the-keeper-week'].includes(event.id),
+    const coachStories = loadLaunchContent().events.events.filter(
+      (event) => event.trigger.requiresCoach,
     );
     const visibleCopy = coachStories.flatMap((event) => [
       event.title,
