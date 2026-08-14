@@ -163,6 +163,7 @@ describe('App screen routing', () => {
     // hand over: both keep drawing, and the moment they hand over is the moment
     // the next screen is doing its most expensive work.
     expect(app).toContain('screenKey === MatchScreen');
+    expect(app).toContain('screenKey === PenaltyShootout');
     expect(app).toContain('screenKey === QuickResultFaceOff');
     expect(app).toContain('screenKey === RivalHeroIntroScreen');
   });

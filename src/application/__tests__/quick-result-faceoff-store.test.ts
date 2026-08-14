@@ -15,6 +15,7 @@ function reset(): void {
   useM1Store.setState({
     screen: 'management',
     faceOff: null,
+    shootout: null,
     pendingPostFaceOffScreen: null,
   });
 }
@@ -122,15 +123,18 @@ describe('quickResult raises the face-off', () => {
     );
   });
 
-  it('holds the screen the result would have opened, and skips the scene if it cannot be built', () => {
+  it('holds the screen the result would have opened, and gives tied Cup scores to the shootout', () => {
     const quickResult = source()
       .split('  quickResult(')[1]
       .split('\n  watchMatch(')[0];
     expect(quickResult).toContainSource(
-      "screen: faceOff === null ? destination : 'faceoff'",
+      "shootout !== null ? ('shootout' as const)",
     );
     expect(quickResult).toContainSource(
-      'pendingPostFaceOffScreen: faceOff === null ? null : destination',
+      "faceOff !== null ? ('faceoff' as const)",
+    );
+    expect(quickResult).toContainSource(
+      'presentationScreen === destination ? null : destination',
     );
     // The awakening still comes before the ledger; the face-off only ever sits
     // ahead of that chain, never inside it.
@@ -176,6 +180,9 @@ describe('ephemeral screen state is never inherited across careers', () => {
         .slice(Math.max(0, reset.index - 8), reset.index + 24)
         .join('\n');
       expect(`${where} ${block.includes('faceOff: null,')}`).toBe(
+        `${where} true`,
+      );
+      expect(`${where} ${block.includes('shootout: null,')}`).toBe(
         `${where} true`,
       );
       expect(

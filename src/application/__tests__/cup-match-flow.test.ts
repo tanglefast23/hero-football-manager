@@ -3,6 +3,7 @@ import {
   DEFAULT_CREATION_RATINGS,
   createCareer,
   cupMismatchWarning,
+  type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import type { CareerRepository } from '../../persistence';
@@ -322,6 +323,7 @@ describe('Hero Cup app routing', () => {
     // which is what Bert's once-a-career consolation is hung on.
     prepareCupTie(2, 'opponent');
     useM1Store.getState().quickResult();
+    expect(useM1Store.getState().screen).not.toBe('shootout');
     expect(useM1Store.getState().postMatch!.result).toMatchObject({
       outcomeLabel: 'LOSS',
       cupExit: true,
@@ -334,10 +336,84 @@ describe('Hero Cup app routing', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
     prepareCupTie(2, 'user');
     useM1Store.getState().quickResult();
+    expect(useM1Store.getState().screen).not.toBe('shootout');
     expect(useM1Store.getState().postMatch!.result).toMatchObject({
       outcomeLabel: 'WIN',
       cupExit: false,
     });
+  });
+
+  test('shows a settled tied Cup Quick Result before the normal result flow', () => {
+    const prepared = prepareTiedCupTie();
+    const fixture = activeUserCupFixture(prepared);
+
+    useM1Store.getState().quickResult();
+
+    const settled = useM1Store.getState();
+    expect(settled.error).toBeNull();
+    expect(settled).toMatchObject({
+      screen: 'shootout',
+      faceOff: null,
+      pendingPostFaceOffScreen: 'postmatch',
+      postMatch: {
+        result: {
+          fixtureId: fixture.id,
+          homeScore: expect.any(Number),
+          awayScore: expect.any(Number),
+        },
+      },
+    });
+    expect(settled.postMatch!.result.homeScore).toBe(
+      settled.postMatch!.result.awayScore,
+    );
+    expect(settled.shootout?.winner).toBe(
+      settled.postMatch!.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
+    );
+    const career = settled.career;
+    const ledgerCount = career!.ledgers.length;
+
+    settled.completeShootout();
+
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'postmatch',
+      shootout: null,
+      postMatch: { result: { fixtureId: fixture.id } },
+    });
+    expect(useM1Store.getState().career).toBe(career);
+    expect(useM1Store.getState().career!.ledgers).toHaveLength(ledgerCount);
+  });
+
+  test('shows the same recorded winner after a watched tied Cup match', () => {
+    prepareTiedCupTie();
+    useM1Store.getState().watchMatch();
+    const watched = useM1Store.getState().watchedMatch!;
+    const result = createMatch(
+      watched.fixture.matchSeed,
+      watched.home,
+      watched.away,
+      { controlledTeam: watched.controlledTeam },
+    );
+    result.score = [1, 1];
+    result.phase = 'fulltime';
+
+    useM1Store.getState().finishWatchedMatch(result);
+
+    const settled = useM1Store.getState();
+    const cupFixture = settled.career!.m2!.nationalCups
+      .flatMap((cup) => cup.rounds)
+      .flatMap((round) => round.fixtures)
+      .find((fixture) => fixture.id === watched.fixture.id)!;
+    expect(settled).toMatchObject({
+      screen: 'shootout',
+      faceOff: null,
+      pendingPostFaceOffScreen: 'postmatch',
+      postMatch: { result: { homeScore: 1, awayScore: 1 } },
+    });
+    expect(settled.shootout?.winner).toBe(
+      cupFixture.winnerClubId === settled.career!.userClubId
+        ? 'club'
+        : 'opponent',
+    );
   });
 });
 
@@ -485,6 +561,45 @@ function prepareCupTie(
           ),
         })),
       },
+    },
+  });
+  useM1Store.setState({ career: prepared, screen: 'matchday' });
+  return prepared;
+}
+
+function activeUserCupFixture(state: GameState) {
+  return state.m2!.nationalCups[0].rounds[0].fixtures.find(
+    (fixture) =>
+      fixture.homeClubId === state.userClubId ||
+      fixture.awayClubId === state.userClubId,
+  )!;
+}
+
+function prepareTiedCupTie() {
+  useM1Store.getState().startNewCareer(2);
+  useM1Store.getState().completePlayerCreation({
+    name: 'Cup Runner',
+    ratings: DEFAULT_CREATION_RATINGS,
+  });
+  const career = useM1Store.getState().career!;
+  const fixture = activeUserCupFixture(career);
+  const prepared = withRivalHeroIntrosSeen({
+    ...career,
+    week: PLAY_IN_WEEK,
+    phase: 'matchday' as const,
+    m2: {
+      ...career.m2!,
+      nationalCups: career.m2!.nationalCups.map((cup) => ({
+        ...cup,
+        rounds: cup.rounds.map((round) => ({
+          ...round,
+          fixtures: round.fixtures.map((candidate) =>
+            candidate.id === fixture.id
+              ? { ...candidate, matchSeed: 1 }
+              : candidate,
+          ),
+        })),
+      })),
     },
   });
   useM1Store.setState({ career: prepared, screen: 'matchday' });

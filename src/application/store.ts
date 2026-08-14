@@ -114,6 +114,7 @@ import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type {
   ManagementTab,
   MatchDayBannerViewModel,
+  PenaltyShootoutViewModel,
   PostMatchViewModel,
   QuickResultFaceOffViewModel,
   WeeklyReviewViewModel,
@@ -128,6 +129,7 @@ import {
   clearRivalResultCache,
 } from './rival-result-cache';
 import { quickResultFaceOffViewModel } from './quick-result-faceoff';
+import { penaltyShootoutViewModel } from './penalty-shootout';
 import { careerMarketScoutOptions } from './market-source-adapter';
 import {
   matchDayBannerViewModel,
@@ -361,6 +363,8 @@ export type M1Screen =
   // overlay so the awakening's beat timers and the ledger's slot animation
   // cannot start underneath a scene the manager is still watching.
   | 'faceoff'
+  // A tied Hero Cup result, replayed after settlement without changing it.
+  | 'shootout'
   | 'postmatch'
   | 'week-review'
   | 'legacy'
@@ -469,7 +473,7 @@ interface M1Store {
    */
   matchDayBanner: MatchDayBannerViewModel | null;
   /**
-   * The Quick Result face-off waiting to be watched, and the screen it is
+   * The post-match presentation waiting to be watched, and the screen it is
    * standing in front of.
    *
    * App state, never persisted — the same argument as `inboxDutyReminder` and
@@ -478,6 +482,7 @@ interface M1Store {
    * nothing else.
    */
   faceOff: QuickResultFaceOffViewModel | null;
+  shootout: PenaltyShootoutViewModel | null;
   pendingPostFaceOffScreen: M1Screen | null;
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
@@ -538,6 +543,7 @@ interface M1Store {
   dismissInboxDutyReminder: () => void;
   dismissMatchDayBanner: () => void;
   completeFaceOff: () => void;
+  completeShootout: () => void;
   /** Removes a product card after its current-week conversation is complete. */
   dismissInboxProduct: (
     alertId: string,
@@ -810,6 +816,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   inboxDutyFocus: null,
   matchDayBanner: null,
   faceOff: null,
+  shootout: null,
   pendingPostFaceOffScreen: null,
   selectedContractTerm: 1,
   error: null,
@@ -838,6 +845,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         inboxDutyFocus: null,
         matchDayBanner: null,
         faceOff: null,
+        shootout: null,
         pendingPostFaceOffScreen: null,
         persistenceLoadError: null,
         rawExportRequired: false,
@@ -946,6 +954,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       inboxDutyFocus: null,
       matchDayBanner: null,
       faceOff: null,
+      shootout: null,
       pendingPostFaceOffScreen: null,
       error: null,
     });
@@ -992,6 +1001,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       weekReview: null,
       matchDayBanner: null,
       faceOff: null,
+      shootout: null,
       pendingPostFaceOffScreen: null,
       error: null,
       notice: { tone: 'info', message: t('store.backupRestored') },
@@ -1022,6 +1032,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         inboxDutyFocus: null,
         matchDayBanner: null,
         faceOff: null,
+        shootout: null,
         pendingPostFaceOffScreen: null,
         error: null,
         notice: {
@@ -1095,6 +1106,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         inboxDutyFocus: null,
         matchDayBanner: null,
         faceOff: null,
+        shootout: null,
         pendingPostFaceOffScreen: null,
         error: null,
       });
@@ -1128,6 +1140,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       inboxDutyFocus: null,
       matchDayBanner: null,
       faceOff: null,
+      shootout: null,
       pendingPostFaceOffScreen: null,
       error: null,
     });
@@ -1386,6 +1399,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({
       screen: get().pendingPostFaceOffScreen ?? 'postmatch',
       faceOff: null,
+      shootout: null,
+      pendingPostFaceOffScreen: null,
+    });
+  },
+
+  completeShootout() {
+    if (get().screen !== 'shootout') return;
+    set({
+      screen: get().pendingPostFaceOffScreen ?? 'postmatch',
+      faceOff: null,
+      shootout: null,
       pendingPostFaceOffScreen: null,
     });
   },
@@ -1730,8 +1754,29 @@ export const useM1Store = create<M1Store>((set, get) => ({
         teams[userIsHome ? fixture.homeClubId : fixture.awayClubId];
       const opponentTeam =
         teams[userIsHome ? fixture.awayClubId : fixture.homeClubId];
+      const tiedCup =
+        kind === 'national-cup' &&
+        userResult.homeGoals === userResult.awayGoals;
+      const shootout =
+        !tiedCup || clubTeam === undefined || opponentTeam === undefined
+          ? null
+          : penaltyShootoutViewModel(
+              {
+                fixtureId: fixture.id,
+                careerSeed: before.careerSeed,
+                matchSeed: fixture.matchSeed,
+                round: fixture.round,
+                clubTeam,
+                opponentTeam,
+                winner:
+                  postMatch.result.outcomeLabel === 'WIN'
+                    ? 'club'
+                    : 'opponent',
+              },
+              t,
+            );
       const faceOff =
-        clubTeam === undefined || opponentTeam === undefined
+        tiedCup || clubTeam === undefined || opponentTeam === undefined
           ? null
           : quickResultFaceOffViewModel(
               {
@@ -1741,6 +1786,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
               },
               t,
             );
+      const presentationScreen =
+        shootout !== null
+          ? ('shootout' as const)
+          : faceOff !== null
+            ? ('faceoff' as const)
+            : destination;
       set({
         career: next,
         postMatch,
@@ -1756,9 +1807,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ),
         // A scene that could not be built is simply not shown: the settled
         // result reaches the manager either way.
-        screen: faceOff === null ? destination : 'faceoff',
+        screen: presentationScreen,
         faceOff,
-        pendingPostFaceOffScreen: faceOff === null ? null : destination,
+        shootout,
+        pendingPostFaceOffScreen:
+          presentationScreen === destination ? null : destination,
         watchedMatch: null,
         error: null,
       });
@@ -1863,6 +1916,32 @@ export const useM1Store = create<M1Store>((set, get) => ({
         production.powerFiredPlayerIds,
         t,
       );
+      const destination = awakening.awakened
+        ? ('awakening' as const)
+        : ('postmatch' as const);
+      const tiedCup =
+        kind === 'national-cup' && supplied.homeGoals === supplied.awayGoals;
+      const clubTeam = watchedMatch.userIsFixtureHome
+        ? watchedMatch.home
+        : watchedMatch.away;
+      const opponentTeam = watchedMatch.userIsFixtureHome
+        ? watchedMatch.away
+        : watchedMatch.home;
+      const shootout = tiedCup
+        ? penaltyShootoutViewModel(
+            {
+              fixtureId: fixture.id,
+              careerSeed: before.careerSeed,
+              matchSeed: fixture.matchSeed,
+              round: fixture.round,
+              clubTeam,
+              opponentTeam,
+              winner:
+                postMatch.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
+            },
+            t,
+          )
+        : null;
       set({
         career: next,
         postMatch,
@@ -1875,7 +1954,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
           next,
           get().matchDayBanner,
         ),
-        screen: awakening.awakened ? 'awakening' : 'postmatch',
+        screen: shootout === null ? destination : 'shootout',
+        faceOff: null,
+        shootout,
+        pendingPostFaceOffScreen: shootout === null ? null : destination,
         watchedMatch: null,
         error: null,
       });
@@ -1958,6 +2040,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       faceOff: null,
+      shootout: null,
       pendingPostFaceOffScreen: null,
       ...(career?.pendingEvent === undefined ? {} : { screen: 'event' }),
       error: null,
@@ -3791,6 +3874,7 @@ function queueNewCareerSave(
         weekReview: null,
         matchDayBanner: null,
         faceOff: null,
+        shootout: null,
         pendingPostFaceOffScreen: null,
       });
       if (replacedCareerPersisted) clearSaveFailures(set);

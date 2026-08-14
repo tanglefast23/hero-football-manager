@@ -6,6 +6,7 @@
  */
 export { MatchScreen } from '../render/MatchScreen';
 export { QuickResultFaceOff } from '../render/QuickResultFaceOff';
+export { PenaltyShootout } from '../render/PenaltyShootout';
 export { TrainingDrillModal } from './TrainingDrillModal';
 export { RivalHeroIntroScreen } from './RivalHeroIntroScreen';
 export { MatchDayBanner } from './components/MatchDayBanner';

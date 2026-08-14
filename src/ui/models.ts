@@ -304,6 +304,28 @@ export interface FaceOffSideViewModel {
   clubName: string;
 }
 
+/** A settled Hero Cup tie replayed as a deterministic penalty presentation. */
+export interface PenaltyShootoutViewModel {
+  fixtureId: string;
+  clubName: string;
+  opponentName: string;
+  winner: 'club' | 'opponent';
+  kicks: readonly PenaltyKickViewModel[];
+  finalClubScore: number;
+  finalOpponentScore: number;
+  accessibilityLabel: string;
+}
+
+export interface PenaltyKickViewModel {
+  id: string;
+  shootingSide: 'club' | 'opponent';
+  shooter: FaceOffSideViewModel;
+  goalkeeper: FaceOffSideViewModel;
+  outcome: 'score' | 'miss';
+  clubScore: number;
+  opponentScore: number;
+}
+
 export interface MatchResultViewModel {
   fixtureId: string;
   competition: string;
