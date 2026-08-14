@@ -779,15 +779,17 @@ function GreenBullTrainingSection({
   const blockedLabel =
     offer.blockedReason === 'USED_THIS_WEEK'
       ? t('greenBullTraining.usedThisWeek')
-      : offer.blockedReason === 'NOT_ENOUGH_TP'
-        ? t('greenBullTraining.needTrainingPoints', {
-            tp: offer.trainingPointsRequired,
-          })
-        : offer.blockedReason === 'NOT_ENOUGH_CASH'
-          ? t('greenBullTraining.needCash', {
-              cost: formatCurrency(t, offer.cost),
+      : offer.blockedReason === 'INDIVIDUAL_TRAINING_USED'
+        ? t('greenBullTraining.individualTrainingUsed')
+        : offer.blockedReason === 'NOT_ENOUGH_TP'
+          ? t('greenBullTraining.needTrainingPoints', {
+              tp: offer.trainingPointsRequired,
             })
-          : undefined;
+          : offer.blockedReason === 'NOT_ENOUGH_CASH'
+            ? t('greenBullTraining.needCash', {
+                cost: formatCurrency(t, offer.cost),
+              })
+            : undefined;
   return (
     <PaperPanel
       kicker={t('greenBullTraining.kicker')}

@@ -132,9 +132,10 @@ From D3 onward, use the optional Green Bull Training button instead:
 - it costs every player 10 condition; and
 - it can be used once per week.
 
-Spend useful excess TP first, but keep the required full-week minimum. Consider
-the trip when broad squad growth is worth more than the focused drills and the
-next fixtures leave enough recovery time.
+Green Bull Training must be the first training action of the week. Any
+individual drill greys out Green Bull until the following week. Book Green Bull
+before individual drills when broad squad growth is worth more than focused
+training and the next fixtures leave enough recovery time.
 
 From D3 onward, book Green Bull Training whenever you believe the club has
 enough surplus cash after covering near-term wages, renewals, scouting, and

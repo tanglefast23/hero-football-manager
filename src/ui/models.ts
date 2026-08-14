@@ -680,7 +680,11 @@ export interface SquadTrainingViewModel {
     trainingPointsRequired: number;
     statGain: number;
     conditionCost: number;
-    blockedReason?: 'USED_THIS_WEEK' | 'NOT_ENOUGH_TP' | 'NOT_ENOUGH_CASH';
+    blockedReason?:
+      | 'USED_THIS_WEEK'
+      | 'INDIVIDUAL_TRAINING_USED'
+      | 'NOT_ENOUGH_TP'
+      | 'NOT_ENOUGH_CASH';
   };
   players: readonly SquadPlayerViewModel[];
   /**

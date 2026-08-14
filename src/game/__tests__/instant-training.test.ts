@@ -8,6 +8,7 @@ import {
 import { runHeadlessFullCareer } from '../headless';
 import { overtrainingInjuryChancePercent } from '../player-wellbeing';
 import {
+  individualTrainingUsedFlag,
   INSTANT_DRILL_CONDITION_COST,
   SUPER_TRAINING_PITY_DRILLS,
   trainPlayerInstantly,
@@ -54,6 +55,9 @@ describe('trainPlayerInstantly', () => {
     );
     expect(res.conditionAfter).toBe(trained.condition);
     expect(res.state.totalInstantDrills).toBe(1);
+    expect(res.state.eventFlags).toContain(
+      individualTrainingUsedFlag(state.season, state.week),
+    );
     expect(res.attribute).toBe('pac');
     expect(res.before).toBe(player.attrs.pac);
     expect(res.after).toBe(trained.attrs.pac);

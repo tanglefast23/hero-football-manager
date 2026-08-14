@@ -44,6 +44,13 @@ import type { CareerPlayer, GameState } from './types';
 export const INSTANT_DRILL_CONDITION_COST = 8;
 export const SUPER_TRAINING_PITY_DRILLS = 12;
 
+export function individualTrainingUsedFlag(
+  season: number,
+  week: number,
+): string {
+  return `individual-training:season-${season}:week-${week}:used`;
+}
+
 export interface InstantDrillResolution {
   state: GameState;
   playerId: string;
@@ -365,6 +372,10 @@ export function trainPlayerInstantly(
   );
 
   const drilledState = (injuryWeeks: number | undefined): GameState => {
+    const trainingUsedFlag = individualTrainingUsedFlag(
+      state.season,
+      state.week,
+    );
     const trainedPlayer: CareerPlayer = {
       ...player,
       attrs: { ...player.attrs, [attribute]: growth.value },
@@ -389,6 +400,9 @@ export function trainPlayerInstantly(
       ),
       trainingPoints: state.trainingPoints - drill.tpCost,
       totalInstantDrills: nonce + 1,
+      eventFlags: state.eventFlags.includes(trainingUsedFlag)
+        ? state.eventFlags
+        : [...state.eventFlags, trainingUsedFlag],
     };
   };
 

@@ -5,6 +5,29 @@ const source = (path: string) =>
   readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('Week 19 team training presentation', () => {
+  it('greys out Green Bull after individual training and explains the weekly lock', () => {
+    const catalog = JSON.parse(source('content/i18n/en.json')) as {
+      strings: Record<string, string>;
+    };
+    const squad = source('src/ui/screens/SquadTrainingScreen.tsx');
+
+    expect(
+      catalog.strings['greenBullTraining.individualTrainingUsed'],
+    ).toBe('Individual training already used · available next week');
+    expect(catalog.strings['greenBullTraining.requirement']).toContain(
+      'Book before individual drills.',
+    );
+    expect(squad).toContainSource(
+      "offer.blockedReason === 'INDIVIDUAL_TRAINING_USED'",
+    );
+    expect(squad).toContainSource(
+      "t('greenBullTraining.individualTrainingUsed')",
+    );
+    expect(squad).toContainSource(
+      'accessibilityState={{ disabled: blockedLabel !== undefined }}',
+    );
+  });
+
   it('keeps the requested English captain line and TP question exact', () => {
     const catalog = JSON.parse(source('content/i18n/en.json')) as {
       strings: Record<string, string>;

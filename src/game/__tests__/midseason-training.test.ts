@@ -16,6 +16,7 @@ import {
   MIDSEASON_TRAINING_CONDITION_COST,
 } from '../midseason-training';
 import { weeklyAmbientTrainingPoints } from '../career';
+import { trainPlayerInstantly } from '../training';
 import type { DivisionLevel, PyramidClub } from '../pyramid';
 import type { GameState } from '../types';
 
@@ -233,6 +234,27 @@ describe('paid Green Bull training', () => {
         ),
       }),
     ).toMatchObject({ blockedReason: 'NOT_ENOUGH_CASH' });
+  });
+
+  it('waits until next week after any individual drill', () => {
+    const state = {
+      ...fundedD3(),
+      trainingPoints: weeklyAmbientTrainingPoints(fundedD3()) + 20,
+    };
+    const player = state.players.find(
+      (candidate) =>
+        candidate.clubId === state.userClubId && candidate.role !== 'GK',
+    )!;
+    const drilled = trainPlayerInstantly(state, player.id, 'sprints').state;
+
+    expect(greenBullTrainingOffer(drilled)).toMatchObject({
+      blockedReason: 'INDIVIDUAL_TRAINING_USED',
+    });
+    expect(acceptGreenBullTraining(drilled)).toBe(drilled);
+    expect(
+      greenBullTrainingOffer({ ...drilled, week: drilled.week + 1 })
+        ?.blockedReason,
+    ).toBeUndefined();
   });
 
   it('costs D3 cash, spends all TP, gives +2 all stats, and works once per week', () => {

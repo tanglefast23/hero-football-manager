@@ -4,6 +4,7 @@ import { recordCashTransaction } from './cash-transactions';
 import { currentUserDivision } from './m2-career';
 import type { DivisionLevel } from './pyramid';
 import { weeklyAmbientTrainingPoints } from './career';
+import { individualTrainingUsedFlag } from './training';
 import type { CareerPlayer, GameState } from './types';
 
 export const MIDSEASON_TRAINING_WEEK = 19;
@@ -36,7 +37,10 @@ const GAIN_BY_DIVISION: Readonly<Record<DivisionLevel, number>> = {
 
 export type MidseasonTrainingStatus = 'prompt' | 'celebration' | 'complete';
 export type GreenBullTrainingBlockedReason =
-  'USED_THIS_WEEK' | 'NOT_ENOUGH_TP' | 'NOT_ENOUGH_CASH';
+  | 'USED_THIS_WEEK'
+  | 'INDIVIDUAL_TRAINING_USED'
+  | 'NOT_ENOUGH_TP'
+  | 'NOT_ENOUGH_CASH';
 
 export interface GreenBullTrainingOffer {
   readonly cost: number;
@@ -128,6 +132,9 @@ export function greenBullTrainingOffer(
       flag === greenBullTrainingAcceptedFlag(state.season, state.week) ||
       flag === greenBullTrainingCompleteFlag(state.season, state.week),
   );
+  const individualTrainingUsed = state.eventFlags.includes(
+    individualTrainingUsedFlag(state.season, state.week),
+  );
   const cash = state.clubs.find((club) => club.id === state.userClubId)?.cash;
   if (cash === undefined)
     throw new Error(`unknown user club ${state.userClubId}`);
@@ -138,11 +145,13 @@ export function greenBullTrainingOffer(
     conditionCost: MIDSEASON_TRAINING_CONDITION_COST,
     ...(usedThisWeek
       ? { blockedReason: 'USED_THIS_WEEK' as const }
-      : state.trainingPoints < trainingPointsRequired
-        ? { blockedReason: 'NOT_ENOUGH_TP' as const }
-        : cash < cost
-          ? { blockedReason: 'NOT_ENOUGH_CASH' as const }
-          : {}),
+      : individualTrainingUsed
+        ? { blockedReason: 'INDIVIDUAL_TRAINING_USED' as const }
+        : state.trainingPoints < trainingPointsRequired
+          ? { blockedReason: 'NOT_ENOUGH_TP' as const }
+          : cash < cost
+            ? { blockedReason: 'NOT_ENOUGH_CASH' as const }
+            : {}),
   };
 }
 
