@@ -2579,7 +2579,7 @@ function GroundsSection({
                           // sub-1x downscale rather than overflowing the cell.
                           width={Math.max(
                             24,
-                            Math.min(56, Math.min(artWidth, artHeight)),
+                            Math.min(64, Math.min(artWidth, artHeight)),
                           )}
                           accessibilityLabel={t(
                             'clubFinances.a11y.facilityConstruction',
@@ -2602,14 +2602,14 @@ function GroundsSection({
                           position: 'absolute',
                           right: 2,
                           bottom: 2,
-                          borderWidth: 1,
+                          borderWidth: 2,
                           borderColor: '#241f2e',
                           backgroundColor: '#f4f1eadd',
-                          paddingHorizontal: 3,
-                          paddingVertical: 1,
+                          paddingHorizontal: 4,
+                          paddingVertical: 2,
                         }}
                       >
-                        <PixelText className="text-center text-[9px] uppercase text-ink">
+                        <PixelText className="text-center text-xs uppercase text-ink">
                           {building.status === 'operational'
                             ? `L${building.level}`
                             : `${building.status === 'construction' ? 'BUILD' : 'UP'} · ${building.weeksRemaining}W`}

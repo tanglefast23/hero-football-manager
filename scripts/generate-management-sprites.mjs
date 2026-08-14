@@ -750,15 +750,21 @@ function drill(pathId) {
 
 function worksite() {
   const g = grid(32, 32);
-  rect(g, 3, 27, 28, 29, 'G');
-  rect(g, 6, 21, 25, 26, 'c');
-  line(g, 7, 22, 12, 10, 'D');
-  line(g, 24, 22, 19, 10, 'D');
-  rect(g, 10, 12, 21, 14, 'D');
-  for (let x = 5; x <= 26; x += 4) {
-    rect(g, x, 23, x + 1, 27, 'Y');
-    set(g, x + 1, 24, 'K');
-  }
+  rect(g, 6, 28, 27, 29, 'k');
+  for (let offset = -2; offset <= 2; offset += 1)
+    line(g, 14 + offset, 11, 27 + offset, 24, 'K');
+  for (let offset = -1; offset <= 1; offset += 1)
+    line(g, 14 + offset, 11, 27 + offset, 24, 'D');
+  line(g, 14, 12, 27, 25, 'c');
+  rect(g, 3, 6, 18, 13, 'K');
+  rect(g, 4, 7, 17, 11, 'A');
+  rect(g, 4, 7, 16, 8, 'W');
+  rect(g, 4, 12, 17, 13, 'k');
+  rect(g, 1, 8, 4, 11, 'K');
+  line(g, 18, 7, 25, 4, 'K');
+  line(g, 18, 8, 25, 5, 'K');
+  line(g, 18, 11, 25, 14, 'K');
+  line(g, 18, 12, 25, 15, 'K');
   return ['facility:worksite', rows(g)];
 }
 
