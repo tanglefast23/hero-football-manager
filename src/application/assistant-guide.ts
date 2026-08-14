@@ -9,6 +9,7 @@ import {
   hireCareerCoach,
   signYouthIntakeOffer,
   completeAssistantGuideSequence,
+  currentUserDivision,
   deferAssistantGuideSequencesUntilUnlock,
   isDivisionLeadersUnlocked,
   isFacilityOperational,
@@ -47,6 +48,15 @@ export function pendingAssistantGuideSequence(
     return hasAssistantGuideMilestone(state, 'intro-complete')
       ? null
       : 'management-intro';
+  }
+  if (
+    state.phase === 'manage' &&
+    state.week === 1 &&
+    state.m2 !== undefined &&
+    currentUserDivision(state.m2) === 3 &&
+    !hasAssistantGuideSequenceCompleted(state, 'green-bull-training')
+  ) {
+    return 'green-bull-training';
   }
   if (
     isFirstFixtureWeek(state) &&

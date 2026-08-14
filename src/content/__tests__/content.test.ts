@@ -688,6 +688,7 @@ describe('validated M1 launch content', () => {
     ).toEqual([
       'management-intro',
       'desk-intro',
+      'green-bull-training',
       'expired-contract',
       'head-coach-market',
       'head-coach-hire',
@@ -767,6 +768,7 @@ describe('validated M1 launch content', () => {
     const screenDelivered = [
       'management-intro',
       'desk-intro',
+      'green-bull-training',
       'expired-contract',
     ];
     const m2Sequences = content.assistantGuide.sequences.filter(
@@ -784,7 +786,11 @@ describe('validated M1 launch content', () => {
       ),
     ).toBe(true);
     const conciseBriefings = content.assistantGuide.sequences
-      .slice(1)
+      .filter(
+        (sequence) =>
+          sequence.id !== 'management-intro' &&
+          sequence.id !== 'green-bull-training',
+      )
       .flatMap((sequence) => sequence.pages);
     expect(conciseBriefings.every((page) => page.body.length === 1)).toBe(true);
     // 200, raised from 160 for the Hero Cup briefing, which is the owner's

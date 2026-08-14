@@ -3,6 +3,7 @@ import { createCareer } from '../career';
 import { currentUserDivision } from '../m2-career';
 import { generatedPlayerWeeklyWage } from '../market';
 import { careerRenewalWeeklyAsk } from '../market-career';
+import type { DivisionLevel } from '../pyramid';
 import type { CareerPlayer, GameState } from '../types';
 
 /**
@@ -34,6 +35,32 @@ describe('renewal ask market anchor', () => {
       players: state.players.map((candidate) =>
         candidate.id === player.id ? { ...candidate, weeklyWage } : candidate,
       ),
+    };
+  }
+
+  function inDivision(state: GameState, level: DivisionLevel): GameState {
+    const userClub = state.m2!.pyramid.divisions
+      .flatMap((division) => division.clubs)
+      .find((club) => club.id === state.userClubId)!;
+    return {
+      ...state,
+      m2: {
+        ...state.m2!,
+        highestDivisionReached: Math.min(
+          state.m2!.highestDivisionReached ?? 5,
+          level,
+        ) as DivisionLevel,
+        pyramid: {
+          ...state.m2!.pyramid,
+          divisions: state.m2!.pyramid.divisions.map((division) => ({
+            ...division,
+            clubs: [
+              ...division.clubs.filter((club) => club.id !== state.userClubId),
+              ...(division.level === level ? [userClub] : []),
+            ],
+          })),
+        },
+      },
     };
   }
 
@@ -93,5 +120,22 @@ describe('renewal ask market anchor', () => {
     );
     // The x5 ceiling still governs the top end; the floor never raised it.
     expect(asked).toBeLessThanOrEqual(500_000);
+  });
+
+  test('adds 15 percentage points to renewal asks for every tier from D3', () => {
+    const player = { ...squad[0], weeklyWage: 100_000 };
+    const rich = withWage(player, player.weeklyWage);
+    const d5Ask = careerRenewalWeeklyAsk(rich, player);
+
+    for (const [level, percent] of [
+      [4, 100],
+      [3, 115],
+      [2, 130],
+      [1, 145],
+    ] as const) {
+      expect(careerRenewalWeeklyAsk(inDivision(rich, level), player)).toBe(
+        Math.round((d5Ask * percent) / 100),
+      );
+    }
   });
 });

@@ -70,6 +70,15 @@ describe('briefing beats', () => {
     expect(beats.every((beat) => beat.kind === 'body')).toBe(true);
   });
 
+  it('introduces Green Bull with exactly the two approved bubbles', () => {
+    expect(
+      briefingBeats(guide, 'green-bull-training').map((beat) => beat.text),
+    ).toEqual([
+      "Boss, we're getting wealthy enough to afford a trip to the Green Bull Training Center more than once a year.",
+      "It'll cost us, but I think it's worth it.",
+    ]);
+  });
+
   it('includes a division-leaders beat pointing at the leaders tab', () => {
     const beat = guide.sequences.find(
       (sequence) => sequence.id === 'division-leaders',

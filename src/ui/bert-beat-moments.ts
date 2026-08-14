@@ -25,6 +25,7 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
     'pointing-out',
   ],
   'desk-intro': ['pointing-out', 'encouraging'],
+  'green-bull-training': ['explaining', 'encouraging'],
   // The season's last screen. He explains the ritual, counts the three doors
   // out of it, then drops his voice for the part that is advice rather than
   // rules — `confiding` is the only look that separates "here is how it works"

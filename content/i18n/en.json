@@ -1242,7 +1242,7 @@
     "m2League.yourSquadStrength": "Your squad strength",
     "greenBullTraining.bookTraining": "Book Green Bull Training",
     "greenBullTraining.detail": "Spend {cost} and all current TP. Every player gains +{gain} to all stats and loses {condition} condition.",
-    "greenBullTraining.kicker": "D3-D1 · TEAM TRIP",
+    "greenBullTraining.kicker": "TEAM TRIP",
     "greenBullTraining.needCash": "Need {cost}",
     "greenBullTraining.needTrainingPoints": "Need {tp} TP",
     "greenBullTraining.requirement": "Requires at least {tp} TP. Available once per week.",

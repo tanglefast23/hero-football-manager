@@ -51,6 +51,7 @@ export type AssistantInboxGuideSequenceId =
 export type AssistantGuideSequenceId =
   | 'management-intro'
   | 'desk-intro'
+  | 'green-bull-training'
   /** Delivered by the season review, not the weekly desk — see the milestone. */
   | 'expired-contract'
   | AssistantInboxGuideSequenceId;

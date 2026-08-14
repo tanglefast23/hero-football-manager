@@ -136,6 +136,11 @@ Spend useful excess TP first, but keep the required full-week minimum. Consider
 the trip when broad squad growth is worth more than the focused drills and the
 next fixtures leave enough recovery time.
 
+From D3 onward, book Green Bull Training whenever you believe the club has
+enough surplus cash after covering near-term wages, renewals, scouting, and
+more valuable facility or drill upgrades. Do not force it when the fee would
+leave the club short.
+
 This is an intentional, owner-approved optimization. Team Trip should feel like
 a fun, slightly overpowered midseason reward. Its growth is broad rather than
 focused, and many boosted players will eventually leave the club, so it does
@@ -203,6 +208,9 @@ Keep enough cover for:
 
 Negotiate important renewals before the club loses leverage. Do not overpay a
 reserve who can be replaced cheaply.
+
+Renewal asks rise with the late-game economy: D3 adds 15%, D2 adds 30%, and D1
+adds 45% to the existing calculated ask. D5 and D4 are unchanged.
 
 ## Lineup and formation strategy
 

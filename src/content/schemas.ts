@@ -235,6 +235,7 @@ export const OnboardingContentSchema = z
 export const AssistantGuideSequenceIdSchema = z.enum([
   'management-intro',
   'desk-intro',
+  'green-bull-training',
   'expired-contract',
   'head-coach-market',
   'head-coach-hire',
@@ -360,6 +361,7 @@ const AssistantGuidePageSchema = z
 const SCREEN_DELIVERED_SEQUENCE_IDS = [
   'management-intro',
   'desk-intro',
+  'green-bull-training',
   'expired-contract',
 ] as const satisfies readonly z.infer<typeof AssistantGuideSequenceIdSchema>[];
 

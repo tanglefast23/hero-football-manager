@@ -23,6 +23,7 @@ import {
   M2_ASSISTANT_GUIDE_SEQUENCE_IDS,
 } from '../../game/assistant-guide';
 import type { GameState } from '../../game/types';
+import type { DivisionLevel } from '../../game/pyramid';
 import { createLaunchCareerSetup } from '../launch';
 import { FACILITY_CATALOG } from '../../game/facilities';
 import { DEFAULT_PLAYER_REQUEST_STATE } from '../../game/player-requests';
@@ -86,6 +87,32 @@ function withOneRosterSpace(state: GameState): GameState {
   };
 }
 
+function placeUserInDivision(
+  state: GameState,
+  level: DivisionLevel,
+): GameState {
+  const userClub = state.m2!.pyramid.divisions
+    .flatMap((division) => division.clubs)
+    .find((club) => club.id === state.userClubId)!;
+  return {
+    ...state,
+    m2: {
+      ...state.m2!,
+      highestDivisionReached: level,
+      pyramid: {
+        ...state.m2!.pyramid,
+        divisions: state.m2!.pyramid.divisions.map((division) => ({
+          ...division,
+          clubs: [
+            ...division.clubs.filter((club) => club.id !== state.userClubId),
+            ...(division.level === level ? [userClub] : []),
+          ],
+        })),
+      },
+    },
+  };
+}
+
 function managedSponsorCareer(options: {
   readonly season: number;
   readonly week: number;
@@ -140,6 +167,27 @@ function managedSponsorCareer(options: {
 }
 
 describe('assistant guide application flow', () => {
+  test('introduces Green Bull once on the first D3 management morning', () => {
+    const initial = createCareer(createLaunchCareerSetup(9_802));
+    const d3 = placeUserInDivision(
+      { ...initial, season: 4, week: 1, phase: 'manage' },
+      3,
+    );
+
+    expect(pendingAssistantGuideSequence(d3, 'home')).toBe(
+      'green-bull-training',
+    );
+    expect(
+      pendingAssistantGuideSequence(
+        completeAssistantGuideSequence(d3, 'green-bull-training'),
+        'home',
+      ),
+    ).toBeNull();
+    expect(
+      pendingAssistantGuideSequence({ ...d3, phase: 'matchday' }, 'home'),
+    ).toBeNull();
+  });
+
   test('queues Sponsor Desk on the first D4 management morning, once offers are actionable', () => {
     const promotionMorning = managedSponsorCareer({
       season: 2,

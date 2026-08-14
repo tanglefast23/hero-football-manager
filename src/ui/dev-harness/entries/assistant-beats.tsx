@@ -39,6 +39,7 @@ import type { DevHarnessEntry } from '../registry';
 const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'management-intro',
   'desk-intro',
+  'green-bull-training',
   'expired-contract',
   'head-coach-market',
   'head-coach-hire',
@@ -85,6 +86,7 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
 const SEQUENCE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'management-intro': 'INTRO',
   'desk-intro': 'DESK',
+  'green-bull-training': 'GREEN',
   'expired-contract': 'RENEW',
   'head-coach-market': 'COACHES',
   'head-coach-hire': 'HEAD',
@@ -182,6 +184,7 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
     note: 'Requests, injuries, the loan, and a player asking for the door',
     sequenceIds: [
       'player-requests',
+      'green-bull-training',
       'first-injury',
       'first-emergency-loan',
       'first-transfer-request',

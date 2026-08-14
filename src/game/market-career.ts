@@ -689,6 +689,16 @@ export function completeCareerTransfer(
 /** The hero premium a renewal prices at. Doc 06 allows 3-5; renewals use the midpoint. */
 export const RENEWAL_HERO_MULTIPLIER = 4;
 
+const RENEWAL_DIVISION_PREMIUM_PERCENT: Readonly<
+  Record<DivisionLevel, number>
+> = {
+  1: 145,
+  2: 130,
+  3: 115,
+  4: 100,
+  5: 100,
+};
+
 /**
  * The agent's opening weekly ask for an expired contract.
  *
@@ -724,7 +734,7 @@ export function careerRenewalWeeklyAsk(
   player: CareerPlayer,
 ): number {
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-  return renewalContractAsk(
+  const ask = renewalContractAsk(
     {
       weeklyWage: Math.max(
         player.weeklyWage,
@@ -743,6 +753,7 @@ export function careerRenewalWeeklyAsk(
       ),
     },
   );
+  return Math.round((ask * RENEWAL_DIVISION_PREMIUM_PERCENT[division]) / 100);
 }
 
 /**

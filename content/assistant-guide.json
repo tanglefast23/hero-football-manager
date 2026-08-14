@@ -89,6 +89,21 @@
       ]
     },
     {
+      "id": "green-bull-training",
+      "pages": [
+        {
+          "kicker": "A richer club",
+          "title": "Green Bull Training",
+          "body": [
+            "Boss, we're getting wealthy enough to afford a trip to the Green Bull Training Center more than once a year.",
+            "It'll cost us, but I think it's worth it."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "We'll make it count."
+        }
+      ]
+    },
+    {
       "id": "expired-contract",
       "pages": [
         {
