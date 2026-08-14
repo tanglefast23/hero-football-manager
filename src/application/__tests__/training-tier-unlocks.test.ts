@@ -53,8 +53,8 @@ describe('training drill tier purchases', () => {
     });
     expect(optionAt(2, 4)).toMatchObject({
       drillName: 'Sprints 4',
-      gain: 6,
-      tpCost: 25,
+      gain: 13,
+      tpCost: 26,
     });
   });
 
@@ -105,7 +105,7 @@ describe('training drill tier purchases', () => {
       drillName: 'Sprints 1',
       ownedTier: 1,
       nextTier: 2,
-      nextGain: 4,
+      nextGain: 5,
       cost: 3_000,
       blockedReason: 'Tier 2 drills unlock in D4 · County League.',
     });

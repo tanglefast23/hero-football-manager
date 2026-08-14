@@ -460,7 +460,7 @@ export const AssistantGuideContentSchema = z
 
 // The ceiling is the top tier's gain: the per-drill table below pins every
 // authored value exactly, so this bound only catches a gain invented outside it.
-const MAXIMUM_DRILL_GAIN = 23;
+const MAXIMUM_DRILL_GAIN = 20;
 const DrillGainsSchema = z
   .strictObject({
     pac: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
@@ -501,20 +501,19 @@ const FOCUS_DRILL_PATHS = [
     id: 'keeper-drills',
     name: 'Keeper Drills',
     attribute: 'ref',
-    gains: [1, 2, 3, 3, 4],
+    gains: [1, 2, 4, 7, 11],
   },
 ] as const;
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
-// The outfield ladder rises by one point per tier. Higher-division facilities
-// and player modifiers compound every base point, so the late tiers stay close
-// to the opening tier instead of recreating the old late-career acceleration.
+// Each tier costs 1.5x the previous tier, rounded to a whole TP. Its whole-point
+// gain is the smallest approved step that also improves gain per TP.
 const FOCUS_DRILL_TIERS = [
-  { suffix: '', label: '1', gain: 3 },
-  { suffix: '-ii', label: '2', gain: 4 },
-  { suffix: '-iii', label: '3', gain: 5 },
-  { suffix: '-iv', label: '4', gain: 6 },
-  { suffix: '-v', label: '5', gain: 7 },
+  { suffix: '', label: '1', gain: 3, tpCost: 7 },
+  { suffix: '-ii', label: '2', gain: 5, tpCost: 11 },
+  { suffix: '-iii', label: '3', gain: 8, tpCost: 17 },
+  { suffix: '-iv', label: '4', gain: 13, tpCost: 26 },
+  { suffix: '-v', label: '5', gain: 20, tpCost: 39 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap((path) =>
   FOCUS_DRILL_TIERS.map((tier, tierIndex) => ({
@@ -522,6 +521,7 @@ const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap((path) =>
     name: `${path.name} ${tier.label}`,
     attribute: path.attribute,
     gain: 'gains' in path ? path.gains[tierIndex] : tier.gain,
+    tpCost: tier.tpCost,
   })),
 );
 
@@ -576,6 +576,13 @@ export const TrainingCatalogSchema = z
           context,
           ['focusDrills', index, 'gains'],
           `${drill.id} must grant exactly +${expected.gain} ${expected.attribute.toUpperCase()}`,
+        );
+      }
+      if (drill.tpCost !== expected.tpCost) {
+        addIssue(
+          context,
+          ['focusDrills', index, 'tpCost'],
+          `${drill.id} must cost exactly ${expected.tpCost} TP`,
         );
       }
     });

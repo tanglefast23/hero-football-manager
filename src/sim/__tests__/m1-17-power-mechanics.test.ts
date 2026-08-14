@@ -4,6 +4,7 @@ import {
   launchPass,
   movementTick,
   possessionTick,
+  restartKickoff,
   shotFlightTick,
   tackleTick,
 } from '../engine';
@@ -155,6 +156,20 @@ describe('m1.18 authored one-moment powers', () => {
     possessionTick(match);
 
     expect(match.ball.kind).toBe('shot');
+    expect(match.players[hero].powerState).toEqual({
+      kind: 'zone',
+      remainingTicks: 70,
+    });
+  });
+
+  it('keeps a banked Thunder Strike through an opponent-goal restart', () => {
+    const { match, hero } = matchWith('THUNDER_STRIKE');
+    match.players[hero].gauge = 60;
+    match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
+
+    restartKickoff(match, 0);
+
+    expect(match.players[hero].gauge).toBe(60);
     expect(match.players[hero].powerState).toEqual({
       kind: 'zone',
       remainingTicks: 70,

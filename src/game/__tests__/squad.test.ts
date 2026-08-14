@@ -161,6 +161,64 @@ describe('away players', () => {
       'is away and cannot train',
     );
   });
+
+  it('restores the original starter to the exact slot after several replacements', () => {
+    const initial = career();
+    const slot = 6;
+    const originalId = initial.lineups[0].playerIds[slot];
+    const withExtraCover: GameState = {
+      ...withAway(initial, originalId, 3),
+      players: [
+        ...withAway(initial, originalId, 3).players,
+        makePlayer(CLUB_IDS[0], 13),
+        makePlayer(CLUB_IDS[0], 14),
+      ],
+    };
+
+    const first = repairCareerLineupForInjuries(withExtraCover);
+    const firstReplacementId = first.lineups[0].playerIds[slot];
+    const second = repairCareerLineupForInjuries({
+      ...first,
+      players: first.players.map((player) =>
+        player.id === firstReplacementId
+          ? { ...player, injuryWeeks: 2 }
+          : player,
+      ),
+    });
+    const secondReplacementId = second.lineups[0].playerIds[slot];
+    const third = repairCareerLineupForInjuries({
+      ...second,
+      players: second.players.map((player) =>
+        player.id === secondReplacementId
+          ? { ...player, injuryWeeks: 2 }
+          : player,
+      ),
+    });
+    const finalReplacementId = third.lineups[0].playerIds[slot];
+
+    expect(
+      new Set([firstReplacementId, secondReplacementId, finalReplacementId])
+        .size,
+    ).toBe(3);
+    expect(
+      third.players.find((player) => player.id === originalId)
+        ?.returnLineupSlot,
+    ).toBe(slot);
+
+    const returned = repairCareerLineupForInjuries({
+      ...third,
+      players: third.players.map((player) =>
+        player.id === originalId ? { ...player, awayWeeks: 0 } : player,
+      ),
+    });
+
+    expect(returned.lineups[0].playerIds[slot]).toBe(originalId);
+    expect(returned.lineups[0].playerIds).not.toContain(finalReplacementId);
+    expect(
+      returned.players.find((player) => player.id === originalId)
+        ?.returnLineupSlot,
+    ).toBeUndefined();
+  });
 });
 
 describe('career squad integration', () => {

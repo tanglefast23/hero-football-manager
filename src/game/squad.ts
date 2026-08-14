@@ -230,16 +230,61 @@ function repairLineupForInjuries(
   const roster = rosterForClub(state, clubId);
   const playerById = new Map(roster.map((player) => [player.id, player]));
   const playerIds = [...lineup.playerIds];
-  const selected = new Set(playerIds);
   const heroLimit = careerHeroLimit(state);
+  const claimedSlots = new Set(
+    roster.flatMap((player) =>
+      player.returnLineupSlot === undefined ? [] : [player.returnLineupSlot],
+    ),
+  );
+  const fulfilledReturns = new Set<string>();
+  const newReturns = new Map<string, number>();
   // Emergency academy call-ups, only ever minted for the user club — the
   // generated divisions have no academy and no lineup edits to repair.
   const relief: CareerPlayer[] = [];
+
+  for (const player of roster) {
+    const slot = player.returnLineupSlot;
+    if (slot === undefined) continue;
+    if (
+      slot >= playerIds.length ||
+      (slot === 0 ? player.role !== 'GK' : player.role === 'GK')
+    ) {
+      fulfilledReturns.add(player.id);
+      continue;
+    }
+    if (
+      !isAvailableForSelection(player) ||
+      (player.power !== undefined && !player.licensed)
+    ) {
+      continue;
+    }
+
+    const currentSlot = playerIds.indexOf(player.id);
+    if (currentSlot !== slot) {
+      const candidateIds = [...playerIds];
+      if (currentSlot >= 0) candidateIds[currentSlot] = candidateIds[slot];
+      candidateIds[slot] = player.id;
+      const licensedCount = candidateIds.reduce(
+        (count, playerId) =>
+          count + (playerById.get(playerId)?.licensed === true ? 1 : 0),
+        0,
+      );
+      if (licensedCount > heroLimit) continue;
+      playerIds.splice(0, playerIds.length, ...candidateIds);
+    }
+    fulfilledReturns.add(player.id);
+  }
+
+  const selected = new Set(playerIds);
 
   for (let slot = 0; slot < playerIds.length; slot += 1) {
     const starter = playerById.get(playerIds[slot]);
     if (starter === undefined || isAvailableForSelection(starter)) continue;
 
+    if (!claimedSlots.has(slot)) {
+      claimedSlots.add(slot);
+      newReturns.set(starter.id, slot);
+    }
     selected.delete(starter.id);
     const licensedCount = playerIds.reduce((count, playerId, playerSlot) => {
       if (playerSlot === slot) return count;
@@ -292,7 +337,17 @@ function repairLineupForInjuries(
     : {
         ...state,
         players:
-          relief.length === 0 ? state.players : [...state.players, ...relief],
+          relief.length === 0 && newReturns.size === 0
+            ? state.players
+            : [
+                ...state.players.map((player) => {
+                  const returnLineupSlot = newReturns.get(player.id);
+                  return returnLineupSlot === undefined
+                    ? player
+                    : { ...player, returnLineupSlot };
+                }),
+                ...relief,
+              ],
         clubs:
           relief.length === 0
             ? state.clubs
@@ -311,10 +366,21 @@ function repairLineupForInjuries(
           candidate.clubId === clubId ? { ...candidate, playerIds } : candidate,
         ),
       };
-  const restored =
+  const promisesRestored =
     clubId === state.userClubId
       ? restoreCareerContractPromiseLineup(repaired)
       : repaired;
+  const restored =
+    fulfilledReturns.size === 0
+      ? promisesRestored
+      : {
+          ...promisesRestored,
+          players: promisesRestored.players.map((player) => {
+            if (!fulfilledReturns.has(player.id)) return player;
+            const { returnLineupSlot: _fulfilled, ...returnedPlayer } = player;
+            return returnedPlayer;
+          }),
+        };
   buildCareerTeamDef(restored, clubId);
   return restored;
 }

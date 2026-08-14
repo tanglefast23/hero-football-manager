@@ -202,10 +202,10 @@ export function trainingPathForAttribute(attribute: keyof Attrs): string {
  * Read from the drill the club has actually bought rather than a ladder copied
  * into the caller, for two reasons. The obvious one: a frozen table goes stale
  * the day `content/training.json` moves. The one that would have shipped a bug:
- * the keeper ladder is deliberately below the outfield one (1/2/3/3/4
- * against 3/4/5/6/7), because REF is the most leveraged attribute in the game — so a
- * hardcoded outfield table would have doubled every keeper reward and re-opened
- * exactly the leverage that ladder exists to price out.
+ * the keeper ladder is deliberately below the outfield one (1/2/4/7/11
+ * against 3/5/8/13/20), because REF is the most leveraged attribute in the
+ * game. A hardcoded outfield table would overpay every keeper reward and
+ * re-open exactly the leverage that ladder exists to price out.
  *
  * Base gain only. Facility multipliers, coach specialty scales, archetype
  * modifiers and the SUPER roll all live in the drill pipeline; a story reward

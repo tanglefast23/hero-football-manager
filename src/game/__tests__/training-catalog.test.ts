@@ -9,13 +9,13 @@ describe('training catalog is TP-only with rebalanced costs', () => {
     }
   });
 
-  test('TP cost is 7/12/18/25/35 by tier', () => {
+  test('TP cost rises about 1.5x per tier', () => {
     const byTier: Record<number, number> = {
       1: 7,
-      2: 12,
-      3: 18,
-      4: 25,
-      5: 35,
+      2: 11,
+      3: 17,
+      4: 26,
+      5: 39,
     };
     for (const drill of catalog.focusDrills) {
       expect(drill.tpCost).toBe(byTier[trainingDrillTier(drill.id)]);

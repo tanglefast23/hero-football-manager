@@ -252,10 +252,20 @@ function putPromisedPlayerInStartingLineup(
   const playerById = new Map(
     state.players.map((candidate) => [candidate.id, candidate]),
   );
+  const protectedPlayerIds = new Set(
+    state.players
+      .filter(
+        (candidate) =>
+          candidate.clubId === state.userClubId &&
+          candidate.returnLineupSlot !== undefined,
+      )
+      .map((candidate) => candidate.id),
+  );
   const replacementSlot = promisedReplacementSlot(
     lineup.playerIds,
     player,
     playerById,
+    protectedPlayerIds,
   );
   // Two promises can compete for one slot (there is only ever a single GK slot).
   // Leaving the promise unhonoured is the correct outcome — the club overcommitted
@@ -277,11 +287,13 @@ function promisedReplacementSlot(
   lineupIds: readonly string[],
   promisedPlayer: CareerPlayer,
   playerById: ReadonlyMap<string, CareerPlayer>,
+  protectedPlayerIds: ReadonlySet<string> = new Set(),
 ): number {
   if (promisedPlayer.role === 'GK') {
     const current = playerById.get(lineupIds[0]);
     return current !== undefined &&
-      (hasActiveCareerContractPromise(current, 'GUARANTEED_STARTER') ||
+      (protectedPlayerIds.has(current.id) ||
+        hasActiveCareerContractPromise(current, 'GUARANTEED_STARTER') ||
         hasActiveCareerContractPromise(current, 'CAPTAINCY'))
       ? -1
       : 0;
@@ -293,6 +305,7 @@ function promisedReplacementSlot(
         candidate.player !== undefined &&
         candidate.player.role !== 'GK' &&
         candidate.player.id !== promisedPlayer.id &&
+        !protectedPlayerIds.has(candidate.player.id) &&
         !hasActiveCareerContractPromise(
           candidate.player,
           'GUARANTEED_STARTER',

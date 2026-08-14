@@ -50,10 +50,11 @@ export function cappedCoachBoost(
 /**
  * Stable weekly TP created by one employed coach.
  *
- * The full rates are 10 + 2×level for a head coach and 5 + level for an
- * assistant; `TRAINING_POINT_SCALE_PERCENT` then keeps 40% of both
- * alongside the baseline and the Training Pitch, so hiring never becomes the
- * cheap way around a weekly income the rest of the game just lowered.
+ * The full rates are 10 + 2×level for a head coach, with one capstone point at
+ * level 5, and 5 + level for an assistant. `TRAINING_POINT_SCALE_PERCENT` then
+ * keeps 40% of both alongside the baseline and the Training Pitch, so hiring
+ * never becomes the cheap way around a weekly income the rest of the game just
+ * lowered.
  *
  * A story's boost is added on top of the scaled figure, in
  * `coachWeeklyTrainingPointsWithBoosts` — it is a change to this coach, not
@@ -67,7 +68,7 @@ export function coachWeeklyTrainingPoints(
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
   return scaledTrainingPoints(
     role === 'HEAD'
-      ? 10 + checkedMultiply(level, 2, 'head coach TP')
+      ? 10 + checkedMultiply(level, 2, 'head coach TP') + (level === 5 ? 1 : 0)
       : 5 + level,
   );
 }

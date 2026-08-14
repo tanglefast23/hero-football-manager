@@ -12,7 +12,7 @@ import {
 import { leagueStandings } from '../career';
 import { startNextFullCareerSeason } from '../full-career';
 import { clubSquadStrength } from '../m2-career';
-import { COACH_WAGE_PER_LEVEL } from '../market';
+import { COACH_WAGE_PER_LEVEL, sellingTransferQuote } from '../market';
 import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
@@ -1136,7 +1136,37 @@ describe('career market integration', () => {
     const second = listCareerPlayer(state, state.market!, reserve.id);
 
     expect(first.transferListings).toEqual(second.transferListings);
-    expect(first.transferListings?.[0].bids.length).toBeGreaterThan(0);
+    expect(first.transferListings?.[0].bids).toHaveLength(3);
+    for (const bid of first.transferListings![0].bids) {
+      const baseQuote = sellingTransferQuote(
+        {
+          id: `${reserve.id}@${bid.buyerClubId}`,
+          role: reserve.role,
+          attrs: reserve.attrs,
+          age: reserve.age ?? 24,
+          potential: reserve.potential ?? 3,
+          ...(reserve.power === undefined
+            ? {}
+            : { power: reserve.power, powerTier: reserve.powerTier ?? 1 }),
+          contractSeasonsRemaining: reserve.contractSeasonsRemaining,
+        },
+        {
+          careerSeed: state.careerSeed,
+          season: state.season,
+          week: state.week,
+          sellingClubDivision: 5,
+        },
+      );
+      expect(bid.quote.fee).toBeGreaterThanOrEqual(
+        Math.round(baseQuote.fee * 0.95),
+      );
+      expect(bid.quote.fee).toBeLessThanOrEqual(
+        Math.round(baseQuote.fee * 1.05),
+      );
+    }
+    expect(
+      new Set(first.transferListings![0].bids.map((bid) => bid.quote.fee)).size,
+    ).toBeGreaterThan(1);
     expect(
       new Set(first.transferListings?.[0].bids.map((bid) => bid.buyerClubId))
         .size,

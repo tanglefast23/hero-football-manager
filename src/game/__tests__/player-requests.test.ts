@@ -629,6 +629,9 @@ describe('resolvePlayerRequest', () => {
     expect(
       next.lineups.find((l) => l.clubId === next.userClubId)!.playerIds,
     ).not.toContain(asker);
+    expect(
+      next.players.find((player) => player.id === asker)?.returnLineupSlot,
+    ).toBe(1);
     // The guard in buildCareerTeamDef is what would otherwise throw on Saturday.
     expect(() => buildCareerTeamDef(next, next.userClubId)).not.toThrow();
   });

@@ -7,11 +7,11 @@ import type { Attrs } from '../sim/types';
 /**
  * The single place a player's *displayed* attribute differs from the stored one.
  *
- * Keeper Drills award half the outfield ladder at every tier for the same TP —
- * deliberately, because Reflexes is contested on every shot faced — so a
- * keeper's card reads `+2` beside three `+4`s and looks short-changed when the
- * truth is the opposite. `refDisplayBonus` banks the shortfall so the card reads
- * as though the ladder were never halved.
+ * Keeper Drills award less than the outfield ladder at every tier for the same
+ * TP — deliberately, because Reflexes is contested on every shot faced — so a
+ * keeper's card looks short-changed when the truth is the opposite.
+ * `refDisplayBonus` banks the shortfall so the card reads as though both paths
+ * used the outfield ladder.
  *
  * Everything on screen that prints a Reflexes value or a Keeper Drills gain goes
  * through this module, for two reasons: there is one place to audit that the

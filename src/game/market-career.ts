@@ -1050,6 +1050,22 @@ export function listCareerPlayer(
     )
     .slice(0, 3)
     .map(({ club, quote }) => ({
+      club,
+      quote: varyListedBidQuote(
+        state,
+        player,
+        club.id,
+        club.cash,
+        quote,
+        division,
+      ),
+    }))
+    .sort(
+      (left, right) =>
+        right.quote.fee - left.quote.fee ||
+        compareIds(left.club.id, right.club.id),
+    )
+    .map(({ club, quote }) => ({
       id: `bid-s${state.season}-w${state.week}-${player.id}-${club.id}`,
       playerId: player.id,
       buyerClubId: club.id,
@@ -2140,6 +2156,39 @@ function sellingQuoteForBuyer(
     },
   );
   return { ...quote, playerId: player.id };
+}
+
+function varyListedBidQuote(
+  state: GameState,
+  player: CareerPlayer,
+  buyerClubId: string,
+  buyerCash: number,
+  quote: TransferQuote,
+  division: number,
+): TransferQuote {
+  const variationRoll = sellingTransferQuote(
+    { ...valuationPlayer(player), id: `${player.id}@${buyerClubId}:variation` },
+    {
+      careerSeed: state.careerSeed,
+      season: state.season,
+      week: state.week,
+      sellingClubDivision: division,
+    },
+  ).bandPercent;
+  const variationPercent = ((variationRoll - 80) % 11) - 5;
+  const fee = Math.min(
+    buyerCash,
+    Math.round(
+      checkedMultiply(quote.fee, 100 + variationPercent, 'transfer bid') / 100,
+    ),
+  );
+  return {
+    ...quote,
+    fee,
+    bandPercent: Math.round(
+      checkedMultiply(fee, 100, 'transfer bid percentage') / quote.valuation,
+    ),
+  };
 }
 
 function hasCoachingOffice(state: GameState): boolean {

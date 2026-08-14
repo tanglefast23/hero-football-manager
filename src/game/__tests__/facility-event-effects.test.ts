@@ -3,7 +3,10 @@ import {
   selectCareerEventFacility,
 } from '../career-events';
 import { weeklyAmbientTrainingPoints } from '../career';
-import { instantTrainingPreview } from '../training';
+import {
+  FACILITY_TRAINING_MULTIPLIER,
+  instantTrainingPreview,
+} from '../training';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
 import { TRAINING_PITCH_TP_PER_LEVEL } from '../facilities';
@@ -225,9 +228,18 @@ describe('the training multiplier scales the bonus, not the whole thing', () => 
     const gymResult = trainingResultFor(gym);
     const worseResult = trainingResultFor(worse);
     const betterResult = trainingResultFor(better);
-    expect(gymResult).toBe(noneResult + 2);
-    expect(worseResult).toBe(gymResult);
-    expect(betterResult).toBe(gymResult + 1);
+    const startingPac = none.players.find(
+      (player) => player.clubId === none.userClubId,
+    )!.attrs.pac;
+    const baseGain = noneResult - startingPac;
+    const gymMultiplier = FACILITY_TRAINING_MULTIPLIER[3];
+    expect(gymResult - startingPac).toBe(Math.round(baseGain * gymMultiplier));
+    expect(worseResult - startingPac).toBe(
+      Math.round(baseGain * (1 + (gymMultiplier - 1) * 0.8)),
+    );
+    expect(betterResult - startingPac).toBe(
+      Math.round(baseGain * (1 + (gymMultiplier - 1) * 1.2)),
+    );
     // Whatever the boost, a building never leaves the club worse off than
     // having no building at all.
     expect(worseResult).toBeGreaterThan(noneResult);

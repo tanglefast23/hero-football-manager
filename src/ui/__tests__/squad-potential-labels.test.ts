@@ -105,7 +105,7 @@ describe('squad potential labels', () => {
     // Widths are derived, not chosen: see squad-register-columns.ts and the
     // test beside it, which re-runs the arithmetic for every column.
     expect(source).toContainSource(
-      "const headerLabelSize = wideColumns ? 'text-xs' : 'text-[10px]';",
+      "const headerLabelSize = wideColumns && Platform.OS === 'web' ? 'text-[13px]' : wideColumns ? 'text-xs' : 'text-[10px]';",
     );
     expect(source).toContainSource("const ROSTER_TRAIN_COLUMN_CLASS = 'w-11';");
     expect(source).toContainSource(

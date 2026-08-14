@@ -90,6 +90,7 @@ describe('marketViewModel', () => {
       available: true,
       feeWaived: true,
     });
+    expect(first.scouting.choices[0].blockedReason).toBeUndefined();
     expect(later.scouting.choices[0]).toMatchObject({
       available: false,
       feeWaived: false,

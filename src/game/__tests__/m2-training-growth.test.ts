@@ -52,10 +52,10 @@ describe('M2 player-specific instant training growth', () => {
     const young = trainWithoutSuper(prepare(20), playerId, 'circuit');
     const prime = trainWithoutSuper(prepare(25), playerId, 'circuit');
 
-    // Circuit 3 gives +5 STA. Age 20 scales it by 1.1 to 6 after rounding;
-    // age 25 keeps it at 5.
-    expect(young.after).toBe(56);
-    expect(prime.after).toBe(55);
+    // Circuit 3 gives +8 STA. Age 20 scales it by 1.1 to 9 after rounding;
+    // age 25 keeps it at 8.
+    expect(young.after).toBe(59);
+    expect(prime.after).toBe(58);
   });
 
   test('uses the matching facility level without a high-stat growth wall', () => {

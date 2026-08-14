@@ -105,6 +105,14 @@ describe('career coach weekly effects', () => {
     ).toBe(0);
   });
 
+  test('gives every head-coach level a distinct weekly TP step', () => {
+    expect(
+      [1, 2, 3, 4, 5].map((level) =>
+        careerCoachWeeklyTrainingPoints(marketWithCoach(undefined, level)),
+      ),
+    ).toEqual([5, 6, 7, 8, 9]);
+  });
+
   test('applies +10% per quality level only to attributes in either specialty', () => {
     const market = marketWithCoach(['ATTACK', 'FITNESS'], 3);
     const before = JSON.stringify(market);

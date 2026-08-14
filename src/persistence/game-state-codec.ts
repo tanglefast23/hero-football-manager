@@ -121,9 +121,7 @@ const merchRevealSchema = z.object({
   variancePercent: safeInteger.refine((value) => value >= -10 && value <= 20),
   surge: z.boolean(),
   multiplierTimes: safeInteger.refine((value) => value >= 1),
-  multiplierPercent: safeInteger
-    .refine((value) => value >= 100)
-    .optional(),
+  multiplierPercent: safeInteger.refine((value) => value >= 100).optional(),
   facilityCount: safeInteger.refine((value) => value >= 1),
   adjacencyPercent: safeInteger.refine((value) => value >= 0),
   adjacencyAmount: safeInteger.refine((value) => value >= 0),
@@ -336,6 +334,9 @@ const playerSchema = z
       .optional(),
     awayWeeks: nonnegativeInteger
       .refine((value) => value <= 10, 'must be at most 10')
+      .optional(),
+    returnLineupSlot: nonnegativeInteger
+      .refine((value) => value < 11, 'must be a starting-lineup slot')
       .optional(),
     age: positiveInteger
       .refine((value) => value <= 99, 'must be at most 99')
@@ -2503,6 +2504,7 @@ const gameStateSchema = z
     const playerClubById = new Map<string, string>();
     const shirtNumbersByClub = new Map<string, Set<number>>();
     const captainCountByClub = new Map<string, number>();
+    const returnSlotsByClub = new Map<string, Set<number>>();
     for (let index = 0; index < state.players.length; index += 1) {
       const player = state.players[index];
       if (playerIds.has(player.id)) {
@@ -2556,6 +2558,19 @@ const gameStateSchema = z
             message: 'a club can have only one captain',
           });
         }
+      }
+      if (player.returnLineupSlot !== undefined) {
+        const claimed =
+          returnSlotsByClub.get(player.clubId) ?? new Set<number>();
+        if (claimed.has(player.returnLineupSlot)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['players', index, 'returnLineupSlot'],
+            message: 'must be the only return claim for this lineup slot',
+          });
+        }
+        claimed.add(player.returnLineupSlot);
+        returnSlotsByClub.set(player.clubId, claimed);
       }
     }
 

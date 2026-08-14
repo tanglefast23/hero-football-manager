@@ -699,7 +699,7 @@ function scoutingChoice(
                 division: divisionTierLabelWith(2, t),
               }),
             }
-          : !affordable
+          : !affordable && !feeWaived
             ? { blockedReason: t('market.scoutNotEnoughMoney') }
             : {}),
   };

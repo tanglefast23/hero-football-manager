@@ -139,6 +139,7 @@ describe('validated M1 launch content', () => {
       'LEAGUE_AWAY_POINTS',
     ]);
     const drillPaths = new Map<string, number[]>();
+    const drillCosts = new Map<string, number[]>();
     for (const drill of content.training.focusDrills) {
       expect(Object.keys(drill.gains)).toHaveLength(1);
       const path = drill.id.replace(/-(ii|iii|iv|v)$/, '');
@@ -146,22 +147,39 @@ describe('validated M1 launch content', () => {
         ...(drillPaths.get(path) ?? []),
         ...Object.values(drill.gains),
       ]);
+      drillCosts.set(path, [...(drillCosts.get(path) ?? []), drill.tpCost]);
     }
     // Six paths share the ladder. Keeper Drills is deliberately lower: REF is
     // contested on every opposing shot, so a uniform ladder priced it at roughly
     // 14x the value per TP of every other drill. See
     // docs/superpowers/reports/2026-07-30-real-player-balance-findings.md.
-    // The ladder rises slowly because late-career facilities and player
-    // modifiers compound every base point.
     expect(Object.fromEntries(drillPaths)).toEqual({
-      sprints: [3, 4, 5, 6, 7],
-      finishing: [3, 4, 5, 6, 7],
-      rondo: [3, 4, 5, 6, 7],
-      duels: [3, 4, 5, 6, 7],
-      'first-touch': [3, 4, 5, 6, 7],
-      circuit: [3, 4, 5, 6, 7],
-      'keeper-drills': [1, 2, 3, 3, 4],
+      sprints: [3, 5, 8, 13, 20],
+      finishing: [3, 5, 8, 13, 20],
+      rondo: [3, 5, 8, 13, 20],
+      duels: [3, 5, 8, 13, 20],
+      'first-touch': [3, 5, 8, 13, 20],
+      circuit: [3, 5, 8, 13, 20],
+      'keeper-drills': [1, 2, 4, 7, 11],
     });
+    for (const costs of drillCosts.values()) {
+      expect(costs).toEqual([7, 11, 17, 26, 39]);
+      costs
+        .slice(1)
+        .forEach((cost, index) =>
+          expect(cost).toBe(Math.round(costs[index] * 1.5)),
+        );
+    }
+    for (const [path, gains] of drillPaths) {
+      const costs = drillCosts.get(path)!;
+      gains
+        .slice(1)
+        .forEach((gain, index) =>
+          expect(gain / costs[index + 1]).toBeGreaterThan(
+            gains[index] / costs[index],
+          ),
+        );
+    }
     expect(content.events.events).toHaveLength(53);
     // 'medical' has no events since the flu-wave and physio cards were cut:
     // both paid in TP and morale for a story about illness, and neither ever
@@ -481,7 +499,13 @@ describe('validated M1 launch content', () => {
     const wrongTierAmount = cloneContent(loadLaunchContent());
     wrongTierAmount.training.focusDrills[1].gains.pac = 10;
     expect(() => parseLaunchContent(wrongTierAmount)).toThrow(
-      /must grant exactly \+4 PAC/,
+      /must grant exactly \+5 PAC/,
+    );
+
+    const wrongTierCost = cloneContent(loadLaunchContent());
+    wrongTierCost.training.focusDrills[1].tpCost = 12;
+    expect(() => parseLaunchContent(wrongTierCost)).toThrow(
+      /must cost exactly 11 TP/,
     );
 
     const unknownTier = cloneContent(loadLaunchContent());
@@ -955,6 +979,25 @@ describe('event outcome ids', () => {
 });
 
 describe('plain and truthful career event copy', () => {
+  test('coach-targeted stories do not assume the selected coach is male', () => {
+    const coachStories = loadLaunchContent().events.events.filter((event) =>
+      ['assistant-takes-the-week', 'the-keeper-week'].includes(event.id),
+    );
+    const visibleCopy = coachStories.flatMap((event) => [
+      event.title,
+      event.body,
+      ...event.choices.flatMap((choice) => [
+        choice.label,
+        ...choice.outcomes.flatMap((outcome) => [
+          outcome.successHeadline ?? '',
+          outcome.text,
+        ]),
+      ]),
+    ]);
+
+    expect(visibleCopy.join(' ')).not.toMatch(/\b(?:he|him|his)\b/i);
+  });
+
   test('the deadline fee is one real player sale, not cash beside suggestive prose', () => {
     const content = loadLaunchContent();
     const event = content.events.events.find(

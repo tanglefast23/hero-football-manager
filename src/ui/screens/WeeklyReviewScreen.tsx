@@ -288,7 +288,7 @@ function AnimatedNetAmount({
     amount,
     started,
     complete,
-    850,
+    WEEKLY_MONEY_COUNT_MS,
   );
 
   return (
@@ -419,7 +419,13 @@ function AnimatedCount({
   complete: boolean;
   format: (value: number) => string;
 }) {
-  const { value } = useCelebratoryNumber(from, to, started, complete, 900);
+  const { value } = useCelebratoryNumber(
+    from,
+    to,
+    started,
+    complete,
+    WEEKLY_MONEY_COUNT_MS,
+  );
 
   return <>{format(value)}</>;
 }

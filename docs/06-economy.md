@@ -85,7 +85,7 @@ Additional sponsor and Buzz income is paired with higher upgrade prices while ev
 | Facility Lv1 build | 5,000–12,000 |
 | Focus drill (single-stat) | TP only, five tiers; tier 1 is the D5 starting drill and each tier up costs more TP for a bigger gain (exact gains and TP costs: `content/training.json`) |
 | Drill tier upgrade (per path) | $3,000 / $8,000 / $18,000 / $40,000 for tiers 2–5 |
-| Weekly TP income | 10 baseline; Training Pitch +12/completed level; head coach 5/6/7/8/8 by level; assistant 3/3/4/4/4; match result +0. Every positive TP grant in the game — these rates, the 12 TP launch grant, and event rewards — is its original figure cut to 40% and rounded up |
+| Weekly TP income | 10 baseline; Training Pitch +12/completed level; head coach 5/6/7/8/9 by level; assistant 3/3/4/4/4; match result +0. Every positive TP grant in the game — these rates, the 12 TP launch grant, and event rewards — is its original figure cut to 40% and rounded up |
 | Transfer (decent D5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |
 | Emergency loan | Once per career: max(20,000 Cozy / 10,000 Chairman, deficit + 15,000), repaid at 10% over the next season |

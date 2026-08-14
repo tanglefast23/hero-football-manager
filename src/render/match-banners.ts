@@ -8,6 +8,18 @@ export interface SubjectedBanner {
   readonly subject?: MatchBannerSubject;
 }
 
+export function goalBannerPresentation(
+  powered: boolean,
+  scoringTeam: 0 | 1,
+  controlledTeam: 0 | 1,
+): { icon: '⚡' | '⚽'; tone: 'gold' | 'red' | 'blue' } {
+  return {
+    icon: powered ? '⚡' : '⚽',
+    tone:
+      scoringTeam !== controlledTeam ? 'red' : powered ? 'gold' : 'blue',
+  };
+}
+
 /** Appends a banner, dropping any live banner that speaks about the same
  * control, and keeps only the newest four. Banners with no subject (goals,
  * half time, substitutions) always stack, because each one is its own event. */

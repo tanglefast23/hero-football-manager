@@ -61,6 +61,15 @@ function tieByGap(career: GameState, gap: number): string {
   return found.id;
 }
 
+function tieAtLeastGap(career: GameState, minimumGap: number): string {
+  const found = userCupTies(career).find(
+    (fixture) => tiersAbove(career, fixture.id) >= minimumGap,
+  );
+  if (found === undefined)
+    throw new Error(`no cup tie at least ${minimumGap} divisions apart`);
+  return found.id;
+}
+
 function lineFor(
   career: GameState,
   fixtureId: string,
@@ -85,13 +94,13 @@ function lineFor(
 
 describe('what the gaffer says about a cup tie', () => {
   // The draw is deterministic, so these are the two ties this career gets: a
-  // club out of its own division, then one from the top of the pyramid. Week 10
+  // club out of its own division, then one at least two divisions above. Week 10
   // and week 14 are chosen because each leaves its tie unresolved, which is
   // what lets a score decide the outcome rather than a recorded winner.
   const levelWeek = staffedCareer(10);
   const giantWeek = staffedCareer(14);
   const level = tieByGap(levelWeek, 0);
-  const giant = tieByGap(giantWeek, 4);
+  const giant = tieAtLeastGap(giantWeek, 2);
 
   it('reads a tie by who it was against, whatever the margin', () => {
     // Same opponent, wildly different scorelines, one pool: a knockout is
@@ -124,7 +133,7 @@ describe('what the gaffer says about a cup tie', () => {
     // a defeat stays a defeat even if the report is handed a winning scoreline.
     const settled = staffedCareer(18);
     expect(content.fulltimeCoachLines.cupLossStrong).toContain(
-      lineFor(settled, tieByGap(settled, 4), 4, 0),
+      lineFor(settled, tieAtLeastGap(settled, 2), 4, 0),
     );
   });
 

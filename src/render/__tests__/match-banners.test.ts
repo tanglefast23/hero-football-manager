@@ -1,4 +1,7 @@
-import { appendBannerNewestFour } from '../match-banners';
+import {
+  appendBannerNewestFour,
+  goalBannerPresentation,
+} from '../match-banners';
 
 interface TestBanner {
   readonly id: string;
@@ -13,6 +16,21 @@ const banner = (
 ): TestBanner => (subject === undefined ? { id, text } : { id, text, subject });
 
 describe('appendBannerNewestFour', () => {
+  it('reserves the lightning and gold goal treatment for our powered goals', () => {
+    expect(goalBannerPresentation(true, 0, 0)).toEqual({
+      icon: '⚡',
+      tone: 'gold',
+    });
+    expect(goalBannerPresentation(false, 0, 0)).toEqual({
+      icon: '⚽',
+      tone: 'blue',
+    });
+    expect(goalBannerPresentation(false, 1, 0)).toEqual({
+      icon: '⚽',
+      tone: 'red',
+    });
+  });
+
   it('replaces the optimistic tap banner when the sim confirms the same control', () => {
     const tapped = appendBannerNewestFour<TestBanner>(
       [],

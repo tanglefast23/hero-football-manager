@@ -2668,14 +2668,14 @@
       "choices": [
         {
           "id": "give-him-the-week",
-          "label": "Give him the week",
+          "label": "Give them the week",
           "risky": true,
           "outcomes": [
             {
               "weight": 30,
               "id": "success",
-              "successHeadline": "His weeks are worth more than they were on Monday",
-              "text": "Five days, his plan, and the squad arrives on Saturday sharper than it left.",
+              "successHeadline": "Their weeks are worth more than they were on Monday",
+              "text": "Five days, their plan, and the squad arrives on Saturday sharper than it left.",
               "effects": [
                 {
                   "type": "coachBoost",
@@ -2713,13 +2713,13 @@
         },
         {
           "id": "give-him-a-session",
-          "label": "Give him a session",
+          "label": "Give them a session",
           "risky": false,
           "outcomes": [
             {
               "weight": 100,
               "id": "only",
-              "text": "One session, his own plan, and it goes perfectly well.",
+              "text": "One session, their own plan, and it goes perfectly well.",
               "effects": [
                 {
                   "type": "tp",
@@ -2815,8 +2815,8 @@
       "category": "club",
       "rarity": "common",
       "art": "event-keeper-retrain",
-      "title": "He Used To Keep Goal",
-      "body": "Your keeper works alone. One of your staff kept goal until his knees stopped him, and has said so out loud.",
+      "title": "They Used To Keep Goal",
+      "body": "Your keeper works alone. One of your staff kept goal until their knees stopped them, and has said so out loud.",
       "trigger": {
         "season": 1,
         "minWeek": 4,
@@ -2826,13 +2826,13 @@
       "choices": [
         {
           "id": "retrain-him-properly",
-          "label": "Retrain him properly",
+          "label": "Retrain them properly",
           "risky": true,
           "outcomes": [
             {
               "weight": 30,
               "id": "success",
-              "successHeadline": "He is a goalkeeping coach now, and the gloves came back out",
+              "successHeadline": "They are a goalkeeping coach now, and the gloves came back out",
               "text": "Three weeks of courses and the gloves come back out of the loft for good.",
               "effects": [
                 {
@@ -2849,7 +2849,7 @@
             {
               "weight": 70,
               "id": "setback",
-              "text": "It turns out he remembers a great deal less than he told everybody.",
+              "text": "It turns out they remember a great deal less than they told everybody.",
               "effects": [
                 {
                   "type": "coachBoost",

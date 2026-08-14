@@ -27,6 +27,7 @@ import {
 } from 'react-native-reanimated';
 import { createMatch, MAX_SUBSTITUTIONS, queueInput, tick } from '../sim/match';
 import { queueControlledAutoSubstitution } from '../game/match-policy';
+import { goalsFrom } from '../game/matchday';
 import { isRivalHeroIntroHeroId } from '../game/rival-hero-intro';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
@@ -136,6 +137,7 @@ import { releaseMenuThemeToMatch, yieldMenuThemeToMatch } from './menu-audio';
 import { PowerTitleTakeover } from './PowerTitleTakeover';
 import {
   appendBannerNewestFour,
+  goalBannerPresentation,
   type MatchBannerSubject,
 } from './match-banners';
 import { CupTitleCard } from './CupTitleCard';
@@ -1692,13 +1694,24 @@ export function MatchScreen({
             [...teamDef.players, ...(teamDef.bench ?? [])].find(
               (def) => def.id === e.scoredById,
             )?.name ?? 'Unknown';
+          const powered = goalsFrom(s).some(
+            (goal) =>
+              goal.tick === e.t &&
+              goal.playerId === e.scoredById &&
+              goal.power !== undefined,
+          );
+          const presentation = goalBannerPresentation(
+            powered,
+            e.team,
+            controlledTeam,
+          );
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
-            // '⚡' and '⚠' below are pictograms, not words: they stay in the
-            // source and only the sentence beside them comes from the catalog.
-            text: `⚡ ${t('matchScreen.bannerGoal', { player: scorerName })}`,
+            // The icon below is a pictogram, not a word: it stays in the
+            // source and only the sentence beside it comes from the catalog.
+            text: `${presentation.icon} ${t('matchScreen.bannerGoal', { player: scorerName })}`,
             untilTick: e.t + FLASH_TICKS,
-            tone: 'gold',
+            tone: presentation.tone,
           });
           scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
         }

@@ -56,6 +56,10 @@ describe('countUpValue', () => {
     expect(review).toContain(
       'setTimeout(stopLedgerSpin, WEEKLY_MONEY_COUNT_MS)',
     );
+    expect(review.match(/WEEKLY_MONEY_COUNT_MS,/g) ?? []).toHaveLength(3);
+    expect(review).not.toMatch(
+      /useCelebratoryNumber\([\s\S]{0,100}?,\s*(850|900),/,
+    );
     expect(review).toContain('viewModel.cashBefore === viewModel.cashAfter');
     expect(review).toContain('stopLedgerSpin();');
     // Development left the weekly review: gains animate in the drill scene now.

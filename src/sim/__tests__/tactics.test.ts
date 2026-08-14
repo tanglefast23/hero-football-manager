@@ -1,4 +1,9 @@
-import { contestStat, drainStamina, speedFor } from '../engine';
+import {
+  contestStat,
+  drainStamina,
+  restartKickoff,
+  speedFor,
+} from '../engine';
 import { PITCH_H } from '../geometry';
 import {
   createMatch,
@@ -167,6 +172,24 @@ describe('match tactics', () => {
         { t: 1, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'ALL_OUT' },
       ]),
     );
+  });
+
+  it('keeps Save Energy selected through a goal restart and half time', () => {
+    const match = createMatch(42, ROVERS, UNITED, { controlledTeam: 0 });
+    queueInput(match, {
+      tick: 1,
+      kind: 'SET_ENERGY_USE',
+      energyUse: 'SAVE_ENERGY',
+    });
+    tick(match);
+
+    restartKickoff(match, 1);
+    expect(match.tactics[0].energyUse).toBe('SAVE_ENERGY');
+
+    while (!match.events.some((event) => event.kind === 'HALF_TIME')) {
+      tick(match);
+    }
+    expect(match.tactics[0].energyUse).toBe('SAVE_ENERGY');
   });
 
   it('makes the same player drain Save Energy < Balanced < All Out', () => {

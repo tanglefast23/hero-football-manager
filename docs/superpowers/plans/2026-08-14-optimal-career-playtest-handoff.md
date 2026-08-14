@@ -70,7 +70,10 @@ Prioritize players by:
 4. a weak attribute that directly affects their role; and
 5. a team weakness exposed by recent matches.
 
-Focus on no more than two attributes per priority player at one time.
+Train each priority player no more than twice per week. The exception is when
+several following weeks have no matches. Spread those drills across any
+attributes that affect the player's position; do not lock a player to only two
+attributes over the career.
 
 Role priorities:
 

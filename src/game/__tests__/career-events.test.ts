@@ -118,6 +118,30 @@ describe('content-driven awakening powers', () => {
 });
 
 describe('career event state', () => {
+  it("holds an injured story starter's exact lineup slot for their return", () => {
+    const initial = createCareer(createLaunchCareerSetup());
+    const lineup = initial.lineups.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const slot = 6;
+    const playerId = lineup.playerIds[slot];
+    const resolved = applyCareerEventOutcome(
+      selectCareerEventPlayer(
+        offerCareerEvent(initial, 'test-career-event'),
+        playerId,
+      ),
+      'risk',
+      'Ouch.',
+      { playerEffect: { playerId, injuryWeeks: 2 } },
+    );
+
+    expect(resolved.lineups[0].playerIds[slot]).not.toBe(playerId);
+    expect(
+      resolved.players.find((player) => player.id === playerId)
+        ?.returnLineupSlot,
+    ).toBe(slot);
+  });
+
   it('persists the selected player, applies effects, and closes a resolved event', () => {
     const initial = createCareer(createLaunchCareerSetup());
     const playerId = 'bramble-rovers-p13';

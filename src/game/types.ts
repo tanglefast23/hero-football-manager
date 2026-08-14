@@ -128,6 +128,8 @@ export interface CareerPlayer {
    * striker is "recovering" from the Bahamas.
    */
   awayWeeks?: number;
+  /** Starting slot restored after a story injury or granted leave ends. */
+  returnLineupSlot?: number;
   seasonsAtClub?: number;
   fame?: number;
   retirementAge?: number;

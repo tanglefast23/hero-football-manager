@@ -21,7 +21,7 @@ function careerWithRequests(): GameState {
     week: 8,
     players: base.players.map((player) =>
       player.id === asker.id
-        ? { ...player, loyalty: 41, awayWeeks: 2 }
+        ? { ...player, loyalty: 41, awayWeeks: 2, returnLineupSlot: 1 }
         : player,
     ),
     playerRequests: {
@@ -57,7 +57,7 @@ function careerWithRequests(): GameState {
 }
 
 describe('player request game-state codec', () => {
-  test('round-trips loyalty, away weeks, a pending request, effects and history', () => {
+  test('round-trips requests, away weeks and the saved return slot', () => {
     const state = careerWithRequests();
 
     expect(parseStoredGameState(serializeGameState(state))).toEqual(state);
@@ -112,5 +112,19 @@ describe('player request game-state codec', () => {
     } as unknown as GameState;
 
     expect(() => parseStoredGameState(serializeGameState(broken))).toThrow();
+  });
+
+  test('rejects two return claims for the same lineup slot', () => {
+    const base = careerWithRequests();
+    const broken = {
+      ...base,
+      players: base.players.map((player, index) =>
+        index === 1 ? { ...player, returnLineupSlot: 1 } : player,
+      ),
+    };
+
+    expect(() => parseStoredGameState(serializeGameState(broken))).toThrow(
+      'only return claim',
+    );
   });
 });
