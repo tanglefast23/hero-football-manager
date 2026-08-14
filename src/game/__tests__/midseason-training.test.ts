@@ -2,9 +2,12 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { MAX_PLAYER_ATTRIBUTE } from '../../sim/attributes';
 import { createCareer } from '../career';
 import {
+  acceptGreenBullTraining,
   acceptMidseasonTraining,
   completeMidseasonTraining,
   declineMidseasonTraining,
+  greenBullTrainingAcceptedFlag,
+  greenBullTrainingOffer,
   midseasonTrainingAcceptedFlag,
   midseasonTrainingCaptain,
   midseasonTrainingCompleteFlag,
@@ -12,6 +15,7 @@ import {
   midseasonTrainingStatus,
   MIDSEASON_TRAINING_CONDITION_COST,
 } from '../midseason-training';
+import { weeklyAmbientTrainingPoints } from '../career';
 import type { DivisionLevel, PyramidClub } from '../pyramid';
 import type { GameState } from '../types';
 
@@ -64,12 +68,20 @@ describe('Week 19 mid-season team trip', () => {
     ).toEqual([1, 2, 3, 4, 5]);
   });
 
+  it('moves D3-D1 from the automatic Week 19 prompt to paid Green Bull training', () => {
+    expect(midseasonTrainingStatus(weekNineteen(4))).toBe('prompt');
+    expect(midseasonTrainingStatus(weekNineteen(3))).toBeUndefined();
+    expect(greenBullTrainingOffer(weekNineteen(4))).toBeUndefined();
+    expect(
+      ([3, 2, 1] as const).map(
+        (division) => greenBullTrainingOffer(weekNineteen(division))?.cost,
+      ),
+    ).toEqual([50_000, 80_000, 120_000]);
+  });
+
   it.each([
     [5, 1],
     [4, 2],
-    [3, 3],
-    [2, 4],
-    [1, 5],
   ] as const)(
     'spends all TP, costs 10 condition, and gives D%s players +%s to every stat',
     (division, gain) => {
@@ -110,7 +122,7 @@ describe('Week 19 mid-season team trip', () => {
   );
 
   it('clamps at 999 and cannot charge or reward twice', () => {
-    const base = weekNineteen(1);
+    const base = weekNineteen(5);
     const userId = base.players.find(
       (player) => player.clubId === base.userClubId,
     )!.id;
@@ -191,5 +203,83 @@ describe('Week 19 mid-season team trip', () => {
       (lineup) => lineup.clubId === legacy.userClubId,
     )?.playerIds[0];
     expect(midseasonTrainingCaptain(legacy)?.id).toBe(firstStarter);
+  });
+});
+
+describe('paid Green Bull training', () => {
+  function fundedD3(): GameState {
+    const base = weekNineteen(3);
+    return {
+      ...base,
+      week: 12,
+      trainingPoints: weeklyAmbientTrainingPoints(base),
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: 90_000 } : club,
+      ),
+    };
+  }
+
+  it('requires one full week of TP and enough cash', () => {
+    const state = fundedD3();
+    const required = weeklyAmbientTrainingPoints(state);
+    expect(
+      greenBullTrainingOffer({ ...state, trainingPoints: required - 1 }),
+    ).toMatchObject({ blockedReason: 'NOT_ENOUGH_TP' });
+    expect(
+      greenBullTrainingOffer({
+        ...state,
+        clubs: state.clubs.map((club) =>
+          club.id === state.userClubId ? { ...club, cash: 49_999 } : club,
+        ),
+      }),
+    ).toMatchObject({ blockedReason: 'NOT_ENOUGH_CASH' });
+  });
+
+  it('costs D3 cash, spends all TP, gives +2 all stats, and works once per week', () => {
+    const state = fundedD3();
+    const player = state.players.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+    const accepted = acceptGreenBullTraining(state);
+    const trained = accepted.players.find(
+      (candidate) => candidate.id === player.id,
+    )!;
+
+    expect(accepted.trainingPoints).toBe(0);
+    expect(
+      accepted.clubs.find((club) => club.id === state.userClubId)?.cash,
+    ).toBe(40_000);
+    expect(accepted.eventFlags).toContain(
+      greenBullTrainingAcceptedFlag(state.season, state.week),
+    );
+    expect(accepted.cashTransactions?.at(-1)).toMatchObject({
+      amount: -50_000,
+      balanceAfter: 40_000,
+    });
+    expect(trained.condition).toBe(
+      (player.condition ?? 100) - MIDSEASON_TRAINING_CONDITION_COST,
+    );
+    for (const key of Object.keys(
+      player.attrs,
+    ) as (keyof typeof player.attrs)[]) {
+      expect(trained.attrs[key]).toBe(player.attrs[key] + 2);
+    }
+    expect(midseasonTrainingStatus(accepted)).toBe('celebration');
+    expect(acceptGreenBullTraining(accepted)).toBe(accepted);
+
+    const completed = completeMidseasonTraining(accepted);
+    expect(greenBullTrainingOffer(completed)).toMatchObject({
+      blockedReason: 'USED_THIS_WEEK',
+    });
+    expect(
+      greenBullTrainingOffer({
+        ...completed,
+        week: completed.week + 1,
+        trainingPoints: weeklyAmbientTrainingPoints(completed),
+        clubs: completed.clubs.map((club) =>
+          club.id === completed.userClubId ? { ...club, cash: 90_000 } : club,
+        ),
+      })?.blockedReason,
+    ).toBeUndefined();
   });
 });

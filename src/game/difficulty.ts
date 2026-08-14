@@ -43,9 +43,9 @@ export interface DifficultyRules {
  *
  * It now also loses cushion (sponsor income, one fewer grace week before the
  * board steps in, a smaller emergency loan) AND faces a league that improves
- * every season instead of every other season, with a slightly higher ceiling.
- * That is deliberately a small step: one extra rating point a season, not a
- * different curve.
+ * every season at twice Cozy's rate, with a slightly higher ceiling. The 5%
+ * rate is about one quarter of the measured 18.6% optimized Season 2 growth;
+ * Cozy's 2.5% leaves more catch-up room for a casual manager.
  */
 const RULES: Record<DifficultyMode, DifficultyRules> = {
   COZY: {
@@ -53,7 +53,7 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     sponsorIncomePercent: 100,
     negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 20_000,
-    opponentGrowthPercent: 3,
+    opponentGrowthPercent: 2.5,
     opponentGrowthAttributeCap: 700,
     cashFloor: -15_000,
   },
@@ -66,7 +66,7 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     // this window in half made a normal gap between home gates look insolvent.
     negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 10_000,
-    opponentGrowthPercent: 4,
+    opponentGrowthPercent: 5,
     opponentGrowthAttributeCap: 800,
     // Chairman is allowed to sink twice as deep before the board steps in, so
     // the danger zone lasts longer and the ultimatums bite harder. It is still

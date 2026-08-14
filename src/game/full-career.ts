@@ -12,6 +12,7 @@ import {
   createCareerMarketState,
   refreshCareerMarketForNewSeason,
 } from './market-career';
+import { applyPromotionWageClause } from './contract-wages';
 import {
   CAREER_CLUB_FAME_CEILING,
   generatedPlayerWeeklyWage,
@@ -179,8 +180,8 @@ export function startNextFullCareerSeason(
     activeStandings.map((row) => row.clubId),
   );
   m2 = applyM2PromotionAndRelegation(m2, finishOrders).state;
-  // Chairman faces a league that improves every season instead of every other
-  // one, so the difficulty has to reach the opponent growth step.
+  // Chairman's 5% field growth is twice Cozy's 2.5%, so the difficulty has to
+  // reach the opponent growth step.
   const transition = planEndlessCareerSeasonTransition(
     m2,
     state.season,
@@ -221,7 +222,7 @@ export function startNextFullCareerSeason(
   const retiredIds = new Set(
     lifecycle.retiredPlayers.map((player) => player.id),
   );
-  const activeUserPlayers = replenishUserSquad(
+  const replenishedUserPlayers = replenishUserSquad(
     lifecycle.activePlayers,
     state.userClubId,
     transition.nextSeason,
@@ -233,6 +234,12 @@ export function startNextFullCareerSeason(
       userClubId: state.userClubId,
     }),
   );
+  const activeUserPlayers =
+    transition.division < activeDivision
+      ? replenishedUserPlayers.map((player) =>
+          applyPromotionWageClause(player, state.season),
+        )
+      : replenishedUserPlayers;
   const userLineup = repairUserLineup(
     state.lineups.find((lineup) => lineup.clubId === state.userClubId),
     activeUserPlayers,

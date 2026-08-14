@@ -57,7 +57,7 @@ describe('career facility transactions', () => {
       upgraded.state.facilities.grid?.buildings.find(
         (building) => building.id === 'facility-1',
       )?.capitalInvested,
-    ).toBe(16_000);
+    ).toBe(25_000);
     expect(
       upgradedReady.facilities.grid?.buildings.find(
         (building) => building.id === 'facility-1',
@@ -67,10 +67,10 @@ describe('career facility transactions', () => {
       moved.state.facilities.grid?.buildings.find(
         (building) => building.id === 'facility-1',
       ),
-    ).toMatchObject({ capitalInvested: 16_000, x: 4, y: 3 });
+    ).toMatchObject({ capitalInvested: 25_000, x: 4, y: 3 });
     expect(
       moved.state.clubs.find((club) => club.id === initial.userClubId)?.cash,
-    ).toBe(36_650);
+    ).toBe(27_650);
     expect(moved.state.cashTransactions).toEqual([
       expect.objectContaining({
         id: 'cash-transaction-1',
@@ -83,14 +83,14 @@ describe('career facility transactions', () => {
         id: 'cash-transaction-2',
         kind: 'facility-upgrade',
         label: 'Gym Level 2 upgrade started',
-        amount: -9_000,
-        balanceAfter: 37_000,
+        amount: -18_000,
+        balanceAfter: 28_000,
       }),
       expect.objectContaining({
         id: 'cash-transaction-3',
         kind: 'facility-relocation',
         amount: -350,
-        balanceAfter: 36_650,
+        balanceAfter: 27_650,
       }),
     ]);
     expect(moved.state.ledgers).toHaveLength(0);
@@ -118,6 +118,9 @@ describe('career facility transactions', () => {
 
     const d2 = {
       ...levelTwo,
+      clubs: levelTwo.clubs.map((club) =>
+        club.id === levelTwo.userClubId ? { ...club, cash: 100_000 } : club,
+      ),
       m2: { ...levelTwo.m2!, highestDivisionReached: 2 as const },
     };
     const levelThree = completeProject(

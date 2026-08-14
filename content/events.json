@@ -2376,10 +2376,6 @@
                   "amount": 20
                 },
                 {
-                  "type": "money",
-                  "amount": 600
-                },
-                {
                   "type": "fans",
                   "amount": 90
                 },
@@ -2402,6 +2398,10 @@
                 {
                   "type": "morale",
                   "amount": -8
+                },
+                {
+                  "type": "cashLossPercent",
+                  "percent": 10
                 }
               ]
             }

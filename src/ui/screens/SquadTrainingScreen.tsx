@@ -269,6 +269,8 @@ export interface SquadTrainingScreenProps {
   onTrainDrillBatch: (playerId: string, pathId: string, runs: number) => void;
   /** Buys the next drill tier for one path. Money, not TP. */
   onBuyDrillUpgrade: (pathId: string) => void;
+  /** Opens the paid D3-D1 team-trip confirmation. */
+  onBookGreenBullTraining?: () => void;
   /** The latest resolved drill, sequenced so the popup can animate repeats. */
   lastDrillResult: DrillResultViewModel | null;
   trainingPoints: number;
@@ -323,6 +325,7 @@ export function SquadTrainingScreen({
   onTrainDrill,
   onTrainDrillBatch,
   onBuyDrillUpgrade,
+  onBookGreenBullTraining,
   lastDrillResult,
   trainingPoints,
   guideTraining = false,
@@ -551,6 +554,21 @@ export function SquadTrainingScreen({
   const layoutMode = useLayoutMode();
 
   const sections: FlowSection[] = [
+    ...(viewModel.greenBullTraining === undefined ||
+    onBookGreenBullTraining === undefined
+      ? []
+      : [
+          {
+            key: 'green-bull-training',
+            weight: 3,
+            node: (
+              <GreenBullTrainingSection
+                offer={viewModel.greenBullTraining}
+                onBook={onBookGreenBullTraining}
+              />
+            ),
+          },
+        ]),
     {
       key: 'roster',
       weight: 3 + viewModel.players.length,
@@ -747,6 +765,64 @@ export function SquadTrainingScreen({
         </Suspense>
       ) : null}
     </View>
+  );
+}
+
+function GreenBullTrainingSection({
+  offer,
+  onBook,
+}: {
+  offer: NonNullable<SquadTrainingViewModel['greenBullTraining']>;
+  onBook: () => void;
+}) {
+  const t = useCopy();
+  const blockedLabel =
+    offer.blockedReason === 'USED_THIS_WEEK'
+      ? t('greenBullTraining.usedThisWeek')
+      : offer.blockedReason === 'NOT_ENOUGH_TP'
+        ? t('greenBullTraining.needTrainingPoints', {
+            tp: offer.trainingPointsRequired,
+          })
+        : offer.blockedReason === 'NOT_ENOUGH_CASH'
+          ? t('greenBullTraining.needCash', {
+              cost: formatCurrency(t, offer.cost),
+            })
+          : undefined;
+  return (
+    <PaperPanel
+      kicker={t('greenBullTraining.kicker')}
+      title={t('midseasonTraining.centerName')}
+      className="bg-pitch-light"
+    >
+      <Text className="text-sm leading-5 text-ink/70">
+        {t('greenBullTraining.detail', {
+          cost: formatCurrency(t, offer.cost),
+          gain: offer.statGain,
+          condition: offer.conditionCost,
+        })}
+      </Text>
+      <Text className="mt-2 text-sm leading-5 text-ink/60">
+        {t('greenBullTraining.requirement', {
+          tp: offer.trainingPointsRequired,
+        })}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={blockedLabel ?? t('greenBullTraining.bookTraining')}
+        accessibilityState={{ disabled: blockedLabel !== undefined }}
+        disabled={blockedLabel !== undefined}
+        onPress={onBook}
+        className={
+          blockedLabel === undefined
+            ? 'mt-4 min-h-12 items-center justify-center border-2 border-b-4 border-pitch-ink bg-pitch px-3 py-2'
+            : 'mt-4 min-h-12 items-center justify-center border-2 border-ink/30 bg-paper-dark px-3 py-2 opacity-60'
+        }
+      >
+        <PixelText className="text-center text-sm uppercase text-ink">
+          {blockedLabel ?? t('greenBullTraining.bookTraining')}
+        </PixelText>
+      </Pressable>
+    </PaperPanel>
   );
 }
 

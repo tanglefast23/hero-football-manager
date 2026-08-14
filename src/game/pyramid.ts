@@ -371,7 +371,7 @@ const SQUAD_ROLES: readonly Role[] = [
  *
  * D1 came down too, and had to. Holding it at [223, 248] made D2 -> D1 a 2.77x
  * step, and measured over twelve seasons that was not a long climb but a
- * divergent one: opponent growth compounds at 3% a season, so D1's field read
+ * divergent one: opponent growth compounds at 2.5% a season, so D1's field read
  * 259, 275, 292, 310 across one career's four visits while its own squad
  * oscillated around 110. Every D1 season finished 9th and relegated. D1 is now
  * 1.33x above D2 — three seasons of growth, the endgame the ladder was always
@@ -385,7 +385,7 @@ export const DIVISION_STRENGTH_BANDS: Readonly<
   1: [107, 120],
   2: [80, 90],
   3: [67, 75],
-  4: [55, 63],
+  4: [51, 63],
   5: [40, 50],
 };
 /**
@@ -448,12 +448,9 @@ export const DIVISION_TYPICAL_PACE: Readonly<Record<DivisionLevel, number>> = {
   5: 72,
 };
 const GENERATED_STAR_SLOTS = new Set([2, 7, 12]);
-// Removed 2026-07-31: D4 used to install two clubs at strength 39 and 40 so a
-// promoted D5 champion had something it could beat. That crutch was sized for a
-// 90–102 band the club arrived 45 points below. Against the current [55,63] it
-// was two free wins that dragged the field mean down about four points, and the
-// measured effect was a division the user re-entered at a POSITIVE gap after
-// every relegation. The whole division is survivable now, so the pack is not.
+// D4 once installed two clubs at strength 39 and 40. They became free wins.
+// The 51 floor widens the ordinary pack without restoring that separate tier;
+// the club promoted from D5 remains the division's easiest opponent.
 const ARCHETYPES: readonly PlayerArchetype[] = [
   'Speedster',
   'Sniper',

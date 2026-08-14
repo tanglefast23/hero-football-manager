@@ -30,19 +30,20 @@
 | Division | Club strength band | Support | Specialist focus | GK REF | Typical PAC |
 | -------- | -----------------: | ------: | ---------------: | -----: | ----------: |
 | D5       |              40–50 |      40 |               94 |     80 |          72 |
-| D4       |             90–102 |      88 |              180 |    153 |          90 |
-| D3       |            135–151 |     130 |              268 |    228 |         132 |
-| D2       |            178–203 |     175 |              356 |    303 |         176 |
-| D1       |            223–248 |     214 |              442 |    376 |         216 |
+| D4       |              51–63 |      54 |              111 |     94 |          90 |
+| D3       |              67–75 |      65 |              133 |    113 |         132 |
+| D2       |              80–90 |      77 |              159 |    135 |         176 |
+| D1       |            107–120 |     103 |              212 |    180 |         216 |
 
 Generated clubs preserve these authored support/specialist/keeper values while
 their displayed `squadStrength` is always recomputed from the actual squad.
 The keeper ladder trails the specialist SHO ladder rather than the support band:
 the frozen 100-match-per-division peer sample produces 4.32–4.60 goals per match
 and 54.2–59.5% saves, keeping finishers dangerous without making keepers irrelevant.
-The first D4 season has two explicit 39/40 relegation-pack clubs so a prepared
-D5 promotion has a real survival contest without flattening established D4.
-Non-user players then grow once per season by 3% on Cozy or 4% on Chairman,
+The D4 floor is 51 while its strongest clubs remain at 63. That wider band gives
+a new or casual club reachable opponents without removing the division's
+outliers. The promoted D5 club remains its easiest opponent.
+Non-user players then grow once per season by 2.5% on Cozy or 5% on Chairman,
 including PAC and REF; deterministic stochastic rounding prevents small ratings
 from losing their fractional growth forever.
 
@@ -63,6 +64,7 @@ Instant, tap-to-train — drills resolve the moment they are picked:
 - **Training-priority promise**: agreeing the TRAINING_PRIORITY contract perk creates a **five-drill debt** — the promised player owns your next 5 drills. Their badge shows the countdown, other players' drills are blocked with an in-popup reminder (“Boss! You promised me the next 3 drills.”), and an injury pauses the debt rather than deadlocking training.
 - **999 ceiling**: a maxed stat's drill option is greyed out and disabled; drill options show only the current stat value, never a cap. Nothing blocks Advance Week — there is no plan to waste TP on.
 - **TP income**: match results award no TP. A fresh career starts with 12 TP and an empty grounds grid, plus enough extra cash to build the $8,000 Level 1 Training Pitch as its guided first project. Every weekly settlement pays a **10 TP** baseline whether or not a pitch exists, and the pitch itself pays nothing until it opens; from then on each settlement adds **+12 TP per completed facility level**. Employed coaches add more: a head coach pays **5/6/7/8/9** by level and an assistant **3/3/4/4/4**. **Every** positive TP grant — those three weekly rates, the launch grant, and the one-off rewards authored into events — is its original figure cut to **40%, rounded up** (`TRAINING_POINT_SCALE_PERCENT`). Nothing that pays TP is exempt. A Level 1 pitch therefore takes the week from 10 TP to 22 — one basic 7-TP drill to three. Losing never slows training income, while hiring and upgrading staff or grounds creates a visible development budget.
+- **Squad trips**: D5 and D4 keep the automatic Week-19 Team Trip, worth +1 or +2 to every stored player stat and −10 condition while consuming all TP. From D3 onward, the automatic trip is replaced by optional Green Bull Training on the Squad screen. It costs $50,000 / $80,000 / $120,000 in D3 / D2 / D1, requires at least one full week's current TP income, consumes all banked TP, gives every user player +2 to all stored stats, costs 10 condition each, and may be used once per week.
 - **Gain formula**: age and the relevant facility multiply the base drill gain (1.5× on a SUPER). Facility levels use ×1.10 / ×1.20 / ×1.30. Archetype + natural position + coach percentages then add together as a bonus on that adjusted gain; Potential no longer adds a percentage — its whole job is the SUPER roll. Fractional bonuses bank per player/stat until they become a whole visible point. There is **no high-stat training slowdown** and no personal ceiling.
 - **Stamina price**: every drill costs 8 condition. Weekly settlement restores 10 condition, plus 3 per completed Dorm level: 10 / 13 / 16 / 19. A drill that **starts below 30%** condition is an honest injury gamble — the exact percentage (10% + 2% per point under 30, reduced by Medical adjacency) rolls at drill time, and a hit means 2–6 weeks out (the drill's gain still lands first). A selected batch containing any such run gets a second safety gate that names the risky-run count and offers **Continue anyway**, **Continue with max safe** (automatically reduces to and starts the largest non-risky batch), or **Cancel** back to the number picker. The Medical Bay shortens injury recovery time; it does not restore condition.
 - **Chemistry trios** (Pocket League Story 2's standout mechanic, adapted): specific 3-archetype combinations training together grant +15% to +60% gains for the whole trio (e.g. Speedster + Sniper + Playmaker = +40% attack drills). Combos are discoverable in-game and collectible in a Chemistry Codex. One combo bonus per week.

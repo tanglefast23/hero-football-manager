@@ -12,6 +12,7 @@ import {
   isCareerMilestoneEventId,
   offerCareerEvent,
   sessionAttributeDelta,
+  careerEventCashLoss,
   type GameState,
 } from '../game';
 import { eventChoiceUnavailableReason } from './event-selection';
@@ -154,7 +155,15 @@ export function resolveCareerEventChoice(
     choice.id,
     outcome.text,
     {
-      moneyDelta: sumEffect(outcome.effects, 'money'),
+      moneyDelta:
+        sumEffect(outcome.effects, 'money') -
+        outcome.effects.reduce(
+          (sum, effect) =>
+            effect.type === 'cashLossPercent'
+              ? sum + careerEventCashLoss(working, effect.percent)
+              : sum,
+          0,
+        ),
       trainingPointDelta: sumEffect(outcome.effects, 'tp'),
       fanDelta: sumEffect(outcome.effects, 'fans'),
       flags,

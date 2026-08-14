@@ -25,6 +25,7 @@ Do not reset, delete, or replace the save to make testing easier.
 6. Set Master Volume to `0` before doing anything else.
 7. Confirm the volume is `0`, then return to the game.
 8. Confirm the visible season, division, week, cash, TP, and current objective.
+9. Record whether the career uses Cozy or Chairman difficulty.
 
 The game must stay silent. Do not take over Joe's mouse, keyboard, or focus.
 Use only the built-in browser controls for the playtest.
@@ -43,6 +44,27 @@ Record the starting state:
 - any open player request, contract, transfer, or story decision.
 
 Never advance a week until every useful action has been considered.
+
+## Career checkpoints
+
+Record a full checkpoint in Weeks 1, 4, 19, and 30 of every season. These
+snapshots make season growth measurable instead of relying on memory.
+
+Each checkpoint must include:
+
+- full-squad strength;
+- Starting XI average rating;
+- every long-term player's role rating;
+- cash and TP;
+- facilities and active construction;
+- total weekly player wages;
+- squad size; and
+- the current difficulty.
+
+Use the Week 1 and Week 30 snapshots for season growth. Keep the Week 4 snapshot
+separate because transfer-window changes can otherwise look like training
+growth. If Week 1 was missed, label later growth as a conservative partial
+measurement rather than a full-season result.
 
 ## Weekly optimal loop
 
@@ -79,7 +101,7 @@ Role priorities:
 
 - Goalkeepers: REF first, then PAS or PAC.
 - Forwards: SHO first, then PAC or TEC.
-- Midfielders: PAS and TEC first, then STA or PAC.
+- Midfielders: PAS and TEC first, then DEF, STA, or PAC.
 - Defenders: DEF first, then STA or PAC.
 
 If a priority player is at 90 condition or below, move to the next suitable
@@ -88,21 +110,31 @@ player. Do not spread TP evenly across reserves or irrelevant attributes.
 Do not train only the star striker forever. Season 2 showed that midfield and
 defense become the limiting units after promotion.
 
-## Team Trip
+## Team Trip and Green Bull Training
 
-Keep the division-scaled Team Trip reward:
+Keep the automatic Team Trip in the early divisions:
 
 - D5: +1 to every stored stat;
-- D4: +2;
-- D3: +3;
-- D2: +4; and
-- D1: +5.
+- D4: +2.
 
 The whole squad loses 10 condition.
 
 The trip removes every banked TP but gives the same stat reward. Under the
 current rules, spend most or all TP before Week 19, then accept the trip when
 the squad can absorb the condition loss.
+
+From D3 onward, use the optional Green Bull Training button instead:
+
+- it costs $50,000 in D3, $80,000 in D2, and $120,000 in D1;
+- it requires at least one full week's TP income;
+- it consumes all current TP;
+- it gives every player +2 to every stored stat;
+- it costs every player 10 condition; and
+- it can be used once per week.
+
+Spend useful excess TP first, but keep the required full-week minimum. Consider
+the trip when broad squad growth is worth more than the focused drills and the
+next fixtures leave enough recovery time.
 
 This is an intentional, owner-approved optimization. Team Trip should feel like
 a fun, slightly overpowered midseason reward. Its growth is broad rather than
@@ -236,6 +268,11 @@ against Garnet. A later switch to `3-4-3 Attack` turned a 0-2 deficit into a
 - Account for Team Trip's -10 condition before Week 19.
 - Refuse an absence when it removes an essential starter before a major match.
 
+When granting any timed absence, record the player's exact saved slot and
+whether it was a starting slot. On the return week, verify that the player is
+available and restored to that slot. The current occupant must move to the
+bench, even if several different replacements used the slot during the absence.
+
 ## Player requests
 
 Accept a player request only when its cost does not damage an important plan.
@@ -250,6 +287,23 @@ Refuse when it would:
 
 Judge the loyalty and morale loss against the football cost. Do not grant every
 request automatically.
+
+Every unresolved request must remain in the inbox until a decision is made.
+Opening or reading it must not remove the inbox item. Record a bug if the item
+disappears early or the request cannot be reopened.
+
+## Story interruptions
+
+Check that each story's player wording matches its selection rule.
+
+- A hard claim such as fastest, youngest, or most popular must automatically
+  choose the matching player.
+- If several players tie, a seeded random tie-break may choose among them.
+- A general story may let the manager choose any eligible player.
+- The preview, result, and story copy must describe the same target.
+
+Record every mismatch across the full story catalog, not only the story that
+first revealed the problem.
 
 ## Sponsors
 
@@ -328,8 +382,16 @@ Take a screenshot when a visual bug cannot be explained clearly with text.
 - Log findings first. Implement only when Joe asks.
 - If code changes deploy during the career, preserve the existing save and
   verify whether migration reaches it.
+- After each deployment, record the tested commit or deployment identifier.
+  Reload the deployed page, reopen the same save, and confirm season, week,
+  division, cash, and TP before continuing.
 - Do not invent results when the browser cannot prove them.
 - Do not infer balance from one surprising match. Record the sample size.
+- Finish and report the current season before making another broad balance
+  change, unless a blocker makes later results misleading.
+- If the club stays in a division, test the repeat season before weakening its
+  strongest opponents. Player growth may turn the same division into a very
+  different challenge.
 - Keep the browser silent for the whole session.
 - Continue until the requested season ends, the Hero Cup is won, or Joe stops
   the test.
@@ -353,6 +415,12 @@ Never reset the save merely to make the test easier.
 
 ## Intended promotion pace
 
+- Every non-user club in the full pyramid grows each offseason: 2.5% on Cozy
+  and 5% on Chairman. This is fixed season growth, never scoreline or
+  user-strength rubber-banding.
+- The current Season 2 run has a conservative measured baseline of 59 squad
+  strength in Week 4 and 70 at the finish: +11, or 18.6%. Week 1 was not
+  captured, which is why future runs must use the checkpoint rules above.
 - An optimal manager may clear an early division in one season.
 - A casual manager should usually earn promotion within two seasons per
   division. Two seasons is a fair progression grind, not a balance failure.

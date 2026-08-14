@@ -21,7 +21,6 @@ import {
   completeMatchday,
   createCareer,
   isFacilityOperational,
-  upgradeCareerFacility,
   type DifficultyMode,
   type FacilityType,
   type GameState,
@@ -59,8 +58,24 @@ const SCHEMA_3_PRICES: Readonly<
   'stadium-stand': { build: 15_000, level2: 15_000, level3: 22_500 },
 };
 
+const APPROVED_UPGRADE_PRICES: Readonly<
+  Record<keyof typeof SCHEMA_3_PRICES, readonly [number, number]>
+> = {
+  'training-pitch': [20_000, 40_000],
+  gym: [18_000, 36_000],
+  'tech-center': [22_000, 44_000],
+  'shooting-range': [20_000, 40_000],
+  'keeper-court': [20_000, 40_000],
+  'medical-bay': [25_000, 50_000],
+  dorm: [15_000, 35_000],
+  'scout-office': [15_000, 35_000],
+  'youth-field': [25_000, 50_000],
+  'fan-shop': [15_000, 35_000],
+  'stadium-stand': [25_000, 50_000],
+};
+
 describe('Club Business facility repricing and pacing probe', () => {
-  it('keeps Level 1 fixed except for the approved Stand reduction and preserves the long-career sink', () => {
+  it('keeps Level 1 friendly and freezes the approved later upgrade prices', () => {
     let level2Uplift = 0;
     let level3Uplift = 0;
     for (const [type, old] of Object.entries(SCHEMA_3_PRICES) as Array<
@@ -73,61 +88,47 @@ describe('Club Business facility repricing and pacing probe', () => {
       expect(current.buildCost).toBe(
         type === 'stadium-stand' ? 10_000 : old.build,
       );
-      expect(current.upgradeCosts[0]).toBe(
-        roundToNearest500(old.level2 * 1.25),
-      );
-      expect(current.upgradeCosts[1]).toBe(roundToNearest500(old.level3 * 1.5));
+      expect(current.upgradeCosts).toEqual(APPROVED_UPGRADE_PRICES[type]);
       level2Uplift += current.upgradeCosts[0] - old.level2;
       level3Uplift += current.upgradeCosts[1] - old.level3;
     }
 
-    expect(level2Uplift).toBe(24_500);
-    expect(level3Uplift).toBe(71_000);
+    expect(level2Uplift).toBe(127_000);
+    expect(level3Uplift).toBe(315_500);
     expect(level2Uplift + level3Uplift).toBe(
       CLUB_BUSINESS_FACILITY_UPGRADE_UPLIFT,
     );
     expect(
       FACILITY_CATALOG['training-pitch'].upgradeCosts[0] -
         SCHEMA_3_PRICES['training-pitch'].level2,
-    ).toBe(2_000);
+    ).toBe(12_000);
     expect(
       () => FACILITY_CATALOG['coaching-office'].upgradeCosts[0],
     ).not.toThrow();
   });
 
   it.each(['COZY', 'CHAIRMAN'] as const)(
-    'keeps the prepared D5 Training Pitch affordable and operational on %s',
+    'keeps the prepared D5 Level 1 Training Pitch operational on %s',
     (difficulty) => {
       const runs = Array.from({ length: SEEDS }, (_, index) =>
-        preparedPitchPath(
+        preparedLevelOnePitchPath(
           4_100_009 + (SEED_OFFSET + index) * 104_729,
           difficulty,
         ),
       );
 
       expect(runs.every((run) => run.levelOneOperationalWeek === 3)).toBe(true);
-      expect(runs.every((run) => run.levelTwoPurchaseWeek === 3)).toBe(true);
-      expect(runs.every((run) => run.cashBeforeLevelTwo >= 10_000)).toBe(true);
-      // A two-week project bought before the Week 3 opener consumes the Week 3
-      // and Week 4 settlements, then is usable from Week 5. Calling that
-      // "opens Week 4" confuses the work week with the next playable state.
-      expect(runs.every((run) => run.levelTwoOperationalWeek === 5)).toBe(true);
-      expect(runs.every((run) => run.capitalInvested === 18_000)).toBe(true);
-      expect(runs.every((run) => run.cashAfterLevelTwo >= 0)).toBe(true);
+      expect(runs.every((run) => run.cashAtFirstOpportunity >= 0)).toBe(true);
     },
   );
 });
 
-function preparedPitchPath(
+function preparedLevelOnePitchPath(
   seed: number,
   difficulty: DifficultyMode,
 ): {
   readonly levelOneOperationalWeek: number;
-  readonly levelTwoPurchaseWeek: number;
-  readonly levelTwoOperationalWeek: number;
-  readonly cashBeforeLevelTwo: number;
-  readonly cashAfterLevelTwo: number;
-  readonly capitalInvested: number;
+  readonly cashAtFirstOpportunity: number;
 } {
   let state = createCareer(
     createLaunchCareerSetup(seed, undefined, content, difficulty),
@@ -140,29 +141,9 @@ function preparedPitchPath(
   }
   const levelOneOperationalWeek = state.week;
   while (state.phase !== 'manage') state = progressOneDecision(state);
-  const levelTwoPurchaseWeek = state.week;
-  const cashBeforeLevelTwo = userCash(state);
-  state = upgradeCareerFacility(state, pitchId).state;
-  const cashAfterLevelTwo = userCash(state);
-
-  while (
-    state.facilities.grid!.buildings.find(
-      (building) => building.id === pitchId,
-    )!.level < 2 ||
-    !isFacilityOperational(state.facilities.grid!, pitchId)
-  ) {
-    state = progressOneDecision(state);
-  }
-  const pitch = state.facilities.grid!.buildings.find(
-    (building) => building.id === pitchId,
-  )!;
   return {
     levelOneOperationalWeek,
-    levelTwoPurchaseWeek,
-    levelTwoOperationalWeek: state.week,
-    cashBeforeLevelTwo,
-    cashAfterLevelTwo,
-    capitalInvested: pitch.capitalInvested,
+    cashAtFirstOpportunity: userCash(state),
   };
 }
 
@@ -193,10 +174,6 @@ function userCash(state: GameState): number {
   if (club === undefined)
     throw new Error('prepared pitch path lost the user club');
   return club.cash;
-}
-
-function roundToNearest500(value: number): number {
-  return Math.round(value / 500) * 500;
 }
 
 function positiveIntegerEnv(

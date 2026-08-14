@@ -16,6 +16,7 @@ import {
   serializeGameState,
 } from '../../persistence/game-state-codec';
 import { matchAttribute, matchPaceAttribute } from '../../sim/attributes';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../contract-wages';
 
 describe('full M2 career clock', () => {
   test('initializes all divisions, market, cup, and youth intake for every new career', () => {
@@ -263,6 +264,80 @@ describe('full M2 career clock', () => {
 
     expect(currentUserDivision(relegated.m2!)).toBe(5);
     expect(relegated.m2?.highestDivisionReached).toBe(4);
+  });
+
+  test('applies new-contract wage clauses on promotion but not for staying put', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(78_012) });
+    const player = initial.players.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const contracted = {
+      ...initial,
+      players: initial.players.map((candidate) =>
+        candidate.clubId === initial.userClubId
+          ? {
+              ...candidate,
+              contractSeasonsRemaining: 3,
+              ...(candidate.id === player.id
+                ? { promotionWagePercent: PROMOTION_WAGE_CLAUSE_PERCENT }
+                : {}),
+            }
+          : candidate,
+      ),
+    };
+
+    const promoted = startNextSeason(completeSeasonForUser(contracted, 'win'));
+    const stayed = startNextSeason(completeSeasonForUser(contracted, 'loss'));
+    const promotedPlayer = promoted.players.find(
+      (candidate) => candidate.id === player.id,
+    )!;
+    const stayedPlayer = stayed.players.find(
+      (candidate) => candidate.id === player.id,
+    )!;
+
+    expect(promotedPlayer.weeklyWage).toBe(
+      Math.round(
+        (player.weeklyWage * (100 + PROMOTION_WAGE_CLAUSE_PERCENT)) / 100,
+      ),
+    );
+    expect(stayedPlayer.weeklyWage).toBe(player.weeklyWage);
+    expect(
+      promoted.clubs.find((club) => club.id === promoted.userClubId)
+        ?.weeklyWages,
+    ).toBe(
+      promoted.players
+        .filter((candidate) => candidate.clubId === promoted.userClubId)
+        .reduce((sum, candidate) => sum + candidate.weeklyWage, 0),
+    );
+  });
+
+  test('does not charge a season-end renewal for the promotion already earned', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(78_013) });
+    const player = initial.players.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const renewedWage = player.weeklyWage + 50;
+    const renewed = {
+      ...initial,
+      players: initial.players.map((candidate) =>
+        candidate.id === player.id
+          ? {
+              ...candidate,
+              weeklyWage: renewedWage,
+              contractSeasonsRemaining: 3,
+              promotionWagePercent: PROMOTION_WAGE_CLAUSE_PERCENT,
+              promotionWageStartsAfterSeason: initial.season,
+            }
+          : candidate,
+      ),
+    };
+
+    const promoted = startNextSeason(completeSeasonForUser(renewed, 'win'));
+
+    expect(
+      promoted.players.find((candidate) => candidate.id === player.id)
+        ?.weeklyWage,
+    ).toBe(renewedWage);
   });
 
   test('adds the first-reach division fan step to the supporters already earned', () => {

@@ -36,6 +36,7 @@ import {
   boardUltimatumConsequence,
   attributeAffectsPlay,
   careerHeroLimit,
+  careerEventCashLoss,
   careerCoachWageLedgerAmount,
   commercialFacilitySummary,
   GATE_ATTENDANCE_PERCENT,
@@ -44,6 +45,7 @@ import {
   contractTermOptions,
   createFacilityGrid,
   currentUserDivision,
+  greenBullTrainingOffer,
   difficultyRules,
   isConsideringRetirement,
   isRivalHeroIntroHeroId,
@@ -2091,7 +2093,12 @@ export function storyEventViewModel(
           outcomeRewards:
             resolvedOutcome === undefined
               ? []
-              : eventRewardItems(resolvedOutcome.effects, t, state),
+              : eventRewardItems(
+                  resolvedOutcome.effects,
+                  t,
+                  state,
+                  pending.resolvedMoneyDelta,
+                ),
           ...(pending.resolvedNextEventId === undefined
             ? {}
             : { outcomeHasFollowUp: true as const }),
@@ -4107,6 +4114,7 @@ export function squadTrainingViewModel(
     state.facilities.grid === undefined
       ? 0
       : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
+  const greenBullOffer = greenBullTrainingOffer(state);
 
   // The drill's name is content, not save data: `trainingRules.focusDrills`
   // bakes the id, costs and gains into the career and never the label, so a
@@ -4131,6 +4139,9 @@ export function squadTrainingViewModel(
       trainingPoints: state.trainingPoints,
       fans: club.fans,
     },
+    ...(greenBullOffer === undefined
+      ? {}
+      : { greenBullTraining: greenBullOffer }),
     ...(createdPlayer === undefined
       ? {}
       : { createdPlayerId: createdPlayer.id }),
@@ -5291,13 +5302,21 @@ function eventRewardItems(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
   t: CopyFn,
   state: GameState,
+  resolvedMoneyDelta?: number,
 ): NonNullable<StoryEventViewModel['outcomeRewards']> {
   const rewards: NonNullable<StoryEventViewModel['outcomeRewards']>[number][] =
     [];
-  const money = effects.reduce(
-    (sum, effect) => (effect.type === 'money' ? sum + effect.amount : sum),
-    0,
-  );
+  const money =
+    resolvedMoneyDelta ??
+    effects.reduce(
+      (sum, effect) =>
+        effect.type === 'money'
+          ? sum + effect.amount
+          : effect.type === 'cashLossPercent'
+            ? sum - careerEventCashLoss(state, effect.percent)
+            : sum,
+      0,
+    );
   const playerMorale = effects.reduce(
     (sum, effect) => (effect.type === 'morale' ? sum + effect.amount : sum),
     0,

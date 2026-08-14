@@ -13,6 +13,7 @@ import { leagueStandings } from '../career';
 import { startNextFullCareerSeason } from '../full-career';
 import { clubSquadStrength } from '../m2-career';
 import { COACH_WAGE_PER_LEVEL, sellingTransferQuote } from '../market';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../contract-wages';
 import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
@@ -334,6 +335,7 @@ describe('career market integration', () => {
     ).toMatchObject({
       clubId: initial.userClubId,
       weeklyWage: ask,
+      promotionWagePercent: PROMOTION_WAGE_CLAUSE_PERCENT,
     });
     expect(
       completedSource.squad.some((player) => player.id === target.id),

@@ -15,6 +15,23 @@ import { repairCareerLineupForInjuries } from './squad';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
+export function careerEventCashLoss(
+  state: Pick<GameState, 'clubs' | 'userClubId'>,
+  percent: number,
+): number {
+  if (!Number.isSafeInteger(percent) || percent < 1 || percent > 100)
+    throw new Error('career event cash loss percent must be from 1 to 100');
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined) throw new Error('career event user club is missing');
+  if (club.cash <= 0) return 0;
+  const loss = Math.round((club.cash * percent) / 100);
+  if (!Number.isSafeInteger(loss))
+    throw new Error('career event cash loss exceeds the safe integer range');
+  return loss;
+}
+
 interface CareerEventPlayerEffect {
   playerId: string;
   moraleDelta?: number;
@@ -797,6 +814,7 @@ export function applyCareerEventOutcome(
       ...state.pendingEvent,
       resolvedChoiceId: choiceId,
       outcomeText,
+      resolvedMoneyDelta: moneyDelta,
       ...(presentation === undefined
         ? {}
         : {

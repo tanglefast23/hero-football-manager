@@ -16,6 +16,7 @@ import {
   youthSigningBonus,
 } from '../youth-intake';
 import type { GameState } from '../types';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../contract-wages';
 
 function careerWithRosterSize(
   rosterSize: number,
@@ -275,6 +276,9 @@ describe('pre-season youth intake', () => {
     };
     const intake = createPreseasonYouthIntake(state);
     const offer = intake.offers[0];
+    expect(offer.player.promotionWagePercent).toBe(
+      PROMOTION_WAGE_CLAUSE_PERCENT,
+    );
     const clubBefore = state.clubs.find(
       (club) => club.id === state.userClubId,
     )!;

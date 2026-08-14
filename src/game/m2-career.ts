@@ -530,7 +530,7 @@ interface OpponentGrowthRules {
 }
 
 const DEFAULT_OPPONENT_GROWTH: OpponentGrowthRules = {
-  opponentGrowthPercent: 3,
+  opponentGrowthPercent: 2.5,
   opponentGrowthAttributeCap: 700,
 };
 

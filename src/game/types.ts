@@ -98,6 +98,10 @@ export interface CareerPlayer {
   powerTier?: 1 | 2 | 3;
   licensed: boolean;
   weeklyWage: number;
+  /** Wage rise agreed by this contract and applied only when the club is promoted. */
+  promotionWagePercent?: number;
+  /** A season-end renewal starts after that season's promotion has been settled. */
+  promotionWageStartsAfterSeason?: number;
   onHeroWage: boolean;
   contractSeasonsRemaining: number;
   contractPromise?: CareerContractPromise;
@@ -230,6 +234,8 @@ interface PendingCareerEvent {
   resolvedOutcomeIndex?: number;
   resolvedRisky?: boolean;
   resolvedSuccess?: boolean;
+  /** Exact applied cash change for dynamic story effects and reload-safe result copy. */
+  resolvedMoneyDelta?: number;
   /** Optional content-authored follow-up offered before the management week advances. */
   resolvedNextEventId?: string;
 }

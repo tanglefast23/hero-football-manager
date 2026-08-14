@@ -15,6 +15,7 @@ import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
 import { DIVISION_TYPICAL_PACE } from './pyramid';
 import { reducedPlayerWeeklyWage } from './market';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from './contract-wages';
 import {
   isStoryFeaturePacingActive,
   isStoryYouthUnlocked,
@@ -464,6 +465,7 @@ function createOffer(
     attrs,
     licensed: false,
     weeklyWage: reducedPlayerWeeklyWage(100 + targetStrength * 3),
+    promotionWagePercent: PROMOTION_WAGE_CLAUSE_PERCENT,
     onHeroWage: false,
     contractSeasonsRemaining: 3,
     morale: 65,

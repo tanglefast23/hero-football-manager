@@ -27,6 +27,7 @@ Weekly wages (players + coach + staff), transfer fees, facility construction/upk
 - **Weekly wages for everyone** (we deliberately rejected Pocket League Story's "pay only when fielded" — it removes the tension this game wants).
 - Contracts run 1–3 seasons. At expiry: renewal negotiation or free exit.
 - **Raises are structural**: renewal ask = current wage × (1 + growth since signing) × fame factor × personality (Greedy +20%, Loyal −10%).
+- Every new signing and renewal includes a visible **25% promotion wage clause**. It applies after each promotion covered by that contract. Existing fixed contracts without the clause stay unchanged, and merely remaining in a division never raises wages.
 - **The hero wage cliff**: awakened players keep their pre-awakening wage until renewal (locked-in bargain), then ask hero rates (×3–5). Contract timing around awakenings is a core strategic layer.
 - **Scale-invariant anchors**: a generated support player's weekly wage is anchored by division and scaled by their seven-stat average relative to that division's support rating. After the generated scale and the player-only 15% wage cut, the effective D5→D1 support wages are 128/188/277/408/571. Launch, created, academy, youth, generated, and migrated player contracts receive the cut. Coach wages do not. Version-4 saves receive the additional 5% cut once. Transfer bases use 6,500/9,500/14,500/22,000/32,000 and a quadratic role-rating premium. Larger raw ratings therefore represent better football rather than an accidental economy multiplier.
 - Underpaid stars (wage < 70% of market): morale drain, transfer requests, rival poach offers.
@@ -53,20 +54,20 @@ Facility quality is partly promotion-gated: Levels 1 and 2 are available from D5
 
 The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. New careers receive an extra **$8,000** in their starting budget and are guided to place the Training Pitch as their first build, so paying for it returns cash to the previously balanced opening level. It pays nothing before it opens; from then on every weekly settlement creates **+12 TP per completed level**. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
 
-Additional sponsor and Buzz income is paired with higher upgrade prices while every Level-1 build remains unchanged. Level-2 prices are the previous price ×1.25 and Level-3 prices ×1.50, rounded to the nearest $500. A building records the cash actually invested, so closing it refunds half its historical basis rather than half today's catalog price. Coaching Office Levels 2–3 are disabled until those levels have a real benefit; charging for a no-effect upgrade is not allowed.
+Additional sponsor and Buzz income is paired with higher later upgrade prices while every Level-1 build remains unchanged. Level-2 upgrades cost $15,000–$25,000 and Level-3 upgrades cost $35,000–$50,000. A building records the cash actually invested, so closing it refunds half its historical basis rather than half today's catalog price. Coaching Office Levels 2–3 are disabled until those levels have a real benefit; charging for a no-effect upgrade is not allowed.
 
 | Facility                      |         Lv1 build |       Lv2 upgrade |       Lv3 upgrade |
 | ----------------------------- | ----------------: | ----------------: | ----------------: |
-| Training Pitch                |  $8,000 · 2 weeks | $10,000 · 2 weeks | $18,000 · 3 weeks |
-| Gym                           |  $7,000 · 2 weeks |  $9,000 · 2 weeks | $16,000 · 3 weeks |
-| Tech Center                   |  $9,000 · 2 weeks | $11,500 · 2 weeks | $20,500 · 3 weeks |
-| Shooting Range / Keeper Court |  $7,500 · 2 weeks |  $9,500 · 2 weeks | $17,000 · 3 weeks |
-| Medical Bay                   | $10,000 · 2 weeks | $12,500 · 2 weeks | $22,500 · 3 weeks |
-| Dorm / Scout Office           |   $6,000 · 1 week |   $7,500 · 1 week | $13,500 · 2 weeks |
+| Training Pitch                |  $8,000 · 2 weeks | $20,000 · 2 weeks | $40,000 · 3 weeks |
+| Gym                           |  $7,000 · 2 weeks | $18,000 · 2 weeks | $36,000 · 3 weeks |
+| Tech Center                   |  $9,000 · 2 weeks | $22,000 · 2 weeks | $44,000 · 3 weeks |
+| Shooting Range / Keeper Court |  $7,500 · 2 weeks | $20,000 · 2 weeks | $40,000 · 3 weeks |
+| Medical Bay                   | $10,000 · 2 weeks | $25,000 · 2 weeks | $50,000 · 3 weeks |
+| Dorm / Scout Office           |   $6,000 · 1 week | $15,000 · 1 week | $35,000 · 2 weeks |
 | Coaching Office               |   $6,500 · 1 week |          Disabled |          Disabled |
-| Fan Shop                      |   $5,000 · 1 week |   $6,500 · 1 week | $11,500 · 2 weeks |
-| Youth Field                   | $12,000 · 3 weeks | $15,000 · 2 weeks | $27,000 · 3 weeks |
-| Stadium Stand                 | $10,000 · 3 weeks | $19,000 · 2 weeks | $34,000 · 3 weeks |
+| Fan Shop                      |   $5,000 · 1 week | $15,000 · 1 week | $35,000 · 2 weeks |
+| Youth Field                   | $12,000 · 3 weeks | $25,000 · 2 weeks | $50,000 · 3 weeks |
+| Stadium Stand                 | $10,000 · 3 weeks | $25,000 · 2 weeks | $50,000 · 3 weeks |
 
 **Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Each named bonus applies once even when several copies form the same pairing. Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 

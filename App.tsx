@@ -3231,6 +3231,23 @@ function GameApp() {
                 onConfirm: () => store.purchaseTrainingUpgrade(pathId),
               });
             }}
+            onBookGreenBullTraining={() => {
+              const offer = squadTrainingVm!.greenBullTraining;
+              if (offer === undefined || offer.blockedReason !== undefined)
+                return;
+              requestConfirmation({
+                title: t('midseasonTraining.centerName'),
+                detail: `${t('greenBullTraining.detail', {
+                  cost: formatCurrency(t, offer.cost),
+                  gain: offer.statGain,
+                  condition: offer.conditionCost,
+                })} ${t('greenBullTraining.requirement', {
+                  tp: offer.trainingPointsRequired,
+                })}`,
+                confirmLabel: t('greenBullTraining.bookTraining'),
+                onConfirm: () => store.bookGreenBullTraining(),
+              });
+            }}
             lastDrillResult={store.lastDrillResult}
             trainingPoints={store.career?.trainingPoints ?? 0}
             guideTraining={visibleAssistantObjectiveTarget === 'training-plan'}

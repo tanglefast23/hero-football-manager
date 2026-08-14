@@ -7,6 +7,7 @@ import type {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ContractOffer, PitchCard } from '../../game/market';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../../game/contract-wages';
 import {
   ActionButton,
   Metric,
@@ -636,6 +637,11 @@ export function SeasonEndScreen({
                 <>
                   {contract.renewalBlockedReason === undefined ? (
                     <>
+                      <Text className="mt-3 text-sm leading-5 text-ink/60">
+                        {t('market.promotionWageClause', {
+                          percent: PROMOTION_WAGE_CLAUSE_PERCENT,
+                        })}
+                      </Text>
                       <PixelText className="mt-4 text-sm uppercase tracking-wide text-ink/50">
                         {t('seasonEnd.contractLength')}
                       </PixelText>

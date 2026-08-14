@@ -602,6 +602,10 @@ const EventEffectSchema = z.discriminatedUnion('type', [
     type: z.literal('money'),
     amount: z.number().int().min(-100000).max(100000),
   }),
+  z.strictObject({
+    type: z.literal('cashLossPercent'),
+    percent: z.number().int().min(1).max(10),
+  }),
   /**
    * Sell the selected player for one authored fee.
    *
@@ -756,6 +760,7 @@ const EventEffectSchema = z.discriminatedUnion('type', [
  * has no duplicates, so the gate costs nothing and removes the whole class.
  */
 const SINGULAR_EFFECT_TYPES = [
+  'cashLossPercent',
   'playerSale',
   'morale',
   'squadMorale',

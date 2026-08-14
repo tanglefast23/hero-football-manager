@@ -109,6 +109,19 @@ describe('event effect gates', () => {
     );
   });
 
+  it('caps percentage cash setbacks at the approved ten percent', () => {
+    expect(
+      GameEventSchema.safeParse(
+        eventWithEffects([{ type: 'cashLossPercent', percent: 10 }]),
+      ).success,
+    ).toBe(true);
+    expect(
+      GameEventSchema.safeParse(
+        eventWithEffects([{ type: 'cashLossPercent', percent: 11 }]),
+      ).success,
+    ).toBe(false);
+  });
+
   it('rejects a player effect on an event that never asks for a player', () => {
     for (const effect of [
       { type: 'morale', amount: 5 },

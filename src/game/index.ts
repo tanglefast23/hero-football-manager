@@ -2,6 +2,7 @@ export * from './assistant-guide';
 export * from './archetype-caps';
 export * from './board-ultimatum';
 export * from './contract-promises';
+export * from './contract-wages';
 export * from './cup-giant-killing';
 export * from './cup-mismatch-warning';
 export * from './career';

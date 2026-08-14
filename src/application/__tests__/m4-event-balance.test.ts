@@ -118,11 +118,21 @@ describe('M4 event balance rails', () => {
           ),
         ),
     );
+    const percentageCashLosses = catalog.events.flatMap((event) =>
+      event.choices.flatMap((choice) =>
+        choice.outcomes.flatMap((outcome) =>
+          outcome.effects.flatMap((effect) =>
+            effect.type === 'cashLossPercent' ? [effect.percent] : [],
+          ),
+        ),
+      ),
+    );
 
     expect(Math.min(...moneyAmounts)).toBeGreaterThanOrEqual(-1_500);
     expect(Math.max(...moneyAmounts)).toBeLessThanOrEqual(5_000);
     expect(Math.min(...expectedRiskyCash)).toBeGreaterThanOrEqual(-750);
     expect(Math.max(...expectedRiskyCash)).toBeLessThanOrEqual(3_000);
+    expect(Math.max(...percentageCashLosses)).toBeLessThanOrEqual(10);
   });
 
   /**

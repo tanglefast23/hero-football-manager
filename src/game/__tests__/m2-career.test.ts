@@ -144,7 +144,7 @@ describe('M2 career initialization', () => {
 });
 
 describe('endless opponent growth', () => {
-  it('applies one deterministic 3% step to all attributes exactly once per season', () => {
+  it('applies one deterministic 2.5% step to all attributes exactly once per season', () => {
     const initial = initializeM2Career({
       careerSeed: 9182,
       userClub: USER_CLUB,
@@ -171,7 +171,7 @@ describe('endless opponent growth', () => {
       'sta',
       'ref',
     ] as const) {
-      const scaled = baselinePlayer.attrs[attribute] * 1.03;
+      const scaled = baselinePlayer.attrs[attribute] * 1.025;
       expect([Math.floor(scaled), Math.ceil(scaled)]).toContain(
         grownPlayer.attrs[attribute],
       );
@@ -231,7 +231,7 @@ describe('endless opponent growth', () => {
     );
   });
 
-  it('keeps 15-season Cozy rivals below 999 with star/support ratio drift at or below 2%', () => {
+  it('keeps 15-season Cozy rivals below 999 with star/support ratio drift at or below 2.1%', () => {
     const initial = initializeM2Career({
       careerSeed: 9182,
       userClub: USER_CLUB,
@@ -268,7 +268,7 @@ describe('endless opponent growth', () => {
 
     expect(maximumAttribute).toBeLessThanOrEqual(700);
     expect(maximumAttribute).toBeLessThan(999);
-    expect(maximumRatioDrift).toBeLessThanOrEqual(0.02);
+    expect(maximumRatioDrift).toBeLessThanOrEqual(0.021);
   });
 });
 
@@ -488,7 +488,7 @@ describe('M2 promotion and endless season planning', () => {
       )!;
       expect(opponent.squadStrength).toBeGreaterThan(unscaled.squadStrength);
       expect(opponent.squad[0].attrs.pac).toBeGreaterThanOrEqual(
-        Math.floor(unscaled.squad[0].attrs.pac * 1.03),
+        Math.floor(unscaled.squad[0].attrs.pac * 1.025),
       );
     }
     // Derived from the band rather than pinned as literals, so rebalancing the

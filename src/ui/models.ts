@@ -674,6 +674,14 @@ export interface DrillResultViewModel {
 
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
+  /** Paid team trip, present only while the club is in D3-D1. */
+  greenBullTraining?: {
+    cost: number;
+    trainingPointsRequired: number;
+    statGain: number;
+    conditionCost: number;
+    blockedReason?: 'USED_THIS_WEEK' | 'NOT_ENOUGH_TP' | 'NOT_ENOUGH_CASH';
+  };
   players: readonly SquadPlayerViewModel[];
   /**
    * The rookie the manager built. They are sorted to the top of the roster, and

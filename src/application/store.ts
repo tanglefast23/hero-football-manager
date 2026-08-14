@@ -39,6 +39,7 @@ import {
   signCareerRenewalAtAsk,
   createCareer,
   currentUserDivision,
+  acceptGreenBullTraining as applyGreenBullTraining,
   acceptMidseasonTraining as applyMidseasonTraining,
   completeMidseasonTraining as markMidseasonTrainingComplete,
   declineMidseasonTraining as refuseMidseasonTraining,
@@ -554,6 +555,7 @@ interface M1Store {
     scope?: 'current-week' | 'permanent',
   ) => void;
   acceptMidseasonTraining: () => void;
+  bookGreenBullTraining: () => void;
   declineMidseasonTraining: () => void;
   completeMidseasonTraining: () => void;
   openMatchday: () => void;
@@ -1439,6 +1441,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
         career: next,
         screen: 'midseason-training',
         activeTab: 'home',
+        error: null,
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  bookGreenBullTraining() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = applyGreenBullTraining(career);
+      if (next === career) return;
+      set({
+        career: next,
+        screen: 'midseason-training',
+        activeTab: 'squad',
         error: null,
       });
       queueCareerSave(get, set, next);

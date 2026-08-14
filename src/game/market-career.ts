@@ -1,4 +1,5 @@
 import { compareIds } from './ordering';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from './contract-wages';
 
 // The window rule is career-facing: the UI has to explain a shut desk, not just
 // be refused by it. Re-exported here so the game barrel carries it alongside
@@ -568,6 +569,7 @@ export function completeCareerTransfer(
     ...player,
     clubId: state.userClubId,
     weeklyWage: offer.weeklyWage,
+    promotionWagePercent: PROMOTION_WAGE_CLAUSE_PERCENT,
     contractSeasonsRemaining: offer.termSeasons,
     licensed: false,
     onHeroWage: player.power !== undefined,
@@ -884,6 +886,8 @@ function applyCareerRenewalTerms(
   const renewed: CareerPlayer = {
     ...carried,
     weeklyWage,
+    promotionWagePercent: PROMOTION_WAGE_CLAUSE_PERCENT,
+    promotionWageStartsAfterSeason: state.season,
     contractSeasonsRemaining: termSeasons,
     onHeroWage: player.power !== undefined || player.onHeroWage,
     signingStatTotal: playerStatTotal(player),

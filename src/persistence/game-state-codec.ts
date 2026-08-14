@@ -306,6 +306,10 @@ const playerSchema = z
     powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     licensed: z.boolean(),
     weeklyWage: nonnegativeInteger,
+    promotionWagePercent: positiveInteger
+      .refine((value) => value <= 100, 'must be at most 100')
+      .optional(),
+    promotionWageStartsAfterSeason: positiveInteger.optional(),
     onHeroWage: z.boolean(),
     contractSeasonsRemaining: nonnegativeInteger,
     contractPromise: z
@@ -983,6 +987,7 @@ const pendingEventSchema = z
     resolvedOutcomeIndex: nonnegativeInteger.optional(),
     resolvedRisky: z.boolean().optional(),
     resolvedSuccess: z.boolean().optional(),
+    resolvedMoneyDelta: safeInteger.optional(),
     resolvedNextEventId: nonemptyString.optional(),
   })
   .passthrough();

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import type { ContractOffer, ContractPerk, PitchCard } from '../../game/market';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../../game/contract-wages';
 import {
   ActionButton,
   Metric,
@@ -692,6 +693,11 @@ function YouthDesk({
                   value={formatCurrency(t, offer.weeklyWage)}
                 />
               </View>
+              <Text className="mt-2 text-sm text-ink/60">
+                {t('market.promotionWageClause', {
+                  percent: PROMOTION_WAGE_CLAUSE_PERCENT,
+                })}
+              </Text>
               <View className="mt-3 flex-row items-center justify-between gap-3">
                 <Text className="flex-1 text-sm text-stamp">
                   {offer.blockedReason ?? t('market.threeYearAcademyContract')}
@@ -1529,6 +1535,12 @@ export function NegotiationPanel({
           </Text>
         </View>
       </View>
+
+      <Text className="mt-3 text-sm leading-5 text-ink/60">
+        {t('market.promotionWageClause', {
+          percent: PROMOTION_WAGE_CLAUSE_PERCENT,
+        })}
+      </Text>
 
       {viewModel.lastOutcomeLabel ? (
         <View className="mt-3 border-2 border-stamp bg-red-light px-3 py-2">

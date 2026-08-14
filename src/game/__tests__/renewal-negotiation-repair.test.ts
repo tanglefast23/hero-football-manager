@@ -33,6 +33,7 @@ import {
 import { loyaltyRenewalPercent } from '../loyalty';
 import { hasActiveCareerContractPromise } from '../contract-promises';
 import { currentUserDivision } from '../m2-career';
+import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../contract-wages';
 import type { CareerPlayer, GameState } from '../types';
 
 /** A season-end career whose named player has an expired contract. */
@@ -736,6 +737,8 @@ describe('signing at the asking price (D2)', () => {
     const renewed = signed.state.players.find((c) => c.id === player.id)!;
 
     expect(renewed.weeklyWage).toBe(ask);
+    expect(renewed.promotionWagePercent).toBe(PROMOTION_WAGE_CLAUSE_PERCENT);
+    expect(renewed.promotionWageStartsAfterSeason).toBe(state.season);
     expect(renewed.contractSeasonsRemaining).toBe(2);
     expect(renewed.contractPromise).toBeUndefined();
     expect(renewed.transferRequested).toBe(false);

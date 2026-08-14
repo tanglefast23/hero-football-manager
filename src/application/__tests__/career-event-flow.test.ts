@@ -67,6 +67,49 @@ function playerEvent(eventId: string): GameState {
 }
 
 describe('shared career event flow', () => {
+  test('previews and charges the cameras setback as 10% of current cash', () => {
+    const offered = playerEvent('the-cameras-want-him');
+    const withCash: GameState = {
+      ...offered,
+      clubs: offered.clubs.map((club) =>
+        club.id === offered.userClubId ? { ...club, cash: 91_870 } : club,
+      ),
+    };
+    const preview = storyEventViewModel(
+      withCash,
+      loadLaunchContent(),
+    ).choices.find((choice) => choice.id === 'give-them-the-day');
+    expect(preview?.consequenceHint).toContain('-$9,187');
+    expect(preview?.consequenceHint).not.toContain('$600');
+
+    let setback: GameState | undefined;
+    for (let riskyChoices = 0; riskyChoices < 100; riskyChoices += 1) {
+      const resolved = resolveCareerEventChoice(
+        {
+          ...withCash,
+          eventClock: { ...withCash.eventClock, riskyChoices },
+        },
+        catalog,
+        'give-them-the-day',
+      );
+      if (resolved.pendingEvent?.resolvedSuccess === false) {
+        setback = resolved;
+        break;
+      }
+    }
+    expect(setback).toBeDefined();
+    expect(
+      setback!.clubs.find((club) => club.id === setback!.userClubId)?.cash,
+    ).toBe(82_683);
+    expect(
+      storyEventViewModel(setback!, loadLaunchContent()).outcomeRewards,
+    ).toEqual(
+      expect.arrayContaining([
+        { label: '-$9,187', kind: 'money', positive: false },
+      ]),
+    );
+  });
+
   test('applies the youth breakthrough stat and morale to the selected waiting offer', () => {
     const initial = { ...career(), week: 1 };
     const offer = initial.youthIntake?.offers[0];
