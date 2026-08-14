@@ -55,7 +55,7 @@ describe('permanent promotion progression', () => {
       promotionRewardsForDivision(4).map((reward) => reward.title),
     ).toEqual([
       'Recruitment fund · $15,000',
-      'Tier 2 drills · $3,000 each',
+      'Tier 2 drills · $5,000 each',
       'International scouting',
       'Level 2 coaches',
     ]);
@@ -71,10 +71,10 @@ describe('permanent promotion progression', () => {
     // Each promotion puts exactly one drill tier up for sale, never grants it.
     expect(
       promotionRewardsForDivision(3).map((reward) => reward.title),
-    ).toContain('Tier 3 drills · $8,000 each');
+    ).toContain('Tier 3 drills · $10,000 each');
     expect(
       promotionRewardsForDivision(2).map((reward) => reward.title),
-    ).toContain('Tier 4 drills · $18,000 each');
+    ).toContain('Tier 4 drills · $20,000 each');
     expect(
       promotionRewardsForDivision(1).map((reward) => reward.title),
     ).toContain('Tier 5 drills · $40,000 each');

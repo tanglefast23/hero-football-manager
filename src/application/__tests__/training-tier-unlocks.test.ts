@@ -106,7 +106,7 @@ describe('training drill tier purchases', () => {
       ownedTier: 1,
       nextTier: 2,
       nextGain: 5,
-      cost: 3_000,
+      cost: 5_000,
       blockedReason: 'Tier 2 drills unlock in D4 · County League.',
     });
 
@@ -122,7 +122,7 @@ describe('training drill tier purchases', () => {
     const broke = {
       ...promoted,
       clubs: promoted.clubs.map((club) =>
-        club.id === promoted.userClubId ? { ...club, cash: 2_999 } : club,
+        club.id === promoted.userClubId ? { ...club, cash: 4_999 } : club,
       ),
     };
     expect(
@@ -139,7 +139,7 @@ describe('training drill tier purchases', () => {
       ...state,
       m2: { ...state.m2!, highestDivisionReached: 4 as const },
       clubs: state.clubs.map((club) =>
-        club.id === state.userClubId ? { ...club, cash: 3_000 } : club,
+        club.id === state.userClubId ? { ...club, cash: 5_000 } : club,
       ),
     };
 
@@ -156,7 +156,7 @@ describe('training drill tier purchases', () => {
       // `pathKey` names `path`, so the ledger draws the path name in the
       // player's language instead of an English word inside a German sentence.
       labelParams: { path: 'Pace', pathKey: 'trainingPath.pac', tier: 2 },
-      amount: -3_000,
+      amount: -5_000,
       referenceId: 'sprints-ii',
     });
     expect(resolveTrainingDrillForPath(bought, 'sprints').id).toBe(

@@ -68,9 +68,9 @@ const TRAINING_DRILL_TIER_SUFFIX: Readonly<Record<TrainingDrillTier, string>> =
 const TRAINING_DRILL_UPGRADE_COST: Readonly<
   Record<Exclude<TrainingDrillTier, 1>, number>
 > = {
-  2: 3_000,
-  3: 8_000,
-  4: 18_000,
+  2: 5_000,
+  3: 10_000,
+  4: 20_000,
   5: 40_000,
 };
 

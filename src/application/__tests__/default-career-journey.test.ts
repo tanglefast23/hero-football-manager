@@ -246,7 +246,7 @@ describe('promotion reward presentation', () => {
         },
         // Promotion puts the next drill tier on sale, one path at a time. It
         // does not hand it over, so this line names a price.
-        { title: 'Tier 2 drills · $3,000 each' },
+        { title: 'Tier 2 drills · $5,000 each' },
         // No 'Level 2 facilities': it is available from D5, so promoting to D4
         // must not present it as newly earned.
         { title: 'International scouting' },
