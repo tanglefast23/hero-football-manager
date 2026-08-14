@@ -103,9 +103,9 @@ const REQUEST_CASES: readonly RequestCase[] = Object.freeze([
     note: 'Already warned once · one week left before the silence answers for you',
   },
   {
-    id: 'broke',
-    label: 'Broke',
-    note: 'A money ask past the books · the only state that disables Grant',
+    id: 'tradeoff',
+    label: 'Tradeoff',
+    note: 'A favor with a football cost · Grant stays open, but the plan changes',
   },
   {
     id: 'quiet',
@@ -167,26 +167,12 @@ function careerForCase(caseId: string): GameState {
       (state) => state.playerRequests?.pending?.warned === true,
     );
   }
-  if (caseId === 'broke') {
-    // The one field this reel writes. Wage-multiple pricing tops out near a
-    // couple of thousand against a five-figure balance, so a solvent club can
-    // always say yes and the disabled Grant is unreachable by waiting.
-    const state = steppedCareer(
-      (item) =>
-        item.playerRequests?.pending?.costAmount !== undefined &&
-        // Not the first money ask, so this case shows a different request from
-        // the three that open on one.
-        (item.playerRequests?.history.length ?? 0) >= 1,
+  if (caseId === 'tradeoff') {
+    return steppedCareer(
+      (state) =>
+        state.playerRequests?.pending !== undefined &&
+        (state.playerRequests.history.length ?? 0) >= 1,
     );
-    const cost = state.playerRequests?.pending?.costAmount ?? 0;
-    return {
-      ...state,
-      clubs: state.clubs.map((club) =>
-        club.id === state.userClubId
-          ? { ...club, cash: Math.max(0, cost - 1) }
-          : club,
-      ),
-    };
   }
   if (caseId === 'quiet') {
     return steppedCareer(

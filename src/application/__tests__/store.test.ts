@@ -36,7 +36,7 @@ import {
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
-import { createLaunchCareerSetup } from '../launch';
+import { createLaunchCareerSetup, reconcileLaunchRoster } from '../launch';
 import {
   awakeningCutsceneViewModel,
   clubFinancesViewModel,
@@ -2382,7 +2382,9 @@ async function relaunchCheckpoint(
   replayRepository: ReplayRepository,
 ): Promise<number> {
   await waitFor(() => !useM1Store.getState().saving);
-  const expected = structuredClone(useM1Store.getState().career);
+  const expected = reconcileLaunchRoster(
+    structuredClone(useM1Store.getState().career!),
+  );
   useM1Store.setState(useM1Store.getInitialState(), true);
   await useM1Store
     .getState()
@@ -2406,7 +2408,9 @@ function withoutYouthIntake(
 ): Omit<GameState, 'youthIntake'> | null {
   if (career === null) return null;
   const { youthIntake: _intake, ...rest } = career;
-  return rest;
+  // The repository is JSON-backed, so absent optional fields return absent,
+  // not as own-properties whose value is `undefined`.
+  return JSON.parse(JSON.stringify(rest)) as Omit<GameState, 'youthIntake'>;
 }
 
 function driveStoreUntil(
