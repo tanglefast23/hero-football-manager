@@ -80,10 +80,7 @@ export function penaltyShootoutViewModel(
   const opponentOutcomes =
     args.winner === 'opponent' ? template.winner : template.loser;
   const clubKeeperSide = side(clubGoalkeeper, args.clubTeam.name);
-  const opponentKeeperSide = side(
-    opponentGoalkeeper,
-    args.opponentTeam.name,
-  );
+  const opponentKeeperSide = side(opponentGoalkeeper, args.opponentTeam.name);
   const kicks: PenaltyKickViewModel[] = [];
   let clubScore = 0;
   let opponentScore = 0;

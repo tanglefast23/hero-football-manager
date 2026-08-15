@@ -8,7 +8,8 @@ describe('penalty shootout screen contract', () => {
   const screen = source('src/render/PenaltyShootout.tsx');
   const constant = (name: string) =>
     Number(
-      screen.match(new RegExp(`export const ${name} = ([0-9_]+);`))?.[1]
+      screen
+        .match(new RegExp(`export const ${name} = ([0-9_]+);`))?.[1]
         .replaceAll('_', ''),
     );
 

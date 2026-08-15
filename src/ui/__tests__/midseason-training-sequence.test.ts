@@ -11,9 +11,9 @@ describe('Week 19 team training presentation', () => {
     };
     const squad = source('src/ui/screens/SquadTrainingScreen.tsx');
 
-    expect(
-      catalog.strings['greenBullTraining.individualTrainingUsed'],
-    ).toBe('Individual training already used · available next week');
+    expect(catalog.strings['greenBullTraining.individualTrainingUsed']).toBe(
+      'Individual training already used · available next week',
+    );
     expect(catalog.strings['greenBullTraining.requirement']).toContain(
       'Book before individual drills.',
     );

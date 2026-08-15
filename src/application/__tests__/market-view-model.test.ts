@@ -172,16 +172,14 @@ describe('marketViewModel', () => {
       ...source,
       activeScoutMission: mission,
       scoutResult: oldResult,
-      scoutedPlayerIdentities: [
-        { id: 'old-player', name: 'Old Scout Target' },
-      ],
+      scoutedPlayerIdentities: [{ id: 'old-player', name: 'Old Scout Target' }],
     });
 
     expect(viewModel.scouting.status.kind).toBe('IN_PROGRESS');
     expect(viewModel.scouting.reports).toHaveLength(1);
-    expect(viewModel.scouting.choices.every((choice) => !choice.available)).toBe(
-      true,
-    );
+    expect(
+      viewModel.scouting.choices.every((choice) => !choice.available),
+    ).toBe(true);
   });
 
   it('shows deterministic transfer quotes and closes their actions outside a window', () => {

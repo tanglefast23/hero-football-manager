@@ -58,6 +58,10 @@ export function careerEventsCareer(): GameState {
     ['dorm', { x: 3, y: 0 }],
     ['fan-shop', { x: 4, y: 0 }],
     ['coaching-office', { x: 5, y: 0 }],
+    // `leaking-stand-roof` is the only story that asks for a stand and nothing
+    // else, so without one on the ground it reaches the harness with no target
+    // to offer. Two by two, clear of the row above.
+    ['stadium-stand', { x: 0, y: 2 }],
   ];
   for (const [type, position] of facilities) {
     if (

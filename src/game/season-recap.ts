@@ -90,9 +90,10 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
   );
   const hero =
     heroes.find(
-      (player) =>
-        player.id !== playerOfSeason?.id && player.id !== young?.id,
-    ) ?? heroes.find((player) => player.id !== playerOfSeason?.id) ?? heroes[0];
+      (player) => player.id !== playerOfSeason?.id && player.id !== young?.id,
+    ) ??
+    heroes.find((player) => player.id !== playerOfSeason?.id) ??
+    heroes[0];
   const position = finalPosition(state);
   const latestResolvedEvent = state.resolvedEventHistory
     ?.filter((event) => event.season === state.season)

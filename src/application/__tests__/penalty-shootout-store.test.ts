@@ -17,10 +17,7 @@ const shootout: PenaltyShootoutViewModel = {
 };
 
 function source(): string {
-  return readFileSync(
-    join(process.cwd(), 'src/application/store.ts'),
-    'utf8',
-  );
+  return readFileSync(join(process.cwd(), 'src/application/store.ts'), 'utf8');
 }
 
 describe('completeShootout', () => {
@@ -74,9 +71,7 @@ describe('completeShootout', () => {
 describe('settled Hero Cup routing', () => {
   it('uses pre-settlement teams for Quick Result and watched-match snapshots for Play', () => {
     const store = source();
-    const quick = store
-      .split('  quickResult(')[1]
-      .split('\n  watchMatch(')[0];
+    const quick = store.split('  quickResult(')[1].split('\n  watchMatch(')[0];
     const watched = store
       .split('  finishWatchedMatch(result) {')[1]
       .split('\n\n  async continueAfterMatch')[0];

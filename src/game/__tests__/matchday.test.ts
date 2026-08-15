@@ -308,7 +308,7 @@ describe('quickResultForFixture', () => {
     ]);
   });
 
-  test('marks only a shot launched with the scorer\'s power', () => {
+  test("marks only a shot launched with the scorer's power", () => {
     const scorer = ROVERS.players[9];
     const teammate = ROVERS.players[10];
     const state = fakeFulltimeMatch(

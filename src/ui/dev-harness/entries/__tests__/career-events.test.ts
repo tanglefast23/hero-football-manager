@@ -43,10 +43,10 @@ describe('the career events Dev Harness controller', () => {
         ...new Set(EVENTS.map((event) => event.category)),
       ]),
     );
-    expect(eventsForCase('all')).toHaveLength(53);
-    expect(eventsForCase('target-player')).toHaveLength(22);
+    expect(eventsForCase('all')).toHaveLength(54);
+    expect(eventsForCase('target-player')).toHaveLength(27);
     expect(eventsForCase('target-coach')).toHaveLength(9);
-    expect(eventsForCase('target-facility')).toHaveLength(6);
+    expect(eventsForCase('target-facility')).toHaveLength(7);
     expect(eventsForCase('two-part')).toHaveLength(6);
     expect(cases.every((entry) => entry.note.length > 0)).toBe(true);
     expect(cases.some((entry) => entry.note.includes('fifty'))).toBe(false);
@@ -96,13 +96,19 @@ describe('the career events Dev Harness controller', () => {
         resolvedRisky: false,
       });
 
+      // Four lasting stories are two straight choices with no gamble at all —
+      // Trial Abroad, the midfielder's tackling rebuild, the sweeper-keeper
+      // experiment and the old boy coming home. They are still resolved above
+      // through their safe side; there is simply no risky side to walk.
       const risky = event.choices.find(
         (choice) =>
           choice.risky &&
           eventChoiceUnavailableReason(ready, choice) === undefined,
       );
-      if (risky === undefined)
-        throw new Error(`${event.id} has no available risky choice`);
+      if (risky === undefined) {
+        expect(event.choices.some((choice) => choice.risky)).toBe(false);
+        continue;
+      }
       for (const [side, index] of [
         ['success', 0],
         ['miss', 1],

@@ -287,9 +287,7 @@ describe('what a save written before any of this still shows', () => {
 });
 
 /** The objective family ids in `content/sponsors.json`, by the kind they carry. */
-function objectiveIdOf(
-  kind: SponsorObjectiveKind,
-): string {
+function objectiveIdOf(kind: SponsorObjectiveKind): string {
   const definition = content.sponsors.objectives.find(
     (candidate) => candidate.kind === kind,
   );

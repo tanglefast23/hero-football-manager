@@ -95,7 +95,7 @@ describe('full-time report layout', () => {
     expect(source).toContainSource('pressSfx="click"');
   });
 
-  it('shows each scoring power\'s existing icon and names it to screen readers', () => {
+  it("shows each scoring power's existing icon and names it to screen readers", () => {
     const source = screen();
 
     expect(source).toContainSource(

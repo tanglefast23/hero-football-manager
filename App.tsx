@@ -1841,6 +1841,18 @@ function GameApp() {
           ),
         };
   }, [rivalHeroIntro, store.screen, store.career, locale]);
+  /**
+   * Declared here, above the facility-combo reveal, because that reveal has to
+   * stand down while this one is owed. Two effects that each force a different
+   * tab, each with `store.activeTab` in its deps, flip the tab back and forth
+   * on every render until React throws "Maximum update depth exceeded" — which
+   * is exactly what a Week 16 career did: a Cup win owed the round-of-32
+   * briefing on the League tab while an undiscovered Shop-next-to-Stand combo
+   * owed its reveal on the Club tab. Both conditions persist in the save, so
+   * the crash repeated on every load and the career could not be opened again.
+   * The Cup briefing wins: it is one per career, and the combo reveal is still
+   * waiting the moment the briefing is done.
+   */
   const firstCupRoundOf32GuideOwed =
     careerTeaches &&
     store.screen === 'management' &&
@@ -1865,13 +1877,19 @@ function GameApp() {
           );
   const facilityComboRevealVisible =
     facilityComboReveal !== undefined &&
+    !firstCupRoundOf32GuideOwed &&
     store.activeTab === 'club' &&
     clubOfficeTab === 'facility';
   useEffect(() => {
-    if (facilityComboReveal === undefined) return;
+    if (facilityComboReveal === undefined || firstCupRoundOf32GuideOwed) return;
     setClubOfficeTab('facility');
     if (store.activeTab !== 'club') store.setActiveTab('club');
-  }, [facilityComboReveal?.id, store.activeTab, store.setActiveTab]);
+  }, [
+    facilityComboReveal?.id,
+    firstCupRoundOf32GuideOwed,
+    store.activeTab,
+    store.setActiveTab,
+  ]);
   /**
    * Bert's one consolation for going out of the Cup.
    *

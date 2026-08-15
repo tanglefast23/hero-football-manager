@@ -97,7 +97,8 @@ export function SeasonEndScreen({
   const contract = viewModel.expiredContract;
   const renewalNegotiation = viewModel.renewalNegotiation;
   const renewalHidden =
-    renewalNegotiation !== undefined && hiddenRenewalId === renewalNegotiation.id;
+    renewalNegotiation !== undefined &&
+    hiddenRenewalId === renewalNegotiation.id;
   /*
    * Three measurements decide whether the renewal queue has been reached, and
    * all three live in refs rather than state. Storing the scroll offset in

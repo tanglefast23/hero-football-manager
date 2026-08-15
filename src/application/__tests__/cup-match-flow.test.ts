@@ -15,6 +15,14 @@ import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
 
+/**
+ * A match seed whose ninety minutes finish level, so the tie routes to the
+ * shoot-out. Seed 1 used to do it and stopped when the balance pass moved the
+ * sim; `tiedCupMatchSeed` below re-derives it rather than pinning another
+ * magic number that the next tuning change will silently break.
+ */
+const TIED_CUP_MATCH_SEED = tiedCupMatchSeed();
+
 describe('Hero Cup app routing', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
@@ -399,8 +407,8 @@ describe('Hero Cup app routing', () => {
     useM1Store.getState().finishWatchedMatch(result);
 
     const settled = useM1Store.getState();
-    const cupFixture = settled.career!.m2!.nationalCups
-      .flatMap((cup) => cup.rounds)
+    const cupFixture = settled
+      .career!.m2!.nationalCups.flatMap((cup) => cup.rounds)
       .flatMap((round) => round.fixtures)
       .find((fixture) => fixture.id === watched.fixture.id)!;
     expect(settled).toMatchObject({
@@ -567,6 +575,27 @@ function prepareCupTie(
   return prepared;
 }
 
+/**
+ * The first seed whose Cup tie is level after ninety minutes.
+ *
+ * Settles the tie through the store, exactly as the test does, so a tuning
+ * change moves the seed instead of turning the shoot-out routing test red.
+ * Seed 1 used to draw and stopped when the balance pass moved the sim.
+ */
+function tiedCupMatchSeed(): number {
+  for (let seed = 1; seed <= 400; seed += 1) {
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    prepareCupTieWithSeed(seed);
+    useM1Store.getState().quickResult();
+    const result = useM1Store.getState().postMatch?.result;
+    if (result !== undefined && result.homeScore === result.awayScore) {
+      useM1Store.setState(useM1Store.getInitialState(), true);
+      return seed;
+    }
+  }
+  throw new Error('no seed produced a level Cup tie');
+}
+
 function activeUserCupFixture(state: GameState) {
   return state.m2!.nationalCups[0].rounds[0].fixtures.find(
     (fixture) =>
@@ -576,6 +605,10 @@ function activeUserCupFixture(state: GameState) {
 }
 
 function prepareTiedCupTie() {
+  return prepareCupTieWithSeed(TIED_CUP_MATCH_SEED);
+}
+
+function prepareCupTieWithSeed(matchSeed: number) {
   useM1Store.getState().startNewCareer(2);
   useM1Store.getState().completePlayerCreation({
     name: 'Cup Runner',
@@ -595,7 +628,7 @@ function prepareTiedCupTie() {
           ...round,
           fixtures: round.fixtures.map((candidate) =>
             candidate.id === fixture.id
-              ? { ...candidate, matchSeed: 1 }
+              ? { ...candidate, matchSeed }
               : candidate,
           ),
         })),

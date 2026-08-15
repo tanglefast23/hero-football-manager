@@ -83,9 +83,10 @@ export function eventOfferForWeek(
   }
 
   const scheduled = eventClock.scheduledEvent;
-  const guaranteed = scheduled === undefined
-    ? undefined
-    : catalog.events.find((event) => event.id === scheduled.eventId);
+  const guaranteed =
+    scheduled === undefined
+      ? undefined
+      : catalog.events.find((event) => event.id === scheduled.eventId);
   if (scheduled !== undefined && careerWeekReached(state, scheduled)) {
     const { scheduledEvent: _scheduledEvent, ...clearedClock } = eventClock;
     if (guaranteed !== undefined && eventIsEligible(state, guaranteed, true)) {
@@ -193,12 +194,13 @@ function scheduleGuaranteedEvent(
     .filter((candidate) => eventIsEligible(state, candidate))
     .sort((left, right) => compareIds(left.id, right.id))[0];
   if (event === undefined) return { ...state.eventClock };
-  const delay = deterministicCareerEventRoll(
-    eventRollContext(state),
-    `${event.id}:delay`,
-    0,
-    4,
-  ) + 1;
+  const delay =
+    deterministicCareerEventRoll(
+      eventRollContext(state),
+      `${event.id}:delay`,
+      0,
+      4,
+    ) + 1;
   const absoluteWeek = state.week + delay - 1;
   return {
     ...state.eventClock,
@@ -257,9 +259,11 @@ export function eventIsEligible(
       state.eventFlags.includes(trigger.requiredFlag)) &&
     (trigger.minDivision === undefined || division >= trigger.minDivision) &&
     (trigger.maxDivision === undefined || division <= trigger.maxDivision) &&
-    (ignoreAchievementThresholds || trigger.minConsecutiveWins === undefined ||
+    (ignoreAchievementThresholds ||
+      trigger.minConsecutiveWins === undefined ||
       careerConsecutiveWins(state) >= trigger.minConsecutiveWins) &&
-    (ignoreAchievementThresholds || trigger.minPlayerDepartures === undefined ||
+    (ignoreAchievementThresholds ||
+      trigger.minPlayerDepartures === undefined ||
       careerPlayerDepartureCount(state) >= trigger.minPlayerDepartures) &&
     fireModes.every(
       (mode) =>

@@ -170,8 +170,7 @@ function rosterRowSummary(player: SquadPlayerViewModel, t: CopyFn): string {
           n: player.injuryWeeks,
           count: player.injuryWeeks,
         })
-      : player.isStarter &&
-          player.contractPromisePerk !== 'GUARANTEED_STARTER'
+      : player.isStarter && player.contractPromisePerk !== 'GUARANTEED_STARTER'
         ? t('storyEvent.startingXi')
         : undefined,
     player.isCaptain && player.contractPromisePerk !== 'CAPTAINCY'

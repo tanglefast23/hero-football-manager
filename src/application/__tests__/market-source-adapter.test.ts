@@ -87,16 +87,19 @@ describe('career market view-model source adapter', () => {
       new Set(first.scoutOptions.map((option) => option.focus.kind)),
     ).toEqual(new Set(['PROFILE']));
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
-    expect(marketViewModel(first).youth).toMatchObject({
+    const youth = marketViewModel(first).youth;
+    expect(youth).toMatchObject({
       status: 'OPEN',
       rosterLabel: '16/16 rostered',
-      offers: [
-        expect.objectContaining({
-          available: false,
-          blockedReason: expect.stringContaining('Roster full'),
-        }),
-      ],
     });
+    // Asserted per offer rather than as a whole array: the intake hands out one
+    // or two prospects depending on the roll, and the rule under test is that a
+    // full roster blocks every one of them, not how many arrived.
+    expect(youth!.offers.length).toBeGreaterThanOrEqual(1);
+    for (const offer of youth!.offers) {
+      expect(offer).toMatchObject({ available: false });
+      expect(offer.blockedReason).toContain('Roster full');
+    }
   });
 
   it('adds scouting briefs at permanent promotion milestones', () => {
