@@ -39,11 +39,21 @@ const DIST = path.resolve('dist');
 // assertions below both stayed clean, so this is distributed feature growth,
 // not a renderer or dev-harness leak.
 //
-// Previous marks: 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at b26e1399
-// (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4, 5_861_753 at
-// 0b2fc042.
-const RAW_BUDGET = 5_977_355;
-const GZIP_BUDGET = 893_727;
+// Re-ratcheted again, same day, after merging main's 24a5d08e and 5e069a30.
+// The mark above was measured before those landed, and they brought the new
+// career-event stories, the deepened scouting copy and their seven-locale
+// catalog keys with them: +21_520 raw locally, 5_972_355 -> 5_993_875.
+//
+// The number below is set from CI's own figure for the merge commit,
+// 5_994_912, which runs about a thousand bytes above a local export of the same
+// tree. CI is the measurement that has to pass, so CI is the one ratcheted
+// against. Markers clean again — no QA bodies, no Skia in the title load.
+//
+// Previous marks: 5_977_355 / 893_727 earlier today, 5_922_802 / 879_373 at
+// #158, 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the stat-tip
+// branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 5_999_912;
+const GZIP_BUDGET = 899_580;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
