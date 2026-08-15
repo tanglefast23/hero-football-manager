@@ -223,14 +223,27 @@ describe('opening sentinel', () => {
     // The old direction-of-contract note ("at most 5% wins, at least 90%
     // losses") is deliberately retired with it. Eight seeds still cannot measure
     // a rate; this is a fingerprint, not a win-rate rail.
+    // REBASELINED 2026-08-15 for main's drill and condition changes, which is a
+    // drift rather than a reversal: 14 wins, 10 draws, 32 losses out of 56,
+    // against 20/10/26 at the 2026-08-13 mark. Closing the pre-Green Bull drill
+    // exploit (440a8fdb) removed sessions that used to run before the trip, so
+    // the opening squad arrives weaker and the opener is harder again. Verified
+    // deterministic: two consecutive runs produced byte-identical digests.
+    //
+    // One thing worth watching rather than asserting: `ordinary`,
+    // `smart-breadth` and `smart-extra-fwd` now share the same digest. Three
+    // different opening training plans produce the same eight results, so over
+    // this sample the plan no longer separates them. Eight seeds cannot prove
+    // that, but if a later change is meant to make training matter early, this
+    // is the line that should move first.
     expect(digests).toEqual({
-      ordinary: 'LDLWLLWW',
-      'smart-breadth': 'LWDWLLWW',
-      'smart-extra-fwd': 'LWDWLLWW',
-      'smart-concentration': 'DLLLWLWL',
-      'joe-observed-coach': 'WLLWDLLW',
-      'joe-observed-no-coach': 'LLDLWWLL',
-      'no-training': 'DDDLWLWD',
+      ordinary: 'LWLWLLLL',
+      'smart-breadth': 'LWLWLLLL',
+      'smart-extra-fwd': 'LWLWLLLL',
+      'smart-concentration': 'DLLDLLWD',
+      'joe-observed-coach': 'DLLDLDDD',
+      'joe-observed-no-coach': 'LWLWWLWW',
+      'no-training': 'LWDLLLWD',
     });
   });
 });

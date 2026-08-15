@@ -92,12 +92,14 @@ describe('default two-season career journey', () => {
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
     // With Tier 1 at +3 for 7 TP, this deterministic 60-week plan ends at PAC
-    // 304. Sprints affects only PAC, so STA stays at the creation value.
+    // 287. Sprints affects only PAC, so STA stays at the creation value. The
+    // figure was 304 until the pre-Green Bull drill exploit was closed, which
+    // removed the extra sessions that ran before the trip.
     expect(
       first.players.find(
         (player) => player.id === 'bramble-rovers-created-player',
       )?.attrs,
-    ).toMatchObject({ pac: 304, sta: 50 });
+    ).toMatchObject({ pac: 287, sta: 50 });
   });
 
   it('spends cash and TP safely through Season 2 Week 12', () => {

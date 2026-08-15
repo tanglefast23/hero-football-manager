@@ -89,12 +89,16 @@ describe('the Cup giant-killing reel', () => {
   });
 
   /**
-   * The queue is the part nobody had watched. Celebrations are appended and
-   * dismissed from the front, and the last dismissal has to drop the field
-   * rather than leave an empty array behind — the app decides whether to show
-   * anything at all by reading `[0]`.
+   * The walk-on is once per career, guarded by `m4:cup-giant-killing-seen`.
+   * Bert says it the first time the club beats a bigger side and never again,
+   * so the queue never holds more than that one celebration no matter how many
+   * upsets follow.
+   *
+   * The dismissal still matters: it has to drop the field rather than leave an
+   * empty array behind, because the app decides whether to show anything at all
+   * by reading `[0]`.
    */
-  it('shows queued upsets in the order they were won', () => {
+  it('queues the first upset only, then drops the field when it is dismissed', () => {
     let queued = state;
     for (const division of [4, 3, 1]) {
       const opponentClubId = opponentInDivision(state, division)!;
@@ -108,23 +112,28 @@ describe('the Cup giant-killing reel', () => {
       );
     }
 
+    expect(queued.eventFlags).toContain('m4:cup-giant-killing-seen');
     expect(
       queued.pendingCupGiantKillingCelebrations?.map(
         (item) => item.divisionGap,
       ),
-    ).toEqual([1, 2, 4]);
+    ).toEqual([1]);
 
-    const second = completeCupGiantKillingCelebration(queued);
-    expect(
-      second.pendingCupGiantKillingCelebrations?.map(
-        (item) => item.divisionGap,
-      ),
-    ).toEqual([2, 4]);
-
-    const drained = completeCupGiantKillingCelebration(
-      completeCupGiantKillingCelebration(second),
-    );
+    const drained = completeCupGiantKillingCelebration(queued);
     expect(drained.pendingCupGiantKillingCelebrations).toBeUndefined();
+
+    // A later upset finds the flag already set and changes nothing at all.
+    const laterOpponent = opponentInDivision(state, 1)!;
+    expect(
+      queueCupGiantKillingCelebration(
+        drained,
+        cupGiantKillingCelebration(
+          drained,
+          upsetFixture(state, laterOpponent),
+          state.userClubId,
+        ),
+      ),
+    ).toBe(drained);
   });
 
   /** A club its own size is no upset, and the celebration must not fire. */
