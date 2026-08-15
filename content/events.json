@@ -1510,14 +1510,13 @@
       "category": "fan",
       "rarity": "common",
       "art": "event-ultras-tickets",
-      "title": "The West Stand Reopens",
-      "body": "The dry rows go back on sale and the supporters who fixed them want the first four seats.",
+      "title": "The West Stand Reopening Plan",
+      "body": "The repaired rows will go back on sale when the roof work finishes. The supporters who helped want the first four seats.",
       "trigger": {
         "season": 1,
         "minWeek": 6,
         "maxWeek": 30,
-        "requiredFlag": "west-stand-dry",
-        "requiresFacility": ["stadium-stand"]
+        "requiredFlag": "west-stand-dry"
       },
       "choices": [
         {

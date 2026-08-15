@@ -13,6 +13,7 @@ import {
   selectCareerEventPlayer,
   selectCareerEventFacility,
   sessionAttributeDelta,
+  upgradeFacility,
   type GameState,
 } from '../../game';
 import { serializeGameState } from '../../persistence/game-state-codec';
@@ -495,7 +496,7 @@ describe('shared career event flow', () => {
     expect(continuation.state.pendingEvent).toBeUndefined();
   });
 
-  test('closes the chosen facility before its authored reopening follow-up', () => {
+  test('keeps a stand closed while its authored reopening plan remains reachable', () => {
     let withStand = buildCareerFacility(career(), 'stadium-stand', {
       x: 0,
       y: 0,
@@ -530,21 +531,47 @@ describe('shared career event flow', () => {
 
     const continuation = continueResolvedCareerEvent(resolved, catalog);
 
-    expect(continuation.followed).toBe(false);
-    expect(continuation.state.pendingEvent).toBeUndefined();
-    let reopened = continuation.state;
-    for (let week = 0; week < 3; week += 1) {
-      reopened = {
-        ...reopened,
+    expect(continuation.followed).toBe(true);
+    expect(continuation.state.pendingEvent?.eventId).toBe(
+      'west-stand-reopening',
+    );
+    expect(
+      continuation.state.facilities.grid?.buildings.find(
+        (building) => building.id === facilityId,
+      )?.closedWeeks,
+    ).toBe(3);
+  });
+
+  test('does not offer a facility story against a stand being upgraded', () => {
+    let withStand = buildCareerFacility(career(), 'stadium-stand', {
+      x: 0,
+      y: 0,
+    }).state;
+    while (withStand.facilities.grid?.construction !== undefined) {
+      withStand = {
+        ...withStand,
         facilities: {
-          ...reopened.facilities,
-          grid: advanceFacilityConstruction(reopened.facilities.grid!).grid,
+          ...withStand.facilities,
+          grid: advanceFacilityConstruction(withStand.facilities.grid).grid,
         },
       };
     }
+    const facilityId = withStand.facilities.grid!.buildings[0]!.id;
+    const upgrading = {
+      ...withStand,
+      facilities: {
+        ...withStand.facilities,
+        grid: upgradeFacility(
+          withStand.facilities.grid!,
+          facilityId,
+          1_000_000,
+        ).grid,
+      },
+    };
+
     expect(
-      careerEventTargetCandidates(reopened, event('west-stand-reopening'))
+      careerEventTargetCandidates(upgrading, event('leaking-stand-roof'))
         .facilityIds,
-    ).toContain(facilityId);
+    ).toEqual([]);
   });
 });
