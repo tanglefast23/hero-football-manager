@@ -366,17 +366,20 @@ describe('assistant guide application flow', () => {
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'OPEN SQUAD.',
+        textKey: 'assistantObjective.openSquad',
       target: 'squad-tab',
     });
     expect(pendingAssistantGuideSequence(state, 'squad')).toBeNull();
     expect(currentAssistantObjective(state, 'squad')).toEqual({
       text: 'TAP + ON A PLAYER AND TRAIN A STAT.',
+        textKey: 'assistantObjective.trainAStat',
       target: 'training-plan',
     });
 
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
     expect(currentAssistantObjective(state, 'squad')).toEqual({
       text: 'RETURN HOME.',
+        textKey: 'assistantObjective.returnHome',
       target: 'home-tab',
     });
     expect(pendingAssistantGuideSequence(state, 'squad')).toBeNull();
@@ -384,10 +387,12 @@ describe('assistant guide application flow', () => {
 
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'CHECK YOUR INBOX.',
+        textKey: 'assistantObjective.checkInbox',
       target: 'training-ground-alert',
     });
     expect(currentAssistantObjective(state, 'club')).toEqual({
       text: 'BUILD YOUR TRAINING PITCH.',
+        textKey: 'assistantObjective.buildTrainingPitch',
       target: 'training-ground-facility',
     });
 
@@ -397,6 +402,7 @@ describe('assistant guide application flow', () => {
     };
     expect(currentAssistantObjective(state, 'club')).toEqual({
       text: 'RETURN HOME.',
+        textKey: 'assistantObjective.returnHome',
       target: 'home-tab',
     });
     expect(pendingAssistantGuideSequence(state, 'club')).toBeNull();
@@ -421,6 +427,7 @@ describe('assistant guide application flow', () => {
     ] as const) {
       expect(currentAssistantObjective(state, activeTab)).toEqual({
         text: 'INBOX CLEAR. ADVANCE WEEK.',
+        textKey: 'assistantObjective.inboxClear',
         target: 'advance-week',
       });
     }
@@ -466,6 +473,7 @@ describe('assistant guide application flow', () => {
     ] as const) {
       expect(currentAssistantObjective(state, activeTab)).toEqual({
         text: 'INBOX CLEAR. ADVANCE WEEK.',
+        textKey: 'assistantObjective.inboxClear',
         target: 'advance-week',
       });
     }
@@ -488,10 +496,12 @@ describe('assistant guide application flow', () => {
     expect(openingTrainingPitchRequired(state)).toBe(true);
     expect(currentAssistantObjective(state, 'club')).toEqual({
       text: 'RETURN HOME.',
+        textKey: 'assistantObjective.returnHome',
       target: 'home-tab',
     });
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'LET THE CURRENT BUILD FINISH. ADVANCE WEEK.',
+        textKey: 'assistantObjective.letBuildFinish',
       target: 'advance-week',
     });
 
@@ -532,6 +542,7 @@ describe('assistant guide application flow', () => {
     };
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
+        textKey: 'assistantObjective.inboxClear',
       target: 'advance-week',
     });
   });
