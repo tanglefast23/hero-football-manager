@@ -471,7 +471,7 @@
     "clubFinances.a11y.contractValuePerMonth": "Vertragswert {amount} pro Monat.",
     "clubFinances.a11y.dismissWithSeverance": "{name} entlassen, eine Woche Abfindung",
     "clubFinances.a11y.facilityBoard": "Anlagentafel",
-    "clubFinances.a11y.facilityCard": "{name}. {built} von {limit} gebaut. {effect}. {width} mal {height} Felder.",
+    "clubFinances.a11y.facilityCard": "{name}. {built} von {limit} gebaut. {effect}. Grundfläche {width} × {height}.",
     "clubFinances.a11y.facilityCell": "{name}, Stufe {level}. {effect}",
     "clubFinances.a11y.facilityCellCombo": "{name}, Stufe {level}. {effect}. Paar-Bonus aktiv",
     "clubFinances.a11y.facilityConstruction": "Bau von {name}",

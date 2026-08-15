@@ -175,6 +175,33 @@ remaining leaks were all in components, and all four are fixed above.
   `56 PAC` above `+3 TEMPO`, so the code and the name of the same stat do not
   visually connect the way `PAC`/`PACE` does in English.
 
+## Phone layout: two German formatting bugs the browser never showed
+
+Moved to a native iOS Simulator build (402×874 pt, iPhone 17 Pro) after the
+browser evicted the save. Two layout defects appear on the phone that the
+900-px browser pane never exposed, and both are caused by German word length.
+
+**1. Build-menu card titles break mid-word.** The facility cards render
+`TRAININGSPL / ATZ` and `TRAINERBÜR / O`. German compound nouns have no space
+to break at, so React Native breaks them at an arbitrary character. English
+`Training Ground` and `Coaching Office` each have a space and never hit this.
+Affects the longest names — Trainingsplatz, Trainerbüro, Nachwuchsplatz,
+Techniklabor, Scoutingbüro. A shorter title, a smaller title size, or
+`adjustsFontSizeToFit` would each fix it; this is a component change, so it is
+logged rather than fixed in a language pass.
+
+**2. The pinned bottom bar overlaps its own labels.** On the facility and
+market screens the bar shows `ZURÜCK ZUM POSTFACH` on the left and the current
+objective on the right, and the German objective is long enough to run over the
+back label: `ZURÜCK ZUM POSTFACH` collides with `BAUE DEN TRAININGSPLATZ.` and
+again with `CHEFTRAINER EINSTELLEN.` Both strings are readable individually but
+overlap in the middle.
+
+Fixed in the same pass: `clubFinances.a11y.facilityCard` read
+`1 mal 1 Felder` — a plural noun after a singular count. German was the only
+locale to append a noun there at all; es, fr, id and vi all say the equivalent
+of "occupies 1 × 1". German now says `Grundfläche 1 × 1`.
+
 ## Gameplay and balance notes
 
 ### The energy plan decides D5 matches; training barely moves it
