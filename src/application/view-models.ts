@@ -2407,7 +2407,11 @@ export function seasonEndViewModel(
       ? {}
       : {
           recap: {
-            record: `${recap.won}W · ${recap.drawn}D · ${recap.lost}L`,
+            // W/D/L are engine enum letters. The league table already carries
+            // each locale's own — German reads S/U/N, not W/D/L.
+            record: `${recap.won}${t('col.league.won')} · ${recap.drawn}${t(
+              'col.league.drawn',
+            )} · ${recap.lost}${t('col.league.lost')}`,
             goals: t('seasonEnd.recapGoals', {
               scored: recap.goalsFor,
               conceded: recap.goalsAgainst,
