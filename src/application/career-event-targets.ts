@@ -150,9 +150,7 @@ export function careerEventTargetCandidates(
               building.type,
             ),
           )
-          .filter(
-            (building) => grid.construction?.buildingId !== building.id,
-          )
+          .filter((building) => grid.construction?.buildingId !== building.id)
           .filter((building) => isFacilityOperational(grid, building.id))
           .map((building) => building.id);
 

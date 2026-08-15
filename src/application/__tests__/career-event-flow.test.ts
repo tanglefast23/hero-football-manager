@@ -561,11 +561,8 @@ describe('shared career event flow', () => {
       ...withStand,
       facilities: {
         ...withStand.facilities,
-        grid: upgradeFacility(
-          withStand.facilities.grid!,
-          facilityId,
-          1_000_000,
-        ).grid,
+        grid: upgradeFacility(withStand.facilities.grid!, facilityId, 1_000_000)
+          .grid,
       },
     };
 

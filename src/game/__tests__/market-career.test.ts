@@ -1705,9 +1705,9 @@ describe('career market integration', () => {
       ],
     };
 
-    expect(() =>
-      startDetailedScoutReport(state, market, target.id, 5),
-    ).toThrow(/transfer window closes before this report can finish/);
+    expect(() => startDetailedScoutReport(state, market, target.id, 5)).toThrow(
+      /transfer window closes before this report can finish/,
+    );
   });
 
   test('lets transfer-requested players attract extra bids in the final week', () => {
