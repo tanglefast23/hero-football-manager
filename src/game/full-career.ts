@@ -45,6 +45,7 @@ import {
   careerRosterCapacity,
   initializeSeasonYouthIntake,
   reconcileStoryYouthIntake,
+  YOUTH_LAST_NAMES,
 } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { recordFanGain } from './fan-growth';
@@ -84,6 +85,7 @@ export function enableFullCareer(state: GameState): GameState {
   if (state.m2 !== undefined && state.market !== undefined) {
     const reconciled = {
       ...state,
+      players: reconcileAcademyPlayerNames(state),
       m2: recordHighestDivisionReached(state.m2),
       ...(state.phase === 'complete' ? { phase: 'season-end' as const } : {}),
       cashTransactions: state.cashTransactions ?? [],
@@ -352,14 +354,9 @@ export function startNextFullCareerSeason(
     season,
     week: 1,
     phase: 'manage',
-    // Leave is dropped for the same reason effects are: it is measured in weeks
-    // against a season that has ended. It also cannot be allowed to survive —
-    // repairUserLineup backfills retirement-vacated slots without an
-    // availability check, so an away player could be promoted into the XI and
-    // then throw on the first matchday of the new season.
-    // Effects are dropped: they are bounded in weeks, so carrying one across
-    // the break would spend a penalty in a season the manager never agreed to
-    // spend it in. History survives: the tab is a record of what you decided.
+    // Requests and story effects are measured in real weeks. A late-season
+    // choice keeps its remaining time instead of being erased by promotion.
+    // History survives too: the tab is a record of what you decided.
     //
     // The CLOCK survives too, and used to be reset to 0 here. The cadence floor
     // is a cooldown between requests — "he asked six weeks ago, give it a rest"
@@ -369,7 +366,7 @@ export function startNextFullCareerSeason(
     // and can be asked in week 1; one that was asked in week 28 still waits.
     playerRequests: {
       weeksSinceRequest: state.playerRequests?.weeksSinceRequest ?? 0,
-      effects: [],
+      effects: state.playerRequests?.effects ?? [],
       history: state.playerRequests?.history ?? [],
       ...(state.playerRequests?.lastAskingPlayerId === undefined
         ? {}
@@ -377,14 +374,9 @@ export function startNextFullCareerSeason(
     },
     clubs,
     fixtures,
-    // Leave is dropped for the same reason effects are: it counts weeks against
-    // a season that has ended. It also must not survive — repairUserLineup
-    // backfills retirement-vacated slots with no availability check, so an away
-    // player could be promoted into the XI and then throw on the new season's
-    // first matchday.
-    players: players.map((player) =>
-      player.clubId === state.userClubId ? { ...player, awayWeeks: 0 } : player,
-    ),
+    // Player leave also counts real weeks. Lineup repair already respects
+    // availability, so the returning player's saved slot stays protected.
+    players,
     lineups,
     seasonOpeningCash: userClub.cash,
     m2: nextM2,
@@ -1057,6 +1049,29 @@ const ACADEMY_NAMES = [
   'Paz',
 ] as const;
 
+function academyPlayerName(
+  careerSeed: number,
+  season: number,
+  id: string,
+): string {
+  const value = stableYouthValue(careerSeed, season, id);
+  return `${ACADEMY_NAMES[value % ACADEMY_NAMES.length]} ${YOUTH_LAST_NAMES[(value >>> 8) % YOUTH_LAST_NAMES.length]}`;
+}
+
+function reconcileAcademyPlayerNames(state: GameState): CareerPlayer[] {
+  return state.players.map((player) => {
+    const season = /-academy-s(\d+)-(?:gk|def|mid|fwd)-\d+$/i.exec(
+      player.id,
+    )?.[1];
+    return season !== undefined && / Academy \d+$/.test(player.name)
+      ? {
+          ...player,
+          name: academyPlayerName(state.careerSeed, Number(season), player.id),
+        }
+      : player;
+  });
+}
+
 /**
  * Keeps the endless career playable even after a whole generation retires.
  *
@@ -1107,7 +1122,6 @@ function replenishUserSquad(
       role,
       season,
       careerSeed,
-      intakeNumber,
       division,
     );
     result.push({
@@ -1127,7 +1141,6 @@ function academyPlayer(
   role: CareerPlayer['role'],
   season: number,
   careerSeed: number,
-  intakeNumber: number,
   division: DivisionLevel,
 ): CareerPlayer {
   const value = stableYouthValue(careerSeed, season, id);
@@ -1152,7 +1165,7 @@ function academyPlayer(
   return {
     id,
     clubId,
-    name: `${ACADEMY_NAMES[value % ACADEMY_NAMES.length]} Academy ${intakeNumber}`,
+    name: academyPlayerName(careerSeed, season, id),
     role,
     attrs,
     licensed: false,

@@ -11,6 +11,7 @@ import {
   ScrollView,
   Text,
   View,
+  type GestureResponderEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -60,6 +61,8 @@ export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
   readonly onStartScoutMission: (optionId: string) => void;
   readonly onOpenScoutReport: (playerId: string) => void;
+  readonly onDismissScoutReport: (playerId: string) => void;
+  readonly onBuyDetailedScoutReport: (playerId: string) => void;
   readonly onTransferAction: (
     playerId: string,
     direction: 'BUY' | 'SELL',
@@ -109,6 +112,8 @@ export function MarketScreen({
   viewModel,
   onStartScoutMission,
   onOpenScoutReport,
+  onDismissScoutReport,
+  onBuyDetailedScoutReport,
   onTransferAction,
   onHireCoach,
   onSignYouth,
@@ -390,6 +395,8 @@ export function MarketScreen({
       viewModel={viewModel}
       onStartScoutMission={onStartScoutMission}
       onOpenScoutReport={onOpenScoutReport}
+      onDismissScoutReport={onDismissScoutReport}
+      onBuyDetailedScoutReport={onBuyDetailedScoutReport}
       southAmericaScoutActionRef={southAmericaScoutActionRef}
       guideFocus={visibleGuideFocus}
     />
@@ -732,16 +739,56 @@ function ScoutingDesk({
   viewModel,
   onStartScoutMission,
   onOpenScoutReport,
+  onDismissScoutReport,
+  onBuyDetailedScoutReport,
   southAmericaScoutActionRef,
   guideFocus,
 }: Pick<
   MarketScreenProps,
-  'viewModel' | 'onStartScoutMission' | 'onOpenScoutReport' | 'guideFocus'
+  | 'viewModel'
+  | 'onStartScoutMission'
+  | 'onOpenScoutReport'
+  | 'onDismissScoutReport'
+  | 'onBuyDetailedScoutReport'
+  | 'guideFocus'
 > & {
   southAmericaScoutActionRef: RefObject<View | null>;
 }) {
   const t = useCopy();
   const status = viewModel.scouting.status;
+  const [selectedRegion, setSelectedRegion] = useState(
+    viewModel.scouting.choices.some(
+      (choice) => choice.region === 'SOUTH_AMERICA',
+    )
+      ? 'SOUTH_AMERICA'
+      : viewModel.scouting.choices[0]?.region,
+  );
+  const [selectedRole, setSelectedRole] = useState<
+    'ANY' | 'GK' | 'DEF' | 'MID' | 'FWD'
+  >('ANY');
+  const [selectedProspect, setSelectedProspect] = useState(
+    viewModel.scouting.choices[0]?.prospectType,
+  );
+  const regionChoices = viewModel.scouting.choices.filter(
+    (choice, index, all) =>
+      all.findIndex((candidate) => candidate.region === choice.region) ===
+      index,
+  );
+  const prospectChoices = viewModel.scouting.choices.filter(
+    (choice, index, all) =>
+      all.findIndex(
+        (candidate) => candidate.prospectType === choice.prospectType,
+      ) === index,
+  );
+  const selectedChoice = viewModel.scouting.choices.find(
+    (choice) =>
+      choice.region === selectedRegion &&
+      choice.prospectType === selectedProspect &&
+      (choice.prospectType === 'RUMORED_HERO' ||
+      choice.prospectType === 'ELITE_PROSPECT'
+        ? choice.role === undefined
+        : (choice.role ?? 'ANY') === selectedRole),
+  );
   const scrollDismissTargetId =
     viewModel.scouting.choices.find(
       (choice) => choice.region === 'SOUTH_AMERICA',
@@ -867,6 +914,24 @@ function ScoutingDesk({
               <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">
                 {t('market.fullReportRangesShown')}
               </Text>
+              <View className="mt-3 flex-row flex-wrap justify-end gap-2">
+                <SmallAction
+                  label={report.detailedReportLabel}
+                  disabled={!report.detailedReportAvailable}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    onBuyDetailedScoutReport(report.playerId);
+                  }}
+                />
+                <SmallAction
+                  label={t('market.dismissReport')}
+                  disabled={!report.dismissAvailable}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    onDismissScoutReport(report.playerId);
+                  }}
+                />
+              </View>
             </Pressable>
           ))}
         </View>
@@ -881,75 +946,129 @@ function ScoutingDesk({
             detail={t('market.scoutingAssignmentsAreDrawn')}
           />
         ) : (
-          viewModel.scouting.choices.map((choice, index) => (
-              <View
-                key={choice.id}
-                className={
-                  choice.available
-                    ? 'border-2 border-b-4 border-ink bg-white p-3'
-                    : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'
-                }
-              >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <PixelText className="text-base uppercase text-ink">
-                      {choice.regionLabel}
-                    </PixelText>
-                    <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                      {choice.focusLabel}
-                    </Text>
-                  </View>
-                  <Text className="font-mono text-base text-ink">
-                    {choice.feeWaived === true
-                      ? t('market.free')
-                      : formatCurrency(t, choice.cost)}
-                  </Text>
-                </View>
-                <Text className="mt-2 text-sm leading-5 text-ink/60">
-                  {choice.detail}
-                </Text>
-                <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
-                  <Text className="font-mono text-sm uppercase text-ink/50">
-                    {choice.durationLabel}
-                  </Text>
-                  <GuidedAction
-                    enabled={guideFocus === 'scout-mission' && index === 0}
-                    detail={t('market.sendTheScout')}
-                    targetRef={
-                      choice.id === scrollDismissTargetId
-                        ? southAmericaScoutActionRef
-                        : undefined
+          <>
+            <Text className="font-pixel text-sm uppercase text-ink/60">
+              {t('market.scoutChooseRegion')}
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {regionChoices.map((choice) => (
+                <SmallAction
+                  key={choice.region}
+                  label={choice.regionLabel}
+                  selected={selectedRegion === choice.region}
+                  onPress={() => setSelectedRegion(choice.region)}
+                />
+              ))}
+            </View>
+            <Text className="font-pixel text-sm uppercase text-ink/60">
+              {t('market.scoutChoosePosition')}
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(['ANY', 'GK', 'DEF', 'MID', 'FWD'] as const).map((role) => (
+                <SmallAction
+                  key={role}
+                  label={role === 'ANY' ? t('market.positionAny') : role}
+                  selected={selectedRole === role}
+                  disabled={
+                    selectedProspect === 'RUMORED_HERO' ||
+                    selectedProspect === 'ELITE_PROSPECT'
+                  }
+                  onPress={() => setSelectedRole(role)}
+                />
+              ))}
+            </View>
+            <Text className="font-pixel text-sm uppercase text-ink/60">
+              {t('market.scoutChooseProspect')}
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {prospectChoices.map((choice) => (
+                <SmallAction
+                  key={choice.prospectType}
+                  label={choice.focusLabel}
+                  selected={selectedProspect === choice.prospectType}
+                  onPress={() => {
+                    setSelectedProspect(choice.prospectType);
+                    if (
+                      choice.prospectType === 'RUMORED_HERO' ||
+                      choice.prospectType === 'ELITE_PROSPECT'
+                    )
+                      setSelectedRole('ANY');
+                  }}
+                />
+              ))}
+            </View>
+            {selectedChoice === undefined
+              ? null
+              : [selectedChoice].map((choice, index) => (
+                  <View
+                    key={choice.id}
+                    className={
+                      choice.available
+                        ? 'border-2 border-b-4 border-ink bg-white p-3'
+                        : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'
                     }
                   >
-                    <SmallAction
-                      label={
-                        choice.feeWaived === true
-                          ? t('market.sendFreeScout')
-                          : t('market.sendScout')
-                      }
-                      accessibilityLabel={
-                        choice.feeWaived === true
-                          ? t('market.a11y.sendScoutFreeFirstTrip', {
-                              region: choice.regionLabel,
-                              focus: choice.focusLabel,
-                            })
-                          : t('market.a11y.sendScoutTo', {
-                              region: choice.regionLabel,
-                              focus: choice.focusLabel,
-                            })
-                      }
-                      disabled={!choice.available}
-                      onPress={() => onStartScoutMission(choice.id)}
-                    />
-                  </GuidedAction>
-                </View>
-                {choice.blockedReason ? (
-                  <Text className="mt-2 text-right text-sm font-bold text-stamp">
-                    {choice.blockedReason}
-                  </Text>
-                ) : null}
-              </View>
-          ))
+                    <View className="flex-row items-start justify-between gap-3">
+                      <View className="flex-1">
+                        <PixelText className="text-base uppercase text-ink">
+                          {choice.regionLabel}
+                        </PixelText>
+                        <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
+                          {choice.focusLabel}
+                        </Text>
+                      </View>
+                      <Text className="font-mono text-base text-ink">
+                        {choice.feeWaived === true
+                          ? t('market.free')
+                          : formatCurrency(t, choice.cost)}
+                      </Text>
+                    </View>
+                    <Text className="mt-2 text-sm leading-5 text-ink/60">
+                      {choice.detail}
+                    </Text>
+                    <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
+                      <Text className="font-mono text-sm uppercase text-ink/50">
+                        {choice.durationLabel}
+                      </Text>
+                      <GuidedAction
+                        enabled={guideFocus === 'scout-mission' && index === 0}
+                        detail={t('market.sendTheScout')}
+                        targetRef={
+                          choice.id === scrollDismissTargetId
+                            ? southAmericaScoutActionRef
+                            : undefined
+                        }
+                      >
+                        <SmallAction
+                          label={
+                            choice.feeWaived === true
+                              ? t('market.sendFreeScout')
+                              : t('market.sendScout')
+                          }
+                          accessibilityLabel={
+                            choice.feeWaived === true
+                              ? t('market.a11y.sendScoutFreeFirstTrip', {
+                                  region: choice.regionLabel,
+                                  focus: choice.focusLabel,
+                                })
+                              : t('market.a11y.sendScoutTo', {
+                                  region: choice.regionLabel,
+                                  focus: choice.focusLabel,
+                                })
+                          }
+                          disabled={!choice.available}
+                          onPress={() => onStartScoutMission(choice.id)}
+                        />
+                      </GuidedAction>
+                    </View>
+                    {choice.blockedReason ? (
+                      <Text className="mt-2 text-right text-sm font-bold text-stamp">
+                        {choice.blockedReason}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))}
+          </>
         )}
       </View>
     </View>
@@ -2026,29 +2145,33 @@ function YouthStatLine({
 function SmallAction({
   label,
   accessibilityLabel,
-  disabled,
+  disabled = false,
+  selected = false,
   onPress,
   flashToken,
   reduceMotion = false,
 }: {
   label: string;
-  accessibilityLabel: string;
-  disabled: boolean;
-  onPress: () => void;
+  accessibilityLabel?: string;
+  disabled?: boolean;
+  selected?: boolean;
+  onPress: (event: GestureResponderEvent) => void;
   flashToken?: number;
   reduceMotion?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled }}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled, selected }}
       disabled={disabled}
       onPress={onPress}
       className={
         disabled
           ? 'relative min-h-11 min-w-24 items-center justify-center border-2 border-ink/20 bg-ink/5 px-3'
-          : 'relative min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'
+          : selected
+            ? 'relative min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-pitch-dark bg-pitch-light px-3'
+            : 'relative min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'
       }
       style={({ pressed }) => ({
         transform: [{ translateY: pressed && !disabled ? 2 : 0 }],

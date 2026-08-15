@@ -36,7 +36,6 @@ import {
   boardUltimatumConsequence,
   attributeAffectsPlay,
   careerHeroLimit,
-  careerEventCashLoss,
   careerCoachWageLedgerAmount,
   commercialFacilitySummary,
   GATE_ATTENDANCE_PERCENT,
@@ -111,6 +110,7 @@ import {
   sponsorWeeklyChallengeOptions,
   sponsorObjectiveProgressFromFixtures,
   storyTrainingPointReward,
+  storyMoneyDelta,
   DORM_CONDITION_RECOVERY_PER_LEVEL,
   isFacilityOperational,
   weeklyFacilityUpkeep,
@@ -1522,6 +1522,7 @@ function facilityGridViewModel(
         grid.construction?.buildingId === building.id
           ? grid.construction
           : undefined;
+      const closedWeeks = building.closedWeeks ?? 0;
       const upgradeCost =
         building.level < 3
           ? definition.upgradeCosts[building.level - 1]
@@ -1564,7 +1565,7 @@ function facilityGridViewModel(
         width: definition.footprint.width,
         height: definition.footprint.height,
         weeklyUpkeep:
-          project?.kind === 'BUILD'
+          project?.kind === 'BUILD' || closedWeeks > 0
             ? 0
             : definition.weeklyUpkeep[building.level - 1],
         effectLabel: facilityEffectLabel(building.type, building.level, t),
@@ -1576,6 +1577,7 @@ function facilityGridViewModel(
           : { upgradeBlockedDivision }),
         canUpgrade:
           grid.construction === undefined &&
+          closedWeeks === 0 &&
           upgradeCost !== undefined &&
           upgradeBlockedReason === undefined &&
           club.cash >= upgradeCost,
@@ -1584,6 +1586,7 @@ function facilityGridViewModel(
         relocationFee: definition.relocationFee,
         canRelocate:
           grid.construction === undefined &&
+          closedWeeks === 0 &&
           club.cash >= definition.relocationFee,
         relocationShortfall: Math.max(0, definition.relocationFee - club.cash),
         closeRefund: facilityCloseRefund(building),
@@ -1594,17 +1597,21 @@ function facilityGridViewModel(
           activeAdjacencies,
         ),
         status:
-          project?.kind === 'BUILD'
-            ? ('construction' as const)
-            : project?.kind === 'UPGRADE'
-              ? ('upgrading' as const)
-              : ('operational' as const),
-        ...(project === undefined
-          ? {}
-          : {
-              weeksRemaining: project.weeksRemaining,
-              targetLevel: project.targetLevel,
-            }),
+          closedWeeks > 0
+            ? ('closed' as const)
+            : project?.kind === 'BUILD'
+              ? ('construction' as const)
+              : project?.kind === 'UPGRADE'
+                ? ('upgrading' as const)
+                : ('operational' as const),
+        ...(closedWeeks > 0
+          ? { weeksRemaining: closedWeeks }
+          : project === undefined
+            ? {}
+            : {
+                weeksRemaining: project.weeksRemaining,
+                targetLevel: project.targetLevel,
+              }),
       };
     }),
     catalog: FACILITY_BUILD_MENU_ORDER.map((type) => FACILITY_CATALOG[type])
@@ -2276,35 +2283,43 @@ export function seasonEndViewModel(
             const player = state.players.find(
               (candidate) => candidate.id === award.playerId,
             );
-            return player === undefined
-              ? []
-              : [
-                  {
-                    ...award,
-                    // The save keeps the English — `hall-of-fame.ts` parses a legacy
-                    // recap's `detail` for its goal count — so the screen translates it
-                    // here instead. `detail` has no key of its own; it is always the
-                    // label's key plus `.detail`.
-                    label: copyOrEnglish(
-                      t,
-                      award.labelKey,
-                      award.label,
-                      award.labelParams,
-                    ),
-                    detail: copyOrEnglish(
-                      t,
-                      award.labelKey === undefined
-                        ? undefined
-                        : `${award.labelKey}.detail`,
-                      award.detail,
-                      award.labelParams,
-                    ),
-                    role: player.role,
-                    ...(player.lookId === undefined
-                      ? {}
-                      : { lookId: player.lookId }),
-                  },
-                ];
+            if (player === undefined) return [];
+            const labelParams =
+              award.labelKey === 'recap.award.heroOfSeason' && player.power
+                ? {
+                    ...award.labelParams,
+                    power:
+                      powerDisplayName(content, player.power, t) ??
+                      player.power,
+                  }
+                : award.labelParams;
+            return [
+              {
+                ...award,
+                // The save keeps the English — `hall-of-fame.ts` parses a legacy
+                // recap's `detail` for its goal count — so the screen translates it
+                // here instead. `detail` has no key of its own; it is always the
+                // label's key plus `.detail`.
+                label: copyOrEnglish(
+                  t,
+                  award.labelKey,
+                  award.label,
+                  labelParams,
+                ),
+                detail: copyOrEnglish(
+                  t,
+                  award.labelKey === undefined
+                    ? undefined
+                    : `${award.labelKey}.detail`,
+                  award.detail,
+                  labelParams,
+                ),
+                role: player.role,
+                ...(player.lookId === undefined
+                  ? {}
+                  : { lookId: player.lookId }),
+              },
+            ];
           });
   const memorableEvent =
     recap?.memorableEventId === undefined
@@ -2860,8 +2875,7 @@ export function homeProductAlerts(
             destination: 'club-finances' as const,
           },
         ]),
-    ...(sponsorChallenge === undefined ||
-    sponsorChallenge.outcome !== undefined
+    ...(sponsorChallenge === undefined || sponsorChallenge.outcome !== undefined
       ? []
       : [
           {
@@ -3821,7 +3835,7 @@ export function homeViewModel(
 
   return {
     clubName: userClub.name,
-    managerName: 'Boss',
+    managerName: t('clubHome.managerTitle'),
     seasonLabel: t('clubHome.seasonLabel', {
       season: state.season,
       division: divisionTierLabelWith(careerDivision(state), t),
@@ -4161,11 +4175,17 @@ export function matchDayViewModel(
           // the Medical Bay shortens it — and can only wait out a granted holiday.
           ...(player.injuryWeeks > 0
             ? {
-                unavailableLabel: `OUT · ${weekCountLabel(player.injuryWeeks, t)}`,
+                unavailableLabel: t('squadTraining.outForWeeks', {
+                  n: player.injuryWeeks,
+                  count: player.injuryWeeks,
+                }),
               }
             : (player.awayWeeks ?? 0) > 0
               ? {
-                  unavailableLabel: `ON LEAVE · ${weekCountLabel(player.awayWeeks!, t)}`,
+                  unavailableLabel: t('squadTraining.onLeaveForWeeks', {
+                    n: player.awayWeeks!,
+                    count: player.awayWeeks!,
+                  }),
                 }
               : unlicensedHero
                 ? { unavailableLabel: t('fixtureMatchDay.heroLicenseRequired') }
@@ -5416,14 +5436,17 @@ function eventRewardItems(
     [];
   const money =
     resolvedMoneyDelta ??
-    effects.reduce(
-      (sum, effect) =>
-        effect.type === 'money'
-          ? sum + effect.amount
-          : effect.type === 'cashLossPercent'
-            ? sum - careerEventCashLoss(state, effect.percent)
-            : sum,
-      0,
+    storyMoneyDelta(
+      state,
+      effects.reduce(
+        (sum, effect) => (effect.type === 'money' ? sum + effect.amount : sum),
+        0,
+      ),
+      effects.reduce(
+        (sum, effect) =>
+          effect.type === 'cashLossPercent' ? sum + effect.percent : sum,
+        0,
+      ),
     );
   const playerMorale = effects.reduce(
     (sum, effect) => (effect.type === 'morale' ? sum + effect.amount : sum),
@@ -5591,6 +5614,27 @@ function eventRewardItems(
           effect.mode === 'TWO_SMALL'
             ? t('storyEvent.rewardLoseSmallFacilities', { n: 2, count: 2 })
             : t('storyEvent.rewardRiskPrimaryFacility'),
+        kind: 'story',
+        positive: false,
+      });
+    }
+    if (effect.type === 'trainingModifier') {
+      rewards.push({
+        label: t('storyEvent.rewardTrainingModifier', {
+          percent: effect.multiplierPercent,
+          n: effect.weeks,
+          count: effect.weeks,
+        }),
+        kind: 'training-points',
+        positive: effect.multiplierPercent >= 100,
+      });
+    }
+    if (effect.type === 'facilityClosure') {
+      rewards.push({
+        label: t('storyEvent.rewardFacilityClosed', {
+          n: effect.weeks,
+          count: effect.weeks,
+        }),
         kind: 'story',
         positive: false,
       });

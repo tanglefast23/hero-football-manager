@@ -5,6 +5,8 @@ import {
   type GameState,
   type SponsorContractSnapshot,
 } from '../../game';
+import { buildSeasonRecap } from '../../game/season-recap';
+import { copyFor } from '../../i18n';
 import { createLaunchCareerSetup } from '../launch';
 import { seasonEndViewModel } from '../view-models';
 
@@ -88,6 +90,46 @@ describe('season-end Club Business presentation', () => {
     expect(
       seasonEndViewModel(state, loadLaunchContent(), 1).clubBusinessSettlement,
     ).toBeUndefined();
+  });
+
+  it('translates saved Hero of the Season power ids', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260807));
+    const hero = initial.players.find(
+      (player) => player.clubId === initial.userClubId,
+    )!;
+    const recap = buildSeasonRecap(initial);
+    const state: GameState = {
+      ...initial,
+      phase: 'season-end',
+      players: initial.players.map((player) =>
+        player.id === hero.id
+          ? { ...player, power: 'SHADOW_MARK' as const, licensed: true }
+          : player,
+      ),
+      seasonRecaps: [
+        {
+          ...recap,
+          heroOfSeason: {
+            playerId: hero.id,
+            playerName: hero.name,
+            label: 'Hero of the Season',
+            detail: 'SHADOW MARK made the difference',
+            labelKey: 'recap.award.heroOfSeason',
+            labelParams: { power: 'SHADOW MARK' },
+          },
+        },
+      ],
+    };
+
+    const award = seasonEndViewModel(
+      state,
+      loadLaunchContent(),
+      1,
+      copyFor('es'),
+    ).recap?.awards.find((candidate) => candidate.playerId === hero.id);
+
+    expect(award?.detail).toContain('Marca Sombra');
+    expect(award?.detail).not.toContain('SHADOW MARK');
   });
 });
 

@@ -59,6 +59,11 @@ import type {
 import { coachRoleEffectLabels } from './coach-effects';
 import { coachWeeklyWageForRole } from '../game/market-career';
 import {
+  detailedScoutReportCost,
+  reportSurvivesUntil,
+  type DetailedScoutReportMission,
+} from '../game/market-career';
+import {
   careerContractPromiseBlockedReason,
   type ContractPromiseBlockedReason,
 } from '../game/contract-promises';
@@ -83,6 +88,8 @@ export interface ScoutMissionOptionSource {
   readonly focus: ScoutFocus;
   readonly regionLabel?: string;
   readonly detail?: string;
+  readonly cost?: number;
+  readonly durationWeeks?: number;
 }
 
 export interface ScoutedPlayerIdentitySource {
@@ -99,6 +106,10 @@ export interface TransferListingSource {
     readonly powerName?: string;
     /** Same current-growth grade shown for this player on the Squad register. */
     readonly potentialGrade?: PotentialGrade;
+    readonly potentialRange?: {
+      readonly minimum: number;
+      readonly maximum: number;
+    };
   };
   readonly direction: 'BUY' | 'SELL';
   readonly sellingClubDivision: number;
@@ -205,6 +216,7 @@ export interface MarketViewModelSource {
   readonly firstScoutFavorAvailable?: boolean;
   readonly activeScoutMission?: ScoutMission;
   readonly activeScoutMissionFeeWaived?: boolean;
+  readonly detailedScoutReport?: DetailedScoutReportMission;
   readonly scoutResult?: ScoutMissionResult;
   readonly scoutedPlayerIdentities?: readonly ScoutedPlayerIdentitySource[];
   readonly transferListings: readonly TransferListingSource[];
@@ -443,6 +455,27 @@ export function marketViewModel(
             label: attribute.toUpperCase(),
             rangeLabel: `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,
           })),
+          dismissAvailable:
+            source.negotiation?.state.playerId !== report.playerId,
+          detailedReportAvailable:
+            source.scoutOfficeLevel < 3 &&
+            report.potentialRange.minimum !== report.potentialRange.maximum &&
+            source.detailedScoutReport === undefined &&
+            source.cash >= detailedScoutReportCost(source.division) &&
+            reportSurvivesUntil(
+              { season: source.season, week: source.week },
+              report,
+              source.scoutOfficeLevel >= 2 ? 1 : 2,
+            ),
+          detailedReportLabel:
+            source.detailedScoutReport?.playerId === report.playerId
+              ? t('market.detailedReportInProgress')
+              : t('market.buyDetailedReport', {
+                  cost: formatMoneyForCopy(
+                    t,
+                    detailedScoutReportCost(source.division),
+                  ),
+                }),
         } satisfies ScoutReportViewModel;
       }),
     },
@@ -665,7 +698,7 @@ function scoutingChoice(
   option: ScoutMissionOptionSource,
   t: CopyFn,
 ): ScoutMissionChoiceViewModel {
-  const cost = scoutMissionCost(option.region, option.focus);
+  const cost = option.cost ?? scoutMissionCost(option.region, option.focus);
   const progressionDivision = source.highestDivisionReached ?? source.division;
   const heroLocked =
     option.focus.kind === 'RUMORED_HERO' && progressionDivision > 3;
@@ -677,12 +710,31 @@ function scoutingChoice(
   return {
     id: option.id,
     region: option.region,
+    ...(option.focus.kind === 'PROFILE' && option.focus.role !== undefined
+      ? { role: option.focus.role }
+      : {}),
+    prospectType:
+      option.focus.kind === 'PROFILE'
+        ? option.focus.prospectType
+        : option.focus.kind === 'RUMORED_HERO'
+          ? 'RUMORED_HERO'
+          : option.focus.kind === 'ELITE_PROSPECT'
+            ? 'ELITE_PROSPECT'
+            : option.focus.kind === 'AGE'
+              ? 'YOUNG_PROSPECT'
+              : 'IMMEDIATE_STARTER',
     regionLabel: option.regionLabel ?? scoutRegionName(t, option.region),
     focusLabel: focusLabel(option.focus, t),
     detail: option.detail ?? focusDetail(option.focus, t),
     cost,
     feeWaived,
-    durationLabel: t('market.scoutDuration'),
+    durationLabel:
+      option.durationWeeks === undefined
+        ? t('market.scoutDuration')
+        : t('market.scoutDurationWeeks', {
+            n: option.durationWeeks,
+            count: option.durationWeeks,
+          }),
     available:
       !busy && !heroLocked && !eliteLocked && (affordable || feeWaived),
     ...(busy
@@ -729,11 +781,18 @@ function transferListing(
     role: listing.player.role,
     lookId: listing.player.lookId,
     age: listing.player.age,
-    potentialLabel: exactPotentialLabel(
-      listing.player.id,
-      listing.player.potential as 1 | 2 | 3 | 4 | 5,
-      listing.player.potentialGrade,
-    ),
+    potentialLabel:
+      listing.player.potentialRange === undefined
+        ? exactPotentialLabel(
+            listing.player.id,
+            listing.player.potential as 1 | 2 | 3 | 4 | 5,
+            listing.player.potentialGrade,
+          )
+        : scoutPotentialLabel(
+            listing.player.id,
+            listing.player.potentialRange.minimum,
+            listing.player.potentialRange.maximum,
+          ),
     direction: listing.direction,
     ...(listing.player.powerName === undefined
       ? {}
@@ -1068,6 +1127,14 @@ function focusLabel(focus: ScoutFocus, t: CopyFn): string {
     });
   }
   if (focus.kind === 'ELITE_PROSPECT') return t('market.focusEliteProspect');
+  if (focus.kind === 'PROFILE') {
+    if (focus.prospectType === 'IMMEDIATE_STARTER')
+      return t('market.focusImmediateStarter');
+    if (focus.prospectType === 'YOUNG_PROSPECT')
+      return t('market.focusYoungProspect');
+    if (focus.prospectType === 'SPECIALIST') return t('market.focusSpecialist');
+    return t('market.focusBargain');
+  }
   return t('market.focusRumoredHero');
 }
 
@@ -1076,6 +1143,15 @@ function focusDetail(focus: ScoutFocus, t: CopyFn): string {
     return t('market.focusPositionDetail', { role: focus.role });
   if (focus.kind === 'AGE') return t('market.focusAgeDetail');
   if (focus.kind === 'ELITE_PROSPECT') return t('market.focusEliteDetail');
+  if (focus.kind === 'PROFILE') {
+    if (focus.prospectType === 'IMMEDIATE_STARTER')
+      return t('market.focusImmediateStarterDetail');
+    if (focus.prospectType === 'YOUNG_PROSPECT')
+      return t('market.focusYoungProspectDetail');
+    if (focus.prospectType === 'SPECIALIST')
+      return t('market.focusSpecialistDetail');
+    return t('market.focusBargainDetail');
+  }
   return t('market.focusHeroDetail');
 }
 

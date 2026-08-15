@@ -205,7 +205,9 @@ export function PowerTitleTakeover({
         <View style={styles.copy}>
           <View style={styles.statusPill}>
             <Text style={styles.statusText}>
-              {ending ? 'POWER COMPLETE' : 'SUPER POWER'}
+              {t(
+                ending ? 'matchScreen.powerComplete' : 'matchScreen.superPower',
+              )}
             </Text>
           </View>
           <Text

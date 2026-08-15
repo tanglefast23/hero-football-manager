@@ -16,6 +16,7 @@ export * from './PlayerRequestDecisionCard';
 export * from './MidseasonTrainingPrompt';
 export * from './RivalHeroIntroScreen';
 export * from './CharacterSpeechOverlay';
+export * from './StoryCallbackWalkOn';
 export * from './TutorialTapCue';
 export * from './GuidanceDoubleFlash';
 export * from './ScreenErrorBoundary';

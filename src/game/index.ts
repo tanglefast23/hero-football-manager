@@ -26,6 +26,7 @@ export * from './rival-hero-intro';
 export * from './matchday';
 export * from './management';
 export * from './market-career';
+export * from './story-callbacks';
 export * from './midseason-training';
 export * from './m2-career';
 export * from './full-career';

@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WeeklyReviewViewModel } from '../models';
 import {
@@ -16,17 +15,10 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
-import { countUpValue } from '../count-up';
 import { PixelText } from '../components/PixelText';
 import { LedgerRowIcons } from '../components/LedgerRowIcons';
 import { ClubCrest } from '../components/ClubCrest';
 import { useCopy } from '../../i18n';
-import {
-  playLedgerSpin,
-  stopLedgerSpin,
-} from '../../render/financial-report-sfx';
-
-const WEEKLY_MONEY_COUNT_MS = 1_050;
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
@@ -39,57 +31,17 @@ export interface WeeklyReviewScreenProps {
 export function WeeklyReviewScreen({
   viewModel,
   onContinue,
-  animationsReady = true,
   reduceMotion = false,
   textScale = 1,
 }: WeeklyReviewScreenProps) {
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
-  const [balanceAnimationsComplete, setBalanceAnimationsComplete] =
-    useState(reduceMotion);
-  const balanceAnimationsStarted = reduceMotion || animationsReady;
-  const balanceComplete = reduceMotion || balanceAnimationsComplete;
-
-  // Backstop, not a gate: the count-ups land themselves in about a second, but
-  // they run on requestAnimationFrame, which stalls while the app is
-  // backgrounded. This lands the final figures either way.
-  useEffect(() => {
-    if (!balanceAnimationsStarted || balanceComplete) return undefined;
-    const timeout = setTimeout(() => setBalanceAnimationsComplete(true), 2800);
-    return () => clearTimeout(timeout);
-  }, [balanceAnimationsStarted, balanceComplete]);
-
-  // The three money figures move together, so this screen owns one shared
-  // slot-spin cue. It stops with the longest count and also stops if the player
-  // leaves early. A no-change week and reduced motion remain silent.
-  useEffect(() => {
-    if (
-      !balanceAnimationsStarted ||
-      balanceComplete ||
-      viewModel.cashBefore === viewModel.cashAfter
-    )
-      return undefined;
-    playLedgerSpin();
-    const timeout = setTimeout(stopLedgerSpin, WEEKLY_MONEY_COUNT_MS);
-    return () => {
-      clearTimeout(timeout);
-      stopLedgerSpin();
-    };
-  }, [
-    balanceAnimationsStarted,
-    balanceComplete,
-    viewModel.cashAfter,
-    viewModel.cashBefore,
-  ]);
-
   const moneyCard = (
     <WeeklyBalanceCard
       label={t('weeklyReview.money')}
       startingAmount={viewModel.cashBefore}
       currentAmount={viewModel.cashAfter}
       netAmount={viewModel.netAmount}
-      started={balanceAnimationsStarted}
-      complete={balanceComplete}
       kind="money"
     />
   );
@@ -101,13 +53,7 @@ export function WeeklyReviewScreen({
       </Text>
       <Text className="font-mono text-base text-paper">
         {formatCurrency(t, viewModel.cashBefore)} →{' '}
-        <AnimatedCount
-          from={viewModel.cashBefore}
-          to={viewModel.cashAfter}
-          started={balanceAnimationsStarted}
-          complete={balanceComplete}
-          format={(value) => formatCurrency(t, value)}
-        />
+        {formatCurrency(t, viewModel.cashAfter)}
       </Text>
     </View>
   );
@@ -231,16 +177,12 @@ function WeeklyBalanceCard({
   startingAmount,
   currentAmount,
   netAmount,
-  started,
-  complete,
   kind,
 }: {
   label: string;
   startingAmount: number;
   currentAmount: number;
   netAmount: number;
-  started: boolean;
-  complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
   const t = useCopy();
@@ -252,20 +194,13 @@ function WeeklyBalanceCard({
       <AnimatedBalanceAmount
         from={startingAmount}
         to={currentAmount}
-        started={started}
-        complete={complete}
         kind={kind}
       />
       <View className="mt-2 border-t border-ink/20 pt-2">
         <PixelText className="text-right text-[12px] uppercase text-ink/50">
           {t(kind === 'money' ? 'weeklyReview.net' : 'weeklyReview.netTp')}
         </PixelText>
-        <AnimatedNetAmount
-          amount={netAmount}
-          started={started}
-          complete={complete}
-          kind={kind}
-        />
+        <AnimatedNetAmount amount={netAmount} kind={kind} />
       </View>
     </View>
   );
@@ -273,38 +208,15 @@ function WeeklyBalanceCard({
 
 function AnimatedNetAmount({
   amount,
-  started,
-  complete,
   kind,
 }: {
   amount: number;
-  started: boolean;
-  complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
   const t = useCopy();
-  const { value: displayAmount, impact } = useCelebratoryNumber(
-    0,
-    amount,
-    started,
-    complete,
-    WEEKLY_MONEY_COUNT_MS,
-  );
 
   return (
-    <Animated.View
-      style={{
-        alignSelf: 'stretch',
-        transform: [
-          {
-            scale: impact.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 1.13],
-            }),
-          },
-        ],
-      }}
-    >
+    <View className="self-stretch">
       <Text
         accessible
         accessibilityLabel={t('weeklyReview.a11y.net', {
@@ -332,57 +244,29 @@ function AnimatedNetAmount({
         {/* ASCII hyphen on purpose: Silkscreen has no U+2212 glyph, and a true
             minus flips this one character to the system fallback face mid-string
             — see formatCompactNumber in components/Scorecard.tsx. */}
-        {displayAmount > 0 ? '+' : displayAmount < 0 ? '-' : ''}
+        {amount > 0 ? '+' : amount < 0 ? '-' : ''}
         {kind === 'money' ? '$' : ''}
-        {formatCompactNumber(t, Math.abs(displayAmount))}
+        {formatCompactNumber(t, Math.abs(amount))}
         {kind === 'training-points' ? ' TP' : ''}
       </Text>
-    </Animated.View>
+    </View>
   );
 }
 
 function AnimatedBalanceAmount({
   from,
   to,
-  started,
-  complete,
   kind,
 }: {
   from: number;
   to: number;
-  started: boolean;
-  complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
   const t = useCopy();
-  const { value, impact } = useCelebratoryNumber(
-    from,
-    to,
-    started,
-    complete,
-    WEEKLY_MONEY_COUNT_MS,
-  );
   const movementClass =
     to < from ? 'text-stamp' : to > from ? 'text-pitch-ink' : 'text-ink';
   return (
-    <Animated.View
-      style={{
-        transform: [
-          {
-            scale: impact.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 1.1],
-            }),
-          },
-          {
-            translateY: impact.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, -3],
-            }),
-          },
-        ],
-      }}
-    >
+    <View>
       <Text
         accessibilityLabel={t('weeklyReview.a11y.balanceMovement', {
           label: t(
@@ -398,90 +282,9 @@ function AnimatedBalanceAmount({
         adjustsFontSizeToFit
       >
         {kind === 'money'
-          ? formatCurrency(t, value)
-          : `${formatCompactNumber(t, value)} TP`}
+          ? formatCurrency(t, to)
+          : `${formatCompactNumber(t, to)} TP`}
       </Text>
-    </Animated.View>
+    </View>
   );
-}
-
-/** Spins an inline number from `from` to `to` (used for the cash/TP movement bars). */
-function AnimatedCount({
-  from,
-  to,
-  started,
-  complete,
-  format,
-}: {
-  from: number;
-  to: number;
-  started: boolean;
-  complete: boolean;
-  format: (value: number) => string;
-}) {
-  const { value } = useCelebratoryNumber(
-    from,
-    to,
-    started,
-    complete,
-    WEEKLY_MONEY_COUNT_MS,
-  );
-
-  return <>{format(value)}</>;
-}
-
-function useCelebratoryNumber(
-  from: number,
-  to: number,
-  started: boolean,
-  complete: boolean,
-  durationMs: number,
-): { value: number; impact: Animated.Value } {
-  const [value, setValue] = useState(complete ? to : from);
-  const impact = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (complete) {
-      setValue(to);
-      impact.setValue(0);
-      return undefined;
-    }
-    setValue(from);
-    impact.setValue(0);
-    if (!started) return undefined;
-    let frame = 0;
-    let landingAnimation: Animated.CompositeAnimation | undefined;
-    let startedAt: number | null = null;
-    const animate = (timestamp: number) => {
-      if (startedAt === null) startedAt = timestamp;
-      const progress = Math.min(1, (timestamp - startedAt) / durationMs);
-      setValue(from + countUpValue(to - from, progress));
-      if (progress < 1) {
-        frame = requestAnimationFrame(animate);
-        return;
-      }
-      landingAnimation = Animated.sequence([
-        Animated.timing(impact, {
-          toValue: 1,
-          duration: 90,
-          useNativeDriver: true,
-        }),
-        Animated.spring(impact, {
-          toValue: 0,
-          damping: 7,
-          stiffness: 230,
-          mass: 0.55,
-          useNativeDriver: true,
-        }),
-      ]);
-      landingAnimation.start();
-    };
-    frame = requestAnimationFrame(animate);
-    return () => {
-      cancelAnimationFrame(frame);
-      landingAnimation?.stop();
-    };
-  }, [complete, durationMs, from, impact, started, to]);
-
-  return { value, impact };
 }

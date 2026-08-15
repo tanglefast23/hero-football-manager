@@ -699,6 +699,19 @@ describe('resolvePlayerRequest', () => {
     expect(next.playerRequests!.history[0].costAmount).toBeUndefined();
   });
 
+  it('schedules a player follow-up after refusing leave', () => {
+    const state = requestFixture('bahamas-fortnight');
+    const next = resolvePlayerRequest(state, CATALOG, 'REFUSED');
+
+    expect(next.storyCallbacks).toHaveLength(1);
+    expect(next.storyCallbacks?.[0]).toMatchObject({
+      dueSeason: state.season,
+      dueWeek: state.week + 2,
+      speaker: 'PLAYER',
+      playerId: askerOf(state),
+    });
+  });
+
   it('records a drill request as a bounded effect, never a contract promise', () => {
     const state = requestFixture('my-own-guru');
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
@@ -1108,7 +1121,9 @@ describe('advancePlayerRequests', () => {
     const base = tickingCareer();
     const onlyGoldBoots: PlayerRequestCatalog = {
       ...CATALOG,
-      requests: CATALOG.requests.filter((request) => request.id === 'gold-boots'),
+      requests: CATALOG.requests.filter(
+        (request) => request.id === 'gold-boots',
+      ),
     };
     const eligible = eligibleAskers(
       base.players.filter((player) => player.clubId === base.userClubId),

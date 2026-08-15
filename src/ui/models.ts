@@ -756,7 +756,7 @@ export interface ClubFacilityBuildingViewModel {
   canUpgrade: boolean;
   upgradeShortfall: number;
   relocationFee: number;
-  status: 'operational' | 'construction' | 'upgrading';
+  status: 'operational' | 'construction' | 'upgrading' | 'closed';
   weeksRemaining?: number;
   targetLevel?: 1 | 2 | 3;
   canRelocate: boolean;
@@ -885,9 +885,7 @@ export interface SponsorSlotViewModel {
   offers: readonly SponsorOfferViewModel[];
 }
 
-export type SponsorWeeklyChallengeKindViewModel =
-  | 'SCORE_THREE'
-  | 'CLEAN_SHEET';
+export type SponsorWeeklyChallengeKindViewModel = 'SCORE_THREE' | 'CLEAN_SHEET';
 
 export interface SponsorWeeklyChallengeViewModel {
   status: 'OFFER' | 'ACTIVE' | 'MET' | 'FAILED';

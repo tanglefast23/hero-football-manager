@@ -109,13 +109,17 @@ describe('weekly player wellbeing', () => {
     expect(JSON.stringify(state)).toBe(before);
   });
 
-  test('raises match condition cost by two points per division', () => {
-    expect([5, 4, 3, 2, 1].map((division) =>
-      matchConditionCost(division as 1 | 2 | 3 | 4 | 5),
-    )).toEqual([4, 6, 8, 10, 12]);
-    expect([5, 4, 3, 2, 1].map((division) =>
-      substituteMatchConditionCost(division as 1 | 2 | 3 | 4 | 5),
-    )).toEqual([2, 3, 4, 5, 6]);
+  test('uses the match condition cost for each division', () => {
+    expect(
+      [5, 4, 3, 2, 1].map((division) =>
+        matchConditionCost(division as 1 | 2 | 3 | 4 | 5),
+      ),
+    ).toEqual([4, 6, 8, 12, 14]);
+    expect(
+      [5, 4, 3, 2, 1].map((division) =>
+        substituteMatchConditionCost(division as 1 | 2 | 3 | 4 | 5),
+      ),
+    ).toEqual([2, 3, 4, 6, 7]);
   });
 
   test('charges both clubs in D5: starters full, substitutes half, unused bench zero', () => {
@@ -150,13 +154,15 @@ describe('weekly player wellbeing', () => {
     );
 
     for (const ids of [homeParticipants, awayParticipants]) {
-      expect(next.players.find((player) => player.id === ids[0])?.condition).toBe(
-        96,
-      );
+      expect(
+        next.players.find((player) => player.id === ids[0])?.condition,
+      ).toBe(96);
       expect(
         next.players.find((player) => player.id === ids[11])?.condition,
       ).toBe(98);
-      const clubId = next.players.find((player) => player.id === ids[0])!.clubId;
+      const clubId = next.players.find(
+        (player) => player.id === ids[0],
+      )!.clubId;
       const unused = next.players.find(
         (player) => player.clubId === clubId && !ids.includes(player.id),
       )!;

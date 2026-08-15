@@ -1843,7 +1843,9 @@ export function MatchScreen({
           } else {
             bannerRef.current = appendNewestFour(bannerRef.current, {
               id: `power:${e.t}:${e.player}:${e.power}`,
-              text: `⚡ ${e.power.replace(/_/g, ' ')} · ${firingPlayer.def.name}`,
+              text:
+                `⚡ ${powerCutInPresentation(e.power, t).name}` +
+                ` · ${firingPlayer.def.name}`,
               untilTick: e.t + FLASH_TICKS,
               tone: firingPlayer.team === controlledTeam ? 'gold' : 'red',
             });

@@ -7,6 +7,7 @@ import {
   startNextSeason,
 } from '../career';
 import {
+  buildCareerMatchTeamDef,
   buildCareerTeamDef,
   buildTrainingGround,
   releaseCareerPlayer,
@@ -17,6 +18,7 @@ import {
   swapCareerLineupPlayer,
   tryRepairCareerLineupForInjuries,
 } from '../squad';
+import { enableFullCareer } from '../full-career';
 import { trainPlayerInstantly } from '../training';
 import {
   BASE_WEEKLY_TRAINING_POINTS,

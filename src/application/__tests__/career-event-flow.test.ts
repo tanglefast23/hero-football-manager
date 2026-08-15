@@ -1,13 +1,17 @@
 import { loadLaunchContent, type GameEvent } from '../../content';
 import {
   applyCareerEventOutcome,
+  advanceFacilityConstruction,
   beginCareerTransferTalks,
+  buildCareerFacility,
   careerBuyingTransferQuote,
   createCareer,
   careerEventPlayerSaleBlocker,
   advancePlayerRequests,
   offerCareerEvent,
+  isFacilityOperational,
   selectCareerEventPlayer,
+  selectCareerEventFacility,
   sessionAttributeDelta,
   type GameState,
 } from '../../game';
@@ -69,6 +73,20 @@ function playerEvent(eventId: string): GameState {
 }
 
 describe('shared career event flow', () => {
+  test('stores a lasting squad training effect from a simple story', () => {
+    const resolved = resolveCareerEventChoice(
+      offerCareerEvent(career(), 'milestone-unbeaten-run'),
+      catalog,
+      'credit-the-squad-for-run',
+    );
+
+    expect(resolved.playerRequests?.effects).toContainEqual({
+      kind: 'DRILL_SQUAD',
+      weeksRemaining: 3,
+      multiplierPercent: 105,
+    });
+  });
+
   test('applies both midfielder trade-off stats and delays trial growth until return', () => {
     const midfielderState = playerEvent('mysterious-energy-salesman');
     const midfielderId = midfielderState.pendingEvent?.selectedPlayerId!;
@@ -86,13 +104,12 @@ describe('shared career event flow', () => {
     expect(midfielderAfter.attrs.def).toBeGreaterThan(
       midfielderBefore.attrs.def,
     );
-    expect(midfielderAfter.attrs.pas).toBeLessThan(
-      midfielderBefore.attrs.pas,
-    );
+    expect(midfielderAfter.attrs.pas).toBeLessThan(midfielderBefore.attrs.pas);
 
     const initial = career();
     const trial = event('meteor-shard-center-circle');
-    const eligibleId = careerEventTargetCandidates(initial, trial).playerIds[0]!;
+    const eligibleId = careerEventTargetCandidates(initial, trial)
+      .playerIds[0]!;
     const withWeakPace = {
       ...initial,
       players: initial.players.map((player) =>
@@ -114,24 +131,20 @@ describe('shared career event flow', () => {
       'pac',
       2,
     );
-    let away = resolveCareerEventChoice(
-      selected,
-      catalog,
-      'display-meteor',
-    );
-    expect(away.players.find((player) => player.id === eligibleId)).toMatchObject(
-      {
-        awayWeeks: 4,
-        attrs: { pac: 1 },
-        returnTraining: { attribute: 'pac', points: expectedGain },
-      },
-    );
+    let away = resolveCareerEventChoice(selected, catalog, 'display-meteor');
+    expect(
+      away.players.find((player) => player.id === eligibleId),
+    ).toMatchObject({
+      awayWeeks: 4,
+      attrs: { pac: 1 },
+      returnTraining: { attribute: 'pac', points: expectedGain },
+    });
     for (let week = 0; week < 4; week += 1) {
       away = advancePlayerRequests(away, false);
     }
-    expect(away.players.find((player) => player.id === eligibleId)).toMatchObject(
-      { awayWeeks: 0, attrs: { pac: 1 + expectedGain } },
-    );
+    expect(
+      away.players.find((player) => player.id === eligibleId),
+    ).toMatchObject({ awayWeeks: 0, attrs: { pac: 1 + expectedGain } });
     expect(
       away.players.find((player) => player.id === eligibleId)?.returnTraining,
     ).toBeUndefined();
@@ -482,19 +495,56 @@ describe('shared career event flow', () => {
     expect(continuation.state.pendingEvent).toBeUndefined();
   });
 
-  test('keeps an untargeted authored chain unchanged', () => {
-    const offered = offerCareerEvent(career(), 'leaking-stand-roof');
-    const resolved = resolveCareerEventChoice(
+  test('closes the chosen facility before its authored reopening follow-up', () => {
+    let withStand = buildCareerFacility(career(), 'stadium-stand', {
+      x: 0,
+      y: 0,
+    }).state;
+    while (withStand.facilities.grid?.construction !== undefined) {
+      withStand = {
+        ...withStand,
+        facilities: {
+          ...withStand.facilities,
+          grid: advanceFacilityConstruction(withStand.facilities.grid).grid,
+        },
+      };
+    }
+    const offered = offerCareerEvent(withStand, 'leaking-stand-roof');
+    const facilityId = careerEventTargetCandidates(
       offered,
+      event('leaking-stand-roof'),
+    ).facilityIds[0]!;
+    const resolved = resolveCareerEventChoice(
+      selectCareerEventFacility(offered, facilityId),
       catalog,
       'pay-for-the-roof',
+    );
+    expect(
+      resolved.facilities.grid?.buildings.find(
+        (building) => building.id === facilityId,
+      )?.closedWeeks,
+    ).toBe(3);
+    expect(isFacilityOperational(resolved.facilities.grid!, facilityId)).toBe(
+      false,
     );
 
     const continuation = continueResolvedCareerEvent(resolved, catalog);
 
-    expect(continuation.followed).toBe(true);
-    expect(continuation.state.pendingEvent).toEqual({
-      eventId: 'west-stand-reopening',
-    });
+    expect(continuation.followed).toBe(false);
+    expect(continuation.state.pendingEvent).toBeUndefined();
+    let reopened = continuation.state;
+    for (let week = 0; week < 3; week += 1) {
+      reopened = {
+        ...reopened,
+        facilities: {
+          ...reopened.facilities,
+          grid: advanceFacilityConstruction(reopened.facilities.grid!).grid,
+        },
+      };
+    }
+    expect(
+      careerEventTargetCandidates(reopened, event('west-stand-reopening'))
+        .facilityIds,
+    ).toContain(facilityId);
   });
 });

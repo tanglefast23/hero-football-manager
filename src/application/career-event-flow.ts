@@ -14,7 +14,10 @@ import {
   isCareerMilestoneEventId,
   offerCareerEvent,
   sessionAttributeDelta,
-  careerEventCashLoss,
+  storyMoneyDelta,
+  scheduleStoryCallback,
+  DEFAULT_PLAYER_REQUEST_STATE,
+  temporarilyCloseFacility,
   type GameState,
 } from '../game';
 import { eventChoiceUnavailableReason } from './event-selection';
@@ -115,6 +118,12 @@ export function resolveCareerEventChoice(
   const facilityFire = outcome.effects.find(
     (effect) => effect.type === 'facilityFire',
   );
+  const trainingModifier = outcome.effects.find(
+    (effect) => effect.type === 'trainingModifier',
+  );
+  const facilityClosure = outcome.effects.find(
+    (effect) => effect.type === 'facilityClosure',
+  );
   const transferFee = outcome.effects.find(
     (effect) => effect.type === 'transferFeePercent',
   );
@@ -172,7 +181,11 @@ export function resolveCareerEventChoice(
       return undefined;
     const attribute =
       absence.returnTraining.attribute === 'WEAKEST'
-        ? (Object.keys(selectedPlayer.attrs) as (keyof typeof selectedPlayer.attrs)[])
+        ? (
+            Object.keys(
+              selectedPlayer.attrs,
+            ) as (keyof typeof selectedPlayer.attrs)[]
+          )
             .filter((candidate) =>
               attributeAffectsPlay(selectedPlayer.role, candidate),
             )
@@ -199,15 +212,15 @@ export function resolveCareerEventChoice(
     choice.id,
     outcome.text,
     {
-      moneyDelta:
-        sumEffect(outcome.effects, 'money') -
+      moneyDelta: storyMoneyDelta(
+        working,
+        sumEffect(outcome.effects, 'money'),
         outcome.effects.reduce(
           (sum, effect) =>
-            effect.type === 'cashLossPercent'
-              ? sum + careerEventCashLoss(working, effect.percent)
-              : sum,
+            effect.type === 'cashLossPercent' ? sum + effect.percent : sum,
           0,
         ),
+      ),
       trainingPointDelta: sumEffect(outcome.effects, 'tp'),
       fanDelta: sumEffect(outcome.effects, 'fans'),
       flags,
@@ -314,6 +327,87 @@ export function resolveCareerEventChoice(
   }
   if (facilityFire?.type === 'facilityFire') {
     next = applyCareerFacilityFire(next, facilityFire.mode);
+  }
+  if (trainingModifier?.type === 'trainingModifier') {
+    const requests = next.playerRequests ?? DEFAULT_PLAYER_REQUEST_STATE;
+    next = {
+      ...next,
+      playerRequests: {
+        ...requests,
+        effects: [
+          ...requests.effects,
+          {
+            kind:
+              trainingModifier.scope === 'PLAYER'
+                ? ('DRILL_PLAYER' as const)
+                : ('DRILL_SQUAD' as const),
+            ...(trainingModifier.scope === 'PLAYER'
+              ? { playerId: playerId! }
+              : {}),
+            weeksRemaining: trainingModifier.weeks,
+            multiplierPercent: trainingModifier.multiplierPercent,
+          },
+        ],
+      },
+    };
+  }
+  if (
+    facilityClosure?.type === 'facilityClosure' &&
+    facilityId !== undefined &&
+    next.facilities.grid !== undefined
+  ) {
+    next = {
+      ...next,
+      facilities: {
+        ...next.facilities,
+        grid: temporarilyCloseFacility(
+          next.facilities.grid,
+          facilityId,
+          facilityClosure.weeks,
+        ),
+      },
+    };
+  }
+
+  if (
+    pending.eventId === 'meteor-shard-center-circle' &&
+    choice.id === 'display-meteor' &&
+    playerId !== undefined
+  ) {
+    next = scheduleStoryCallback(next, {
+      sourceId: `${pending.eventId}:${choice.id}`,
+      delayWeeks: 4,
+      speaker: 'PLAYER',
+      playerId,
+      text: 'I am back. The trip showed me a part of my game I can really improve.',
+      textKey: 'storyCallback.youngsterTrialReturn',
+    });
+  }
+  if (
+    pending.eventId === 'haunted-scoreboard' &&
+    choice.id === 'unplug-scoreboard' &&
+    playerId !== undefined
+  ) {
+    next = scheduleStoryCallback(next, {
+      sourceId: `${pending.eventId}:${choice.id}`,
+      delayWeeks: 2,
+      speaker: 'PLAYER',
+      playerId,
+      text: 'Thanks for giving me the time. My legs feel ready again.',
+      textKey: 'storyCallback.veteranRestThanks',
+    });
+  }
+  if (
+    pending.eventId === 'retaliation-facility-fire' &&
+    facilityFire !== undefined
+  ) {
+    next = scheduleStoryCallback(next, {
+      sourceId: `${pending.eventId}:${choice.id}`,
+      delayWeeks: 2,
+      speaker: 'BERT',
+      text: 'Boss, the rebuilding work is under way. The place is starting to feel like our club again.',
+      textKey: 'storyCallback.facilityFireRebuild',
+    });
   }
 
   const milestone = isCareerMilestoneEventId(pending.eventId);

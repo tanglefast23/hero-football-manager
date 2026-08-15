@@ -216,6 +216,18 @@ export interface PendingCareerMilestone {
   selectedPlayerId?: string;
 }
 
+export interface StoryCallback {
+  id: string;
+  dueSeason: number;
+  dueWeek: number;
+  sourceId: string;
+  speaker: 'PLAYER' | 'COACH' | 'BERT';
+  playerId?: string;
+  coachRole?: 'HEAD' | 'ASSISTANT';
+  text: string;
+  textKey: string;
+}
+
 interface ResolvedCareerEvent {
   eventId: string;
   season: number;
@@ -927,6 +939,8 @@ export interface GameState {
   resolvedEventHistory?: ResolvedCareerEvent[];
   /** Earned recognition beats waiting for a clear desk, in CAREER_MILESTONES order. */
   pendingMilestones?: PendingCareerMilestone[];
+  /** Due, non-branching follow-up lines from earlier stories and requests. */
+  storyCallbacks?: StoryCallback[];
   pendingEvent?: PendingCareerEvent;
   /** This week's manager's-tip decision. Absent on saves written before tips. */
   deskTip?: DeskTipState;

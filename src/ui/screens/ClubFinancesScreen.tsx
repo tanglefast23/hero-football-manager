@@ -136,7 +136,9 @@ function projectWeeksRemaining(
   return t(
     status === 'construction'
       ? 'clubFinances.buildingWeeksRemaining'
-      : 'clubFinances.upgradingWeeksRemaining',
+      : status === 'closed'
+        ? 'clubFinances.closedWeeksRemaining'
+        : 'clubFinances.upgradingWeeksRemaining',
     { n: weeks, count: weeks },
   );
 }
@@ -1202,9 +1204,7 @@ interface SponsorBusinessSectionProps {
     offer: SponsorOfferViewModel,
     slot: SponsorSlotViewModel,
   ) => void;
-  onChooseWeeklyChallenge?: (
-    kind: SponsorWeeklyChallengeKindViewModel,
-  ) => void;
+  onChooseWeeklyChallenge?: (kind: SponsorWeeklyChallengeKindViewModel) => void;
   guideFocus?: AssistantGuideFocus;
   sponsorDeskTargetRef: RefObject<View | null>;
   sponsorBuzzTargetRef: RefObject<View | null>;
@@ -2670,7 +2670,7 @@ function GroundsSection({
                         <PixelText className="text-center text-xs uppercase text-ink">
                           {building.status === 'operational'
                             ? `L${building.level}`
-                            : `${building.status === 'construction' ? 'BUILD' : 'UP'} · ${building.weeksRemaining}W`}
+                            : `${building.status === 'construction' ? 'BUILD' : building.status === 'closed' ? 'CLOSED' : 'UP'} · ${building.weeksRemaining}W`}
                         </PixelText>
                       </View>
                     </View>

@@ -436,7 +436,7 @@ export function QuickResultFaceOff({
       </Animated.View>
 
       <View pointerEvents="none" style={styles.skipHint}>
-        <Text style={styles.skipHintText}>TAP TO SKIP</Text>
+        <Text style={styles.skipHintText}>{t('matchScreen.tapToSkip')}</Text>
       </View>
     </Pressable>
   );

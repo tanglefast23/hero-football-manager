@@ -24,7 +24,6 @@ import { useKeyBindings } from './use-key-bindings';
 import { PixelText } from './components/PixelText';
 import { InfoTip } from './components/InfoTip';
 import { useGuideAnchor } from './use-guide-anchor';
-import { useCountUpNumber } from './use-count-up-number';
 import { IdleAttract } from './components/IdleAttract';
 import { ClubCrest } from './components/ClubCrest';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
@@ -103,7 +102,6 @@ function ResourceChip({
   value,
   money = false,
   tone,
-  reduceMotion = false,
   onPress,
 }: {
   /** Skipped when `icon` is given: the fans chip is drawn, not lettered. */
@@ -135,7 +133,7 @@ function ResourceChip({
   // The chip face rolls to the new figure; the spoken label states the real
   // one. A screen reader must not have to wait out an animation, and the
   // rolling value is presentation, not the number the player is being told.
-  const shownValue = useCountUpNumber(value, reduceMotion);
+  const shownValue = value;
   const negativeMoney = money && shownValue < 0;
   // Money keeps its sign in front of the currency mark, so the painted chip
   // reads the same way as the spoken label below.

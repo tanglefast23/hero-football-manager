@@ -390,6 +390,8 @@ export interface PlacedFacility extends FacilityPosition {
   readonly seeded?: true;
   /** Absent on every building no story has touched, which is most of them. */
   readonly boosts?: FacilityBoosts;
+  /** Temporary story closure. Benefits and upkeep stop until it reaches zero. */
+  readonly closedWeeks?: number;
 }
 
 /** A story's change to one building, clamped to its cap wherever it is read. */
@@ -647,23 +649,61 @@ export function isFacilityOperational(
 ): boolean {
   const building = findBuilding(grid, buildingId);
   return (
-    grid.construction?.kind !== 'BUILD' ||
-    grid.construction.buildingId !== building.id
+    (building.closedWeeks ?? 0) === 0 &&
+    (grid.construction?.kind !== 'BUILD' ||
+      grid.construction.buildingId !== building.id)
   );
+}
+
+export function temporarilyCloseFacility(
+  grid: FacilityGridState,
+  buildingId: string,
+  weeks: number,
+): FacilityGridState {
+  validateFacilityGrid(grid);
+  if (!Number.isSafeInteger(weeks) || weeks < 1 || weeks > 8)
+    throw new Error('facility closure must last 1 to 8 weeks');
+  const building = findBuilding(grid, buildingId);
+  if (grid.construction?.buildingId === building.id)
+    throw new Error('a facility under construction cannot close');
+  return {
+    ...grid,
+    buildings: grid.buildings.map((candidate) =>
+      candidate.id === buildingId
+        ? {
+            ...candidate,
+            closedWeeks: Math.max(candidate.closedWeeks ?? 0, weeks),
+          }
+        : candidate,
+    ),
+  };
 }
 
 export function advanceFacilityConstruction(
   grid: FacilityGridState,
 ): FacilityConstructionAdvance {
   validateFacilityGrid(grid);
-  const project = grid.construction;
+  const ticked: FacilityGridState = grid.buildings.some(
+    (building) => (building.closedWeeks ?? 0) > 0,
+  )
+    ? {
+        ...grid,
+        buildings: grid.buildings.map((building) => {
+          if ((building.closedWeeks ?? 0) <= 0) return building;
+          const closedWeeks = building.closedWeeks! - 1;
+          const { closedWeeks: _closedWeeks, ...open } = building;
+          return closedWeeks === 0 ? open : { ...building, closedWeeks };
+        }),
+      }
+    : grid;
+  const project = ticked.construction;
   if (project === undefined) {
-    return { grid, newlyDiscoveredAdjacencies: [] };
+    return { grid: ticked, newlyDiscoveredAdjacencies: [] };
   }
   if (project.weeksRemaining > 1) {
     return {
       grid: {
-        ...grid,
+        ...ticked,
         construction: {
           ...project,
           weeksRemaining: project.weeksRemaining - 1,
@@ -674,15 +714,15 @@ export function advanceFacilityConstruction(
   }
 
   const completedGrid: FacilityGridState = {
-    ...grid,
+    ...ticked,
     buildings:
       project.kind === 'UPGRADE'
-        ? grid.buildings.map((building) =>
+        ? ticked.buildings.map((building) =>
             building.id === project.buildingId
               ? { ...building, level: project.targetLevel }
               : building,
           )
-        : grid.buildings,
+        : ticked.buildings,
     construction: undefined,
   };
   const active = activeAdjacenciesUnchecked(completedGrid);
@@ -769,10 +809,8 @@ function transaction(
 function activeAdjacenciesUnchecked(
   grid: FacilityGridState,
 ): FacilityAdjacencyId[] {
-  const operational = grid.buildings.filter(
-    (building) =>
-      grid.construction?.kind !== 'BUILD' ||
-      grid.construction.buildingId !== building.id,
+  const operational = grid.buildings.filter((building) =>
+    isFacilityOperational(grid, building.id),
   );
   return FACILITY_ADJACENCIES.filter((adjacency) =>
     operational.some(
@@ -841,6 +879,14 @@ export function validateFacilityGrid(grid: FacilityGridState): void {
       );
     }
     validateCapitalInvested(building);
+    if (
+      building.closedWeeks !== undefined &&
+      (!Number.isSafeInteger(building.closedWeeks) ||
+        building.closedWeeks < 1 ||
+        building.closedWeeks > 8)
+    ) {
+      throw new Error(`facility ${building.id} closure must last 1 to 8 weeks`);
+    }
     validatePlacement(grid, building, building.id);
   }
 

@@ -143,6 +143,7 @@ import { MatchdayConditionWarning } from './src/ui/MatchdayConditionWarning';
 import { matchdayConditionWarningPlayer } from './src/ui/matchday-condition';
 import { PlayerRequestDecisionCard } from './src/ui/PlayerRequestDecisionCard';
 import { PlayerRequestWalkOn } from './src/ui/PlayerRequestWalkOn';
+import { StoryCallbackWalkOn } from './src/ui/StoryCallbackWalkOn';
 import {
   MidseasonTrainingCaptainWalkOn,
   MidseasonTrainingDecisionCard,
@@ -222,6 +223,7 @@ import {
   isTransferWindowOpen,
   leagueStandings,
   midseasonTrainingStatus,
+  nextDueStoryCallback,
   shouldShowSquadSortHint,
   userClubName,
   hasAssistantGuideMilestone,
@@ -2268,6 +2270,12 @@ function GameApp() {
         : playerRequestViewModel(store.career, t),
     [store.career, locale],
   );
+  const storyCallback =
+    store.career === null ? undefined : nextDueStoryCallback(store.career);
+  const storyCallbackLine =
+    storyCallback === undefined
+      ? undefined
+      : copyOrEnglish(t, storyCallback.textKey, storyCallback.text);
   const [requestStage, setRequestStage] = useState<'walk-on' | 'card' | null>(
     null,
   );
@@ -3480,6 +3488,12 @@ function GameApp() {
               store.openScoutReport(playerId);
               if (useM1Store.getState().error === null) setConciergeFocus(null);
             }}
+            onDismissScoutReport={(playerId) =>
+              store.dismissScoutReport(playerId)
+            }
+            onBuyDetailedScoutReport={(playerId) =>
+              store.buyDetailedScoutReport(playerId)
+            }
             onTransferAction={(playerId, direction, bidId) => {
               if (direction === 'BUY') {
                 const lessonOwed =
@@ -4377,6 +4391,42 @@ function GameApp() {
                   setRequestStage(null);
                 }}
               />
+            ) : null}
+            {storyCallback !== undefined &&
+            storyCallbackLine !== undefined &&
+            store.career !== null &&
+            store.screen === 'management' &&
+            !guideOverlayVisible &&
+            requestStage === null &&
+            midseasonTrainingStage === null &&
+            playerSigning === null &&
+            playerSaleFarewell === null &&
+            coachOverlay === null &&
+            facilityProjectNotice === null &&
+            pendingConfirmation === null &&
+            !postMatchSummaryVisible &&
+            !globalSettingsOpen ? (
+              storyCallback.speaker === 'BERT' ? (
+                <BertBriefingWalkOn
+                  content={content.assistantGuide}
+                  customMessage={{
+                    title: t('storyCallback.followUpTitle'),
+                    body: [storyCallbackLine],
+                  }}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => store.completeStoryCallback(storyCallback.id)}
+                />
+              ) : (
+                <StoryCallbackWalkOn
+                  callback={storyCallback}
+                  state={store.career}
+                  line={storyCallbackLine}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => store.completeStoryCallback(storyCallback.id)}
+                />
+              )
             ) : null}
           </View>
           {postMatchSummaryVisible && store.postMatch !== null ? (

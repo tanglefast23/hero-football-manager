@@ -460,6 +460,7 @@ const facilityGridSchema = z
           x: nonnegativeInteger,
           y: nonnegativeInteger,
           seeded: z.literal(true).optional(),
+          closedWeeks: positiveInteger.max(8).optional(),
           // Absent on every building no story has changed, and on every save
           // written before stories could change one.
           boosts: z
@@ -1313,6 +1314,18 @@ const scoutFocusSchema = z.discriminatedUnion('kind', [
     .passthrough(),
   z.object({ kind: z.literal('ELITE_PROSPECT') }).passthrough(),
   z.object({ kind: z.literal('RUMORED_HERO') }).passthrough(),
+  z
+    .object({
+      kind: z.literal('PROFILE'),
+      prospectType: z.enum([
+        'IMMEDIATE_STARTER',
+        'YOUNG_PROSPECT',
+        'SPECIALIST',
+        'BARGAIN',
+      ]),
+      role: z.enum(['GK', 'DEF', 'MID', 'FWD']).optional(),
+    })
+    .passthrough(),
 ]);
 const scoutMissionSchema = z
   .object({
@@ -1323,10 +1336,19 @@ const scoutMissionSchema = z
     cost: nonnegativeInteger,
     region: z.enum(['LOCAL', 'EUROPE', 'SOUTH_AMERICA', 'AFRICA', 'ASIA']),
     focus: scoutFocusSchema,
-    scoutOfficeLevel: divisionLevelSchema.refine(
+    scoutOfficeLevel: nonnegativeInteger.refine(
       (value) => value <= 3,
       'must be at most 3',
     ),
+    starterScores: z
+      .object({
+        GK: nonnegativeInteger.optional(),
+        DEF: nonnegativeInteger.optional(),
+        MID: nonnegativeInteger.optional(),
+        FWD: nonnegativeInteger.optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 const scoutedRangeSchema = z
@@ -1352,6 +1374,8 @@ const scoutReportSchema = z
     power: powerIdSchema.optional(),
     powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     rumoredHeroLead: z.literal(true).optional(),
+    completedSeason: positiveInteger.optional(),
+    completedWeek: positiveInteger.max(SEASON_WEEKS).optional(),
   })
   .passthrough();
 const coachCandidateSchema = z
@@ -1481,6 +1505,14 @@ const careerMarketSchema = z
     activeScoutMission: scoutMissionSchema.optional(),
     activeScoutMissionFeeWaived: z.boolean().optional(),
     scoutReports: z.array(scoutReportSchema),
+    detailedScoutReport: z
+      .object({
+        playerId: nonemptyString,
+        dueWeek: positiveInteger,
+        cost: positiveInteger,
+      })
+      .passthrough()
+      .optional(),
     coachCandidates: z.array(coachCandidateSchema),
     headCoach: coachCandidateSchema.optional(),
     headCoachSeasonsEmployed: nonnegativeInteger.optional(),
@@ -1971,6 +2003,24 @@ const gameStateSchema = z
           })
           .passthrough(),
       )
+      .optional(),
+    storyCallbacks: z
+      .array(
+        z
+          .object({
+            id: nonemptyString,
+            dueSeason: positiveInteger,
+            dueWeek: positiveInteger.max(SEASON_WEEKS),
+            sourceId: nonemptyString,
+            speaker: z.enum(['PLAYER', 'COACH', 'BERT']),
+            playerId: nonemptyString.optional(),
+            coachRole: z.enum(['HEAD', 'ASSISTANT']).optional(),
+            text: nonemptyString,
+            textKey: nonemptyString,
+          })
+          .passthrough(),
+      )
+      .max(30)
       .optional(),
     pendingEvent: pendingEventSchema.optional(),
     // Optional at decode time so pre-cutscene schema-1 saves can be upgraded

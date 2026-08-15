@@ -391,9 +391,6 @@ export function SeasonEndScreen({
             <PaperPanel
               kicker={t('seasonEnd.cupAndDevelopment')}
               title={viewModel.recap.cupResult}
-              stamp={t('seasonEnd.capsReached', {
-                count: viewModel.recap.trainingCapsReached,
-              })}
               className="mt-3"
             >
               <Text className="text-sm leading-5 text-ink/60">

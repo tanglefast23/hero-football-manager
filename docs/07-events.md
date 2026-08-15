@@ -11,22 +11,21 @@ Events are the game's storyteller. They must feel like little comics: a setup, a
 
 Awakening math is intentionally absent here. A manager never needs to chase an event or sacrifice its guaranteed reward to make a hero (doc 04).
 
-## Launch catalog (53 events in `content/events.json`)
+## Launch catalog (54 events in `content/events.json`)
 
 The JSON catalog is canonical; the counts below are pinned by content and Harness tests.
 
-| Category | Events |
-|---|---:|
-| Club | 16 |
-| Fan | 8 |
-| Media | 4 |
-| Mystery | 4 |
-| Player | 20 |
-| Sponsor | 1 |
-| **Total** | **53** |
+| Category  | Events |
+| --------- | -----: |
+| Club      |     17 |
+| Fan       |      7 |
+| Media     |      4 |
+| Player    |     25 |
+| Sponsor   |      1 |
+| **Total** | **54** |
 
-Targeting cuts across those categories: 21 stories ask for a player, 9 ask for a coach,
-and 6 ask for an operational facility. The manager chooses the subject before making the
+Targeting cuts across those categories: 27 stories ask for a player, 9 ask for a coach,
+and 8 ask for an operational facility. The manager chooses the subject before making the
 safe-or-risky call. Candidate rules are shared by the weekly offer, production screen,
 resolution path, save recovery, browser Dev Harness, and long-career audit:
 
@@ -52,21 +51,26 @@ Frequency mix per season (~5–7 events): ~2 mystery, ~2 club/player, ~1 media/s
 
 ```ts
 type GameEvent = {
-  id: string; category: 'mystery'|'club'|'media'|'sponsor'|'player'|'medical'|'fan';
-  rarity: 'common'|'rare'|'legendary';
+  id: string;
+  category:
+    'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
+  rarity: 'common' | 'rare' | 'legendary';
   trigger: {
     minDivision?: number;
     requiresPlayer?: true;
     requiresPlayerRole?: 'GK';
     requiresCoach?: true;
-    requiresCoachRole?: 'HEAD'|'ASSISTANT';
+    requiresCoachRole?: 'HEAD' | 'ASSISTANT';
     requiresBothCoaches?: true;
     requiresFacility?: FacilityType[];
     personalityOnRoster?: string;
   };
-  art: string; title: string; body: string;
+  art: string;
+  title: string;
+  body: string;
   choices: Array<{
-    label: string; requires?: { money?: number; facility?: string };
+    label: string;
+    requires?: { money?: number; facility?: string };
     outcomes: Array<{
       weight: number;
       effects: Effect[];
@@ -78,8 +82,14 @@ type GameEvent = {
 ```
 
 `Effect` is a closed, validated union covering club resources, targeted player changes,
-coach boosts/specialties, facility output boosts, squad morale, and story flags. New events
+coach boosts/specialties, facility output boosts and closures, 2–6 week training changes,
+squad morale, and story flags. Rare and legendary events cannot repeat. New events
 still ship as data, while one shared application resolver applies every effect consistently.
+
+Direct story money scales with division minimums and maximums. A major financial risk may
+take up to 10% of current cash, but cannot drive cash below zero. Selected player and Bert
+callbacks can appear later as one short speech bubble. Callback timing, speaker, and copy
+survive saves and season boundaries.
 
 An authored transfer offer uses the same sale transaction as the market: the selected
 player changes clubs, both clubs' cash changes, wages and lineup are repaired, and the

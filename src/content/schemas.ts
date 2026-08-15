@@ -650,6 +650,16 @@ const EventEffectSchema = z.discriminatedUnion('type', [
     type: z.literal('facilityFire'),
     mode: z.enum(['TWO_SMALL', 'PRIMARY']),
   }),
+  z.strictObject({
+    type: z.literal('trainingModifier'),
+    scope: z.enum(['PLAYER', 'SQUAD']),
+    multiplierPercent: z.number().int().min(50).max(150),
+    weeks: z.number().int().min(2).max(6),
+  }),
+  z.strictObject({
+    type: z.literal('facilityClosure'),
+    weeks: z.number().int().min(2).max(6),
+  }),
   /**
    * A heal. `injury` can only ever lengthen an absence (it resolves through
    * `max`), so shortening one needs its own effect and its own sign.
@@ -782,6 +792,8 @@ const SINGULAR_EFFECT_TYPES = [
   'injury',
   'absence',
   'facilityFire',
+  'trainingModifier',
+  'facilityClosure',
   'injuryDelta',
   'statDelta',
   'loyalty',
@@ -804,6 +816,7 @@ const FACILITY_EFFECT_TYPES = [
   'facilityTrainingBonus',
   'facilityRecoveryBonus',
   'facilityIncomeBonus',
+  'facilityClosure',
 ] as const;
 
 /**
@@ -977,8 +990,8 @@ export const GameEventSchema = z
          * The card asks the manager to point at a building. The list narrows which
          * types are offered; an event that admits several must map every one of
          * them to an effect, or the picker could hand it a building it cannot act
-         * on. Scout Office and Coaching Office are not targetable — a shortlist
-         * size and a boolean unlock cannot take a percentage.
+         * on. Every building can close temporarily, while permanent boost gates
+         * below still restrict each boost to facilities that can use it.
          */
         requiresFacility: z
           .array(
@@ -988,7 +1001,10 @@ export const GameEventSchema = z
               'tech-center',
               'shooting-range',
               'keeper-court',
+              'medical-bay',
               'dorm',
+              'scout-office',
+              'coaching-office',
               'youth-field',
               'fan-shop',
               'stadium-stand',
@@ -1084,6 +1100,13 @@ export const GameEventSchema = z
     choices: z.array(EventChoiceSchema).min(2).max(3),
   })
   .superRefine((event, context) => {
+    if (event.rarity !== 'common' && event.trigger.repeatable === true) {
+      addIssue(
+        context,
+        ['trigger', 'repeatable'],
+        'rare and legendary events may appear only once per career',
+      );
+    }
     addDuplicateIssues(
       event.choices.map((choice) => choice.id),
       context,
@@ -1155,6 +1178,20 @@ export const GameEventSchema = z
         const transferFeeEffect = outcome.effects.find(
           (effect) => effect.type === 'transferFeePercent',
         );
+        const playerTrainingEffect = outcome.effects.find(
+          (effect) =>
+            effect.type === 'trainingModifier' && effect.scope === 'PLAYER',
+        );
+        if (
+          playerTrainingEffect !== undefined &&
+          event.trigger.requiresPlayer !== true
+        ) {
+          addIssue(
+            context,
+            ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+            `a player trainingModifier requires ${event.id} to target a player`,
+          );
+        }
         if (
           transferFeeEffect !== undefined &&
           event.trigger.requiresPlayerSource !== 'TRANSFER_TARGETS'
@@ -1663,7 +1700,12 @@ const SponsorProfileSchema = z.strictObject({
       LEAGUE_GOALS: z.number().int().nonnegative().max(1_000).optional(),
       LEAGUE_FINISH: z.number().int().nonnegative().max(1_000).optional(),
       LEAGUE_CLEAN_SHEETS: z.number().int().nonnegative().max(1_000).optional(),
-      LEAGUE_THREE_GOAL_GAMES: z.number().int().nonnegative().max(1_000).optional(),
+      LEAGUE_THREE_GOAL_GAMES: z
+        .number()
+        .int()
+        .nonnegative()
+        .max(1_000)
+        .optional(),
       LEAGUE_AWAY_POINTS: z.number().int().nonnegative().max(1_000).optional(),
     })
     .optional(),
@@ -1776,8 +1818,7 @@ export const SponsorCatalogSchema = z
         SponsorObjectiveKindSchema.options.some(
           (kind) =>
             (actual.bonusPercentByObjective?.[kind] ?? actual.bonusPercent) !==
-            (expected.bonusPercentByObjective?.[kind] ??
-              expected.bonusPercent),
+            (expected.bonusPercentByObjective?.[kind] ?? expected.bonusPercent),
         )
       ) {
         addIssue(

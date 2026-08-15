@@ -85,6 +85,9 @@ import {
   trainingPathLabelKey,
   startNextSeason,
   startCareerScoutMission,
+  startDetailedScoutReport,
+  dismissCareerScoutReport,
+  dismissStoryCallback,
   submitCareerTransferOffer,
   submitCareerRenewalOffer,
   upgradeCareerFacility,
@@ -609,6 +612,9 @@ interface M1Store {
   closeClubFacility: (buildingId: string) => void;
   startScoutMission: (optionId: string) => void;
   openScoutReport: (playerId: string) => void;
+  dismissScoutReport: (playerId: string) => void;
+  buyDetailedScoutReport: (playerId: string) => void;
+  completeStoryCallback: (callbackId: string) => void;
   actOnTransfer: (
     playerId: string,
     direction: 'BUY' | 'SELL',
@@ -1793,9 +1799,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
                 clubTeam,
                 opponentTeam,
                 winner:
-                  postMatch.result.outcomeLabel === 'WIN'
-                    ? 'club'
-                    : 'opponent',
+                  postMatch.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
               },
               t,
             );
@@ -3030,6 +3034,38 @@ export const useM1Store = create<M1Store>((set, get) => ({
       return;
     }
     set({ notice: { tone: 'info', message: t('store.scoutReportRanges') } });
+  },
+
+  dismissScoutReport(playerId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const market = dismissCareerScoutReport(requireMarket(career), playerId);
+      const next = { ...career, market };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  buyDetailedScoutReport(playerId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const transaction = startDetailedScoutReport(
+        career,
+        requireMarket(career),
+        playerId,
+        currentCareerDivision(career),
+      );
+      const next = { ...transaction.state, market: transaction.market };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeStoryCallback(callbackId) {
+    const career = requireCareer(get());
+    const next = dismissStoryCallback(career, callbackId);
+    set({ career: next });
+    queueCareerSave(get, set, next);
   },
 
   actOnTransfer(playerId, direction, bidId) {

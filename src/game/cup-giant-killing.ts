@@ -1,6 +1,8 @@
 import type { CupGiantKillingCelebration, GameState } from './types';
 import type { NationalCupFixture } from './pyramid';
 
+const CUP_GIANT_KILLING_SEEN_FLAG = 'm4:cup-giant-killing-seen';
+
 /**
  * One speech per division gap, and they escalate.
  *
@@ -101,9 +103,14 @@ export function queueCupGiantKillingCelebration(
   state: GameState,
   celebration: CupGiantKillingCelebration | undefined,
 ): GameState {
-  if (celebration === undefined) return state;
+  if (
+    celebration === undefined ||
+    state.eventFlags.includes(CUP_GIANT_KILLING_SEEN_FLAG)
+  )
+    return state;
   return {
     ...state,
+    eventFlags: [...state.eventFlags, CUP_GIANT_KILLING_SEEN_FLAG],
     pendingCupGiantKillingCelebrations: [
       ...(state.pendingCupGiantKillingCelebrations ?? []),
       celebration,

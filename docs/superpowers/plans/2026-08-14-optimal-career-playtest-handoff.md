@@ -1,5 +1,5 @@
 ---
-title: "HFM optimal browser playtest"
+title: 'HFM optimal browser playtest'
 type: qa-handoff
 date: 2026-08-14
 status: handoff
@@ -223,10 +223,16 @@ Scout during every useful transfer window. Open Scouting and Deals in every
 week the window is active; do not rely on inbox reminders. On the first open
 week, list replaceable dead weight before spending transfer cash.
 
-Each completed mission has a 35% seeded chance to include a player whose role
-rating beats the club's best player in that role, while still respecting the
-chosen region and focus. Track whether this creates real choices in every
-division without guaranteeing a purchase.
+Use the mission filters deliberately. Choose Immediate Starter for the weakest
+Starting XI position. Choose Young Prospect for a long-term rebuild, Specialist
+for one missing position attribute, or Bargain when cash is tight. Adding a
+position costs more and takes longer, so use it only when the squad has a clear
+need. The mission prioritizes that pool but never guarantees an upgrade.
+
+Check the exact duration before starting. The report must arrive with enough
+time to act inside the transfer window. Dismiss an irrelevant report at once.
+Buy a detailed potential report only when that uncertainty could change an
+important purchase. Do not let an old report stop the next mission.
 
 Buy only a major Starting XI improvement. Avoid expensive marginal upgrades.
 Repair the weakest unit before adding another star to an already strong unit.
@@ -452,6 +458,27 @@ Separate each item into one of these states:
 Do not mark a finding fixed until the player-visible behavior is verified.
 
 Take a screenshot when a visual bug cannot be explained clearly with text.
+
+## Language pass (fix as you play)
+
+When the playtest runs in a non-English locale, treat that locale as part of the
+deliverable. While playing, watch every screen for:
+
+- untranslated English left in the UI (values as well as labels, and accessible
+  labels as well as visible text);
+- typos, missing accents, and wrong grammar or agreement;
+- translations that are literal but wrong for football or for the game's tone;
+- inconsistent terms for the same concept across screens; and
+- values shown in one style on one row and another style on the next
+  (`ON` / `OFF` next to `SIM` / `NÃO`, for example).
+
+Unlike other findings, **language problems are fixed immediately, not just
+logged**. Fix the copy in the repo as you find it — chrome strings in
+`content/i18n/<locale>.json`, prose in `content/*.json`, and hardcoded English in
+the component or view-model that renders it. Keep every locale in sync: a new key
+ships in all seven catalogs in the same change. Still record each fix in the
+running report so the language pass is reviewable. The playtest itself continues
+on the deployed build, so a fix only reaches the running career after a deploy.
 
 ## Playtest discipline
 

@@ -213,6 +213,48 @@ describe('endless opponent growth', () => {
     expect(total(chairman)).toBeGreaterThan(total(cozy));
   });
 
+  it('gives only the weakest D1 rival a one-point offseason catch-up', () => {
+    const initial = initializeM2Career({
+      careerSeed: 9182,
+      userClub: USER_CLUB,
+    });
+    const divisionOne = initial.pyramid.divisions.find(
+      (division) => division.level === 1,
+    )!;
+    const ranked = [...divisionOne.clubs].sort(
+      (left, right) => left.squadStrength - right.squadStrength,
+    );
+    const weakest = ranked[0];
+    const nextWeakest = ranked[1];
+    const advanced = planEndlessCareerSeasonTransition(initial, 1).state;
+    const advancedDivisionOne = advanced.pyramid.divisions.find(
+      (division) => division.level === 1,
+    )!;
+    const advancedPlayer = (clubId: string) =>
+      advancedDivisionOne.clubs.find((club) => club.id === clubId)!.squad[0];
+
+    for (const attribute of [
+      'pac',
+      'sho',
+      'pas',
+      'def',
+      'tec',
+      'sta',
+      'ref',
+    ] as const) {
+      const weakestScaled = weakest.squad[0].attrs[attribute] * 1.025;
+      expect([
+        Math.floor(weakestScaled) + 1,
+        Math.ceil(weakestScaled) + 1,
+      ]).toContain(advancedPlayer(weakest.id).attrs[attribute]);
+
+      const nextScaled = nextWeakest.squad[0].attrs[attribute] * 1.025;
+      expect([Math.floor(nextScaled), Math.ceil(nextScaled)]).toContain(
+        advancedPlayer(nextWeakest.id).attrs[attribute],
+      );
+    }
+  });
+
   it('defaults to the Cozy curve when no difficulty is supplied', () => {
     const initial = initializeM2Career({
       careerSeed: 9182,

@@ -31,6 +31,8 @@ import {
   completeCareerTransfer,
   createCareerMarketState,
   dismissCareerCoach,
+  dismissCareerScoutReport,
+  expireCareerScoutReports,
   expireCareerTransferListings,
   growthSinceSigningPercent,
   hireCareerCoach,
@@ -41,6 +43,7 @@ import {
   scoutShortlistSize,
   sellCareerPlayer,
   startCareerScoutMission,
+  startDetailedScoutReport,
   submitCareerTransferOffer,
 } from '../market-career';
 import type { GameState } from '../types';
@@ -158,7 +161,7 @@ describe('career market integration', () => {
     expect(started.state.ledgers).toHaveLength(0);
   });
 
-  test('the upgrade lane includes a better same-role player when one matches the brief', () => {
+  test('an immediate-starter brief can find a better same-role player', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(1)),
       week: 15,
@@ -167,7 +170,7 @@ describe('career market integration', () => {
       initial,
       initial.market!,
       'EUROPE',
-      { kind: 'POSITION', role: 'FWD' },
+      { kind: 'PROFILE', prospectType: 'IMMEDIATE_STARTER', role: 'FWD' },
     );
     expect(started.market.activeScoutMission!.missionSeed % 100).toBeLessThan(
       35,
@@ -215,9 +218,10 @@ describe('career market integration', () => {
     };
     const resolved = resolveCareerScoutClock(dueState, started.market);
 
-    // Two names, because this club owns no Scout Office. A level-1 office buys
-    // the third — see 'the Scout Office shortlist grows with its best level'.
-    expect(resolved.scoutReports).toHaveLength(2);
+    // New reports append to the Inbox instead of replacing an unresolved one.
+    expect(resolved.scoutReports).toHaveLength(
+      started.market.scoutReports.length + 2,
+    );
     expect(
       resolved.scoutReports.some(
         (report) => !activePlayerIds.has(report.playerId),
@@ -258,7 +262,7 @@ describe('career market integration', () => {
     const namesReturned = (state: GameState): number => {
       const started = startCareerScoutMission(
         state,
-        createCareerMarketState(state),
+        { ...createCareerMarketState(state), scoutReports: [] },
         'EUROPE',
         { kind: 'POSITION', role: 'FWD' },
       );
@@ -940,6 +944,43 @@ describe('career market integration', () => {
     ).not.toThrow();
   });
 
+  test("repairs a sold starter by the lineup slot's role", () => {
+    const base = createCareer(createLaunchCareerSetup(4244));
+    const lineup = base.lineups.find(
+      (candidate) => candidate.clubId === base.userClubId,
+    )!;
+    const starters = new Set(lineup.playerIds);
+    const reserves = base.players.filter(
+      (player) =>
+        player.clubId === base.userClubId &&
+        !starters.has(player.id) &&
+        player.role !== 'GK',
+    );
+    const [defender, forward] = reserves;
+    if (defender === undefined || forward === undefined)
+      throw new Error('expected two outfield reserves');
+    const soldId = lineup.playerIds[1];
+    const state: GameState = {
+      ...base,
+      players: base.players.map((player) =>
+        player.id === soldId || player.id === forward.id
+          ? { ...player, role: 'FWD' as const }
+          : player.id === defender.id
+            ? { ...player, role: 'DEF' as const }
+            : player,
+      ),
+    };
+    const buyer = state.clubs.find((club) => club.id !== state.userClubId)!;
+
+    const result = sellCareerPlayer(state, state.market!, soldId, buyer.id);
+    const repaired = result.state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+
+    expect(repaired.playerIds[1]).toBe(defender.id);
+    expect(repaired.playerIds[1]).not.toBe(forward.id);
+  });
+
   test('refuses to sell or list the only spare goalkeeper', () => {
     // A one-keeper roster is the seed of the season-end release dead-end: the
     // expired starting keeper has no cover, and lineup repair for an injured
@@ -1556,5 +1597,109 @@ describe('career market integration', () => {
     expect(
       refreshCareerMarketForNewSeason(nextState, previous).scoutReports,
     ).toEqual([]);
+  });
+
+  test('dismisses reports and expires them when their transfer window closes', () => {
+    const state = { ...createCareer(createLaunchCareerSetup(85)), week: 4 };
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const report = {
+      playerId: target.id,
+      role: target.role,
+      age: target.age ?? 22,
+      statRanges: Object.fromEntries(
+        Object.keys(target.attrs).map((key) => [
+          key,
+          { minimum: 40, maximum: 60 },
+        ]),
+      ) as never,
+      potentialRange: { minimum: 2 as const, maximum: 4 as const },
+      completedSeason: 1,
+      completedWeek: 4,
+    };
+    const market = { ...state.market!, scoutReports: [report] };
+
+    expect(dismissCareerScoutReport(market, target.id).scoutReports).toEqual(
+      [],
+    );
+    expect(
+      expireCareerScoutReports({ ...state, week: 5 }, market).scoutReports,
+    ).toEqual([]);
+  });
+
+  test('charges for a detailed report and reveals exact potential later', () => {
+    const state = { ...createCareer(createLaunchCareerSetup(86)), week: 1 };
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const range = { minimum: 40, maximum: 60 };
+    const market = {
+      ...state.market!,
+      scoutReports: [
+        {
+          playerId: target.id,
+          role: target.role,
+          age: target.age ?? 22,
+          statRanges: {
+            pac: range,
+            sho: range,
+            pas: range,
+            def: range,
+            tec: range,
+            sta: range,
+            ref: range,
+          },
+          potentialRange: { minimum: 2 as const, maximum: 4 as const },
+          completedSeason: 1,
+          completedWeek: 1,
+        },
+      ],
+    };
+    const cashBefore = state.clubs.find(
+      (club) => club.id === state.userClubId,
+    )!.cash;
+    const started = startDetailedScoutReport(state, market, target.id, 5);
+
+    expect(
+      started.state.clubs.find((club) => club.id === state.userClubId)?.cash,
+    ).toBe(cashBefore - 2500);
+    expect(started.market.detailedScoutReport?.dueWeek).toBe(3);
+    const resolved = resolveCareerScoutClock(
+      { ...started.state, week: 3 },
+      started.market,
+    );
+    expect(resolved.detailedScoutReport).toBeUndefined();
+    expect(resolved.scoutReports[0].potentialRange).toEqual({
+      minimum: target.potential,
+      maximum: target.potential,
+    });
+  });
+
+  test('lets transfer-requested players attract extra bids in the final week', () => {
+    const initial = { ...createCareer(createLaunchCareerSetup(87)), week: 18 };
+    const starters = new Set(
+      initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+        .playerIds,
+    );
+    const reserve = initial.players.find(
+      (player) =>
+        player.clubId === initial.userClubId &&
+        !starters.has(player.id) &&
+        player.role !== 'GK',
+    )!;
+    const state = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === reserve.id
+          ? { ...player, transferRequested: true }
+          : player,
+      ),
+    };
+
+    expect(
+      listCareerPlayer(state, state.market!, reserve.id).transferListings?.[0]
+        .bids,
+    ).toHaveLength(4);
   });
 });

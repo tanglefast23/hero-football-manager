@@ -274,6 +274,34 @@ describe('deterministic scouting', () => {
       'elite-b',
     ]);
   });
+
+  it('prioritizes the chosen profile without manufacturing an upgrade', () => {
+    const mission = startScoutMission({
+      careerSeed: 10,
+      missionId: 'profile-search',
+      startWeek: 1,
+      region: 'EUROPE',
+      focus: {
+        kind: 'PROFILE',
+        prospectType: 'IMMEDIATE_STARTER',
+        role: 'MID',
+      },
+      scoutOfficeLevel: 1,
+      division: 5,
+      starterScores: { MID: 100 },
+    });
+    const result = resolveScoutMission(mission, mission.dueWeek, [
+      marketPlayer('ordinary-a'),
+      marketPlayer('ordinary-b', { age: 20, potential: 4 }),
+    ]);
+
+    expect(result.reports.map((report) => report.playerId).sort()).toEqual([
+      'ordinary-a',
+      'ordinary-b',
+    ]);
+    expect(mission.cost).toBe(3550);
+    expect(mission.dueWeek - mission.startWeek).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe('transfer rules and valuations', () => {
@@ -501,6 +529,51 @@ describe('transfer rules and valuations', () => {
     expect(sell.bandPercent).toBeGreaterThanOrEqual(80);
     expect(sell.bandPercent).toBeLessThanOrEqual(110);
     expect(buy.fee).toBeGreaterThan(buy.valuation);
+  });
+
+  it('lets old dead weight sell without funding an elite rebuild', () => {
+    const weak = valuationPlayer('weak-veteran', {
+      attrs: {
+        pac: 20,
+        sho: 20,
+        pas: 20,
+        def: 20,
+        tec: 20,
+        sta: 20,
+        ref: 20,
+      },
+      age: 34,
+      potential: 1,
+      contractSeasonsRemaining: 1,
+    });
+    const elite = valuationPlayer('elite-rebuild', {
+      attrs: {
+        pac: 100,
+        sho: 100,
+        pas: 100,
+        def: 100,
+        tec: 100,
+        sta: 100,
+        ref: 100,
+      },
+      age: 20,
+      potential: 5,
+      power: 'SUPER_SPEED',
+      powerTier: 1,
+      contractSeasonsRemaining: 3,
+    });
+    const context = {
+      careerSeed: 102,
+      season: 1,
+      week: 1,
+      sellingClubDivision: 5,
+    };
+    const weakSale = sellingTransferQuote(weak, context).fee;
+    const eliteBuy = buyingTransferQuote(elite, context).fee;
+
+    expect(weakSale).toBeGreaterThan(0);
+    expect(weakSale).toBeLessThan(5000);
+    expect(weakSale * 6).toBeLessThan(eliteBuy);
   });
 });
 

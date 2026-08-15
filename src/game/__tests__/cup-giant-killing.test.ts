@@ -45,7 +45,7 @@ describe('Bert Cup giant-killing celebrations', () => {
     expect(new Set(copies.map((copy) => copy.body)).size).toBe(4);
   });
 
-  it('uses frozen draw divisions and queues every qualifying player win FIFO', () => {
+  it('uses frozen draw divisions and shows Bert only once per career', () => {
     let state = createCareer(createLaunchCareerSetup(20260729));
     const cup = state.m2!.nationalCups[0];
     const divisions = cup.seedDivisionByClubId!;
@@ -86,19 +86,13 @@ describe('Bert Cup giant-killing celebrations', () => {
       divisionGap: 2,
       ...TWO_DIVISION_CUP_UPSET_COPY,
     });
+    expect(queued.eventFlags).toContain('m4:cup-giant-killing-seen');
     expect(
       queued.pendingCupGiantKillingCelebrations?.map((item) => item.fixtureId),
-    ).toEqual(['one-gap', 'two-gap']);
+    ).toEqual(['one-gap']);
     const afterOne = completeCupGiantKillingCelebration(queued);
-    expect(
-      afterOne.pendingCupGiantKillingCelebrations?.map(
-        (item) => item.fixtureId,
-      ),
-    ).toEqual(['two-gap']);
-    expect(
-      completeCupGiantKillingCelebration(afterOne)
-        .pendingCupGiantKillingCelebrations,
-    ).toBeUndefined();
+    expect(afterOne.pendingCupGiantKillingCelebrations).toBeUndefined();
+    expect(queueCupGiantKillingCelebration(afterOne, two)).toBe(afterOne);
   });
 
   it('does not interrupt for defeats, AI upsets, or same-division wins', () => {

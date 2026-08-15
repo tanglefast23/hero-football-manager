@@ -114,7 +114,7 @@ const FIRST_NAMES = [
   'Nico',
   'Remy',
 ] as const;
-const LAST_NAMES = [
+export const YOUTH_LAST_NAMES = [
   'Ash',
   'Cole',
   'Flint',
@@ -391,7 +391,7 @@ export function createEmergencyYouthReplacement(
   return {
     id,
     clubId: state.userClubId,
-    name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${LAST_NAMES[integerRoll(random, 0, LAST_NAMES.length - 1)]}`,
+    name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${YOUTH_LAST_NAMES[integerRoll(random, 0, YOUTH_LAST_NAMES.length - 1)]}`,
     role,
     lookId: nextDistinctPlayerLook({ id, role }, state.players),
     attrs,
@@ -460,7 +460,7 @@ function createOffer(
   const player: CareerPlayer = {
     id,
     clubId: state.userClubId,
-    name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${LAST_NAMES[integerRoll(random, 0, LAST_NAMES.length - 1)]}`,
+    name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${YOUTH_LAST_NAMES[integerRoll(random, 0, YOUTH_LAST_NAMES.length - 1)]}`,
     role,
     attrs,
     licensed: false,

@@ -34,7 +34,7 @@ export const OVERTRAINING_CONDITION_THRESHOLD = 30;
 export const DORM_CONDITION_RECOVERY_PER_LEVEL = 3;
 const MATCH_CONDITION_COST_BY_DIVISION: Readonly<
   Record<DivisionLevel, number>
-> = { 5: 4, 4: 6, 3: 8, 2: 10, 1: 12 };
+> = { 5: 4, 4: 6, 3: 8, 2: 12, 1: 14 };
 
 /** A played match costs more condition in each stronger division. */
 export function matchConditionCost(division: DivisionLevel): number {
@@ -42,9 +42,7 @@ export function matchConditionCost(division: DivisionLevel): number {
 }
 
 /** A substitute pays half the starter cost, rounded to a whole condition point. */
-export function substituteMatchConditionCost(
-  division: DivisionLevel,
-): number {
+export function substituteMatchConditionCost(division: DivisionLevel): number {
   return Math.round(matchConditionCost(division) / 2);
 }
 
@@ -141,12 +139,13 @@ function addClubMatchCosts(
   const substituteCost = substituteMatchConditionCost(division);
   participantIds.forEach((playerId, index) => {
     if (playerClubById.get(playerId) !== clubId) {
-      throw new Error(`match participant ${playerId} is outside club ${clubId}`);
+      throw new Error(
+        `match participant ${playerId} is outside club ${clubId}`,
+      );
     }
     costs.set(
       playerId,
-      (costs.get(playerId) ?? 0) +
-        (index < 11 ? starterCost : substituteCost),
+      (costs.get(playerId) ?? 0) + (index < 11 ? starterCost : substituteCost),
     );
   });
 }

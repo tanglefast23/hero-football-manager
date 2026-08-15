@@ -58,6 +58,7 @@ const isSpeech = (key: string): boolean =>
   /^playerRequest\.[^.]+\.line$/.test(key) ||
   key.startsWith('playerArrival.') ||
   key.startsWith('playerFarewell.') ||
+  key.startsWith('storyCallback.') ||
   key === 'midseasonTraining.captainLine' ||
   key.startsWith('titlePlayerPop.bubble.') ||
   key.startsWith('characterSpeech.');

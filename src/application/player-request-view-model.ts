@@ -127,11 +127,9 @@ export function playerRequestViewModel(
       ),
       artKey: `request-${definition.id}`,
       grantLabel: grantLabel(definition, pending.costAmount, difficulty, t),
-      // The minus signs are U+2212, which Silkscreen cannot draw — they are
-      // built here rather than stored, the same rule the `▸` chevrons follow.
       refuseLabel: t('playerRequests.refuseCost', {
-        loyalty: `-${Math.abs(refuse.loyalty)}`,
-        morale: `-${Math.abs(refuse.morale)}`,
+        loyalty: Math.abs(refuse.loyalty),
+        morale: Math.abs(refuse.morale),
       }),
       canAfford: canAffordRequest(state),
       weeksToAnswer: Math.max(
@@ -168,7 +166,7 @@ function grantLabel(
   }
   if (cost.kind === 'CONDITION_SQUAD') {
     return t('playerRequests.costSquadCondition', {
-      amount: `-${cost.amount}`,
+      amount: cost.amount,
     });
   }
   if (cost.kind === 'DRILL_PLAYER') {

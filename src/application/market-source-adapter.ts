@@ -8,6 +8,8 @@ import {
 } from '../game/market-career';
 import {
   CAREER_CLUB_FAME_CEILING,
+  scoutMissionCost,
+  startScoutMission,
   type CoachCandidate,
   type ScoutFocus,
   type ScoutMissionResult,
@@ -35,7 +37,13 @@ import type {
   TransferListingSource,
 } from './market-view-model';
 
-const ROTATING_REGIONS: readonly ScoutRegion[] = ['EUROPE', 'AFRICA', 'ASIA'];
+const SCOUT_REGIONS: readonly ScoutRegion[] = [
+  'LOCAL',
+  'EUROPE',
+  'SOUTH_AMERICA',
+  'AFRICA',
+  'ASIA',
+];
 
 /**
  * English copy, for every caller that has not threaded a locale through yet.
@@ -92,9 +100,6 @@ export function careerMarketViewModelSource(
     ...(transferDealsUnlocked ? ['TRANSFERS' as const] : []),
     'COACHES',
   ];
-  const reportByPlayerId = new Map(
-    market.scoutReports.map((report) => [report.playerId, report]),
-  );
   const playerById = new Map(
     state.players.map((player) => [player.id, player]),
   );
@@ -129,6 +134,9 @@ export function careerMarketViewModelSource(
       report.power !== undefined,
       false,
       careerBuyingTransferQuote(state, market, player.id, division),
+      undefined,
+      undefined,
+      report,
     );
   });
   const sellListings = state.players
@@ -239,6 +247,9 @@ export function careerMarketViewModelSource(
     ...(market.activeScoutMissionFeeWaived === true
       ? { activeScoutMissionFeeWaived: true }
       : {}),
+    ...(market.detailedScoutReport === undefined
+      ? {}
+      : { detailedScoutReport: { ...market.detailedScoutReport } }),
     ...(scoutResult === undefined ? {} : { scoutResult }),
     ...(identities.length === 0 ? {} : { scoutedPlayerIdentities: identities }),
     transferListings,
@@ -290,8 +301,8 @@ export function careerMarketViewModelSource(
 /** Promotion adds briefs without replacing the familiar searches below them. */
 export function careerMarketScoutOptions(
   state: Pick<GameState, 'careerSeed' | 'season' | 'week'> &
-    Partial<Pick<GameState, 'm2'>>,
-  t: CopyFn = englishCopy(),
+    Partial<Pick<GameState, 'm2' | 'market'>>,
+  _t: CopyFn = englishCopy(),
 ): ScoutMissionOptionSource[] {
   if (
     !Number.isInteger(state.careerSeed) ||
@@ -306,10 +317,6 @@ export function careerMarketScoutOptions(
   if (!Number.isSafeInteger(state.week) || state.week < 1 || state.week > 30) {
     throw new Error('market option week must be an integer from 1 to 30');
   }
-  const cursor = marketCursor(state.careerSeed, state.season, state.week);
-  const secondRegion = ROTATING_REGIONS[cursor % ROTATING_REGIONS.length];
-  const heroRegion = ROTATING_REGIONS[(cursor + 1) % ROTATING_REGIONS.length];
-  const eliteRegion = ROTATING_REGIONS[(cursor + 2) % ROTATING_REGIONS.length];
   const progressionDivision =
     state.m2 === undefined
       ? 5
@@ -318,43 +325,44 @@ export function careerMarketScoutOptions(
           state.m2.highestDivisionReached ?? 5,
         );
 
-  const options: ScoutMissionOptionSource[] = [
-    {
-      id: `scout-brief-s${state.season}-w${state.week}-local-youth`,
-      region: 'LOCAL',
-      focus: { kind: 'AGE', minimumAge: 16, maximumAge: 21 },
-      regionLabel: t('market.scoutBrief.localCircuit'),
-      detail: t('market.scoutBrief.localYouth'),
-    },
-    {
-      id: `scout-brief-s${state.season}-w${state.week}-south_america-def`,
-      region: 'SOUTH_AMERICA',
-      focus: { kind: 'POSITION', role: 'DEF' },
-      detail: t('market.scoutBrief.firstTeamDefender'),
-    },
-  ];
-  if (progressionDivision <= 4)
-    options.push({
-      id: `scout-brief-s${state.season}-w${state.week}-${secondRegion.toLowerCase()}-prime`,
-      region: secondRegion,
-      focus: { kind: 'AGE', minimumAge: 22, maximumAge: 29 },
-      detail: t('market.scoutBrief.primeYears'),
-    });
-  if (progressionDivision <= 3)
-    options.push({
-      id: `scout-brief-s${state.season}-w${state.week}-${heroRegion.toLowerCase()}-hero`,
-      region: heroRegion,
-      focus: { kind: 'RUMORED_HERO' },
-      detail: t('market.scoutBrief.powerRumor'),
-    });
-  if (progressionDivision <= 2)
-    options.push({
-      id: `scout-brief-s${state.season}-w${state.week}-${eliteRegion.toLowerCase()}-elite`,
-      region: eliteRegion,
-      focus: { kind: 'ELITE_PROSPECT' },
-      detail: t('market.scoutBrief.eliteProspect'),
-    });
-  return options;
+  const roles = [undefined, 'GK', 'DEF', 'MID', 'FWD'] as const;
+  const profiles = [
+    'IMMEDIATE_STARTER',
+    'YOUNG_PROSPECT',
+    'SPECIALIST',
+    'BARGAIN',
+  ] as const;
+  const focuses: ScoutFocus[] = profiles.flatMap((prospectType) =>
+    roles.map((role) => ({
+      kind: 'PROFILE' as const,
+      prospectType,
+      ...(role === undefined ? {} : { role }),
+    })),
+  );
+  if (progressionDivision <= 3) focuses.push({ kind: 'RUMORED_HERO' });
+  if (progressionDivision <= 2) focuses.push({ kind: 'ELITE_PROSPECT' });
+  const missionId = `scout-${state.market?.nextMissionNumber ?? 1}`;
+  const startWeek = absoluteCareerWeek(state);
+  return SCOUT_REGIONS.flatMap((region) =>
+    focuses.map((focus) => {
+      const preview = startScoutMission({
+        careerSeed: state.careerSeed,
+        missionId,
+        startWeek,
+        region,
+        focus,
+        scoutOfficeLevel: 1,
+        division: progressionDivision,
+      });
+      return {
+        id: `scout-option-${region}-${focus.kind === 'PROFILE' ? `${focus.prospectType}-${focus.role ?? 'ANY'}` : focus.kind}`,
+        region,
+        focus,
+        cost: scoutMissionCost(region, focus),
+        durationWeeks: preview.dueWeek - preview.startWeek,
+      };
+    }),
+  );
 }
 
 function currentScoutResult(
@@ -365,7 +373,14 @@ function currentScoutResult(
   const completedMissionNumber = Math.max(1, market.nextMissionNumber - 1);
   return {
     missionId: `scout-${completedMissionNumber}`,
-    completedWeek: absoluteCareerWeek(state),
+    completedWeek: Math.max(
+      ...market.scoutReports.map((report) =>
+        report.completedSeason === undefined ||
+        report.completedWeek === undefined
+          ? absoluteCareerWeek(state)
+          : (report.completedSeason - 1) * 30 + report.completedWeek,
+      ),
+    ),
     reports: market.scoutReports.map(cloneScoutReport),
   };
 }
@@ -382,13 +397,16 @@ function transferListing(
   >[number]['bids'][number]['quote'],
   bids?: TransferListingSource['bids'],
   saleBlockedReason?: string,
+  scoutReport?: ScoutReport,
 ): TransferListingSource {
   return {
     player: {
       ...valuationPlayer(player),
       name: player.name,
       lookId: player.lookId,
-      potentialGrade: playerGrowthGrade(player),
+      ...(scoutReport === undefined
+        ? { potentialGrade: playerGrowthGrade(player) }
+        : { potentialRange: { ...scoutReport.potentialRange } }),
       ...(revealPower && player.power !== undefined
         ? {
             powerName: t('market.powerAndTier', {
@@ -536,7 +554,13 @@ function wageStepFor(weeklyWage: number): number {
 function cloneScoutMission(
   mission: NonNullable<CareerMarketState['activeScoutMission']>,
 ) {
-  return { ...mission, focus: { ...mission.focus } };
+  return {
+    ...mission,
+    focus: { ...mission.focus },
+    ...(mission.starterScores === undefined
+      ? {}
+      : { starterScores: { ...mission.starterScores } }),
+  };
 }
 
 function cloneScoutReport(report: ScoutReport): ScoutReport {
@@ -560,21 +584,6 @@ function cloneCoachCandidate(candidate: CoachCandidate): CoachCandidate {
     ...candidate,
     specialties: [candidate.specialties[0], candidate.specialties[1]],
   };
-}
-
-function marketCursor(
-  careerSeed: number,
-  season: number,
-  week: number,
-): number {
-  let value =
-    (careerSeed ^
-      Math.imul(season, 0x9e3779b1) ^
-      Math.imul(week, 0x85ebca6b)) >>>
-    0;
-  value = Math.imul(value ^ (value >>> 16), 0x7feb352d) >>> 0;
-  value = Math.imul(value ^ (value >>> 15), 0x846ca68b) >>> 0;
-  return (value ^ (value >>> 16)) >>> 0;
 }
 
 function stableTextCompare(left: string, right: string): number {

@@ -218,6 +218,12 @@
               "text": "The box explodes into harmless golden flakes. The catchphrase is on every playground by Monday.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 2
+                },
+                {
                   "type": "money",
                   "amount": 3500
                 },
@@ -237,6 +243,12 @@
               "id": "setback",
               "text": "The box survives. The spoon does not. The sponsor still pays the appearance fee.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 90,
+                  "weeks": 2
+                },
                 {
                   "type": "money",
                   "amount": 900
@@ -259,6 +271,12 @@
               "id": "only",
               "text": "The hero says 'crunch' with tremendous authority.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 2
+                },
                 {
                   "type": "money",
                   "amount": 1200
@@ -295,6 +313,12 @@
               "text": "Shooting through a cardboard dragon works. The whole squad demands a turn.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "PLAYER",
+                  "multiplierPercent": 125,
+                  "weeks": 3
+                },
+                {
                   "type": "morale",
                   "amount": 8
                 },
@@ -315,6 +339,12 @@
               "text": "The dragon falls over before the first shot. At least everyone laughs.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "PLAYER",
+                  "multiplierPercent": 75,
+                  "weeks": 3
+                },
+                {
                   "type": "morale",
                   "amount": 2
                 }
@@ -332,6 +362,12 @@
               "id": "only",
               "text": "A quiet day away from training clears their head.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "PLAYER",
+                  "multiplierPercent": 110,
+                  "weeks": 3
+                },
                 {
                   "type": "morale",
                   "amount": 4
@@ -368,6 +404,12 @@
               "text": "Their terrible club anthem wins the room and the border checkpoint comes down.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 5
+                },
+                {
                   "type": "morale",
                   "amount": 10
                 },
@@ -383,6 +425,12 @@
               "id": "setback",
               "text": "They argue about the chorus. Bert confiscates the microphone.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 85,
+                  "weeks": 5
+                },
                 {
                   "type": "morale",
                   "amount": -4
@@ -401,6 +449,12 @@
               "id": "only",
               "text": "They cooperate long enough to move a giant tire and forget the original argument.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 5
+                },
                 {
                   "type": "tp",
                   "amount": 8
@@ -441,6 +495,12 @@
               "text": "The hero loses the egg-and-spoon race on purpose and wins every heart in the playground.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 2
+                },
+                {
                   "type": "fans",
                   "amount": 190
                 },
@@ -460,6 +520,12 @@
               "id": "setback",
               "text": "One enthusiastic demonstration launches the beanbag onto the roof. The children call it brilliant.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 90,
+                  "weeks": 2
+                },
                 {
                   "type": "fans",
                   "amount": 90
@@ -482,6 +548,12 @@
               "id": "only",
               "text": "The class sends back a team photo and thirty-seven tactical suggestions.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 2
+                },
                 {
                   "type": "fans",
                   "amount": 75
@@ -588,6 +660,12 @@
               "text": "You explain the full plan on TV. The team keeps winning, and more people come to watch.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 3
+                },
+                {
                   "type": "fans",
                   "amount": 140
                 },
@@ -608,8 +686,10 @@
               "text": "Three managers copy the plan by Tuesday. Two of them do it better.",
               "effects": [
                 {
-                  "type": "tp",
-                  "amount": 6
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 75,
+                  "weeks": 3
                 }
               ]
             }
@@ -625,6 +705,12 @@
               "id": "success",
               "text": "You name all eighteen players until the interview time runs out.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 3
+                },
                 {
                   "type": "squadMorale",
                   "amount": 6
@@ -661,6 +747,12 @@
               "text": "Supporters detour past the ground just to look at it. The next opponent arrives and reads it twice.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 4
+                },
+                {
                   "type": "squadMorale",
                   "amount": 7
                 },
@@ -681,6 +773,12 @@
               "text": "A storm knocks out the second digit. It now reads a much stranger result.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 90,
+                  "weeks": 4
+                },
+                {
                   "type": "money",
                   "amount": -250
                 }
@@ -698,6 +796,12 @@
               "id": "only",
               "text": "The operator photographs it, then resets it, then photographs it again.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 4
+                },
                 {
                   "type": "tp",
                   "amount": 7
@@ -734,6 +838,12 @@
               "text": "The far terrace fills, learns its own songs by half time, and starts answering the main stand.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 5
+                },
+                {
                   "type": "fans",
                   "amount": 200
                 },
@@ -753,6 +863,12 @@
               "id": "setback",
               "text": "Eleven people spread themselves across four hundred seats and enjoy the room.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 90,
+                  "weeks": 5
+                },
                 {
                   "type": "money",
                   "amount": -200
@@ -775,6 +891,12 @@
               "id": "only",
               "text": "The photograph goes in the programme. He buys forty copies for relatives.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 5
+                },
                 {
                   "type": "fans",
                   "amount": 55
@@ -959,6 +1081,12 @@
               "text": "You offer the same amount, and he signs a quick agreement before the rival scout returns.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 2
+                },
+                {
                   "type": "money",
                   "amount": -1000
                 },
@@ -979,6 +1107,12 @@
               "text": "He thanks you both, chooses neither, and moves to a club by the sea.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 90,
+                  "weeks": 2
+                },
+                {
                   "type": "money",
                   "amount": -250
                 }
@@ -996,6 +1130,12 @@
               "id": "only",
               "text": "Your scout spends the afternoon on someone cheaper and, he insists, better.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 2
+                },
                 {
                   "type": "tp",
                   "amount": 8
@@ -1018,10 +1158,7 @@
         "minWeek": 7,
         "maxWeek": 30,
         "requiresPlayer": true,
-        "requiresPlayerRoles": [
-          "MID",
-          "FWD"
-        ]
+        "requiresPlayerRoles": ["MID", "FWD"]
       },
       "choices": [
         {
@@ -1299,7 +1436,8 @@
       "trigger": {
         "season": 1,
         "minWeek": 5,
-        "maxWeek": 26
+        "maxWeek": 26,
+        "requiresFacility": ["stadium-stand"]
       },
       "choices": [
         {
@@ -1308,11 +1446,12 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 60,
+              "weight": 30,
               "id": "success",
               "successHeadline": "Nine supporters and one long ladder",
               "text": "Nine supporters, one ladder, and a Sunday. The roof holds, and everyone who helped now owns a small piece of the ground.",
               "effects": [
+                { "type": "facilityClosure", "weeks": 2 },
                 {
                   "type": "fans",
                   "amount": 90
@@ -1326,10 +1465,11 @@
               "nextEventId": "west-stand-reopening"
             },
             {
-              "weight": 40,
+              "weight": 70,
               "id": "setback",
               "text": "The patch survives one shower. A professional is called, and charges for the diagnosis too.",
               "effects": [
+                { "type": "facilityClosure", "weeks": 6 },
                 {
                   "type": "money",
                   "amount": -600
@@ -1348,6 +1488,7 @@
               "id": "only",
               "text": "It costs what it costs and is finished by Friday, dry and entirely unremarkable.",
               "effects": [
+                { "type": "facilityClosure", "weeks": 3 },
                 {
                   "type": "money",
                   "amount": -900
@@ -1375,7 +1516,8 @@
         "season": 1,
         "minWeek": 6,
         "maxWeek": 30,
-        "requiredFlag": "west-stand-dry"
+        "requiredFlag": "west-stand-dry",
+        "requiresFacility": ["stadium-stand"]
       },
       "choices": [
         {
@@ -1384,11 +1526,17 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 37,
               "id": "success",
               "successHeadline": "Four seats with nine names on them",
               "text": "Nine names go on a brass strip along four seats. Every one of them brings somebody new the following week.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 5
+                },
                 {
                   "type": "fans",
                   "amount": 150
@@ -1405,10 +1553,16 @@
               ]
             },
             {
-              "weight": 25,
+              "weight": 63,
               "id": "setback",
               "text": "The engraver misspells two names. Both men decide they prefer the new versions.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 95,
+                  "weeks": 5
+                },
                 {
                   "type": "fans",
                   "amount": 45
@@ -1427,6 +1581,12 @@
               "id": "only",
               "text": "They sell out in a morning, mostly to people who now check the roof out of habit.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 5
+                },
                 {
                   "type": "money",
                   "amount": 450
@@ -1466,6 +1626,12 @@
               "text": "Six voices become sixty by half time. The terrace has a sound now, and it is genuinely quite good.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 6
+                },
+                {
                   "type": "fans",
                   "amount": 115
                 },
@@ -1486,6 +1652,12 @@
               "text": "They attempt a key nobody can reach. The attempt itself becomes the joke of the season.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 90,
+                  "weeks": 6
+                },
+                {
                   "type": "fans",
                   "amount": 25
                 }
@@ -1503,6 +1675,12 @@
               "id": "only",
               "text": "They sing anyway, all afternoon, and are hoarse and happy by full time.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 6
+                },
                 {
                   "type": "squadMorale",
                   "amount": 4
@@ -1539,6 +1717,12 @@
               "text": "The full song is released and becomes a local hit. The boiler is now famous across the county.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 110,
+                  "weeks": 6
+                },
+                {
                   "type": "fans",
                   "amount": 165
                 },
@@ -1559,6 +1743,12 @@
               "text": "Four minutes proves to be three minutes too many. The chorus survives; the verse does not.",
               "effects": [
                 {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 90,
+                  "weeks": 6
+                },
+                {
                   "type": "fans",
                   "amount": 40
                 }
@@ -1576,6 +1766,12 @@
               "id": "only",
               "text": "The trimmed chorus is sung on the way out of every home game from then on.",
               "effects": [
+                {
+                  "type": "trainingModifier",
+                  "scope": "SQUAD",
+                  "multiplierPercent": 105,
+                  "weeks": 6
+                },
                 {
                   "type": "fans",
                   "amount": 70
@@ -3175,9 +3371,7 @@
         "season": 1,
         "minWeek": 4,
         "maxWeek": 30,
-        "requiresFacility": [
-          "training-pitch"
-        ]
+        "requiresFacility": ["training-pitch"]
       },
       "choices": [
         {
@@ -3418,9 +3612,7 @@
         "season": 1,
         "minWeek": 4,
         "maxWeek": 30,
-        "requiresFacility": [
-          "dorm"
-        ]
+        "requiresFacility": ["dorm"]
       },
       "choices": [
         {
@@ -3493,10 +3685,7 @@
         "season": 1,
         "minWeek": 4,
         "maxWeek": 30,
-        "requiresFacility": [
-          "stadium-stand",
-          "fan-shop"
-        ]
+        "requiresFacility": ["stadium-stand", "fan-shop"]
       },
       "choices": [
         {
