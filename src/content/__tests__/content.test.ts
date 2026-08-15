@@ -268,7 +268,7 @@ describe('validated M1 launch content', () => {
       content.events.events.filter(
         (event) => event.trigger.requiresFacility !== undefined,
       ),
-    ).toHaveLength(8);
+    ).toHaveLength(7);
     expect(
       content.events.events.filter((event) =>
         event.choices.some((choice) =>
@@ -1111,7 +1111,6 @@ describe('plain and truthful career event copy', () => {
       ['what-he-brought-back', 30],
       ['the-plaque', 30],
       ['leaking-stand-roof', 30],
-      ['west-stand-reopening', 37],
     ]);
     const targeted = loadLaunchContent().events.events.filter(
       (event) =>

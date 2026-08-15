@@ -530,7 +530,7 @@ export function reportSurvivesUntil(
   )
     return false;
   const expiryWeek =
-    report.completedWeek <= 4 ? 5 : report.completedWeek <= 18 ? 19 : 31;
+    report.completedWeek <= 4 ? 5 : report.completedWeek <= 18 ? 19 : 30;
   return state.week + durationWeeks < expiryWeek;
 }
 

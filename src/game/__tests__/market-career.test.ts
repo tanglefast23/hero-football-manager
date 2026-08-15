@@ -1676,6 +1676,40 @@ describe('career market integration', () => {
     });
   });
 
+  test('refuses a detailed report that would expire at season end', () => {
+    const state = { ...createCareer(createLaunchCareerSetup(186)), week: 28 };
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const range = { minimum: 40, maximum: 60 };
+    const market = {
+      ...state.market!,
+      scoutReports: [
+        {
+          playerId: target.id,
+          role: target.role,
+          age: target.age ?? 22,
+          statRanges: {
+            pac: range,
+            sho: range,
+            pas: range,
+            def: range,
+            tec: range,
+            sta: range,
+            ref: range,
+          },
+          potentialRange: { minimum: 2 as const, maximum: 4 as const },
+          completedSeason: 1,
+          completedWeek: 19,
+        },
+      ],
+    };
+
+    expect(() =>
+      startDetailedScoutReport(state, market, target.id, 5),
+    ).toThrow(/transfer window closes before this report can finish/);
+  });
+
   test('lets transfer-requested players attract extra bids in the final week', () => {
     const initial = { ...createCareer(createLaunchCareerSetup(87)), week: 18 };
     const starters = new Set(
