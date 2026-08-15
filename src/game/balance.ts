@@ -248,6 +248,10 @@ function simulateSeasonOne(
   if (userClub === undefined)
     throw new Error(`balance harness lost user club ${state.userClubId}`);
 
+  // `state.ledgers` holds the last RETAINED_LEDGER_SEASONS (20) seasons, not the
+  // whole career. Every rail here drives fifteen seasons or fewer, so the two
+  // career-wide reductions below still see everything they settled. A longer
+  // rail would need the trim raised, or these totals banked as they settle.
   return {
     endingCash: userClub.cash,
     minimumBalance: state.ledgers.reduce(

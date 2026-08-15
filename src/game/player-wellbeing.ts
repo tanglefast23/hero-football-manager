@@ -18,7 +18,7 @@ import type {
   GameState,
   LeagueFixture,
 } from './types';
-import type { DivisionLevel } from './pyramid';
+import type { DivisionLevel, PyramidClub } from './pyramid';
 
 const WEEKLY_CONDITION_RECOVERY = 10;
 export const OVERTRAINING_CONDITION_THRESHOLD = 30;
@@ -57,6 +57,27 @@ export function applyMatchConditionCosts(
     results.map((result) => [result.fixtureId, result]),
   );
 
+  // Built once for the whole settlement rather than per club. Both indexes used
+  // to be rebuilt inside `addClubMatchCosts`, which runs twice per fixture and
+  // every week: one map over every player in the save, and a flat-map over
+  // every club in the pyramid to find one of them.
+  //
+  // `state.players` wins where an id appears in both, exactly as the per-club
+  // version did — the pyramid squads only fill in ids the roster does not hold.
+  const playerClubById = new Map(
+    state.players.map((player) => [player.id, player.clubId]),
+  );
+  const pyramidClubById = new Map<string, PyramidClub>();
+  for (const division of state.m2?.pyramid.divisions ?? []) {
+    for (const club of division.clubs) {
+      pyramidClubById.set(club.id, club);
+      for (const player of club.squad) {
+        if (!playerClubById.has(player.id))
+          playerClubById.set(player.id, player.clubId);
+      }
+    }
+  }
+
   for (const fixture of fixtures) {
     const result = resultByFixtureId.get(fixture.id);
     if (result === undefined) continue;
@@ -64,13 +85,21 @@ export function applyMatchConditionCosts(
       state,
       fixture.homeClubId,
       result.homeParticipantPlayerIds,
-      costs,
+      {
+        costs,
+        playerClubById,
+        pyramidClubById,
+      },
     );
     addClubMatchCosts(
       state,
       fixture.awayClubId,
       result.awayParticipantPlayerIds,
-      costs,
+      {
+        costs,
+        playerClubById,
+        pyramidClubById,
+      },
     );
   }
 
@@ -108,22 +137,20 @@ export function applyMatchConditionCosts(
   };
 }
 
+interface MatchCostIndexes {
+  readonly costs: Map<string, number>;
+  readonly playerClubById: ReadonlyMap<string, string>;
+  readonly pyramidClubById: ReadonlyMap<string, PyramidClub>;
+}
+
 function addClubMatchCosts(
   state: GameState,
   clubId: string,
   suppliedParticipantIds: readonly string[] | undefined,
-  costs: Map<string, number>,
+  indexes: MatchCostIndexes,
 ): void {
-  const playerClubById = new Map(
-    state.players.map((player) => [player.id, player.clubId]),
-  );
-  const pyramidClub = state.m2?.pyramid.divisions
-    .flatMap((division) => division.clubs)
-    .find((club) => club.id === clubId);
-  for (const player of pyramidClub?.squad ?? []) {
-    if (!playerClubById.has(player.id))
-      playerClubById.set(player.id, player.clubId);
-  }
+  const { costs, playerClubById, pyramidClubById } = indexes;
+  const pyramidClub = pyramidClubById.get(clubId);
   const participantIds =
     suppliedParticipantIds ??
     state.lineups.find((lineup) => lineup.clubId === clubId)?.playerIds ??

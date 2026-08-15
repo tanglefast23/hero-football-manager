@@ -428,8 +428,13 @@ export function awakeningCutsceneViewModel(
  * and made a home gate — the club's largest income, and only ever a ledger line
  * — vanish the moment the next week settled. Four covers a home/away pair plus
  * the four-weekly sponsor payment, so every recurring rhythm appears at least
- * once. `state.ledgers` is append-only and never trimmed, so this is purely a
- * display window.
+ * once.
+ *
+ * This is purely a display window. It is not the only limit on ledger history,
+ * though: `state.ledgers` is trimmed to the last `RETAINED_LEDGER_SEASONS`
+ * (20) seasons in `career.ts`, so a reader that walks the whole array is
+ * reading twenty seasons, not the whole career. That matters only past season
+ * 20, and nothing on this screen reaches back that far.
  */
 const STATEMENT_WEEKS = 4;
 

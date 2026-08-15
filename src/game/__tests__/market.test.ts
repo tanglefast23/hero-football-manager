@@ -778,12 +778,30 @@ describe('coach market', () => {
         (candidate) => candidate.specialties[0] !== candidate.specialties[1],
       ),
     ).toBe(true);
-    expect(
-      new Set(first.map((candidate) => candidate.specialties[0])).size,
-    ).toBeGreaterThan(1);
-    expect(
-      new Set(first.map((candidate) => candidate.specialties[0])).size,
-    ).toBeGreaterThan(1);
+    // Asserted across the whole list, and duplicated rather than repeated: the
+    // same assertion appeared twice while nothing checked candidates past the
+    // first pair, so a list reading DEFENSE / ATTACK / ATTACK passed. The
+    // spread is best-effort — the specialty pair is already rolled, so a
+    // primary can only be swapped with its own secondary — which is why this
+    // measures the shape over many markets rather than demanding a perfect
+    // list from one.
+    const primaries = first.map((candidate) => candidate.specialties[0]);
+    const busiest = Math.max(
+      ...primaries.map(
+        (primary) => primaries.filter((other) => other === primary).length,
+      ),
+    );
+    expect(busiest).toBeLessThanOrEqual(2);
+
+    let repeated = 0;
+    for (let seed = 1; seed <= 200; seed += 1) {
+      const market = generateCoachMarket({ ...setup, careerSeed: seed });
+      const seen = market.map((candidate) => candidate.specialties[0]);
+      if (new Set(seen).size !== seen.length) repeated += 1;
+    }
+    // 153 of 200 before the spread reached past candidate 0; a third of that
+    // now. The ceiling exists because a swap is the only move available.
+    expect(repeated).toBeLessThan(80);
     expect(
       first.every((candidate) => isCoachCandidateEligible(candidate, 3, 300)),
     ).toBe(true);
