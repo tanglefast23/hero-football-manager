@@ -757,7 +757,10 @@ export function TrainingDrillModal({
               {injured ? (
                 <View className="mt-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
                   <Text className="font-pixel text-base uppercase text-red-dark">
-                    OUT · {injuryWeeks} {injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+                    {t('squadTraining.outForWeeks', {
+                      n: injuryWeeks,
+                      count: injuryWeeks,
+                    })}
                   </Text>
                   <Text className="mt-1 text-sm text-ink/70">
                     {t('trainingDrill.noTrainingUntilTheyRecover')}
@@ -819,10 +822,10 @@ export function TrainingDrillModal({
                       {t('trainingDrill.pulledUp')}
                     </Text>
                     <Text className="mt-2 text-center font-pixel text-base uppercase text-ink">
-                      OUT · {activeResult.injury.recoveryWeeks}{' '}
-                      {activeResult.injury.recoveryWeeks === 1
-                        ? 'WEEK'
-                        : 'WEEKS'}
+                      {t('squadTraining.outForWeeks', {
+                        n: activeResult.injury.recoveryWeeks,
+                        count: activeResult.injury.recoveryWeeks,
+                      })}
                     </Text>
                     <Text className="mt-2 text-center text-sm text-ink/70">
                       {t('trainingDrill.theDrillStillCounted')}

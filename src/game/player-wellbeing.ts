@@ -34,7 +34,7 @@ export const OVERTRAINING_CONDITION_THRESHOLD = 30;
 export const DORM_CONDITION_RECOVERY_PER_LEVEL = 3;
 const MATCH_CONDITION_COST_BY_DIVISION: Readonly<
   Record<DivisionLevel, number>
-> = { 5: 4, 4: 6, 3: 8, 2: 10, 1: 12 };
+> = { 5: 4, 4: 6, 3: 8, 2: 12, 1: 14 };
 
 /** A played match costs more condition in each stronger division. */
 export function matchConditionCost(division: DivisionLevel): number {

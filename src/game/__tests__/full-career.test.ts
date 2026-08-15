@@ -148,15 +148,20 @@ describe('full M2 career clock', () => {
     expect(resumed.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
   });
 
-  test('carries the request clock across the break but drops leave and effects', () => {
+  test('carries the request clock, leave, and timed effects across the break', () => {
     // The cadence floor is a cooldown between requests, not a barrier at the
     // start of a season. Resetting this to 0 made it bite twice and silenced
-    // the whole pre-season, which is shorter than the floor. Effects and leave
-    // still go: both are measured in weeks against a season that has ended.
+    // the whole pre-season. Timed choices now keep counting in real weeks.
     const initial = createCareer({ ...createLaunchCareerSetup(78) });
+    const awayPlayer = initial.players.find(
+      (player) => player.clubId === initial.userClubId,
+    )!;
     const seasonEnd = {
       ...initial,
       phase: 'season-end' as const,
+      players: initial.players.map((player) =>
+        player.id === awayPlayer.id ? { ...player, awayWeeks: 2 } : player,
+      ),
       playerRequests: {
         weeksSinceRequest: 9,
         effects: [
@@ -177,7 +182,12 @@ describe('full M2 career clock', () => {
     const next = startNextSeason(seasonEnd);
 
     expect(next.playerRequests!.weeksSinceRequest).toBe(9);
-    expect(next.playerRequests!.effects).toEqual([]);
+    expect(next.playerRequests!.effects).toEqual(
+      seasonEnd.playerRequests.effects,
+    );
+    expect(
+      next.players.find((player) => player.id === awayPlayer.id)?.awayWeeks,
+    ).toBe(2);
   });
 
   test('starts an endless next season with an active ten-club division', () => {
@@ -523,7 +533,28 @@ describe('full M2 career clock', () => {
     expect(buildCareerTeamDef(first, first.userClubId).players).toHaveLength(
       11,
     );
+    const academyPlayers = userPlayers.filter((player) =>
+      player.id.includes('-academy-s'),
+    );
+    expect(academyPlayers).not.toHaveLength(0);
+    expect(
+      academyPlayers.every((player) => !player.name.includes('Academy')),
+    ).toBe(true);
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
+
+    const legacyAcademyPlayer = academyPlayers[0];
+    const reconciled = enableFullCareer({
+      ...first,
+      players: first.players.map((player) =>
+        player.id === legacyAcademyPlayer.id
+          ? { ...player, name: 'Kai Academy 1' }
+          : player,
+      ),
+    });
+    expect(
+      reconciled.players.find((player) => player.id === legacyAcademyPlayer.id)
+        ?.name,
+    ).toBe(legacyAcademyPlayer.name);
   });
 
   test('cold-relaunches multiple season transitions without restoring launch rosters', () => {

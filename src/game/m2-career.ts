@@ -534,6 +534,8 @@ const DEFAULT_OPPONENT_GROWTH: OpponentGrowthRules = {
   opponentGrowthAttributeCap: 700,
 };
 
+const WEAKEST_D1_CATCH_UP = 1;
+
 export function planEndlessCareerSeasonTransition(
   state: M2CareerState,
   completedSeason: number,
@@ -554,16 +556,21 @@ export function planEndlessCareerSeasonTransition(
     ),
     pyramid: {
       ...state.pyramid,
-      divisions: state.pyramid.divisions.map((candidate) => ({
-        ...candidate,
-        clubs: candidate.clubs.map((club) =>
-          club.id === state.userClubId
-            ? cloneClub(club)
-            : applyGrowth
-              ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
-              : cloneClub(club),
-        ),
-      })),
+      divisions: catchUpWeakestD1Club(
+        state.pyramid.divisions.map((candidate) => ({
+          ...candidate,
+          clubs: candidate.clubs.map((club) =>
+            club.id === state.userClubId
+              ? cloneClub(club)
+              : applyGrowth
+                ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
+                : cloneClub(club),
+          ),
+        })),
+        state.userClubId,
+        applyGrowth,
+        growth.opponentGrowthAttributeCap,
+      ),
     },
   };
   const division = currentUserDivision(advancedState);
@@ -774,6 +781,42 @@ function scaleOpponentClub(
     squadStrength: clubSquadStrength(squad),
     squad,
   };
+}
+
+function catchUpWeakestD1Club(
+  divisions: LeaguePyramid['divisions'],
+  userClubId: string,
+  applyGrowth: boolean,
+  attributeCap: number,
+): LeaguePyramid['divisions'] {
+  if (!applyGrowth) return divisions;
+  const divisionOne = divisions.find((division) => division.level === 1)!;
+  const weakest = divisionOne.clubs
+    .filter((club) => club.id !== userClubId)
+    .sort(
+      (left, right) =>
+        left.squadStrength - right.squadStrength ||
+        compareIds(left.id, right.id),
+    )[0];
+  if (weakest === undefined) return divisions;
+  return divisions.map((division) => ({
+    ...division,
+    clubs: division.clubs.map((club) => {
+      if (club.id !== weakest.id) return club;
+      const squad = club.squad.map((player) => {
+        const attrs = { ...player.attrs };
+        for (const attribute of ATTR_KEYS) {
+          attrs[attribute] = Math.min(
+            MAX_PLAYER_ATTRIBUTE,
+            attributeCap,
+            player.attrs[attribute] + WEAKEST_D1_CATCH_UP,
+          );
+        }
+        return { ...player, attrs };
+      });
+      return { ...club, squad, squadStrength: clubSquadStrength(squad) };
+    }),
+  }));
 }
 
 function growOpponentAttrs(

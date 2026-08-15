@@ -29,7 +29,7 @@ describe('countUpValue', () => {
     expect(drillPresentationMs(3_400)).toBe(2_720);
   });
 
-  it('keeps weekly money/TP animated, and drills counting up in the drill scene', () => {
+  it('keeps report totals exact, and drills counting up in the drill scene', () => {
     const review = readFileSync(
       join(process.cwd(), 'src/ui/screens/WeeklyReviewScreen.tsx'),
       'utf8',
@@ -51,17 +51,9 @@ describe('countUpValue', () => {
       'utf8',
     );
 
-    expect(review).toContain('countUpValue(to - from, progress)');
-    expect(review.match(/playLedgerSpin\(\)/g) ?? []).toHaveLength(1);
-    expect(review).toContain(
-      'setTimeout(stopLedgerSpin, WEEKLY_MONEY_COUNT_MS)',
-    );
-    expect(review.match(/WEEKLY_MONEY_COUNT_MS,/g) ?? []).toHaveLength(3);
-    expect(review).not.toMatch(
-      /useCelebratoryNumber\([\s\S]{0,100}?,\s*(850|900),/,
-    );
-    expect(review).toContain('viewModel.cashBefore === viewModel.cashAfter');
-    expect(review).toContain('stopLedgerSpin();');
+    expect(review).not.toContain('countUpValue');
+    expect(review).not.toContain('playLedgerSpin');
+    expect(review).toContain('formatCurrency(t, viewModel.cashAfter)');
     // Development left the weekly review: gains animate in the drill scene now.
     expect(review).not.toContain('PlayerDevelopmentSpotlight');
     // The popup delegates the result beat to the sprite scene, then the SUPER

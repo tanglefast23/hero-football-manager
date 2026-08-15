@@ -756,7 +756,7 @@ export interface ClubFacilityBuildingViewModel {
   canUpgrade: boolean;
   upgradeShortfall: number;
   relocationFee: number;
-  status: 'operational' | 'construction' | 'upgrading';
+  status: 'operational' | 'construction' | 'upgrading' | 'closed';
   weeksRemaining?: number;
   targetLevel?: 1 | 2 | 3;
   canRelocate: boolean;

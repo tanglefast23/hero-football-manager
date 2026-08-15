@@ -122,6 +122,23 @@ describe('event effect gates', () => {
     ).toBe(false);
   });
 
+  it('keeps rare and legendary stories to one appearance per career', () => {
+    expect(
+      GameEventSchema.safeParse({
+        ...BASE_EVENT,
+        rarity: 'rare',
+        trigger: { ...BASE_EVENT.trigger, repeatable: true },
+      }).success,
+    ).toBe(false);
+    expect(
+      GameEventSchema.safeParse({
+        ...BASE_EVENT,
+        rarity: 'legendary',
+        trigger: { ...BASE_EVENT.trigger, repeatable: true },
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects a player effect on an event that never asks for a player', () => {
     for (const effect of [
       { type: 'morale', amount: 5 },
@@ -188,8 +205,8 @@ describe('event effect gates', () => {
         ),
     );
 
-    // 43 before the cut; 16 migrated events and Giant Spider left the catalog,
-    // then the retired heavy-defeat interruption removed its three outcomes.
-    expect(squadMoraleEffects).toHaveLength(23);
+    // The remaining 17 are attached to real targeted or lasting choices. The
+    // shallow mood-only stories were removed or given sporting consequences.
+    expect(squadMoraleEffects).toHaveLength(17);
   });
 });

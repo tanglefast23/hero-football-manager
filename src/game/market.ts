@@ -3,6 +3,7 @@ import type { Attrs, PowerId, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import coachIdentityData from './coach-identities.json';
 import { compareIds } from './ordering';
+import { roleOverall } from './archetype-caps';
 import {
   CLUB_LEGEND_MIN_FAME,
   DIVISION_SUPPORT_STRENGTHS,
@@ -46,11 +47,15 @@ export type PlayerPersonality =
 export type ScoutRegion =
   'LOCAL' | 'EUROPE' | 'SOUTH_AMERICA' | 'AFRICA' | 'ASIA';
 
+export type ScoutProspectType =
+  'IMMEDIATE_STARTER' | 'YOUNG_PROSPECT' | 'SPECIALIST' | 'BARGAIN';
+
 export type ScoutFocus =
   | { kind: 'POSITION'; role: Role }
   | { kind: 'AGE'; minimumAge: number; maximumAge: number }
   | { kind: 'ELITE_PROSPECT' }
-  | { kind: 'RUMORED_HERO' };
+  | { kind: 'RUMORED_HERO' }
+  | { kind: 'PROFILE'; prospectType: ScoutProspectType; role?: Role };
 
 export interface ScoutablePlayer {
   readonly id: string;
@@ -63,6 +68,8 @@ export interface ScoutablePlayer {
   readonly power?: PowerId;
   readonly powerTier?: number;
   readonly contractSeasonsRemaining: number;
+  /** Transient source division used only to compare bargain value. */
+  readonly sellingClubDivision?: number;
 }
 
 interface ScoutMissionSetup {
@@ -74,6 +81,7 @@ interface ScoutMissionSetup {
   readonly focus: ScoutFocus;
   readonly scoutOfficeLevel: number;
   readonly division: number;
+  readonly starterScores?: Readonly<Partial<Record<Role, number>>>;
 }
 
 export interface ScoutMission {
@@ -85,6 +93,8 @@ export interface ScoutMission {
   readonly region: ScoutRegion;
   readonly focus: ScoutFocus;
   readonly scoutOfficeLevel: number;
+  /** Same-role strength when the mission began, for Immediate Starter searches. */
+  readonly starterScores?: Readonly<Partial<Record<Role, number>>>;
 }
 
 interface ScoutedRange {
@@ -107,6 +117,9 @@ export interface ScoutReport {
   readonly powerTier?: number;
   /** A rare hero-focus hit without revealing the exact power below office level 3. */
   readonly rumoredHeroLead?: true;
+  /** Saved by the career wrapper so reports from different missions can coexist. */
+  readonly completedSeason?: number;
+  readonly completedWeek?: number;
 }
 
 export interface ScoutMissionResult {
@@ -136,10 +149,12 @@ export function scoutMissionCost(
       ? 2500
       : focus.kind === 'ELITE_PROSPECT'
         ? 1500
-        : focus.kind === 'AGE'
-          ? 500
-          : 0;
-  return Math.min(5000, regionCost + focusCost);
+        : focus.kind === 'PROFILE'
+          ? 1000 + (focus.role === undefined ? 0 : 750)
+          : focus.kind === 'AGE'
+            ? 500
+            : 0;
+  return regionCost + focusCost;
 }
 
 export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
@@ -165,7 +180,10 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
     setup.careerSeed,
     `${setup.missionId}:${setup.region}:${scoutFocusKey(setup.focus)}`,
   );
-  const durationWeeks = 2 + deterministicRoll(missionSeed, 'duration', 2);
+  const durationWeeks =
+    2 +
+    deterministicRoll(missionSeed, 'duration', 2) +
+    (setup.focus.kind === 'PROFILE' && setup.focus.role !== undefined ? 1 : 0);
 
   return {
     id: setup.missionId,
@@ -176,6 +194,9 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
     region: setup.region,
     focus: { ...setup.focus },
     scoutOfficeLevel: setup.scoutOfficeLevel,
+    ...(setup.starterScores === undefined
+      ? {}
+      : { starterScores: { ...setup.starterScores } }),
   };
 }
 
@@ -219,7 +240,9 @@ export function resolveScoutMission(
           mission.missionSeed,
           random,
         )
-      : shuffledShortlist(eligible, shortlistSize, random);
+      : mission.focus.kind === 'PROFILE'
+        ? profileShortlist(eligible, shortlistSize, mission, random)
+        : shuffledShortlist(eligible, shortlistSize, random);
 
   return {
     missionId: mission.id,
@@ -230,12 +253,12 @@ export function resolveScoutMission(
       age: candidate.age,
       statRanges: scoutAttributeRanges(
         candidate.attrs,
-        mission.scoutOfficeLevel,
+        Math.max(1, mission.scoutOfficeLevel),
         mixSeed(mission.missionSeed, candidate.id),
       ),
       potentialRange: scoutingRange(
         candidate.potential,
-        mission.scoutOfficeLevel === 1
+        mission.scoutOfficeLevel <= 1
           ? 2
           : mission.scoutOfficeLevel === 2
             ? 1
@@ -261,6 +284,55 @@ function shuffledShortlist(
 ): ScoutablePlayer[] {
   shuffleInPlace(eligible, random);
   return eligible.slice(0, shortlistSize);
+}
+
+function profileShortlist(
+  eligible: ScoutablePlayer[],
+  shortlistSize: number,
+  mission: ScoutMission,
+  random: () => number,
+): ScoutablePlayer[] {
+  const focus = mission.focus;
+  if (focus.kind !== 'PROFILE')
+    return shuffledShortlist(eligible, shortlistSize, random);
+  eligible.sort(
+    (left, right) =>
+      profileScore(right, focus.prospectType, mission.starterScores) -
+        profileScore(left, focus.prospectType, mission.starterScores) ||
+      compareIds(left.id, right.id),
+  );
+  const band = eligible.slice(0, Math.max(shortlistSize, shortlistSize * 4));
+  shuffleInPlace(band, random);
+  return band.slice(0, shortlistSize);
+}
+
+function profileScore(
+  player: ScoutablePlayer,
+  type: ScoutProspectType,
+  starterScores: Readonly<Partial<Record<Role, number>>> | undefined,
+): number {
+  const overall = roleOverall(player.role, player.attrs);
+  if (type === 'IMMEDIATE_STARTER') {
+    return overall - (starterScores?.[player.role] ?? overall);
+  }
+  if (type === 'YOUNG_PROSPECT') {
+    return player.potential * 1000 + overall;
+  }
+  if (type === 'SPECIALIST') {
+    const relevant =
+      player.role === 'GK'
+        ? [player.attrs.ref, player.attrs.def, player.attrs.pas]
+        : player.role === 'DEF'
+          ? [player.attrs.def, player.attrs.sta, player.attrs.pac]
+          : player.role === 'MID'
+            ? [player.attrs.pas, player.attrs.tec, player.attrs.def]
+            : [player.attrs.sho, player.attrs.pac, player.attrs.tec];
+    return Math.max(...relevant) * 100 - Math.round(overall);
+  }
+  const value = playerValuation(player, player.sellingClubDivision ?? 5);
+  return Math.round(
+    ((overall + player.potential * 5) * 100000) / Math.max(1, value),
+  );
 }
 
 function rumoredHeroShortlist(
@@ -1546,6 +1618,12 @@ function matchesScoutFocus(
   if (focus.kind === 'ELITE_PROSPECT') {
     return candidate.age <= 23 && candidate.potential >= 4;
   }
+  if (focus.kind === 'PROFILE') {
+    return (
+      (focus.role === undefined || candidate.role === focus.role) &&
+      (focus.prospectType !== 'YOUNG_PROSPECT' || candidate.age <= 21)
+    );
+  }
   // A rumor mission searches the whole region. It does not manufacture a hero;
   // pre-powered finds remain rare because only real candidates can be reported.
   return true;
@@ -1618,9 +1696,9 @@ function validateScoutMission(mission: ScoutMission): void {
   assertPositiveSafeInteger(mission.dueWeek, 'scouting due week');
   if (
     mission.dueWeek - mission.startWeek < 2 ||
-    mission.dueWeek - mission.startWeek > 3
+    mission.dueWeek - mission.startWeek > 4
   ) {
-    throw new Error('scouting missions must take 2 or 3 weeks');
+    throw new Error('scouting missions must take 2 to 4 weeks');
   }
   assertPositiveSafeInteger(mission.cost, 'scouting mission cost');
   validateScoutOfficeLevel(mission.scoutOfficeLevel);
@@ -1646,6 +1724,21 @@ function validateScoutFocus(focus: ScoutFocus): void {
     }
     return;
   }
+  if (focus.kind === 'PROFILE') {
+    if (
+      ![
+        'IMMEDIATE_STARTER',
+        'YOUNG_PROSPECT',
+        'SPECIALIST',
+        'BARGAIN',
+      ].includes(focus.prospectType) ||
+      (focus.role !== undefined &&
+        !['GK', 'DEF', 'MID', 'FWD'].includes(focus.role))
+    ) {
+      throw new Error('scouting profile focus is invalid');
+    }
+    return;
+  }
   if (focus.kind !== 'RUMORED_HERO' && focus.kind !== 'ELITE_PROSPECT') {
     throw new Error('unknown scouting focus');
   }
@@ -1653,14 +1746,16 @@ function validateScoutFocus(focus: ScoutFocus): void {
 
 function scoutFocusKey(focus: ScoutFocus): string {
   if (focus.kind === 'POSITION') return `${focus.kind}:${focus.role}`;
+  if (focus.kind === 'PROFILE')
+    return `${focus.kind}:${focus.prospectType}:${focus.role ?? 'ANY'}`;
   if (focus.kind === 'AGE')
     return `${focus.kind}:${focus.minimumAge}-${focus.maximumAge}`;
   return focus.kind;
 }
 
 function validateScoutOfficeLevel(level: number): void {
-  if (!Number.isSafeInteger(level) || level < 1 || level > 3) {
-    throw new Error('Scout Office level must be an integer from 1 to 3');
+  if (!Number.isSafeInteger(level) || level < 0 || level > 3) {
+    throw new Error('Scout Office level must be an integer from 0 to 3');
   }
 }
 

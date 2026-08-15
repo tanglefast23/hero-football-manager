@@ -23,9 +23,12 @@ import {
 import type { CareerPlayer, GameState } from './types';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 import { roleOverall } from './archetype-caps';
+import { deterministicCareerEventRoll } from './event-clock';
 
 const DEFAULT_HERO_LIMIT = 2;
 const TRAINING_GROUND_COST = 8000;
+const STRONGEST_D1_OFF_DAY_CHANCE_PERCENT = 20;
+const STRONGEST_D1_OFF_DAY_ATTRIBUTE_PERCENT = 97;
 /** Hero License field cap earned by climbing the national pyramid. */
 export function careerHeroLimit(state: GameState): number {
   if (state.m2 === undefined) return DEFAULT_HERO_LIMIT;
@@ -96,7 +99,7 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
         ),
     careerHeroLimit(state),
   );
-  if (clubId !== state.userClubId) return team;
+  if (clubId !== state.userClubId) return applyStrongestD1OffDay(state, team);
   const headCoach = state.market?.headCoach;
   const assistantCoach = state.market?.assistantCoach;
   const headBonus =
@@ -111,6 +114,58 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
   return heroGaugeBonusPercent === 0
     ? team
     : { ...team, heroGaugeRatePercent: 100 + heroGaugeBonusPercent };
+}
+
+function applyStrongestD1OffDay(state: GameState, team: TeamDef): TeamDef {
+  const divisionOne = state.m2?.pyramid.divisions.find(
+    (division) => division.level === 1,
+  );
+  if (
+    divisionOne === undefined ||
+    !divisionOne.clubs.some((club) => club.id === state.userClubId)
+  ) {
+    return team;
+  }
+  const strongest = divisionOne.clubs
+    .filter((club) => club.id !== state.userClubId)
+    .sort(
+      (left, right) =>
+        right.squadStrength - left.squadStrength ||
+        compareIds(left.id, right.id),
+    )[0];
+  if (
+    strongest?.id !== team.id ||
+    deterministicCareerEventRoll(
+      {
+        careerSeed: state.careerSeed,
+        season: state.season,
+        week: state.week,
+        riskyChoices: 0,
+      },
+      `strongest-d1-off-day:${team.id}`,
+      0,
+      100,
+    ) >= STRONGEST_D1_OFF_DAY_CHANCE_PERCENT
+  ) {
+    return team;
+  }
+  const soften = (player: TeamDef['players'][number]) => {
+    const attrs = { ...player.attrs };
+    for (const attribute of Object.keys(attrs) as Array<keyof typeof attrs>) {
+      attrs[attribute] = Math.max(
+        1,
+        Math.round(
+          (attrs[attribute] * STRONGEST_D1_OFF_DAY_ATTRIBUTE_PERCENT) / 100,
+        ),
+      );
+    }
+    return { ...player, attrs };
+  };
+  return {
+    ...team,
+    players: team.players.map(soften),
+    bench: team.bench?.map(soften),
+  };
 }
 
 export function buildCareerTeams(

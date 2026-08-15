@@ -133,6 +133,12 @@ interface CareerRenewalTalks {
   readonly consequenceApplied?: boolean;
 }
 
+export interface DetailedScoutReportMission {
+  readonly playerId: string;
+  readonly dueWeek: number;
+  readonly cost: number;
+}
+
 /** Plain M2 market state designed to live inside a schema-versioned career save. */
 export interface CareerMarketState {
   readonly nextMissionNumber: number;
@@ -140,6 +146,7 @@ export interface CareerMarketState {
   /** The active first mission was covered by the scout's one-time favor. */
   readonly activeScoutMissionFeeWaived?: boolean;
   readonly scoutReports: readonly ScoutReport[];
+  readonly detailedScoutReport?: DetailedScoutReportMission;
   readonly coachCandidates: readonly CoachCandidate[];
   readonly headCoach?: CoachCandidate;
   readonly headCoachSeasonsEmployed?: number;
@@ -282,8 +289,22 @@ export function startCareerScoutMission(
     startWeek: absoluteCareerWeek(state),
     region,
     focus,
-    scoutOfficeLevel: scoutReportLevel(state),
+    scoutOfficeLevel: scoutOfficeLevel(state),
     division,
+    starterScores: Object.fromEntries(
+      (['GK', 'DEF', 'MID', 'FWD'] as const).map((role) => [
+        role,
+        Math.max(
+          0,
+          ...state.players
+            .filter(
+              (player) =>
+                player.clubId === state.userClubId && player.role === role,
+            )
+            .map((player) => roleOverall(role, player.attrs)),
+        ),
+      ]),
+    ),
   });
   const club = userClub(state);
   const feeWaived = club.cash < mission.cost && market.nextMissionNumber === 1;
@@ -325,70 +346,192 @@ export function resolveCareerScoutClock(
   state: GameState,
   market: CareerMarketState,
 ): CareerMarketState {
-  const currentMarket = expireCareerTransferTalks(
+  let currentMarket = expireCareerScoutReports(
     state,
-    expireCareerTransferListings(state, market),
+    expireCareerTransferTalks(
+      state,
+      expireCareerTransferListings(state, market),
+    ),
   );
+  const detail = currentMarket.detailedScoutReport;
+  if (detail !== undefined && absoluteCareerWeek(state) >= detail.dueWeek) {
+    const target = careerTransferTarget(state, detail.playerId);
+    currentMarket = {
+      ...currentMarket,
+      detailedScoutReport: undefined,
+      scoutReports:
+        target === undefined
+          ? currentMarket.scoutReports
+          : currentMarket.scoutReports.map((report) =>
+              report.playerId === detail.playerId
+                ? {
+                    ...report,
+                    potentialRange: {
+                      minimum: target.player.potential ?? 3,
+                      maximum: target.player.potential ?? 3,
+                    },
+                  }
+                : report,
+            ),
+    };
+  }
   const mission = currentMarket.activeScoutMission;
   if (mission === undefined || absoluteCareerWeek(state) < mission.dueWeek)
     return currentMarket;
   const candidates = scoutableCareerPlayers(state);
-  const shortlistSize = scoutShortlistSize(scoutOfficeLevel(state));
-  let result = resolveScoutMission(
+  const shortlistSize = scoutShortlistSize(mission.scoutOfficeLevel);
+  const result = resolveScoutMission(
     mission,
     absoluteCareerWeek(state),
     candidates,
     shortlistSize,
   );
-  if (mission.missionSeed % 100 < 35) {
-    const bestByRole = new Map(
-      (['GK', 'DEF', 'MID', 'FWD'] as const).map((role) => [
-        role,
-        Math.max(
-          ...state.players
-            .filter(
-              (player) =>
-                player.clubId === state.userClubId && player.role === role,
-            )
-            .map((player) => roleOverall(role, player.attrs)),
-        ),
-      ]),
-    );
-    const upgrades = new Set(
-      candidates
-        .filter(
-          (candidate) =>
-            roleOverall(candidate.role, candidate.attrs) >
-            (bestByRole.get(candidate.role) ?? -Infinity),
-        )
-        .map((candidate) => candidate.id),
-    );
-    if (!result.reports.some((report) => upgrades.has(report.playerId))) {
-      const upgrade = resolveScoutMission(
-        mission,
-        absoluteCareerWeek(state),
-        candidates.filter((candidate) => upgrades.has(candidate.id)),
-        1,
-      ).reports[0];
-      if (upgrade !== undefined) {
-        result = {
-          ...result,
-          reports: [
-            upgrade,
-            ...result.reports.filter(
-              (report) => report.playerId !== upgrade.playerId,
-            ),
-          ].slice(0, shortlistSize),
-        };
-      }
-    }
-  }
+  const completed = result.reports.map((report) => ({
+    ...report,
+    completedSeason: state.season,
+    completedWeek: state.week,
+  }));
+  const newIds = new Set(completed.map((report) => report.playerId));
   return {
     ...currentMarket,
     activeScoutMission: undefined,
     activeScoutMissionFeeWaived: undefined,
-    scoutReports: result.reports,
+    scoutReports: [
+      ...currentMarket.scoutReports.filter(
+        (report) => !newIds.has(report.playerId),
+      ),
+      ...completed,
+    ],
   };
+}
+
+export function expireCareerScoutReports(
+  state: Pick<GameState, 'season' | 'week' | 'phase'>,
+  market: CareerMarketState,
+): CareerMarketState {
+  const reports = market.scoutReports.filter((report) => {
+    if (
+      report.completedSeason === undefined ||
+      report.completedWeek === undefined
+    )
+      return false;
+    if (report.completedSeason !== state.season) return false;
+    if (report.completedWeek <= 4) return state.week < 5;
+    if (report.completedWeek <= 18) return state.week < 19;
+    return state.phase !== 'season-end' && state.phase !== 'complete';
+  });
+  const reportIds = new Set(reports.map((report) => report.playerId));
+  const detail = market.detailedScoutReport;
+  if (
+    reports.length === market.scoutReports.length &&
+    (detail === undefined || reportIds.has(detail.playerId))
+  ) {
+    return market;
+  }
+  return {
+    ...market,
+    scoutReports: reports,
+    ...(detail === undefined || reportIds.has(detail.playerId)
+      ? {}
+      : { detailedScoutReport: undefined }),
+  };
+}
+
+export function dismissCareerScoutReport(
+  market: CareerMarketState,
+  playerId: string,
+): CareerMarketState {
+  if (market.transferTalks?.playerId === playerId)
+    throw new Error('close transfer talks before dismissing this report');
+  if (!market.scoutReports.some((report) => report.playerId === playerId))
+    throw new Error('the scouting report is no longer available');
+  return {
+    ...market,
+    scoutReports: market.scoutReports.filter(
+      (report) => report.playerId !== playerId,
+    ),
+    ...(market.detailedScoutReport?.playerId === playerId
+      ? { detailedScoutReport: undefined }
+      : {}),
+  };
+}
+
+export function detailedScoutReportCost(division: number): number {
+  if (![1, 2, 3, 4, 5].includes(division)) throw new Error('unknown division');
+  return ({ 5: 2500, 4: 4000, 3: 6000, 2: 8000, 1: 10000 } as const)[
+    division as 1 | 2 | 3 | 4 | 5
+  ];
+}
+
+export function startDetailedScoutReport(
+  state: GameState,
+  market: CareerMarketState,
+  playerId: string,
+  division = 5,
+): CareerMarketTransaction {
+  assertManagePhase(state);
+  if (market.detailedScoutReport !== undefined)
+    throw new Error('only one detailed report may run at a time');
+  const report = market.scoutReports.find(
+    (candidate) => candidate.playerId === playerId,
+  );
+  if (report === undefined)
+    throw new Error('the scouting report is unavailable');
+  if (report.potentialRange.minimum === report.potentialRange.maximum)
+    throw new Error('this report already confirms exact potential');
+  const officeLevel = scoutOfficeLevel(state);
+  if (officeLevel >= 3)
+    throw new Error('this Scout Office already confirms exact potential');
+  const duration = officeLevel >= 2 ? 1 : 2;
+  if (!reportSurvivesUntil(state, report, duration))
+    throw new Error('the transfer window closes before this report can finish');
+  const cost = detailedScoutReportCost(division);
+  const club = userClub(state);
+  if (club.cash < cost)
+    throw new Error('the detailed report is not affordable');
+  const charged = recordCashTransaction(
+    {
+      ...state,
+      clubs: state.clubs.map((candidate) =>
+        candidate.id === state.userClubId
+          ? { ...candidate, cash: candidate.cash - cost }
+          : candidate,
+      ),
+    },
+    {
+      kind: 'scouting',
+      label: 'Detailed scouting report',
+      labelKey: 'cashTransaction.detailedScoutReport',
+      amount: -cost,
+      referenceId: `scout-detail-${playerId}-s${state.season}-w${state.week}`,
+    },
+  );
+  return {
+    state: charged,
+    market: {
+      ...market,
+      detailedScoutReport: {
+        playerId,
+        dueWeek: absoluteCareerWeek(state) + duration,
+        cost,
+      },
+    },
+  };
+}
+
+export function reportSurvivesUntil(
+  state: Pick<GameState, 'season' | 'week'>,
+  report: ScoutReport,
+  durationWeeks: number,
+): boolean {
+  if (
+    report.completedSeason !== state.season ||
+    report.completedWeek === undefined
+  )
+    return false;
+  const expiryWeek =
+    report.completedWeek <= 4 ? 5 : report.completedWeek <= 18 ? 19 : 31;
+  return state.week + durationWeeks < expiryWeek;
 }
 
 /** Removes saved bids as soon as their exact registration window ends. */
@@ -678,6 +821,9 @@ export function completeCareerTransfer(
       scoutReports: market.scoutReports.filter(
         (report) => report.playerId !== player.id,
       ),
+      ...(market.detailedScoutReport?.playerId === player.id
+        ? { detailedScoutReport: undefined }
+        : {}),
       transferFeeAdjustments: (market.transferFeeAdjustments ?? []).filter(
         (adjustment) => adjustment.playerId !== player.id,
       ),
@@ -1109,7 +1255,7 @@ export function listCareerPlayer(
         right.quote.fee - left.quote.fee ||
         compareIds(left.club.id, right.club.id),
     )
-    .slice(0, 3)
+    .slice(0, player.transferRequested === true ? 4 : 3)
     .map(({ club, quote }) => ({
       club,
       quote: varyListedBidQuote(
@@ -1592,7 +1738,7 @@ function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
     }),
   );
   return [...allCareerTransferTargets(state), ...unattached].map(
-    ({ player }) => ({
+    ({ player, sellingClubDivision }) => ({
       id: player.id,
       region: scoutRegion(player.id),
       role: player.role,
@@ -1604,6 +1750,7 @@ function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
         ? {}
         : { power: player.power, powerTier: player.powerTier ?? 1 }),
       contractSeasonsRemaining: player.contractSeasonsRemaining,
+      sellingClubDivision,
     }),
   );
 }
@@ -2070,6 +2217,15 @@ function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
   );
   if (lineup === undefined || !lineup.playerIds.includes(player.id))
     return state.lineups;
+  const lineupSlot = lineup.playerIds.indexOf(player.id);
+  const slotRole =
+    lineupSlot === 0
+      ? 'GK'
+      : lineupSlot <= 4
+        ? 'DEF'
+        : lineupSlot <= 8
+          ? 'MID'
+          : 'FWD';
   const starters = new Set(lineup.playerIds);
   const replacement =
     state.players.find(
@@ -2078,7 +2234,7 @@ function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
         candidate.id !== player.id &&
         !starters.has(candidate.id) &&
         isEligibleTransferReplacement(candidate) &&
-        candidate.role === player.role,
+        candidate.role === slotRole,
     ) ??
     state.players.find(
       (candidate) =>
@@ -2135,15 +2291,6 @@ export function scoutShortlistSize(officeLevel: number): number {
     throw new Error('Scout Office level must be an integer from 0 to 3');
   }
   return 2 + officeLevel;
-}
-
-/**
- * Report precision is stored on the mission when it starts and the save schema
- * accepts 1-3 only, so an office-less club still reads at level-1 precision.
- * Its penalty is the shorter shortlist above, not a vaguer report.
- */
-function scoutReportLevel(state: GameState): number {
-  return Math.max(1, scoutOfficeLevel(state));
 }
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {

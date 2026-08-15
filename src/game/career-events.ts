@@ -17,6 +17,7 @@ import { FAME_CEILING, type DivisionLevel } from './pyramid';
 import { currentUserDivision } from './m2-career';
 import { isAvailableForSelection } from './lineup';
 import { repairCareerLineupForInjuries } from './squad';
+import { divisionSponsorAnchor } from './sponsors';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
@@ -35,6 +36,55 @@ export function careerEventCashLoss(
   if (!Number.isSafeInteger(loss))
     throw new Error('career event cash loss exceeds the safe integer range');
   return loss;
+}
+
+const STORY_MONEY_LIMITS: Readonly<
+  Record<DivisionLevel, { readonly minimum: number; readonly maximum: number }>
+> = {
+  5: { minimum: 500, maximum: 5000 },
+  4: { minimum: 1000, maximum: 8000 },
+  3: { minimum: 2000, maximum: 12000 },
+  2: { minimum: 3500, maximum: 18000 },
+  1: { minimum: 5000, maximum: 25000 },
+};
+
+/** Division-scaled direct story cash, shared by previews and settlement. */
+export function storyMoneyDelta(
+  state: GameState,
+  authoredAmount: number,
+  cashLossPercent = 0,
+): number {
+  if (!Number.isSafeInteger(authoredAmount))
+    throw new Error('story money must be a safe integer');
+  if (
+    !Number.isSafeInteger(cashLossPercent) ||
+    cashLossPercent < 0 ||
+    cashLossPercent > 10
+  )
+    throw new Error('story cash loss percent must be from 0 to 10');
+  const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined) throw new Error('career event user club is missing');
+  const limits = STORY_MONEY_LIMITS[division];
+  const fixed =
+    authoredAmount === 0
+      ? 0
+      : Math.sign(authoredAmount) *
+        Math.max(
+          limits.minimum,
+          Math.min(
+            limits.maximum,
+            Math.round(
+              (Math.abs(authoredAmount) * divisionSponsorAnchor(division)) /
+                divisionSponsorAnchor(5),
+            ),
+          ),
+        );
+  const percentLoss =
+    cashLossPercent === 0 ? 0 : careerEventCashLoss(state, cashLossPercent);
+  return Math.max(-Math.max(0, club.cash), fixed - percentLoss);
 }
 
 export type CareerFacilityFireMode = 'TWO_SMALL' | 'PRIMARY';

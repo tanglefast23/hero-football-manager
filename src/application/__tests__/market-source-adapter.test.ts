@@ -74,16 +74,18 @@ describe('career market view-model source adapter', () => {
         ?.cash,
       scoutOfficeLevel: 1,
     });
-    expect(first.scoutOptions).toHaveLength(2);
+    expect(first.scoutOptions).toHaveLength(100);
     expect(first.youthIntake).toMatchObject({
       status: 'OPEN',
       rosterCapacity: 16,
     });
     expect(first.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
-    expect(new Set(first.scoutOptions.map((option) => option.id)).size).toBe(2);
+    expect(new Set(first.scoutOptions.map((option) => option.id)).size).toBe(
+      100,
+    );
     expect(
       new Set(first.scoutOptions.map((option) => option.focus.kind)),
-    ).toEqual(new Set(['AGE', 'POSITION']));
+    ).toEqual(new Set(['PROFILE']));
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
     expect(marketViewModel(first).youth).toMatchObject({
       status: 'OPEN',
@@ -104,27 +106,11 @@ describe('career market view-model source adapter', () => {
       m2: { ...initial.m2!, highestDivisionReached: division },
     });
 
-    expect(
-      careerMarketScoutOptions(withBestDivision(5)).map(
-        (option) => option.focus.kind,
-      ),
-    ).toEqual(['AGE', 'POSITION']);
-    expect(
-      careerMarketScoutOptions(withBestDivision(4)).map(
-        (option) => option.focus.kind,
-      ),
-    ).toEqual(['AGE', 'POSITION', 'AGE']);
-    expect(
-      careerMarketScoutOptions(withBestDivision(3)).map(
-        (option) => option.focus.kind,
-      ),
-    ).toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO']);
-    expect(
-      careerMarketScoutOptions(withBestDivision(2)).map(
-        (option) => option.focus.kind,
-      ),
-    ).toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO', 'ELITE_PROSPECT']);
-    expect(careerMarketScoutOptions(withBestDivision(1))).toHaveLength(5);
+    expect(careerMarketScoutOptions(withBestDivision(5))).toHaveLength(100);
+    expect(careerMarketScoutOptions(withBestDivision(4))).toHaveLength(100);
+    expect(careerMarketScoutOptions(withBestDivision(3))).toHaveLength(105);
+    expect(careerMarketScoutOptions(withBestDivision(2))).toHaveLength(110);
+    expect(careerMarketScoutOptions(withBestDivision(1))).toHaveLength(110);
   });
 
   it('exposes an active mission, its charged cash, and the same deterministic option mapping', () => {
@@ -169,7 +155,12 @@ describe('career market view-model source adapter', () => {
     const market: CareerMarketState = {
       ...state.market!,
       nextMissionNumber: 2,
-      scoutReports: [exactReport(target)],
+      scoutReports: [
+        {
+          ...exactReport(target),
+          potentialRange: { minimum: 2, maximum: 4 },
+        },
+      ],
     };
     const source = careerMarketViewModelSource(state, market);
     const buy = source.transferListings.find(
@@ -193,8 +184,13 @@ describe('career market view-model source adapter', () => {
     expect(buy).toMatchObject({
       direction: 'BUY',
       sellingClubDivision: 5,
-      player: { id: target.id, name: target.name },
+      player: {
+        id: target.id,
+        name: target.name,
+        potentialRange: { minimum: 2, maximum: 4 },
+      },
     });
+    expect(buy?.player).not.toHaveProperty('potentialGrade');
     expect(sells.length).toBeGreaterThan(0);
     expect(sells.every((listing) => listing.player.id !== target.id)).toBe(
       true,

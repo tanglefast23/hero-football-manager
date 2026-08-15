@@ -8,6 +8,7 @@ import {
   dismissCareerEvent,
   offerCareerEvent,
   selectCareerEventPlayer,
+  storyMoneyDelta,
 } from '../career-events';
 import type { GameState } from '../types';
 
@@ -115,6 +116,36 @@ describe('content-driven awakening powers', () => {
     expect(chooseStatWeightedAwakeningPower(powers, fireBuild, 250)).toBe(
       'FIRE_TORCH',
     );
+  });
+});
+
+describe('division-scaled story money', () => {
+  it('keeps small rewards relevant and caps a major loss at ten percent', () => {
+    const d5 = createCareer(createLaunchCareerSetup(92));
+    const userClub = d5
+      .m2!.pyramid.divisions.flatMap((division) => division.clubs)
+      .find((club) => club.id === d5.userClubId)!;
+    const d1: GameState = {
+      ...d5,
+      m2: {
+        ...d5.m2!,
+        pyramid: {
+          ...d5.m2!.pyramid,
+          divisions: d5.m2!.pyramid.divisions.map((division) => ({
+            ...division,
+            clubs: [
+              ...division.clubs.filter((club) => club.id !== d5.userClubId),
+              ...(division.level === 1 ? [userClub] : []),
+            ],
+          })),
+        },
+      },
+    };
+    const cash = d5.clubs.find((club) => club.id === d5.userClubId)!.cash;
+
+    expect(storyMoneyDelta(d5, 100)).toBe(500);
+    expect(storyMoneyDelta(d1, 100)).toBe(5000);
+    expect(storyMoneyDelta(d5, 0, 10)).toBe(-Math.round(cash * 0.1));
   });
 });
 

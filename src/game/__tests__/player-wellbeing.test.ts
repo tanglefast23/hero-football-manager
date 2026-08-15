@@ -109,17 +109,17 @@ describe('weekly player wellbeing', () => {
     expect(JSON.stringify(state)).toBe(before);
   });
 
-  test('raises match condition cost by two points per division', () => {
+  test('uses the match condition cost for each division', () => {
     expect(
       [5, 4, 3, 2, 1].map((division) =>
         matchConditionCost(division as 1 | 2 | 3 | 4 | 5),
       ),
-    ).toEqual([4, 6, 8, 10, 12]);
+    ).toEqual([4, 6, 8, 12, 14]);
     expect(
       [5, 4, 3, 2, 1].map((division) =>
         substituteMatchConditionCost(division as 1 | 2 | 3 | 4 | 5),
       ),
-    ).toEqual([2, 3, 4, 5, 6]);
+    ).toEqual([2, 3, 4, 6, 7]);
   });
 
   test('charges both clubs in D5: starters full, substitutes half, unused bench zero', () => {

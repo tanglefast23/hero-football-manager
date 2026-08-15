@@ -9,6 +9,7 @@ import { isAvailableForSelection } from './lineup';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
 import { compareIds } from './ordering';
 import { CUP_SETTLEMENT_WEEKS } from './schedule';
+import { scheduleStoryCallback } from './story-callbacks';
 import {
   repairCareerLineupForInjuries,
   tryRepairCareerLineupForInjuries,
@@ -623,10 +624,42 @@ export function resolvePlayerRequest(
     },
   };
 
+  const withCallback =
+    resolution === 'REFUSED' && definition.cost.kind === 'ABSENCE'
+      ? (() => {
+          const positive =
+            deterministicCareerEventRoll(
+              {
+                careerSeed: state.careerSeed,
+                season: state.season,
+                week: state.week,
+                riskyChoices: state.eventClock.riskyChoices,
+              },
+              `request-callback:${pending.requestId}:${pending.playerId}`,
+              0,
+              2,
+            ) === 0;
+          return scheduleStoryCallback(settled, {
+            sourceId: `request-refused:${pending.requestId}`,
+            delayWeeks: 2,
+            speaker: 'PLAYER',
+            playerId: pending.playerId,
+            text: positive
+              ? 'I was angry, but I understand why you needed me here.'
+              : 'I stayed, boss. I have not forgotten that you said no.',
+            textKey: positive
+              ? 'storyCallback.deniedLeaveUnderstands'
+              : 'storyCallback.deniedLeaveUnhappy',
+          });
+        })()
+      : settled;
+
   // Granting leave benches a starter, and nothing else would notice until
   // Saturday — when buildCareerTeamDef would throw. Repair now, through the
   // same path weekly settlement and the injury drill already use.
-  return awayWeeks > 0 ? repairCareerLineupForInjuries(settled) : settled;
+  return awayWeeks > 0
+    ? repairCareerLineupForInjuries(withCallback)
+    : withCallback;
 }
 
 /**

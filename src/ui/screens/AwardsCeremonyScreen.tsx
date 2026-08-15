@@ -34,7 +34,6 @@ import {
   podiumNameType,
   podiumRows,
   prizeAccessibilityLabel,
-  prizeCountValue,
   prizeCountsUp,
   prizeDetailLine,
   prizeStageIndex,
@@ -213,7 +212,7 @@ export function AwardsCeremonyScreen({
         </View>
 
         {stage.kind === 'prize' || beat === undefined ? (
-          <PrizePanel viewModel={viewModel} reduceMotion={reduce} />
+          <PrizePanel viewModel={viewModel} />
         ) : (
           <BoardPanel beat={beat} stage={stage} />
         )}
@@ -397,39 +396,11 @@ function PodiumRow({
  * per board, so multiplying the per-board rate by the count would overstate
  * every season the club won more than one.
  */
-function PrizePanel({
-  viewModel,
-  reduceMotion,
-}: {
-  viewModel: AwardCeremonyViewModel;
-  reduceMotion: boolean;
-}) {
+function PrizePanel({ viewModel }: { viewModel: AwardCeremonyViewModel }) {
   const t = useCopy();
   const { prize } = viewModel;
   const counts = prizeCountsUp(prize);
   const total = prize.totalMoney;
-  const [shown, setShown] = useState(counts && !reduceMotion ? 0 : total);
-
-  // Frame-driven, not a timer sampling the clock: the value belongs to the
-  // frame it is painted in, so a dropped frame shortens the climb rather than
-  // stuttering it, and the total is reached by arriving at progress 1 instead
-  // of by a final tick that may never be scheduled.
-  useEffect(() => {
-    if (!counts || reduceMotion) {
-      setShown(total);
-      return undefined;
-    }
-    let start: number | undefined;
-    let frame = 0;
-    const step = (timestamp: number) => {
-      if (start === undefined) start = timestamp;
-      const value = prizeCountValue(total, timestamp - start);
-      setShown(value);
-      if (value < total) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [counts, reduceMotion, total]);
 
   return (
     <View
@@ -443,7 +414,7 @@ function PrizePanel({
         </PixelText>
         {counts ? (
           <PixelText variant="data" className="mt-2 text-4xl text-ink">
-            {formatCurrency(t, shown)}
+            {formatCurrency(t, total)}
           </PixelText>
         ) : (
           <PixelText className="mt-2 text-2xl uppercase text-ink">

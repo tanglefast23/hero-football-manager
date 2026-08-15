@@ -19,15 +19,17 @@ describe('automatic superpower presentation', () => {
 
     expect(takeover).toContain('{presentation.name}');
     expect(takeover).toContain('{ backgroundColor: teamColor }');
-    expect(takeover).toContain("{ending ? 'POWER COMPLETE' : 'SUPER POWER'}");
+    expect(takeover).toContain("'matchScreen.powerComplete'");
+    expect(takeover).toContain("'matchScreen.superPower'");
+    expect(takeover).not.toContain("'POWER COMPLETE'");
+    expect(takeover).not.toContain("'SUPER POWER'");
     expect(source).toContain('<PowerTitleTakeover');
     expect(source).toContain('layout="mobile"');
     expect(rail).toContain(
       '<PowerTitleTakeover {...powerTakeover} layout="desktop" />',
     );
-    expect(source).toContain(
-      "text: `⚡ ${e.power.replace(/_/g, ' ')} · ${firingPlayer.def.name}`",
-    );
+    expect(source).toContain('powerCutInPresentation(e.power, t).name');
+    expect(source).not.toContain("e.power.replace(/_/g, ' ')");
     expect(source).not.toContain('SUPER POWER READY');
     expect(source).not.toContain('heroPowerReady');
     expect(source).toContain(

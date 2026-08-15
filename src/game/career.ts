@@ -1894,7 +1894,10 @@ function advanceM2WeeklySidecars(state: GameState): GameState {
           trainingGroundBuilt: advanced.grid.buildings.some(
             (building) =>
               building.type === 'training-pitch' &&
-              isFacilityOperational(advanced.grid, building.id),
+              !(
+                advanced.grid.construction?.kind === 'BUILD' &&
+                advanced.grid.construction.buildingId === building.id
+              ),
           ),
         },
       };

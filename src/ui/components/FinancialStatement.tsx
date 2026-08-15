@@ -228,7 +228,7 @@ export function FinancialStatement({
               {t('financialStatement.netCashChange')}
             </PixelText>
             <SlotAmount
-              value={netRuntime.shownValue}
+              value={netAmount}
               finalValue={netAmount}
               phase={
                 netRuntime.phase === 'pending'
@@ -242,7 +242,7 @@ export function FinancialStatement({
               tone={netTone}
               surge={false}
               large
-              reduceMotion={reduceMotion}
+              reduceMotion
               onSettled={handleNetSettled}
             />
           </View>
@@ -353,7 +353,7 @@ function StatementRow({
           ) : null}
         </View>
         <SlotAmount
-          value={runtime.shownValue}
+          value={line.amount}
           finalValue={line.amount}
           phase={slotPhaseForRow(runtime.phase)}
           settleMode={runtime.settleMode}
@@ -365,7 +365,7 @@ function StatementRow({
           }
           tone={line.kind}
           surge={surge}
-          reduceMotion={reduceMotion}
+          reduceMotion
           onSettled={handleSettled}
         />
       </View>

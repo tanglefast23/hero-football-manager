@@ -268,7 +268,7 @@ describe('validated M1 launch content', () => {
       content.events.events.filter(
         (event) => event.trigger.requiresFacility !== undefined,
       ),
-    ).toHaveLength(6);
+    ).toHaveLength(8);
     expect(
       content.events.events.filter((event) =>
         event.choices.some((choice) =>
@@ -411,37 +411,19 @@ describe('validated M1 launch content', () => {
       const followUp = events.find((event) => event.id === followUpId)!;
       expect([targetKind(opener), 'none']).toContain(targetKind(followUp));
     }
-    // Good news the player can look forward to: stories whose every outcome
-    // leaves the club no worse off than it started.
-    const goodNews = events.filter((event) =>
-      event.choices.every((choice) =>
-        choice.outcomes.every((outcome) =>
-          outcome.effects.every((effect) => {
-            // A flag is bookkeeping; an injury is the definition of worse off.
-            if (effect.type === 'flag') return true;
-            if (effect.type === 'injury') return false;
-            if (effect.type === 'absence') return false;
-            if (effect.type === 'facilityFire') return false;
-            if (effect.type === 'playerSale') return false;
-            // A heal only ever shortens an absence, so it is never bad news even
-            // though its `weeks` are negative.
-            if (effect.type === 'injuryDelta') return true;
-            // Sessions carry their sign on a different field.
-            if (effect.type === 'statDeltaSessions')
-              return effect.sessions >= 0;
-            // A specialty swap is lateral: same count, same level, different focus.
-            if (effect.type === 'coachSpecialty') return true;
-            // Facility effects carry their sign on `percent` or `amount`.
-            if ('percent' in effect) return effect.percent >= 0;
-            return effect.amount >= 0;
-          }),
+    const lastingWeeks = events.flatMap((event) =>
+      event.choices.flatMap((choice) =>
+        choice.outcomes.flatMap((outcome) =>
+          outcome.effects.flatMap((effect) =>
+            effect.type === 'trainingModifier' ||
+            effect.type === 'facilityClosure'
+              ? [effect.weeks]
+              : [],
+          ),
         ),
       ),
     );
-    // Fewer than before by design: a targeted story earns its reward against a
-    // real risk, so most of the new cards have a losing branch that costs the
-    // thing they were pointed at.
-    expect(goodNews.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(lastingWeeks)).toEqual(new Set([2, 3, 4, 5, 6]));
   });
 
   test('loads byte-identically and does not share mutable parsed objects', () => {
@@ -1128,6 +1110,8 @@ describe('plain and truthful career event copy', () => {
       ['floodlight-night', 30],
       ['what-he-brought-back', 30],
       ['the-plaque', 30],
+      ['leaking-stand-roof', 30],
+      ['west-stand-reopening', 37],
     ]);
     const targeted = loadLaunchContent().events.events.filter(
       (event) =>

@@ -11,7 +11,9 @@ import {
   facilityCloseRefund,
   facilityEffects,
   facilityInvestment,
+  isFacilityOperational,
   relocateFacility,
+  temporarilyCloseFacility,
   upgradeFacility,
   weeklyFacilityUpkeep,
   type FacilityGridState,
@@ -506,6 +508,26 @@ describe('facility relocation and adjacency', () => {
     );
 
     expect(weeklyFacilityUpkeep(grid)).toBe(230);
+  });
+
+  test('stops upkeep and adjacency benefits until a temporary closure ends', () => {
+    let grid = finishConstruction(
+      build(createFacilityGrid(), 'gym', { x: 0, y: 0 }).grid,
+    );
+    grid = finishConstruction(build(grid, 'dorm', { x: 1, y: 0 }).grid);
+    const openUpkeep = weeklyFacilityUpkeep(grid);
+
+    grid = temporarilyCloseFacility(grid, 'facility-1', 2);
+    expect(isFacilityOperational(grid, 'facility-1')).toBe(false);
+    expect(activeFacilityAdjacencies(grid)).toEqual([]);
+    expect(weeklyFacilityUpkeep(grid)).toBeLessThan(openUpkeep);
+
+    grid = advanceFacilityConstruction(grid).grid;
+    expect(isFacilityOperational(grid, 'facility-1')).toBe(false);
+    grid = advanceFacilityConstruction(grid).grid;
+    expect(isFacilityOperational(grid, 'facility-1')).toBe(true);
+    expect(activeFacilityAdjacencies(grid)).toEqual(['gym-dorm']);
+    expect(weeklyFacilityUpkeep(grid)).toBe(openUpkeep);
   });
 
   test('does not count diagonal corners as adjacent or stack duplicate pairs', () => {

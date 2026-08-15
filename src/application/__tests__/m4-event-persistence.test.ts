@@ -1,5 +1,9 @@
 import { loadLaunchContent } from '../../content';
-import { offerCareerEvent, type GameState } from '../../game';
+import {
+  offerCareerEvent,
+  selectCareerEventPlayer,
+  type GameState,
+} from '../../game';
 import {
   parseStoredGameState,
   serializeGameState,
@@ -23,10 +27,21 @@ function awakenedCareerAtEvent(seed: number, eventId: string): GameState {
   useM1Store.getState().quickResult();
   useM1Store.getState().continueAfterAwakening();
   const career = useM1Store.getState().career!;
-  return offerCareerEvent(
+  const offered = offerCareerEvent(
     { ...career, week: 7, phase: 'manage', pendingEvent: undefined },
     eventId,
   );
+  if (offered.pendingEvent?.selectedPlayerId !== undefined) return offered;
+  const event = content.events.events.find(
+    (candidate) => candidate.id === eventId,
+  );
+  const playerId =
+    event === undefined
+      ? undefined
+      : careerEventTargetCandidates(offered, event).playerIds[0];
+  return playerId === undefined
+    ? offered
+    : selectCareerEventPlayer(offered, playerId);
 }
 
 function clubCash(state: GameState): number {
@@ -175,15 +190,10 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     const blocked: string[] = [];
 
     for (const event of content.events.events) {
-      const risky = event.choices.find((choice) => choice.risky)!;
+      const risky = event.choices.find((choice) => choice.risky);
+      if (risky === undefined) continue;
       const staged = awakenedCareerAtEvent(456, event.id);
       useM1Store.setState({ career: staged, screen: 'event' });
-      if (event.trigger.requiresPlayer === true) {
-        const candidate = careerEventTargetCandidates(staged, event)
-          .playerIds[0];
-        if (candidate !== undefined)
-          useM1Store.getState().selectEventPlayer(candidate);
-      }
       useM1Store.getState().chooseEvent(risky.id);
       if (
         useM1Store.getState().error !== null ||
@@ -215,7 +225,11 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     }
 
     // Guards against the loop silently skipping everything and passing vacuously.
-    expect(checked.length + blocked.length).toBe(53);
+    expect(checked.length + blocked.length).toBe(
+      content.events.events.filter((event) =>
+        event.choices.some((choice) => choice.risky),
+      ).length,
+    );
     expect(checked.length).toBeGreaterThanOrEqual(25);
   });
 });

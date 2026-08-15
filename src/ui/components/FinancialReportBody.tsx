@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
-import { countUpValue } from '../count-up';
 import type { PostMatchViewModel } from '../models';
 import { FinancialStatement } from './FinancialStatement';
 import { Metric, SectionLabel, formatSignedCompactNumber } from './Scorecard';
@@ -58,7 +57,6 @@ export function FinancialReportBody({
               <CountUpText
                 value={viewModel.trainingPointsGained}
                 format={(amount) => formatSignedCompactNumber(t, amount)}
-                reduceMotion={reduceMotion}
                 colorClass={
                   viewModel.trainingPointsGained < 0
                     ? 'text-red-dark'
@@ -74,7 +72,6 @@ export function FinancialReportBody({
               <CountUpText
                 value={viewModel.fanDelta}
                 format={(amount) => formatSignedCompactNumber(t, amount)}
-                reduceMotion={reduceMotion}
                 colorClass={
                   viewModel.fanDelta < 0 ? 'text-red-dark' : 'text-pitch-ink'
                 }
@@ -209,62 +206,22 @@ function EntranceView({
   );
 }
 
-/** Counts up over ~600 ms with a small bounce on landing. */
 function CountUpText({
   value,
   format,
-  reduceMotion,
   colorClass,
 }: {
   value: number;
   format: (amount: number) => string;
-  reduceMotion: boolean;
   colorClass: string;
 }) {
-  const [shown, setShown] = useState(reduceMotion ? value : 0);
-  const bounce = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (reduceMotion) {
-      setShown(value);
-      return undefined;
-    }
-    let frame = 0;
-    let startedAt: number | null = null;
-    const animate = (timestamp: number) => {
-      if (startedAt === null) startedAt = timestamp;
-      const progress = (timestamp - startedAt) / 600;
-      setShown(countUpValue(value, progress));
-      if (progress < 1) {
-        frame = requestAnimationFrame(animate);
-        return;
-      }
-      Animated.sequence([
-        Animated.timing(bounce, {
-          toValue: 1.08,
-          duration: 90,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bounce, {
-          toValue: 1,
-          duration: 90,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [bounce, reduceMotion, value]);
   return (
-    <Animated.View
-      style={{ transform: [{ scale: bounce }], alignSelf: 'flex-start' }}
+    <Text
+      className={`font-mono text-base ${colorClass}`}
+      accessibilityLabel={format(value)}
+      numberOfLines={1}
     >
-      <Text
-        className={`font-mono text-base ${colorClass}`}
-        accessibilityLabel={format(value)}
-        numberOfLines={1}
-      >
-        {format(shown)}
-      </Text>
-    </Animated.View>
+      {format(value)}
+    </Text>
   );
 }

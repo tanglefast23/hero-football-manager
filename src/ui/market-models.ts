@@ -4,6 +4,7 @@ import type {
   NegotiationStatus,
   PitchCard,
   PlayerPersonality,
+  ScoutProspectType,
   ScoutRegion,
 } from '../game/market';
 
@@ -25,6 +26,8 @@ export interface ScoutMissionChoiceViewModel {
    */
   readonly region: ScoutRegion;
   readonly regionLabel: string;
+  readonly role?: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly prospectType: ScoutProspectType | 'RUMORED_HERO' | 'ELITE_PROSPECT';
   readonly focusLabel: string;
   readonly detail: string;
   readonly cost: number;
@@ -57,6 +60,9 @@ export interface ScoutReportViewModel {
   readonly powerLabel?: string;
   readonly rumorLabel?: string;
   readonly stats: readonly ScoutedStatViewModel[];
+  readonly dismissAvailable: boolean;
+  readonly detailedReportAvailable: boolean;
+  readonly detailedReportLabel: string;
 }
 
 export interface ScoutingDeskViewModel {

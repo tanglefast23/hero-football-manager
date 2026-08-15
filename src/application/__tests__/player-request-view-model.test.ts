@@ -2,6 +2,7 @@ import { loadLaunchContent } from '../../content';
 import { createCareer } from '../../game/career';
 import { DEFAULT_PLAYER_REQUEST_STATE } from '../../game/player-requests';
 import type { GameState } from '../../game/types';
+import { copyFor } from '../../i18n';
 import { createLaunchCareerSetup } from '../launch';
 import { playerRequestViewModel } from '../player-request-view-model';
 import { homeViewModel } from '../view-models';
@@ -102,7 +103,7 @@ describe('playerRequestViewModel', () => {
     expect(model.glowing).toBe(true);
     // Default difficulty is Cozy, which caps leave at a single week.
     expect(model.pending!.grantLabel).toBe('Out 1 week');
-    expect(model.pending!.refuseLabel).toBe('-3 loyalty · -4 morale');
+    expect(model.pending!.refuseLabel).toBe('Lose 3 loyalty and 4 morale');
     expect(model.pending!.artKey).toBe('request-bahamas-fortnight');
     expect(model.pending!.weeksToAnswer).toBe(CATALOG.tuning.answerWeeks);
   });
@@ -137,7 +138,25 @@ describe('playerRequestViewModel', () => {
     const model = playerRequestViewModel(state);
 
     expect(model.pending!.grantLabel).toBe('Out 2 weeks');
-    expect(model.pending!.refuseLabel).toBe('-5 loyalty · -8 morale');
+    expect(model.pending!.refuseLabel).toBe('Lose 5 loyalty and 8 morale');
+  });
+
+  it('writes Spanish losses without duplicate minus signs', () => {
+    const refusal = playerRequestViewModel(
+      withPending(atStartWeek(career()), 'bahamas-fortnight'),
+      copyFor('es'),
+    );
+    const squadCondition = playerRequestViewModel(
+      withPending(atStartWeek(career()), 'squad-headphones'),
+      copyFor('es'),
+    );
+
+    expect(refusal.pending!.refuseLabel).toBe(
+      'Pierdes 3 de lealtad y 4 de ánimo',
+    );
+    expect(squadCondition.pending!.grantLabel).toBe(
+      'La plantilla pierde 6 de estado',
+    );
   });
 
   it('prints a money cost from the snapshot the request was opened with', () => {
