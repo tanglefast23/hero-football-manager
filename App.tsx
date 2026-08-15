@@ -2152,10 +2152,14 @@ function GameApp() {
   // Keep the strip sentence aligned with the thing a blocked press will flash.
   // A required inbox duty owns both the sentence and the control flash. The
   // assistant objective is used only when no mapped duty is blocking the week.
+  const assistantObjectiveText =
+    assistantObjective === null
+      ? undefined
+      : copyOrEnglish(t, assistantObjective.textKey, assistantObjective.text);
   const displayedGuideObjective =
     dutyNudgeTarget !== undefined
       ? blockingDutyObjective
-      : (assistantObjective?.text ?? blockingDutyObjective);
+      : (assistantObjectiveText ?? blockingDutyObjective);
   const requiredFacilityBuildType = outstandingDuties.includes(
     'coaching-office',
   )

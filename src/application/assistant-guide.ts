@@ -30,6 +30,13 @@ import type { ManagementTab } from '../ui/models';
 
 export interface AssistantObjective {
   text: string;
+  /**
+   * Catalog key for `text`. This ring may not import `src/i18n`, so it writes
+   * the key beside the English and the screen resolves the pair with
+   * `copyOrEnglish` — without it Bert's job strip stayed English in all six
+   * translated locales while the inbox duty above it was translated.
+   */
+  textKey: string;
   target:
     | 'home-tab'
     | 'squad-tab'
@@ -667,10 +674,15 @@ export function currentAssistantObjective(
     if (activeTab === 'squad') {
       return {
         text: 'TAP + ON A PLAYER AND TRAIN A STAT.',
+        textKey: 'assistantObjective.trainAStat',
         target: 'training-plan',
       };
     }
-    return { text: 'OPEN SQUAD.', target: 'squad-tab' };
+    return {
+      text: 'OPEN SQUAD.',
+      textKey: 'assistantObjective.openSquad',
+      target: 'squad-tab',
+    };
   }
   const currentProject = state.facilities.grid?.construction;
   if (
@@ -681,34 +693,56 @@ export function currentAssistantObjective(
     if (activeTab === 'home') {
       return {
         text: 'LET THE CURRENT BUILD FINISH. ADVANCE WEEK.',
+        textKey: 'assistantObjective.letBuildFinish',
         target: 'advance-week',
       };
     }
-    return { text: 'RETURN HOME.', target: 'home-tab' };
+    return {
+      text: 'RETURN HOME.',
+      textKey: 'assistantObjective.returnHome',
+      target: 'home-tab',
+    };
   }
   if (
     !state.facilities.trainingGroundBuilt &&
     !isTrainingGroundUnderConstruction(state)
   ) {
     if (activeTab === 'home') {
-      return { text: 'CHECK YOUR INBOX.', target: 'training-ground-alert' };
+      return {
+        text: 'CHECK YOUR INBOX.',
+        textKey: 'assistantObjective.checkInbox',
+        target: 'training-ground-alert',
+      };
     }
     if (activeTab === 'club') {
       return {
         text: 'BUILD YOUR TRAINING PITCH.',
+        textKey: 'assistantObjective.buildTrainingPitch',
         target: 'training-ground-facility',
       };
     }
-    return { text: 'RETURN HOME.', target: 'home-tab' };
+    return {
+      text: 'RETURN HOME.',
+      textKey: 'assistantObjective.returnHome',
+      target: 'home-tab',
+    };
   }
   if (state.market !== undefined && state.market.headCoach === undefined) {
     if (activeTab !== 'home') {
-      return { text: 'RETURN HOME.', target: 'home-tab' };
+      return {
+        text: 'RETURN HOME.',
+        textKey: 'assistantObjective.returnHome',
+        target: 'home-tab',
+      };
     }
     return null;
   }
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
-    return { text: 'INBOX CLEAR. ADVANCE WEEK.', target: 'advance-week' };
+    return {
+      text: 'INBOX CLEAR. ADVANCE WEEK.',
+      textKey: 'assistantObjective.inboxClear',
+      target: 'advance-week',
+    };
   }
   return null;
 }

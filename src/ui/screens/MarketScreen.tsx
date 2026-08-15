@@ -1795,6 +1795,7 @@ export function NegotiationPanel({
                   key={term}
                   accessibilityRole="radio"
                   accessibilityLabel={t('market.a11y.seasonContract', {
+                    n: term,
                     seasons: term,
                   })}
                   accessibilityState={{ selected: termSeasons === term }}

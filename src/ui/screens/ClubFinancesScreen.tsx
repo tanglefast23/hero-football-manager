@@ -3325,7 +3325,15 @@ function BuildMenuSection({
                           showLevel={false}
                         />
                       </View>
+                      {/* German compounds are single unbreakable words wider
+                          than this column — Trainingsplatz drew as
+                          "TRAININGSPL / ATZ" and Trainerbüro as "TRAINERBÜR /
+                          O". English never hits it because every facility name
+                          has a space to wrap at. Two lines plus shrink-to-fit
+                          keeps the word whole in every locale. */}
                       <PixelText
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
                         className={
                           entryEnabled
                             ? 'flex-1 text-sm uppercase leading-4 text-ink'

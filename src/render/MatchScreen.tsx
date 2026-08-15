@@ -3602,8 +3602,12 @@ export function MatchScreen({
                 >
                   {t('matchScreen.swap')}
                 </Text>
+                {/* Shrink rather than clip: "0/5 USED" fits, but German
+                    "0/5 GENUTZT" and its longer siblings were cut to
+                    "0/5 GEN_" against this fixed-width control. */}
                 <Text
                   numberOfLines={1}
+                  adjustsFontSizeToFit
                   style={[
                     styles.coachValue,
                     tiredCount > 0 ? styles.tiredValue : null,

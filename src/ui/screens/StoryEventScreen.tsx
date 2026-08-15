@@ -582,9 +582,11 @@ export function StoryEventScreen({
                     <View className="flex-row items-center gap-3">
                       <View className="h-10 min-w-14 items-center justify-center border-2 border-ink bg-paper px-2">
                         <Text className="font-pixel text-xs text-ink">
-                          {viewModel.selectedCoach.role === 'HEAD'
-                            ? 'HEAD'
-                            : 'ASST'}
+                          {t(
+                            viewModel.selectedCoach.role === 'HEAD'
+                              ? 'storyEvent.coachBadge.head'
+                              : 'storyEvent.coachBadge.assistant',
+                          )}
                         </Text>
                       </View>
                       <View className="min-w-0 flex-1">
@@ -645,7 +647,11 @@ export function StoryEventScreen({
                     >
                       <View className="flex-row items-center gap-3">
                         <Text className="font-pixel text-xs text-ink">
-                          {candidate.role === 'HEAD' ? 'HEAD' : 'ASST'}
+                          {t(
+                            candidate.role === 'HEAD'
+                              ? 'storyEvent.coachBadge.head'
+                              : 'storyEvent.coachBadge.assistant',
+                          )}
                         </Text>
                         <Text
                           className="min-w-0 flex-1 text-base text-ink"
