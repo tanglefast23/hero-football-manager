@@ -304,6 +304,8 @@ Time-saving shortcuts are encouraged when they do not reduce win efficiency:
 
 - Tap outside a drill animation to skip it.
 - Use Quick Result for safe matches.
+- Run watched matches at `3×` by default. Match speed changes the presentation
+  clock, not the match rules or RNG, so it does not change the result.
 - Skip previously viewed presentation sequences when the game allows it.
 
 ## Live-match tactics
