@@ -16,6 +16,7 @@ import {
 } from '../../game/market-career';
 import type { CareerPlayer, GameState } from '../../game/types';
 import { playerGrowthGrade } from '../../game/training';
+import { renewalOpeningOfferWage } from '../../game/market';
 import { copyFor } from '../../i18n';
 
 function fullCareer(seed = 20260719): GameState {
@@ -264,7 +265,8 @@ describe('career market view-model source adapter', () => {
   it('passes coach candidates and current contract talks through with the target wage context', () => {
     const state = fullCareer(1014);
     const target = state.players.find(
-      (player) => player.clubId !== state.userClubId,
+      (player) =>
+        player.clubId !== state.userClubId && player.power !== undefined,
     )!;
     const scouted: CareerMarketState = {
       ...state.market!,
@@ -277,10 +279,18 @@ describe('career market view-model source adapter', () => {
     expect(source.headCoach).toBeUndefined();
     expect(source.negotiation).toMatchObject({
       playerName: target.name,
-      openingWeeklyWage: target.weeklyWage,
       state: { id: market.transferTalks?.negotiation.id, playerId: target.id },
     });
     expect(source.negotiation?.wageStep).toBeGreaterThan(0);
+    expect(source.negotiation?.openingWeeklyWage).toBe(
+      renewalOpeningOfferWage(
+        market.transferTalks!.negotiation.weeklyAsk,
+        source.negotiation!.wageStep!,
+      ),
+    );
+    expect(source.negotiation!.openingWeeklyWage).toBeGreaterThan(
+      target.weeklyWage,
+    );
     const visible = marketViewModel(source);
     expect(visible.negotiation).toMatchObject({
       playerName: target.name,

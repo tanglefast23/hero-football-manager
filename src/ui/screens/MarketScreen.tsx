@@ -2006,7 +2006,7 @@ export function NegotiationPanel({
                     })
               }
               variant="confirm"
-              disabled={selectedPerkBlocked}
+              disabled={walksOut || selectedPerkBlocked}
               onPress={() =>
                 guardTap(() =>
                   onSubmitContractOffer(

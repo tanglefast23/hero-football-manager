@@ -223,34 +223,22 @@ describe('story recruitment pacing', () => {
     expect(dueAssistantInboxGuideSequences(reportedState)).not.toContain(
       'roster-cap',
     );
-    // The lesson under test is the roster cap, not the bank balance. A D5 club
-    // reaches its first scout report on about $51,000 while the two names it
-    // brings back cost $75,000 and $124,000, so no signing is affordable on the
-    // real budget and the pacing story cannot be walked at all. Fund the club
-    // so the cap teaching is what this test measures. The affordability gap is
-    // a balance question, recorded separately, not something to assert here.
-    const funded = {
-      ...dueState,
-      clubs: dueState.clubs.map((club) =>
-        club.id === dueState.userClubId ? { ...club, cash: 500_000 } : club,
-      ),
-    };
-    const cash = funded.clubs.find(
-      (club) => club.id === funded.userClubId,
+    const cash = dueState.clubs.find(
+      (club) => club.id === dueState.userClubId,
     )!.cash;
     const affordableTalks = reported.scoutReports
       .map((report) =>
-        beginCareerTransferTalks(funded, reported, report.playerId),
+        beginCareerTransferTalks(dueState, reported, report.playerId),
       )
       .find((candidate) => candidate.transferTalks!.transferQuote.fee <= cash);
     expect(affordableTalks).toBeDefined();
     let talks = affordableTalks!;
-    talks = submitCareerTransferOffer(funded, talks, {
+    talks = submitCareerTransferOffer(dueState, talks, {
       weeklyWage: talks.transferTalks!.negotiation.weeklyAsk,
       termSeasons: 2,
       perk: 'GUARANTEED_STARTER',
     });
-    const signed = completeCareerTransfer(funded, talks);
+    const signed = completeCareerTransfer(dueState, talks);
     const fullStory = { ...signed.state, market: signed.market };
     const market = marketViewModel(careerMarketViewModelSource(fullStory));
 

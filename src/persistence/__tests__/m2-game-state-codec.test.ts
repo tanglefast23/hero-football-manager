@@ -47,6 +47,9 @@ describe('M2 game-state codec', () => {
         assistantCoach,
         assistantCoachSeasonsEmployed: 0,
         transferListings,
+        transferFeeAdjustments: [
+          { playerId: 'first-scout-affordable', percent: -100 },
+        ],
       },
       cashTransactions: [
         ...built.cashTransactions!,
