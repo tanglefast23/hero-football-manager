@@ -873,6 +873,7 @@
     "clubHome.form.weekLost": "Woche {week}. Verloren. 0 Punkte.",
     "clubHome.form.weekWon": "Woche {week}. Gewonnen. 3 Punkte.",
     "clubHome.form.won": "Gewonnen. Drei Punkte.",
+    "clubHome.managerNameDefault": "Chef",
     "clubHome.goodMorningBoss": "Morgen, Chef",
     "clubHome.hero": "Held",
     "clubHome.heroCupRound": "Heldenpokal · {round}",

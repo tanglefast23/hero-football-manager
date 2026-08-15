@@ -873,6 +873,7 @@
     "clubHome.form.weekLost": "Pekan {week}. Kalah. 0 poin.",
     "clubHome.form.weekWon": "Pekan {week}. Menang. 3 poin.",
     "clubHome.form.won": "Menang. Tiga poin.",
+    "clubHome.managerNameDefault": "Bos",
     "clubHome.goodMorningBoss": "Pagi, bos",
     "clubHome.hero": "Pahlawan",
     "clubHome.heroCupRound": "Piala · {round}",

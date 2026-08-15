@@ -3821,7 +3821,7 @@ export function homeViewModel(
 
   return {
     clubName: userClub.name,
-    managerName: 'Boss',
+    managerName: t('clubHome.managerNameDefault'),
     seasonLabel: t('clubHome.seasonLabel', {
       season: state.season,
       division: divisionTierLabelWith(careerDivision(state), t),

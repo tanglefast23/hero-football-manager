@@ -440,7 +440,11 @@ export function TitleSettingsScreen({
             </Text>
           </View>
           <Text className="font-pixel text-lg uppercase text-blue-dark">
-            {preferences.hudSide}
+            {t(
+              preferences.hudSide === 'left'
+                ? 'settings.matchInfo.left'
+                : 'settings.matchInfo.right',
+            )}
           </Text>
         </Pressable>
         <AccessibilityToggle
@@ -689,6 +693,7 @@ function AccessibilityToggle({
   enabled: boolean;
   onPress: () => void;
 }) {
+  const t = useCopy();
   return (
     <Pressable
       accessibilityRole="switch"
@@ -706,7 +711,7 @@ function AccessibilityToggle({
         <Text className="mt-1 text-sm text-ink/60">{detail}</Text>
       </View>
       <Text className="font-pixel text-lg text-ink">
-        {enabled ? 'ON' : 'OFF'}
+        {t(enabled ? 'settings.on' : 'settings.off')}
       </Text>
     </Pressable>
   );
