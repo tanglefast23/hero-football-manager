@@ -23,10 +23,27 @@ const DIST = path.resolve('dist');
 // its marks win this conflict; #159's growth attribution for main agrees with
 // the four-merge account above.
 //
-// Previous marks: 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the
-// stat-tip branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 5_922_802;
-const GZIP_BUDGET = 879_373;
+// Re-ratcheted 2026-08-15 off this branch's artifact, measured by this script
+// at 5_972_355 raw / 888_727 gzip. The raw figure matches CI's to the byte.
+//
+// The overrun is not this branch's. `origin/main` at 2388ec6d was measured the
+// same way, from its own clean export: 5_972_170 raw / 888_693 gzip — already
+// 49_368 raw past the old mark. This branch adds 185 raw and 34 gzip, which is
+// the seven-locale `clubHome.managerNameDefault` key and nothing else.
+//
+// Nobody saw the breach because `format:check` runs first and has been failing
+// on main since at least b9c6d7a5, so the budget check has not been reached on
+// main for five commits: b9c6d7a5, bf473af5, bf3bbe93, 440a8fdb, 2388ec6d.
+// Growth since the #158 mark is +54_488 raw / +14_440 gzip across those five.
+// Checked before moving the number, same as last time: the QA and Skia marker
+// assertions below both stayed clean, so this is distributed feature growth,
+// not a renderer or dev-harness leak.
+//
+// Previous marks: 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at b26e1399
+// (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4, 5_861_753 at
+// 0b2fc042.
+const RAW_BUDGET = 5_977_355;
+const GZIP_BUDGET = 893_727;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
