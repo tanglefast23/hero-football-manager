@@ -3547,6 +3547,8 @@
     "storyEvent.rewardCoachTp": "{amount} ĐT HLV mỗi tuần",
     "storyEvent.rewardCoachTraining": "{amount}% hiệu suất tập của HLV",
     "storyEvent.rewardCondition": "{amount} thể lực",
+    "storyEvent.coachBadge.head": "CHÍNH",
+    "storyEvent.coachBadge.assistant": "PHÓ",
     "storyEvent.rewardFame": "{amount} danh tiếng",
     "storyEvent.rewardFans": "{amount} CĐV",
     "storyEvent.rewardFacilityIncome": "{amount}% thu nhập cơ sở",

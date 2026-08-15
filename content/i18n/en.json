@@ -2388,6 +2388,8 @@
     "storyEvent.rewardCoachTp": "{amount} weekly coach TP",
     "storyEvent.rewardCoachTraining": "{amount}% coach training output",
     "storyEvent.rewardCondition": "{amount} condition",
+    "storyEvent.coachBadge.head": "HEAD",
+    "storyEvent.coachBadge.assistant": "ASST",
     "storyEvent.rewardFame": "{amount} fame",
     "storyEvent.rewardFans": "{amount} fans",
     "storyEvent.rewardFacilityIncome": "{amount}% facility income",

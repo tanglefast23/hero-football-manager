@@ -3547,6 +3547,8 @@
     "storyEvent.rewardCoachTp": "{amount} PL mingguan pelatih",
     "storyEvent.rewardCoachTraining": "{amount}% hasil latihan pelatih",
     "storyEvent.rewardCondition": "{amount} kondisi",
+    "storyEvent.coachBadge.head": "KEPALA",
+    "storyEvent.coachBadge.assistant": "ASISTEN",
     "storyEvent.rewardFame": "{amount} ketenaran",
     "storyEvent.rewardFans": "{amount} suporter",
     "storyEvent.rewardFacilityIncome": "{amount}% pendapatan fasilitas",

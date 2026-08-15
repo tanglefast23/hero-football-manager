@@ -3547,6 +3547,8 @@
     "storyEvent.rewardCoachTp": "{amount} PE/sem. du coach",
     "storyEvent.rewardCoachTraining": "{amount}% de rendement de l'entraîneur",
     "storyEvent.rewardCondition": "{amount} fraîcheur",
+    "storyEvent.coachBadge.head": "CHEF",
+    "storyEvent.coachBadge.assistant": "ADJ",
     "storyEvent.rewardFame": "{amount} notoriété",
     "storyEvent.rewardFans": "{amount} supporters",
     "storyEvent.rewardFacilityIncome": "{amount}% revenus du bâtiment",
