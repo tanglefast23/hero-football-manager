@@ -99,9 +99,7 @@ function FormCell({ result, delay, reduceMotion }: FormCellProps) {
   const tone = CELL_TONE[result];
   // W/D/L are engine enum values, not letters to show. German reads S/U/N and
   // the league table already carries them, so the strip borrows those keys.
-  const letter = t(
-    result === 'D' ? 'col.league.drawn' : 'col.league.lost',
-  );
+  const letter = t(result === 'D' ? 'col.league.drawn' : 'col.league.lost');
 
   useEffect(() => {
     if (reduceMotion) {

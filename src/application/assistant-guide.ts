@@ -730,10 +730,10 @@ export function currentAssistantObjective(
   if (state.market !== undefined && state.market.headCoach === undefined) {
     if (activeTab !== 'home') {
       return {
-      text: 'RETURN HOME.',
-      textKey: 'assistantObjective.returnHome',
-      target: 'home-tab',
-    };
+        text: 'RETURN HOME.',
+        textKey: 'assistantObjective.returnHome',
+        target: 'home-tab',
+      };
     }
     return null;
   }
