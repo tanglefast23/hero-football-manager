@@ -554,6 +554,11 @@ function userLeagueResults(state: GameState): UserLeagueResult[] {
  * The surge is already persisted as part of the Financial Report's reveal, so
  * the milestone is a callback to a banner the manager has just watched rather
  * than a new roll.
+ *
+ * Reads only the retained ledger window (20 seasons), which cannot lose the
+ * milestone: the flag is written the week the surge settles and lives in
+ * `eventFlags` from then on, so trimming the ledger it came from never
+ * un-earns it.
  */
 function hasMerchSurged(state: GameState): boolean {
   return (state.ledgers ?? []).some((ledger) =>

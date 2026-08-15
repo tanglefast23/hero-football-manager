@@ -1,4 +1,13 @@
-import type { GameState, StoryCallback } from './types';
+import { SEASON_WEEKS, type GameState, type StoryCallback } from './types';
+
+/**
+ * How many scheduled callbacks a save carries.
+ *
+ * Thirty by coincidence, not because a season is thirty weeks — this is a queue
+ * cap on saved state, and it is spelled out so a later calendar change cannot
+ * silently drag it along.
+ */
+const RETAINED_STORY_CALLBACKS = 30;
 
 interface StoryCallbackInput {
   readonly sourceId: string;
@@ -20,11 +29,12 @@ export function scheduleStoryCallback(
     throw new Error('a player story callback needs a player');
   if (input.speaker === 'COACH' && input.coachRole === undefined)
     throw new Error('a coach story callback needs a coach role');
-  const absolute = (state.season - 1) * 30 + state.week + input.delayWeeks;
+  const absolute =
+    (state.season - 1) * SEASON_WEEKS + state.week + input.delayWeeks;
   const callback: StoryCallback = {
     id: `callback:${input.sourceId}:s${state.season}:w${state.week}:${input.playerId ?? input.coachRole ?? input.speaker}`,
-    dueSeason: Math.floor((absolute - 1) / 30) + 1,
-    dueWeek: ((absolute - 1) % 30) + 1,
+    dueSeason: Math.floor((absolute - 1) / SEASON_WEEKS) + 1,
+    dueWeek: ((absolute - 1) % SEASON_WEEKS) + 1,
     sourceId: input.sourceId,
     speaker: input.speaker,
     ...(input.playerId === undefined ? {} : { playerId: input.playerId }),
@@ -36,16 +46,18 @@ export function scheduleStoryCallback(
     return state;
   return {
     ...state,
-    storyCallbacks: [...(state.storyCallbacks ?? []), callback].slice(-30),
+    storyCallbacks: [...(state.storyCallbacks ?? []), callback].slice(
+      -RETAINED_STORY_CALLBACKS,
+    ),
   };
 }
 
 export function nextDueStoryCallback(
   state: GameState,
 ): StoryCallback | undefined {
-  const now = (state.season - 1) * 30 + state.week;
+  const now = (state.season - 1) * SEASON_WEEKS + state.week;
   return (state.storyCallbacks ?? []).find((callback) => {
-    const due = (callback.dueSeason - 1) * 30 + callback.dueWeek;
+    const due = (callback.dueSeason - 1) * SEASON_WEEKS + callback.dueWeek;
     if (due > now) return false;
     if (callback.speaker === 'PLAYER') {
       return state.players.some(

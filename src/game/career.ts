@@ -1492,6 +1492,12 @@ export const FAN_SHOP_UPGRADE_INCOME_PERCENT = 50;
  * Commercial buildings open at full strength, then each upgrade adds half as
  * much. Building another shop or stand stays a real layout choice; repeatedly
  * upgrading the same one no longer repays itself within a few weeks.
+ *
+ * Applied on read, so it is retroactive and there is no migration: a save whose
+ * single Level 3 stand was worth 300% scores 200% the next time it loads. That
+ * is deliberate under the "breaking saves is fine before TestFlight" rule, and
+ * it is written down here because the club's largest income line quietly
+ * changing is exactly the kind of thing a player would report as a bug.
  */
 function commercialLevelPercent(
   level: number,

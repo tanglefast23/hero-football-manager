@@ -301,7 +301,11 @@ function profileShortlist(
         profileScore(left, focus.prospectType, mission.starterScores) ||
       compareIds(left.id, right.id),
   );
-  const band = eligible.slice(0, Math.max(shortlistSize, shortlistSize * 4));
+  // Four times the shortlist, so the shuffle below has a real band to draw
+  // from rather than returning the sorted head every time. The old
+  // `Math.max(shortlistSize, shortlistSize * 4)` could only ever pick the
+  // second term.
+  const band = eligible.slice(0, shortlistSize * 4);
   shuffleInPlace(band, random);
   return band.slice(0, shortlistSize);
 }
@@ -313,7 +317,15 @@ function profileScore(
 ): number {
   const overall = roleOverall(player.role, player.attrs);
   if (type === 'IMMEDIATE_STARTER') {
-    return overall - (starterScores?.[player.role] ?? overall);
+    // "How much better than the starter I already have." Without a score to
+    // beat, fall back to the player's own overall rather than to `overall`
+    // itself — subtracting that returned 0 for every candidate and collapsed
+    // the shortlist to id order, silently. A career mission always supplies
+    // `starterScores` (0 for a role the club cannot field), so this only
+    // reaches direct callers, which is exactly where a flat ranking was
+    // hardest to notice.
+    const starter = starterScores?.[player.role];
+    return starter === undefined ? overall : overall - starter;
   }
   if (type === 'YOUNG_PROSPECT') {
     return player.potential * 1000 + overall;
@@ -1554,18 +1566,23 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
         : { unlockId: shuffledUnlockIds[result.length] }),
     });
   }
-  const firstPrimary = result[0]?.specialties[0];
-  return result.map((candidate, index) =>
-    index > 0 && candidate.specialties[0] === firstPrimary
-      ? {
-          ...candidate,
-          specialties: [
-            candidate.specialties[1],
-            candidate.specialties[0],
-          ] as const,
-        }
-      : candidate,
-  );
+  // Spread the headline specialty across the whole list, not just away from the
+  // first candidate. Comparing only against `result[0]` left 1 and 2 free to
+  // share a primary, and the market's own test only asserted more than one
+  // distinct value, so a list reading DEFENSE / ATTACK / ATTACK passed.
+  //
+  // A swap is all that is available — the pair is already rolled — so a
+  // collision that cannot be resolved by swapping is left alone rather than
+  // rerolled, which would move the seeded stream.
+  const takenPrimaries = new Set<CoachSpecialty>();
+  return result.map((candidate) => {
+    const [primary, secondary] = candidate.specialties;
+    const swap = takenPrimaries.has(primary) && !takenPrimaries.has(secondary);
+    takenPrimaries.add(swap ? secondary : primary);
+    return swap
+      ? { ...candidate, specialties: [secondary, primary] as const }
+      : candidate;
+  });
 }
 
 export function isCoachCandidateEligible(
