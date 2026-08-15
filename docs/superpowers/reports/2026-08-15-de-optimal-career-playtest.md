@@ -181,21 +181,33 @@ Moved to a native iOS Simulator build (402×874 pt, iPhone 17 Pro) after the
 browser evicted the save. Two layout defects appear on the phone that the
 900-px browser pane never exposed, and both are caused by German word length.
 
-**1. Build-menu card titles break mid-word.** The facility cards render
-`TRAININGSPL / ATZ` and `TRAINERBÜR / O`. German compound nouns have no space
-to break at, so React Native breaks them at an arbitrary character. English
-`Training Ground` and `Coaching Office` each have a space and never hit this.
-Affects the longest names — Trainingsplatz, Trainerbüro, Nachwuchsplatz,
-Techniklabor, Scoutingbüro. A shorter title, a smaller title size, or
-`adjustsFontSizeToFit` would each fix it; this is a component change, so it is
-logged rather than fixed in a language pass.
+**1. Build-menu card titles break mid-word — FIXED.** The facility cards
+rendered `TRAININGSPL / ATZ` and `TRAINERBÜR / O`. German compound nouns have no
+space to break at, so React Native broke them at an arbitrary character.
+English `Training Ground` and `Coaching Office` each have a space and never hit
+it. Affected the longest names — Trainingsplatz, Trainerbüro, Nachwuchsplatz,
+Techniklabor, Scoutingbüro. The title in `ClubFinancesScreen.tsx` now carries
+`numberOfLines={2}` and `adjustsFontSizeToFit`, so the word shrinks whole
+instead of splitting.
 
-**2. The pinned bottom bar overlaps its own labels.** On the facility and
-market screens the bar shows `ZURÜCK ZUM POSTFACH` on the left and the current
-objective on the right, and the German objective is long enough to run over the
-back label: `ZURÜCK ZUM POSTFACH` collides with `BAUE DEN TRAININGSPLATZ.` and
-again with `CHEFTRAINER EINSTELLEN.` Both strings are readable individually but
-overlap in the middle.
+**2. The pinned bottom bar overlapped its own labels — FIXED.** On the facility
+and market screens the bar shows `ZURÜCK ZUM POSTFACH` on the left and the
+current objective on the right. The German objective was long enough to run over
+the back label, colliding with `BAUE DEN TRAININGSPLATZ.` and again with
+`CHEFTRAINER EINSTELLEN.` The back label could not shrink while the objective
+held `flex-1`, so neither half was bounded. Both are bounded now — the label
+shrinks to one line, the objective wraps to two — in all three strips
+(`ManagementShell.tsx`).
+
+**3. Substitution counter clipped — FIXED.** The match HUD's swap control drew
+`0/5 GEN_` where German needs `0/5 GENUTZT`. It had `numberOfLines={1}` and no
+shrink, so a string wider than the fixed control was cut rather than scaled.
+`adjustsFontSizeToFit` added in `MatchScreen.tsx`.
+
+**Checked and NOT a bug:** the difficulty radios in character creation already
+set `accessibilityState={{ checked: selected }}`. An earlier note in this report
+claimed `aria-checked` was missing, read from the deployed web build; the source
+is correct and the claim is withdrawn rather than "fixed".
 
 Fixed in the same pass: `clubFinances.a11y.facilityCard` read
 `1 mal 1 Felder` — a plural noun after a singular count. German was the only
@@ -291,10 +303,6 @@ session was scoped to the language pass.
 - **Sofia Rossi is strictly better than Imani Adeyemi** in the opening coach
   list — identical specialties and bonuses, plus a 4-3-3 unlock. If that is not
   intentional the second card is dead choice.
-- **`aria-checked` is missing on the difficulty radios** in character creation.
-  Both `role="radio"` elements report `null`, so a screen reader cannot tell
-  which difficulty is selected. Not a translation bug; flagging it here because
-  it surfaced during the language sweep.
 - **WebGL context leak.** After ~10 watched/simulated matches in one browser
   session the console fills with `Too many active WebGL contexts. Oldest
   context will be lost.` Rendering kept working, but the contexts are not being

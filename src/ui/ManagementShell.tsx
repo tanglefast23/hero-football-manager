@@ -635,10 +635,19 @@ export function ManagementShell({
                 }
                 reduceMotion={reduceMotion}
               />
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">
+              {/* Both halves must be bounded. German objectives are long
+                  enough that an unshrinkable back label and a flex-1 objective
+                  drew over each other. */}
+              <Text
+                numberOfLines={1}
+                className="shrink font-mono text-xs font-bold uppercase text-blue-dark"
+              >
                 {t('managementShell.backToInbox')}
               </Text>
-              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">
+              <Text
+                numberOfLines={2}
+                className="ml-3 flex-1 font-pixel text-xs uppercase text-ink"
+              >
                 {mustDoObjective}
               </Text>
               <Text className="font-mono text-lg font-bold text-ink">‹</Text>
@@ -665,10 +674,16 @@ export function ManagementShell({
                   }
                   reduceMotion={reduceMotion}
                 />
-                <Text className="font-mono text-xs font-bold uppercase text-blue-dark">
+                <Text
+                  numberOfLines={1}
+                  className="shrink font-mono text-xs font-bold uppercase text-blue-dark"
+                >
                   {t('managementShell.bertsJob')}
                 </Text>
-                <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">
+                <Text
+                  numberOfLines={2}
+                  className="ml-3 flex-1 font-pixel text-xs uppercase text-ink"
+                >
                   {guideObjective}
                 </Text>
                 <Text className="font-mono text-lg font-bold text-ink">›</Text>
@@ -689,10 +704,16 @@ export function ManagementShell({
                   }
                   reduceMotion={reduceMotion}
                 />
-                <Text className="font-mono text-xs font-bold uppercase text-blue-dark">
+                <Text
+                  numberOfLines={1}
+                  className="shrink font-mono text-xs font-bold uppercase text-blue-dark"
+                >
                   {t('managementShell.bertsJob')}
                 </Text>
-                <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">
+                <Text
+                  numberOfLines={2}
+                  className="ml-3 flex-1 font-pixel text-xs uppercase text-ink"
+                >
                   {guideObjective}
                 </Text>
               </View>
