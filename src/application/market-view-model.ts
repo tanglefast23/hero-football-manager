@@ -608,7 +608,8 @@ function scoutingStatus(
   source: MarketViewModelSource,
   t: CopyFn,
 ): MarketViewModel['scouting']['status'] {
-  if (source.scoutResult !== undefined) {
+  const mission = source.activeScoutMission;
+  if (mission === undefined && source.scoutResult !== undefined) {
     return {
       kind: 'COMPLETED',
       headline: t('market.scoutReportsOnDesk', {
@@ -618,7 +619,6 @@ function scoutingStatus(
       progressLabel: t('market.scoutProgressComplete'),
     };
   }
-  const mission = source.activeScoutMission;
   if (mission === undefined) {
     return {
       kind: 'IDLE',

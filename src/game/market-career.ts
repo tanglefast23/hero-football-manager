@@ -1515,15 +1515,6 @@ export function refreshCareerMarketForNewSeason(
     employedPortraitIds,
     DEFAULT_COACH_CONTENT_UNLOCK_IDS.filter((id) => !unlockedContent.has(id)),
   );
-  const currentTransferTargetIds = new Set(
-    allCareerTransferTargets(state).map((target) => target.player.id),
-  );
-  const scoutReports = previous.scoutReports.filter((report) =>
-    currentTransferTargetIds.has(report.playerId),
-  );
-  const retainedReportIds = new Set(
-    scoutReports.map((report) => report.playerId),
-  );
   const head = progressEmployedCoach(
     previous.headCoach,
     previous.headCoachSeasonsEmployed,
@@ -1539,10 +1530,8 @@ export function refreshCareerMarketForNewSeason(
     nextMissionNumber: previous.nextMissionNumber,
     activeScoutMission: previous.activeScoutMission,
     activeScoutMissionFeeWaived: previous.activeScoutMissionFeeWaived,
-    scoutReports,
-    transferFeeAdjustments: (previous.transferFeeAdjustments ?? []).filter(
-      (adjustment) => retainedReportIds.has(adjustment.playerId),
-    ),
+    scoutReports: [],
+    transferFeeAdjustments: [],
     ...(head === undefined
       ? {}
       : {

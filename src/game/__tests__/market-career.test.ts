@@ -1483,7 +1483,7 @@ describe('career market integration', () => {
     ).toEqual(applied);
   });
 
-  test('retains paid scouting work when the preseason coach market refreshes', () => {
+  test('retains an active paid mission but expires completed reports at preseason', () => {
     const state = {
       ...createCareer(createLaunchCareerSetup(83)),
       week: 15,
@@ -1522,11 +1522,11 @@ describe('career market integration', () => {
     expect(refreshed.activeScoutMission).toEqual(
       started.market.activeScoutMission,
     );
-    expect(refreshed.scoutReports).toEqual(previous.scoutReports);
+    expect(refreshed.scoutReports).toEqual([]);
     expect(refreshed.nextMissionNumber).toBe(started.market.nextMissionNumber);
   });
 
-  test('retains reports for opponents that leave the active division but remain in the pyramid', () => {
+  test('expires old reports even when their target remains in the pyramid', () => {
     const state = createCareer(createLaunchCareerSetup(84));
     const target = state.players.find(
       (player) => player.clubId !== state.userClubId,
@@ -1555,6 +1555,6 @@ describe('career market integration', () => {
 
     expect(
       refreshCareerMarketForNewSeason(nextState, previous).scoutReports,
-    ).toEqual([report]);
+    ).toEqual([]);
   });
 });

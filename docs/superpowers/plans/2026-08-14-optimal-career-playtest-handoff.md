@@ -73,12 +73,37 @@ Use this order every week:
 1. Read new inbox items, player requests, sponsor progress, and story choices.
 2. Check construction. Keep the one construction crew working whenever an
    affordable improvement exists.
-3. Check scouting, transfers, contracts, and player sales.
-4. Review condition and repair the Starting XI.
+3. Check scouting, transfers, contracts, and player sales. During every open
+   transfer-window week, open both Scouting and Deals before advancing.
+4. Recompute and save the strongest eligible Starting XI. Compare every starter
+   with every eligible bench player in the same role.
 5. Spend TP on focused training.
 6. Decide between Quick Result and a watched match.
 7. Read the post-match report and change the next week's priorities.
 8. Record bugs, copy problems, balance findings, and meaningful decisions.
+
+### Mandatory optimization gates
+
+Do not advance to a match until all four gates pass:
+
+1. **Lineup:** use the strongest legal XI after role, condition, promises, and
+   absences are considered. Never leave a stronger eligible bench player behind
+   a weaker starter without recording the tactical or condition reason.
+2. **Transfer window:** open Scouting and Deals during every open week, including
+   the first and final week. List dead weight early, inspect scout progress and
+   results, and buy only major Starting XI upgrades. Inbox items are not a
+   substitute for opening both screens.
+3. **Training Pitch:** after the early income engine is stable, inspect the
+   Training Pitch upgrade before starting any lower-priority building. Reserve
+   the Level 2 cost unless wages, an important renewal, or a major signing makes
+   that unsafe.
+4. **Checkpoint:** in Weeks 1, 4, 19, and 30, confirm the saved XI is the best
+   eligible XI, record transfer-window actions, and record whether the Training
+   Pitch is at the highest useful level currently allowed.
+
+If any gate is skipped, stop calling the run optimized. Correct it immediately
+when possible and record the deviation. Do not use that season as clean balance
+evidence for optimal play.
 
 ## Training strategy
 
@@ -125,7 +150,7 @@ the squad can absorb the condition loss.
 
 From D3 onward, use the optional Green Bull Training button instead:
 
-- it costs $50,000 in D3, $80,000 in D2, and $120,000 in D1;
+- the first career use costs $50,000, then every later use costs $25,000 more;
 - it requires at least one full week's TP income;
 - it consumes all current TP;
 - it gives every player +2 to every stored stat;
@@ -175,6 +200,13 @@ Once income is stable, convert cash into team strength immediately:
    and
 8. Youth Field after immediate performance needs are covered.
 
+At every construction decision, select the Training Pitch on the grounds and
+review its next upgrade. Once the early income engine covers weekly costs, hold
+the upgrade money before building the Scout Office, Residence, or another
+lower-priority facility. In D5, Level 2 costs $20,000 and adds another 12 weekly
+TP. Delay it only for wages, an important renewal, or a major Starting XI
+signing, and record that reason.
+
 Start Level 2 performance upgrades as soon as the division allows them. Level 3
 facilities remain locked until D2. Their upgrade prices are 50% higher than the
 earlier draft, while Level 2 prices stay unchanged. Drill upgrades cost $5,000
@@ -187,7 +219,9 @@ is idle. That was the main optimization error in Season 2.
 
 ## Transfers and squad management
 
-Scout during every useful transfer window.
+Scout during every useful transfer window. Open Scouting and Deals in every
+week the window is active; do not rely on inbox reminders. On the first open
+week, list replaceable dead weight before spending transfer cash.
 
 Each completed mission has a 35% seeded chance to include a player whose role
 rating beats the club's best player in that role, while still respecting the

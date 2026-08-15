@@ -137,7 +137,6 @@ describe('marketViewModel', () => {
     const scoutResult = resolveScoutMission(mission, mission.dueWeek, [player]);
     const viewModel = marketViewModel({
       ...source,
-      activeScoutMission: mission,
       scoutResult,
       scoutedPlayerIdentities: [{ id: player.id, name: 'Nico Haze' }],
     });
@@ -151,6 +150,38 @@ describe('marketViewModel', () => {
     expect(viewModel.scouting.reports[0].potentialLabel).toBe('B-–A+');
     expect(viewModel.scouting.reports[0].stats).toHaveLength(6);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
+  });
+
+  it('shows a new active trip even while an older report remains on the desk', () => {
+    const source = baseSource();
+    const mission = startScoutMission({
+      careerSeed: source.careerSeed,
+      missionId: 'new-trip',
+      startWeek: 46,
+      region: 'EUROPE',
+      focus: { kind: 'POSITION', role: 'MID' },
+      scoutOfficeLevel: 2,
+      division: 3,
+    });
+    const oldResult = resolveScoutMission(
+      { ...mission, id: 'old-trip' },
+      mission.dueWeek,
+      [scoutPlayer('old-player')],
+    );
+    const viewModel = marketViewModel({
+      ...source,
+      activeScoutMission: mission,
+      scoutResult: oldResult,
+      scoutedPlayerIdentities: [
+        { id: 'old-player', name: 'Old Scout Target' },
+      ],
+    });
+
+    expect(viewModel.scouting.status.kind).toBe('IN_PROGRESS');
+    expect(viewModel.scouting.reports).toHaveLength(1);
+    expect(viewModel.scouting.choices.every((choice) => !choice.available)).toBe(
+      true,
+    );
   });
 
   it('shows deterministic transfer quotes and closes their actions outside a window', () => {

@@ -27,6 +27,11 @@ describe('market two-column layout', () => {
     expect(source).toContain('viewModel.coaches.length');
   });
 
+  it('keeps new scouting missions visible below completed reports', () => {
+    expect(source).toContain('viewModel.scouting.reports.length > 0 ?');
+    expect(source).not.toContain(') : (\n        <View className="mt-5 gap-3">');
+  });
+
   it('gives NegotiationPanel a flush option instead of editing SeasonEndScreen', () => {
     expect(source).toContain('flush');
     const seasonEnd = readFileSync(

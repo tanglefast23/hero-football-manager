@@ -77,7 +77,7 @@ describe('Week 19 mid-season team trip', () => {
       ([3, 2, 1] as const).map(
         (division) => greenBullTrainingOffer(weekNineteen(division))?.cost,
       ),
-    ).toEqual([50_000, 80_000, 120_000]);
+    ).toEqual([50_000, 50_000, 50_000]);
   });
 
   it.each([
@@ -293,15 +293,18 @@ describe('paid Green Bull training', () => {
     expect(greenBullTrainingOffer(completed)).toMatchObject({
       blockedReason: 'USED_THIS_WEEK',
     });
-    expect(
-      greenBullTrainingOffer({
-        ...completed,
-        week: completed.week + 1,
-        trainingPoints: weeklyAmbientTrainingPoints(completed),
-        clubs: completed.clubs.map((club) =>
-          club.id === completed.userClubId ? { ...club, cash: 90_000 } : club,
-        ),
-      })?.blockedReason,
-    ).toBeUndefined();
+    const nextDivision = weekNineteen(2).m2!;
+    const nextOffer = greenBullTrainingOffer({
+      ...completed,
+      season: completed.season + 1,
+      week: completed.week + 1,
+      m2: nextDivision,
+      trainingPoints: weeklyAmbientTrainingPoints(completed),
+      clubs: completed.clubs.map((club) =>
+        club.id === completed.userClubId ? { ...club, cash: 100_000 } : club,
+      ),
+    });
+    expect(nextOffer).toMatchObject({ cost: 75_000 });
+    expect(nextOffer?.blockedReason).toBeUndefined();
   });
 });

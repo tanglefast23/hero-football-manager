@@ -10,12 +10,8 @@ import type { CareerPlayer, GameState } from './types';
 export const MIDSEASON_TRAINING_WEEK = 19;
 export const MIDSEASON_TRAINING_CONDITION_COST = 10;
 export const GREEN_BULL_TRAINING_GAIN = 2;
-
-const GREEN_BULL_COST_BY_DIVISION: Readonly<Record<1 | 2 | 3, number>> = {
-  3: 50_000,
-  2: 80_000,
-  1: 120_000,
-};
+const GREEN_BULL_BASE_COST = 50_000;
+const GREEN_BULL_COST_INCREMENT = 25_000;
 
 const ATTRIBUTE_KEYS = [
   'pac',
@@ -125,7 +121,11 @@ export function greenBullTrainingOffer(
 ): GreenBullTrainingOffer | undefined {
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
   if (division !== 1 && division !== 2 && division !== 3) return undefined;
-  const cost = GREEN_BULL_COST_BY_DIVISION[division];
+  const previousTrips = state.eventFlags.filter(
+    (flag) =>
+      flag.startsWith('green-bull-training:') && flag.endsWith(':accepted'),
+  ).length;
+  const cost = GREEN_BULL_BASE_COST + previousTrips * GREEN_BULL_COST_INCREMENT;
   const trainingPointsRequired = weeklyAmbientTrainingPoints(state);
   const usedThisWeek = state.eventFlags.some(
     (flag) =>

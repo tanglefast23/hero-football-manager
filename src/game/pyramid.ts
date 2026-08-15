@@ -383,8 +383,8 @@ export const DIVISION_STRENGTH_BANDS: Readonly<
   Record<DivisionLevel, readonly [minimum: number, maximum: number]>
 > = {
   1: [107, 120],
-  2: [80, 90],
-  3: [67, 75],
+  2: [81, 91],
+  3: [69, 77],
   4: [51, 63],
   5: [40, 50],
 };

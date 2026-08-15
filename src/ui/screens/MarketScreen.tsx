@@ -870,18 +870,18 @@ function ScoutingDesk({
             </Pressable>
           ))}
         </View>
-      ) : (
-        <View className="mt-5 gap-3">
-          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">
-            {t('market.missionSlips')}
-          </Text>
-          {viewModel.scouting.choices.length === 0 ? (
-            <EmptyDocket
-              title={t('market.noMissionsOnOffer')}
-              detail={t('market.scoutingAssignmentsAreDrawn')}
-            />
-          ) : (
-            viewModel.scouting.choices.map((choice, index) => (
+      ) : null}
+      <View className="mt-5 gap-3">
+        <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">
+          {t('market.missionSlips')}
+        </Text>
+        {viewModel.scouting.choices.length === 0 ? (
+          <EmptyDocket
+            title={t('market.noMissionsOnOffer')}
+            detail={t('market.scoutingAssignmentsAreDrawn')}
+          />
+        ) : (
+          viewModel.scouting.choices.map((choice, index) => (
               <View
                 key={choice.id}
                 className={
@@ -949,10 +949,9 @@ function ScoutingDesk({
                   </Text>
                 ) : null}
               </View>
-            ))
-          )}
-        </View>
-      )}
+          ))
+        )}
+      </View>
     </View>
   );
 }

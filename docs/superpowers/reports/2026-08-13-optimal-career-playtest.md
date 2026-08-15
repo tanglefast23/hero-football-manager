@@ -555,3 +555,549 @@ selected match. This should reuse the existing match and sponsor screens.
   league points. The target should affect whether away draws are protected.
 - The Hero Cup Play-in is at home to Thunder Borough in Week 10. Bramble has
   59 strength against a D4 range of 52–70.
+
+## Fresh Spanish full-career playtest — 2026-08-15
+
+### Run contract and setup
+
+- Replaced the previous Season 4 save at Joe's request and started a new
+  Chairman career on the deployed production build.
+- Selected Spanish on the title screen before erasing the old save.
+- Goal: win both D1 and the Hero Cup, reach the true ending, and follow the
+  optimal-career handoff throughout.
+- Log every visible English leak and every awkward, incorrect, unclear, or
+  contextually wrong Spanish translation with its screen and career week. Log
+  translation-caused clipping, poor wrapping, overlap, spacing, and layout
+  problems too. Log bugs and balance findings here before fixing them after
+  the true ending.
+- Title screen, saved-career replacement flow, and initial player setup were
+  fully Spanish. No English leak was visible before player creation.
+
+### Spanish language and layout log — observed and open
+
+- Season 1, Week 1, Home: the visible speaker label says `Boss` above the
+  Spanish dashboard. This is an English leak; it should use the manager name or
+  a Spanish label.
+- Season 1, Week 1, Home accessibility copy: `Aficion`, `asi`, and `aun` are
+  missing the required accents (`Afición`, `así`, `aún`).
+- Season 1, Week 1, Home market note: `la plantilla que tienes es la que te
+  quedas` is ungrammatical. It should say `la plantilla que tienes es con la
+  que te quedas` or use shorter natural copy.
+- Season 1, Week 1, Club and Market headers: `S1 · W1` uses the English `W`
+  abbreviation throughout the Spanish UI. It needs a Spanish week label.
+- Season 1, Week 1, construction map: the active build badge says `BUILD · 2W`.
+  Both words are untranslated.
+- Season 1, Week 1, Bert task footer: `INBOX CLEAR. ADVANCE WEEK.` is fully
+  untranslated and appears on both the Club and Finance screens.
+- Season 1, Week 1, roster and training: position and attribute abbreviations
+  remain English (`FWD`, `MID`, `GK`, `PAC`, `SHO`, `STA`, and others). Spanish
+  football abbreviations should be used consistently if these labels are
+  intended to be localized.
+- Season 1, Week 1, training modal: cost badges use `TP` while the same screen
+  uses Spanish `PE`; the confirmation says `7 of 12`; and `Riesgo de lesión:
+  Ninguna` has the wrong gender. These should read `PE`, `7 de 12`, and
+  `Ninguno`.
+- Season 1, Week 1, drill shop: `Sprints 1` is untranslated. `Sesiones nivel 2
+  se abren...` is unnatural; `Las sesiones de nivel 2 se desbloquean...` is
+  clear Spanish.
+- Season 1, Week 1, facility count: `1 construidas` disagrees in number. It
+  should be `1 construida`.
+- Season 1, Week 2, SUPER drill result: `Súper entrenamiento session!` mixes
+  Spanish and English. It should be fully Spanish.
+- Season 1, Week 3, assistant-coach onboarding: `segunda plaza de staff` uses
+  English. `segunda plaza del cuerpo técnico` is natural Spanish.
+- Season 1, Week 4, assistant tutorial: Bert repeats the untranslated loanword
+  in `Con puntos fuertes distintos, el staff llega a más sitios.` Use `cuerpo
+  técnico`.
+- Season 1, Week 3, match header: the week is `W3`, repeating the English week
+  abbreviation. The speed accessibility label says `Velocidad 1 veces`, which
+  is ungrammatical; use `Velocidad ×1` or `Velocidad normal`.
+- Season 1, Week 4, weekly report: `¡Oficina Técnica listo!` has the wrong
+  gender. It should be `¡Oficina Técnica lista!`.
+- Season 1, Week 4, quick-result power cut-in: `TAP TO SKIP` is displayed in
+  English over the otherwise Spanish presentation.
+- Season 1, Week 5, Hero Cup bracket: every unresolved slot says `TBD`. Use a
+  Spanish placeholder such as `POR DECIDIR` or a neutral dash.
+- Season 1, Week 7, weekly report: `¡Grada listo!` has the wrong gender. It
+  should be `¡Grada lista!`.
+- Season 1, Week 11, `Un día con las cámaras`: both choice accessibility
+  labels join the description and effect with two periods (`revés..` and
+  `seguro..`). The visible cards are laid out correctly, but the spoken copy
+  needs one sentence boundary.
+- Season 1, Week 19, team-trip result: the tiny footer says `TOCA DONDE SEA
+  PARA INICIO`. This is unnatural Spanish, and it remains partly exposed under
+  the large `CONTINUAR` button. Use `TOCA EN CUALQUIER LUGAR PARA EMPEZAR` and
+  hide the start prompt once the result button appears.
+- Season 1 awards: `1 premio ganados` has the wrong agreement. Use `1 premio
+  ganado` and preserve the plural form for other counts.
+- Season 1 review: `Acabas #6` and `7W · 2D · 9L` are English-shaped copy.
+  Use a natural Spanish finishing-position label and Spanish result initials.
+- Season 1 Hero of the Season card: `BLINK RUN marcó la diferencia` bypasses
+  the localized power name `Parpadeo`. Awards must resolve the localized power
+  display name for every supported language instead of inserting the English
+  source name.
+- Season 1 renewal accessibility copy: `Contrato de 1 temporadas` and `Fichar
+  a jojo 1 temporadas` use a plural noun with one. Use the singular form.
+
+### Bugs — observed and open
+
+- Season 1, Week 3, first live-match tired-player tutorial: automatic
+  substitutions started enabled and used the only reserve forward before the
+  tutorial paused for exhausted jojo. The tutorial then would not let the match
+  resume until a substitution was saved, leaving only goalkeepers and defenders
+  as replacements. Dara Ward had to play out of position at forward. Required
+  behavior: the first live match starts with Auto Subs off; Quick Result always
+  uses Auto Subs; later live matches remember the player's last live-match
+  choice. The tutorial must not consume the legal same-role replacement before
+  asking for a manual substitution.
+- Season 1, Week 24, `Cuatro sin perder`: the risky choice currently rewards
+  failure with +6 TP, so it has no downside. Change failure to -6 TP. The
+  narrative is that rival coaches copied the plan and wasted the club's
+  training preparation. Keep success at +140 followers and +15 TP.
+
+### Season 1, Week 1 checkpoint
+
+- Chairman difficulty, D5, Week 1. Cash $53,000, TP 12, and 500 fans.
+- No matches played. Quartz FC is the first league opponent in Week 3.
+- Training Pitch construction and hiring a coach are mandatory onboarding
+  tasks. No construction is active yet.
+- Starting squad: 15 players, 42.9 average rating, 43.5 Starting XI average.
+  Player wages total $2,041 per week before the Season 1 wage subsidy.
+- Spent 7 TP on one Shooting session for jojo, raising SHO from 58 to 61 and
+  lowering condition from 100 to 92. TP ended at 5.
+- Started the Level 1 Training Pitch at column 1, row 1 for $8,000. It takes two
+  weeks. Hired Level 1 head coach Kenji Sato for $300 per week, adding 5 weekly
+  TP, PAS/TEC training, morale protection, hero heat, and 4-3-3.
+
+### Season 1, Weeks 2–3
+
+- Signed 17-year-old C+ defender Dara Ward from the academy for $500 and $167
+  per week over three years. Chose the defender over a second forward because
+  the squad already has jojo and defense is the weaker long-term unit.
+- Trained jojo in TEC and SHO, Dara in DEF twice, and Gio Marsh in PAS. The
+  Week 3 TP bank ended at zero.
+- Completed the Training Pitch and started the Level 1 Coaching Office beside
+  it at column 3, row 1 for $6,500.
+- Lost the first league match 0-1 at home to strong Quartz FC. The match was
+  level until the 31st-minute goal. A switch from 4-4-2 Balanced/Save Energy to
+  Attack and then 3-4-3 did not find an equalizer. jojo awakened Parpadeo after
+  the match.
+
+### Season 1, Week 4 checkpoint
+
+- Chairman difficulty, D5. Record 0-0-1, sixth place. Hero Cup has not started.
+- Cash $34,632, TP 27 before training and 6 after training, 500 fans, and 16
+  players.
+- Full squad average 42.8 before Week 4 training; Starting XI average 43.8.
+  After three drills, jojo rated 55, Gio Marsh 49, and Dara Ward 40.
+- Player wages total $2,208 per week. Head coach and assistant wages total $450
+  per week before the Season 1 wage subsidy.
+- Training Pitch and Coaching Office are both Level 1. No construction is
+  active after the office opened.
+- Hired Level 1 assistant Elena Petrova for DEF and PAS/TEC training, plus 3
+  weekly TP. Week 4 training targeted jojo PAC, Dara STA, and Gio DEF.
+
+### Season 1, Weeks 4–6
+
+- Beat Harbor Comets 1-0 away, then lost 2-1 at home to Cedar Crown and 2-1
+  away to Oakridge. jojo scored with Parpadeo at Oakridge. The record is 1-0-3
+  and the club is eighth after four matches.
+- Started the first Level 1 Stadium Stand at column 5, row 1. It completed at
+  the start of Week 7.
+- The early D5 schedule feels demanding on Chairman. Three of four opponents
+  were competitive or stronger. The one Harbor win kept the opening from
+  feeling hopeless, but focused drills lowering starters into the high 80s
+  made condition a real tradeoff.
+
+### Season 1, Weeks 7–8
+
+- Completed the first Stadium Stand, then built the first Fan Shop beside it.
+  The pairing activated the expected 10% shop-income combo. Started the second
+  Fan Shop at column 4, row 2 in Week 8.
+- Used four focused drills in each week while keeping the two-drill weekly cap
+  per priority player. Training covered jojo TEC and SHO, Gio DEF and PAS,
+  Dara DEF and STA, Sam REF, and Sol TEC.
+- Joe clarified that condition below 80 is acceptable and must not become a
+  hard blocker. The run will treat condition as a match-planning tradeoff,
+  rotating only when the bench or schedule makes that the better choice.
+- Drew 2-2 at home to Meadow City in Week 8. Bramble is eighth at 1-1-3 after
+  five league matches. Cash ended at $15,168, TP at 37, and fans at 509 after
+  match income and weekly recovery.
+
+### Season 1, Weeks 9–18
+
+- Lost the Week 9 rivalry match 1-0 at Thunder Borough. The live match stayed
+  level until the 59th minute; switching to Attack and All Out at 68 minutes
+  did not produce an equalizer.
+- Led the Hero Cup play-in 2-0 through two jojo goals, but lost 3-2 after using
+  Save Energy to protect the lead. The comeback made the energy choice matter,
+  although one match cannot prove direct causation.
+- The Week 11 condition lesson appeared when jojo and Gio reached 80. It
+  correctly explained that drills lower condition first, then that starters
+  pay the full match cost, substitutes pay half, rested bench players recover,
+  and low condition lowers performance. The bubble fit the phone layout.
+- Took the risky camera-day choice in Week 11. It succeeded for 90 followers
+  and 20 fame. The percentage-based failure cost was only $254 because cash was
+  low, so the risk felt proportionate instead of trivial or ruinous.
+- League form stayed difficult: losses in Weeks 11, 15, and 16, a Week 12 draw,
+  and a Week 17 win. Bramble entered Week 19 eighth at 2-2-7 with a -7 goal
+  difference.
+- Completed the second Stadium Stand and all three Fan Shops. The third shop
+  was built beside the second stand. Cash repeatedly fell near $3,000 during
+  Cup-bye weeks, so the early D5 economy still demands restraint.
+
+### Season 1, Week 19 checkpoint
+
+- Chairman difficulty, D5. League record 2-2-7, eighth place. Eliminated 3-2
+  in the Hero Cup play-in.
+- Cash $5,883, TP 36 before the team trip and 0 after it, 608 fans, and 16
+  players. No construction is active. Facilities are one Training Pitch, one
+  Coaching Office, two Stadium Stands, and three Fan Shops, all Level 1.
+- Full squad average is 46.2. Starting XI average is 46.5. Priority ratings are
+  jojo 65 at FWD, Gio Marsh 58 and Sol Reed 53 at MID, Dara Ward 52 at DEF,
+  and Sam Mitts 39 at GK.
+- Accepted the one-time Week 19 team trip. Spending all 36 TP for +1 to every
+  attribute on every player was much stronger than four or five individual
+  Tier 1 drills. Every player also lost 10 condition; jojo and Gio ended at 74,
+  which is acceptable under the agreed condition strategy.
+
+### Season 1 validity correction
+
+- This season was not a valid fully optimized D5 run. The tester failed two
+  explicit handoff checks: inspect Deals during the Weeks 17–18 transfer window,
+  and convert stable income into the Level 2 Training Pitch first.
+- Dead weight was not listed during the open window. The prior optimized run
+  sold Ty Brooks and Zip Vela for $28,589 combined, which funded major squad and
+  facility improvements. This run sent a scout in Week 19, after the window had
+  closed, and left Nora Vale's exit request unresolved.
+- The Level 2 Training Pitch costs $20,000 and would have raised the same
+  staff-supported weekly TP income from 30 to 42. Missing the sales meant the
+  club never held enough cash to start it.
+- The tester also failed to refresh the saved Starting XI. By Week 30,
+  61-rated Dara Ward and 57-rated Sol Reed remained on the bench behind a
+  41-rated defender and a 46-rated midfielder.
+- Therefore the sixth-place result cannot be used as a clean measurement of
+  condition carryover. Condition added difficulty, but missed sales, the
+  missing Pitch upgrade, a stale lineup, a different hero power, and different
+  recruitment also materially weakened this run.
+
+### Season 2, Weeks 1–4
+
+- Applied the corrected optimization gates. Opened Scouting and Deals in every
+  transfer-window week, inspected the Training Pitch upgrade, and compared the
+  saved XI against every eligible reserve.
+- Sold Ty Brooks for $5,950, Zip Vela for $4,854, Dario Flint for $4,892, Max
+  Tanko for $6,272, Nora Vale for $4,516, and Sam Mitts for $5,427.
+- Signed 18-year-old B-potential goalkeeper Ivo Tate for $34,475 and $417 per
+  week over three years with a Starter promise. He reached 90 overall by the
+  Week 4 checkpoint. Signed 17-year-old C+ backup goalkeeper Remy Moss and
+  17-year-old C+ forward Dara Oak from the academy for $500 each.
+- The Training Pitch stayed at Level 1 because Ivo was a major long-term XI
+  upgrade. Its Level 2 quote remains $20,000 for another 12 weekly TP. This is
+  an intentional, recorded delay rather than an overlooked upgrade.
+- Focus training spread supporting attributes instead of feeding compressed
+  headline stats: jojo PAC/TEC, Gio PAS/TEC, Ivo PAS/STA, Dara Ward
+  PAC/STA/PAS, Sol DEF/TEC, and Ari SHO.
+- Bert's facility-upgrade lesson did select the Training Pitch, but it arrived
+  in Season 2 Week 2 instead of Season 1 Week 8. It appeared after the transfer
+  spending and only explained upgrade mechanics. It did not say the Training
+  Pitch was the recommended next investment or wait for an affordable moment.
+- Week 3's risky school-visit story succeeded for +8 morale and 190 fans.
+
+### Season 2, Week 4 checkpoint
+
+- Chairman difficulty, D5. No matches played. Cash $3,166, TP 36 before
+  training and 1 after it, 990 fans, and 14 players after the final academy
+  signing.
+- The 13-player pre-signing squad averaged 54.0. The saved XI averaged 54.8;
+  the strongest eligible XI averaged 56.0.
+- The saved lineup still benched 59-rated Sol Reed behind 46-rated Ken Ash.
+  This must be corrected on the Week 5 team sheet before the first match.
+- Priority ratings were Ivo Tate 90, jojo 75, Gio Marsh 67, Dara Ward 64, Sol
+  Reed 59, and Ari Academy 1 44. Player wages were $2,560 per week before Dara
+  Oak's $174 weekly academy contract.
+- Facilities remained one Level 1 Training Pitch, one Coaching Office, three
+  Stadium Stands, three Fan Shops, one Scout Office, and one Residence.
+
+### Season 2, Weeks 5–9
+
+- Corrected the saved XI before the opener by starting 59-rated Sol Reed over
+  46-rated Ken Ash. The corrected lineup persisted through later matches.
+- Won the first five league matches 4-0, 5-0, 4-0, 5-0, and 11-0. Ivo Tate
+  kept five clean sheets. The Week 9 score is the first strong warning that a
+  repeat D5 season can become boring once optimized recruitment and training
+  compound.
+- Continued spreading drills across position-relevant supporting attributes.
+  No priority player received more than two drills in one week, and condition
+  below 80 remained a planning tradeoff instead of a blocker.
+- Granted Ravi Chan one week of leave for a hometown match. Ken Ash correctly
+  replaced him in the saved XI for Week 9. Week 10 must confirm Ravi returns
+  on time and automatically reclaims his former starting slot.
+- The unavailable-player badge leaked English as `ON LEAVE · 1 SEMANA` on
+  the Spanish match sheet.
+- Upgraded the Training Pitch at the first safe post-recruitment opportunity:
+  Week 9, with $20,044 available. The Level 2 project cost $20,000 and takes
+  two weeks. Cash fell to $44 before a home match, making the timing aggressive
+  but viable under the game's fail-soft weekly settlement.
+- Week 7's risky `Mil voces` choice failed for -$200 and +30 followers. The
+  loss was small but real.
+
+### Season 2, Weeks 10–14
+
+- Beat first-place Fable United 2-1 in a watched Hero Cup play-in. Balanced
+  energy produced a two-goal lead; Save Energy after minute 69 protected it.
+  The Cup's D2 Fable City then won the round of 32 by 3-1. That gap felt fair
+  and matched Bert's warning that a three-division upset was unlikely.
+- Ravi Chan returned exactly one week after his approved leave. He reclaimed
+  his former starting midfield slot automatically and Ken Ash returned to the
+  bench, confirming the unavailable-player lineup restoration fix works in
+  this case.
+- Sol Reed awakened `Doble Señuelo` in Week 11. Replacing Ravi's Hero License
+  with Sol's correctly put the stronger 63-rated hero into the saved XI, though
+  the two-license cap then forced unlicensed 48-rated Ravi behind 46-rated Ken
+  Ash.
+- Completed the Level 2 Training Pitch. Weekly TP income rose from 30 to 42 as
+  promised. Started and completed a Level 1 Tech Center, then started a Level
+  1 Gym immediately after the crew became free.
+- League results stayed dominant: 4-0, 8-0, then a watched 1-0 away win against
+  first-place Fable United. The top rival provided a tense match, while the
+  bottom half remained too weak for an optimized repeat D5 squad.
+- The rival power tile leaked English as `SUPER SPEED` during the Spanish live
+  match. This is the same untranslated power-name path implicated by the
+  earlier `BLINK RUN` season-award leak.
+
+### Season 2, Weeks 15–30 and final review
+
+- Finished D5 as undefeated champions: 18 wins, 0 draws, 0 losses, 99 goals
+  for and 1 against. The repeat season became far too easy. Fable United was
+  tense in the first two watched meetings, but lost the title decider 7-0.
+- Used every open week for up to two position-relevant drills per priority
+  prospect. Match weeks spread one drill each across starters and long-term
+  reserves. Condition influenced the final title-match plan but never became a
+  hard blocker.
+- The facility-fire event correctly triggered after the release and win-streak
+  thresholds. The risky choice failed and destroyed one Level 1 Fan Shop. The
+  club rebuilt it on its original paired site the next week. The risk text
+  repeats `70%` twice, its no-loss outcome says the vague `Historia asegurada`,
+  and the failure copy says the club's main facility was lost even though the
+  effect removed one Fan Shop.
+- Signed 21-year-old B-potential midfielder Dara Quick for $8,825 and $156 per
+  week over three years with a Starter promise. He immediately replaced a
+  weaker midfielder. His scout report showed potential `E-–C+`, while the
+  Deals page revealed exact B potential before signing, making the uncertainty
+  path inconsistent.
+- Tried to list Ravi Chan after the signing. Week 18 still said the market was
+  open and enabled `Poner en venta`, but confirmation returned `Eso no se puede
+  hacer ahora mismo`. The final-week listing action must work immediately or
+  be disabled with an explanation.
+- Built the Level 1 Gym, rebuilt Fan Shop, Shooting Range, Keeper Court, and
+  Youth Field. Starting the $12,000 Youth Field with only $3,551 left caused a
+  single negative-cash week and an automatic $15,000 emergency loan plus 10%
+  interest. The $16,500 balance begins weekly repayment in Season 3. This was a
+  real, fair consequence, but it was an avoidable optimization mistake caused
+  by using too thin a cash reserve.
+- Weekly-report number disagreement continued. Week 24 showed accessible TP
+  income +42 but visible +41. The season-award screen similarly exposed a
+  $6,160 prize in its accessible label while visibly showing $4,797.
+- Spanish leaks found late in the season: `POWER COMPLETE` on Sol Reed's live
+  power overlay, `YOU WON THE LEAGUE!` on the title celebration, `DECOY DOUBLE`
+  in Hero of the Season, and `County League` in the D4 promotion reward copy.
+- The awards card says `1 premio ganados`, which has incorrect singular/plural
+  agreement. The season review says `Llega a 0 partidos` for a Cup run that won
+  the play-in and then lost in the round of 32.
+- Released expired dead weight Ed Stone, Ken Ash, Leo Quick, and Mae Thorn.
+  Renewed Sol Reed for three seasons at $667 per week with a Starter promise,
+  down from the hero-wage demand of $950.
+
+### Repeated cash-display bug
+
+- The weekly review repeatedly exposed two different closing balances. Week 1
+  said $34,253 → $32,863 and net -$1,390 visually, while its accessible labels
+  said $32,385 and -$1,868; Week 2 similarly showed $5,457 versus $5,103; Week
+  3 showed $3,513 versus $3,166. The following week's saved balance always
+  matched the accessible destination, not the larger visible value.
+- The same mismatch briefly appeared in the header after transfers: $7,353
+  versus $5,915, and $2,666 versus $2,669. Treat this as the same unresolved
+  cash-state/render ordering bug until the shared source is traced.
+
+### Season 3, Weeks 1–7
+
+- Entered D4 with $67,904, 47 TP, 1,658 fans, and $16,500 still owed on the
+  emergency loan. Signed Brightside Bank's bold sponsor: $3,168 monthly, a
+  $5,280 bonus for eight league clean sheets, and a useful tactical reason to
+  protect leads.
+- Spent $25,000 on Level 2 Pace, Passing, Defense, Technique, and Goalkeeper
+  drills. This was the first convincing later-season money sink. The club then
+  stayed solvent through player sales, the sponsor payment, and home gates.
+- Signed 17-year-old B- keeper Cal Lane for $750, sold surplus keeper Remy Moss
+  for $3,945, and sold 43-rated defender Bo Hedges for $5,251.
+- A targeted South America defender search produced a real choice. Elite
+  specialist Finn Jett was unaffordable at $57,163. The club instead signed
+  21-year-old, B-potential Ben Irons for $17,848 and $274 per week over three
+  years with a Starter promise. His 67 starting rating immediately improved
+  the defense without making the best target attainable.
+- Training followed the optimized handoff. No priority player received more
+  than two sessions in a week. Work moved between jojo and Ivo, the new Ben
+  Irons, Dara Quick, and the young B- reserves. Midfield training included
+  Defense, not only Passing and Technique.
+- Corrected the saved team sheet before Week 5. The formation had placed a
+  forward in defense and weaker players over stronger natural defenders. The
+  final 4-4-2 used the strongest legal role players while preserving Starter
+  promises and Hero Licenses.
+- Changing to 3-4-3 auto-placed Starter-promise players out of position. The
+  hard promise lock then prevented temporarily benching them to repair those
+  slots. Returning to 4-4-2 was the only clean route. Formation changes should
+  preserve promised starters in valid old or natural positions, or allow a
+  direct starter-to-starter slot swap that keeps both in the XI.
+- Opened D4 with wins of 1-0, 1-0, and 4-2. The first two matches were tense
+  and earned sponsor clean sheets; the third showed more attacking freedom.
+  This is much healthier than the repeat-D5 routs, though three straight wins
+  suggest the optimized rebuild may already be above the lower D4 band.
+- Player-request copy renders penalties as `--5 lealtad · --8 ánimo` instead
+  of a single minus. Both `Mi propio gurú` and `El coche` would cut that
+  player's training gains for four weeks, so both were denied.
+- The finance ledger leaks `South America` in `Misión de ojeo · South
+  America` while the rest of the Spanish scouting flow correctly says
+  `Sudamérica`.
+- The weekly cash mismatch persists in Season 3. Week 1 visibly closed at
+  $35,841 and net -$3,813, while accessible values said $35,497 and -$4,157.
+  Weeks 2–4 repeated the same split. The next saved balance again followed the
+  accessible value.
+
+### Season 3, Weeks 8–18
+
+- Completed all seven Tier 2 drills for $35,000 total. Each session costs 11
+  TP and gives +5 before facility bonuses. The 43 weekly TP income supported
+  three or four useful sessions every week without breaking the two-sessions-
+  per-player limit.
+- Built a Level 1 Infirmary, then upgraded the Tech Center and Keeper Court to
+  Level 2. These were meaningful cash sinks because their +20% bonuses visibly
+  improve the relevant training sessions.
+- The league stayed competitive through the first half. Bramble drew 1-1 at
+  Dunwich and reached Week 16 level on 22 points with Copper Wanderers. A
+  midseason sponsor challenge asked for either three goals or a clean sheet in
+  the next match. Choosing the clean sheet changed the immediate priority, and
+  the 2-0 win over Copper earned $6,336. This weekly sponsor format works.
+- The Hero Cup round of 16 ended in a credible 6-0 loss away to D1 Iron
+  Athletic. The gap was large without resembling the earlier broken 20-0
+  outlier.
+- A watched 4-0 Cup play-in win showed that Save Energy and remembered Auto
+  Subs still worked. The rival introduction leaked `SUPER POWER`, even though
+  the specific power name below it was translated.
+- Sold 49-rated, 30-year-old Ravi Chan for $21,289 in the final transfer week.
+  That funded the $53,320 signing of 108-rated specialist defender Finn Jett.
+  The transfer was a satisfying late-window upgrade and confirms D4 scouting
+  can produce a player stronger than the current XI.
+- Finn's negotiation summary said only `$426 a la semana por 3 temporadas`,
+  but the signed contract silently included a Starter promise. The team sheet
+  did place him correctly in defense, yet promises should never be hidden from
+  the final offer summary.
+- Granted reserve Remy Ward two weeks of leave. The match sheet showed the
+  untranslated `ON LEAVE · 1 SEMANA`. The persistent home greeting also shows
+  the untranslated standalone word `Boss` under `Buenos días, jefe`.
+
+### Season 3, Weeks 19–30 and final review
+
+- Finished D4 as unbeaten champions: 17 wins, 1 draw, 0 losses, 63 goals for,
+  4 against, 52 points, and +59 goal difference. Bramble beat second-place
+  Copper 2-0 and 5-0. The first half was competitive; the second half became a
+  procession.
+- The annual Green Bull team trip spent 44 TP, gave every player +2 to every
+  attribute, and cost 10 condition. Bramble immediately won 9-0. The reward is
+  intentionally exciting, but it accelerated an already superior squad and
+  made the late D4 schedule less interesting.
+- Condition never forced a lineup change. The team trip put every starter at
+  90%, and normal one-session match weeks usually left priority players around
+  88–97%. This is acceptable in D4, but D3 must show whether the denser schedule
+  finally creates meaningful starter-versus-bench choices.
+- Upgraded the Gym, Shooting Range, Scout Office, and Youth Field to Level 2.
+  Combined with the Infirmary and earlier upgrades, Season 3 absorbed roughly
+  $130,000 in facility spending plus $35,000 in drill upgrades. Cash still
+  repeatedly rebuilt after home gates, but aggressive upgrades briefly pushed
+  the saved balance to -$1,160 before the next home match restored it. The
+  economy offered real choices once every available Level 2 upgrade was used.
+- The emergency loan shrank from $16,500 to $1,100 by Week 29. Weekly wages
+  rose to about $4,477 before renewal. Gio Marsh renewed for three seasons at
+  $450 per week, and Dara Ward renewed for three seasons at $300 per week.
+- Main sponsor progress reached eight clean sheets, and the one-week stretch
+  target paid correctly. Sponsor goals helped both the season plan and one
+  specific match; the latter was the more interesting form.
+- Player requests remained strategically easy when assigned to reserves. Remy
+  Ward's leave and Cal Stone's family request were granted because neither
+  reduced priority training. The negative option still renders `--5 lealtad ·
+  --8 ánimo`.
+- The title celebration again leaked `YOU WON THE LEAGUE!`. The awards screen
+  exposed a $7,040 prize in its accessible label while visibly showing $3,264,
+  and repeated the bad grammar `1 premio ganados`.
+- The title screen credited jojo with 58 season goals while the team scored 63
+  league goals and also played three Cup matches. This total needs a clear
+  `liga` or `todas las competiciones` label before it can be trusted.
+- The weekly cash bug remained severe. Week 27 visibly closed at -$550, while
+  the accessible destination and next saved balance were -$1,160. Week 29
+  visibly closed at $19,086, while the accessible destination and next saved
+  balance were $18,444.
+- D4 worked best during Weeks 5–16. The lower clubs supplied reachable wins,
+  Copper supplied a real title rival, and the D1 Cup opponent showed the next
+  ceiling. After Finn, the team trip, and several Level 2 upgrades, opponent
+  growth did not keep pace. Preserve the wide 51–63 D4 band, but ensure the
+  strongest clubs receive between-season growth so a repeat year cannot become
+  another D5-style sweep.
+
+## Season 4 · D3 Spanish Playtest
+
+- Won D3 with a perfect 18-0-0 league record, 90 goals for, 3 against, 54
+  points, and +87 goal difference. Second-place Beacon United finished ten
+  points back. The final six league results were 7-0, 3-0, 10-0, 5-0, 3-0,
+  and 7-0. D3 was not competitive after the optimized team reached full speed.
+- The Cup was much healthier. Bramble beat Elm Athletic 4-0 in the play-in,
+  then lost 4-3 to Dunwich Wanderers in the round of 16. That close loss gave
+  the overpowered league squad a credible ceiling without feeling broken.
+- Green Bull was the decisive balance lever. Six D3 trips cost $300,000,
+  consumed all current TP, and gave every player +12 to every attribute in
+  total. The individual-training lock worked, but weekly availability still
+  let optimized home-gate income turn cash directly into a runaway squad.
+  Green Bull is an effective money sink and a fun reward, but it is too
+  efficient or too repeatable at its current D3 settings.
+- All seven drills reached Tier 3. Each upgrade cost $15,000, for another
+  $105,000 spent. Tier 3 sessions cost 17 TP and gave +8 before staff and
+  facility bonuses. Production still showed $15,000 rather than the planned
+  higher D3 price, so the live price needs checking against the design decision.
+- Even after $405,000 of Green Bull and drill spending, gates repeatedly rebuilt
+  cash into the $40,000-$90,000 range. The club ended with $72,623, up $12,362
+  across the season. D3 has enough purchases, but its income growth can pay for
+  all of them while also making the team much stronger.
+- Replaced Level 2 Kenji Sato with Level 3 Rafael Costa. Weekly TP reached 44:
+  10 base, 24 from the Level 2 Training Pitch, 7 from Rafael, and 3 from Elena.
+  Staff hiring was a clear, worthwhile progression choice.
+- The Level 2 Youth Field produced B- forward Milo Hart and B midfielder Jae
+  Oak. Signing Jae immediately closed the academy and removed Milo. The warning
+  says signing rejects the rest, but optimized play must create every needed
+  roster slot before the first signing. This should be explicit in the handoff.
+- The Level 2 Scout Office became unusable. D4 candidate Nico Vale persisted
+  throughout D3 and blocked every new mission. He was not an upgrade, so signing
+  him only to clear the state would have been wasteful. A stale candidate must
+  expire or stop blocking a new-season mission.
+- Sold Remy Ward, Dara Oak, Cal Stone, and other dead weight. Signed Jae Oak.
+  The final 15-player squad had useful depth, but Green Bull improved every
+  reserve too, reducing the transfer market's role.
+- Condition still did not force a meaningful lineup choice. Trips lowered the
+  whole squad to 90%, match costs lowered starters further, and the team trained
+  prospects, yet routine recovery and the large quality gap kept the strongest
+  XI available. D2's 10-point match cost is the next useful test.
+- The one-match sponsor stretch target worked well. Bramble chose the three-goal
+  target, switched to Attack, won 4-1, and earned $9,552. It changed one week's
+  strategy without distorting the whole season.
+- Save Energy again lost its active state during watched matches, including at
+  halftime in the sponsor match. The tactic must remain selected until the
+  manager changes it.
+- Spanish remained understandable, but visible leaks included `Boss`, `SUPER
+  POWER`, `ON LEAVE`, `YOU WON THE LEAGUE!`, and `DECOY DOUBLE`. Other issues
+  included `--5 lealtad`, `Misión de ojeo · South America`, and mismatched
+  visible versus accessible cash and award values.
+- The title review showed `Llega a 0 partidos` beside `Dieciseisavos`, which is
+  not a useful Cup summary. It should show the reached round without a zero-game
+  phrase.
+- Renewed Ari Academy 1, Ivo Tate, and Dara Quick for three seasons. jojo's
+  requested D2 wage was $5,606 per week. Negotiation settled at $4,350 for
+  three seasons with a Starter promise. Promotion wages became a meaningful
+  late-season cost without forcing the club to lose its star.
