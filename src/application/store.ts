@@ -112,10 +112,11 @@ import {
   careerRosterCapacity,
   userCareerRosterCount,
 } from '../game/youth-intake';
-import type {
-  CareerBackupSummary,
-  CareerRepository,
-  ReplayRepository,
+import {
+  isBrowserDatabaseLockError,
+  type CareerBackupSummary,
+  type CareerRepository,
+  type ReplayRepository,
 } from '../persistence';
 import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
@@ -323,7 +324,7 @@ export async function flushPendingCareerSave(): Promise<void> {
       if (get().career === snapshot.state) {
         set({ hasSavedCareer: true, lastPersistedCareer: snapshot.state });
       }
-    } catch {
+    } catch (error) {
       // Re-queue rather than hand the payload back. The task that owned this
       // generation has already run and returned, so a payload put back on its own
       // would have no owner — and `queueCareerSave` coalesces into an existing
@@ -334,7 +335,7 @@ export async function flushPendingCareerSave(): Promise<void> {
       if (pendingCareerSave === null && snapshot.lineage === careerLineage) {
         queueCareerSave(get, set, snapshot.state);
       } else {
-        recordSaveFailure(get, set);
+        recordSaveFailure(get, set, error);
       }
     }
   }
@@ -3796,13 +3797,14 @@ function queueCareerSave(
       if (get().career === saved)
         set({ hasSavedCareer: true, lastPersistedCareer: saved });
     },
-    () => recordSaveFailure(get, set),
+    (error) => recordSaveFailure(get, set, error),
   );
 }
 
 function recordSaveFailure(
   get: () => M1Store,
   set: (partial: Partial<M1Store>) => void,
+  error?: unknown,
 ): void {
   const consecutiveSaveFailures = get().consecutiveSaveFailures + 1;
   const saveBlocked = consecutiveSaveFailures >= SAVE_FAILURE_BLOCK_LIMIT;
@@ -3811,9 +3813,15 @@ function recordSaveFailure(
     saveBlocked,
     // `error` is a dismissible toast, so it cannot carry this: the player would
     // wave it away and keep playing a career that exists only in memory.
-    saveWarning: saveBlocked
-      ? t('store.saveWarningBlocked')
-      : t('store.saveWarning'),
+    saveWarning: isBrowserDatabaseLockError(error)
+      ? t(
+          saveBlocked
+            ? 'store.saveWarningDatabaseInUseBlocked'
+            : 'store.saveWarningDatabaseInUse',
+        )
+      : saveBlocked
+        ? t('store.saveWarningBlocked')
+        : t('store.saveWarning'),
   });
 }
 
@@ -3935,7 +3943,7 @@ function queueNewCareerSave(
       if (get().career === career)
         set({ hasSavedCareer: true, lastPersistedCareer: career });
     },
-    () => {
+    (error) => {
       // The write that failed is the one that would have replaced the career on
       // disk, so the live slot still holds it. Roll memory back onto that career
       // rather than leaving the player in one the game has refused to store:
@@ -3944,7 +3952,7 @@ function queueNewCareerSave(
       if (replacedCareer === null) {
         // Nothing to lose to a retry — the slot was empty. This is the ordinary
         // "progress is not being saved" warning, with its Retry.
-        recordSaveFailure(get, set);
+        recordSaveFailure(get, set, error);
         return;
       }
       // The rollback is itself a wholesale career swap: anything queued for the
@@ -3968,7 +3976,7 @@ function queueNewCareerSave(
         pendingPostFaceOffScreen: null,
       });
       if (replacedCareerPersisted) clearSaveFailures(set);
-      else recordSaveFailure(get, set);
+      else recordSaveFailure(get, set, error);
     },
   );
 }

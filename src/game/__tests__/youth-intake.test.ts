@@ -84,7 +84,7 @@ function relevantAverage(
 }
 
 describe('pre-season youth intake', () => {
-  it('offers 1-2 deterministic, JSON-safe 16-17 year olds each pre-season', () => {
+  it('offers two deterministic, JSON-safe 16-17 year olds each pre-season', () => {
     const state = careerWithRosterSize(14, 101);
     const before = JSON.stringify(state);
     const first = createPreseasonYouthIntake(state);
@@ -94,8 +94,7 @@ describe('pre-season youth intake', () => {
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(first.status).toBe('OPEN');
-    expect(first.offers.length).toBeGreaterThanOrEqual(1);
-    expect(first.offers.length).toBeLessThanOrEqual(2);
+    expect(first.offers).toHaveLength(2);
     expect(
       first.offers.every(
         (offer) => offer.player.age === 16 || offer.player.age === 17,
@@ -172,11 +171,9 @@ describe('pre-season youth intake', () => {
     const fullState = careerWithRosterSize(BASE_ROSTER_CAPACITY, 202);
     const full = createPreseasonYouthIntake(fullState);
 
-    expect(oneSlot.offers.length).toBeGreaterThanOrEqual(1);
-    expect(oneSlot.offers.length).toBeLessThanOrEqual(2);
+    expect(oneSlot.offers).toHaveLength(2);
     expect(full.status).toBe('OPEN');
-    expect(full.offers.length).toBeGreaterThanOrEqual(1);
-    expect(full.offers.length).toBeLessThanOrEqual(2);
+    expect(full.offers).toHaveLength(2);
     expect(() =>
       signYouthIntakeOffer(fullState, full, full.offers[0].player.id),
     ).toThrow('16-player roster is full');

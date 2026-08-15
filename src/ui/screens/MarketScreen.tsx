@@ -443,11 +443,15 @@ export function MarketScreen({
             : undefined;
 
   const sections: FlowSection[] = [
-    {
-      key: 'registration',
-      weight: 5,
-      node: <RegistrationDesk viewModel={viewModel} flush />,
-    },
+    ...(transferSectionVisible
+      ? [
+          {
+            key: 'registration',
+            weight: 5,
+            node: <RegistrationDesk viewModel={viewModel} flush />,
+          },
+        ]
+      : []),
     ...(viewModel.negotiation
       ? [
           {
@@ -1563,6 +1567,7 @@ export function NegotiationPanel({
   draft,
   onSubmitContractOffer,
   onClose,
+  onDismiss,
   guided = false,
   flush = false,
 }: {
@@ -1571,6 +1576,8 @@ export function NegotiationPanel({
   draft: ContractDraft;
   onSubmitContractOffer: MarketScreenProps['onSubmitContractOffer'];
   onClose: () => void;
+  /** Leaves renewal talks open while returning to the contract card. */
+  onDismiss?: () => void;
   guided?: boolean;
   /** Omits the panel's own top margin — for use as a SectionFlow section, which owns inter-section spacing. Defaults to false so SeasonEndScreen is unaffected. */
   flush?: boolean;
@@ -2011,10 +2018,18 @@ export function NegotiationPanel({
           </View>
           <View className="mt-2">
             <ActionButton
-              label={t('market.closeAgentFile')}
-              accessibilityLabel={t('market.closeAgentFile')}
+              label={
+                onDismiss === undefined
+                  ? t('market.closeAgentFile')
+                  : t('market.leaveTalksOpen')
+              }
+              accessibilityLabel={
+                onDismiss === undefined
+                  ? t('market.closeAgentFile')
+                  : t('market.leaveTalksOpen')
+              }
               variant="paper"
-              onPress={onClose}
+              onPress={onDismiss ?? onClose}
             />
           </View>
           {/* The rule, at the moment it applies, with the number in it. It used

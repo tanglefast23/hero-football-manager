@@ -113,14 +113,15 @@ Prioritize players by:
 
 1. potential;
 2. Starting XI importance;
-3. condition above 90;
+3. enough condition for the next important match;
 4. a weak attribute that directly affects their role; and
 5. a team weakness exposed by recent matches.
 
-Train each priority player no more than twice per week. The exception is when
-several following weeks have no matches. Spread those drills across any
-attributes that affect the player's position; do not lock a player to only two
-attributes over the career.
+Train a priority starter once per week by default. A second drill is allowed
+only when the player will rest from the next match or has a following week with
+no match. Check the displayed post-drill condition before confirming. Spread
+drills across any attributes that affect the player's position; do not lock a
+player to only two attributes over the career.
 
 Role priorities:
 
@@ -129,8 +130,10 @@ Role priorities:
 - Midfielders: PAS and TEC first, then DEF, STA, or PAC.
 - Defenders: DEF first, then STA or PAC.
 
-If a priority player is at 90 condition or below, move to the next suitable
-player. Do not spread TP evenly across reserves or irrelevant attributes.
+Condition under 80 is not an automatic blocker. Move to the next suitable
+player when another drill would make the priority player a poor starter for the
+next important match. Do not spread TP evenly across reserves or irrelevant
+attributes.
 
 Do not train only the star striker forever. Season 2 showed that midfield and
 defense become the limiting units after promotion.
@@ -144,9 +147,9 @@ Keep the automatic Team Trip in the early divisions:
 
 The whole squad loses 10 condition.
 
-The trip removes every banked TP but gives the same stat reward. Under the
-current rules, spend most or all TP before Week 19, then accept the trip when
-the squad can absorb the condition loss.
+The trip removes every banked TP but gives the same stat reward. Do not force
+extra drills just to empty the bank before Week 19. Accept the trip when broad
+squad growth is worth the TP and the squad can absorb the condition loss.
 
 From D3 onward, use the optional Green Bull Training button instead:
 
@@ -183,6 +186,11 @@ Build the early income engine:
 2. Build Level 1 Fan Shops where affordable.
 3. Prefer a useful new Level 1 building over a weak commercial upgrade.
 4. Upgrade commercial buildings only when the payback remains useful.
+
+Keep about $10,000 after optional D5 construction. Go below that only for the
+Training Pitch, a vital renewal, or a clear Starting XI upgrade. The first
+Portuguese run reached $1,890 after following the older build order, while the
+completed run was tight but safe with a $3,243 low point.
 
 The third Stadium Stand is part of the optimal strategy. Do not cap the player
 at two during this playtest. The D4 club used all three and still finished
@@ -326,7 +334,8 @@ Computer clubs use the same costs, get division-appropriate Dorm recovery, and
 favor fresher same-role players. Confirm the Dorm helps without erasing the
 higher-division cost, and check whether Save Energy and rotation now matter.
 
-- Avoid training a priority player at 90 condition or below.
+- Train a priority starter once per week by default.
+- Add a second drill only when that player will rest or has a match-free week.
 - Rotate a tired starter when the replacement is credible.
 - Preserve condition before Hero Cup weeks.
 - Do not use aggressive energy against weak opponents without a reason.

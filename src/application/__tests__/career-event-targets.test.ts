@@ -184,12 +184,20 @@ describe('career event target candidates', () => {
   });
 
   test('assistant-specific copy can target only the employed assistant', () => {
+    const state = targetCareer();
     expect(
-      careerEventTargetCandidates(
-        targetCareer(),
-        event('assistant-takes-the-week'),
-      ).coachRoles,
+      careerEventTargetCandidates(state, event('assistant-takes-the-week'))
+        .coachRoles,
     ).toEqual(['ASSISTANT']);
+    expect(
+      reconcilePendingCareerEvent(
+        {
+          ...state,
+          pendingEvent: { eventId: 'assistant-takes-the-week' },
+        },
+        catalog,
+      ).pendingEvent?.selectedCoachRole,
+    ).toBe('ASSISTANT');
   });
 
   test('a specialty swap excludes every coach who already holds that specialty', () => {

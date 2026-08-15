@@ -21,11 +21,18 @@ describe("manager's notes", () => {
     return managerNotes({ ...state, week }).map((note) => note.id);
   }
 
-  it('opens the transfer window in week 1 and closes it in week 4', () => {
+  it('does not announce the Season 1 window before transfers unlock', () => {
     const state = career(20260901);
 
+    expect(noteIds(state, 1)).not.toContain('note:transfer-window-open');
+    expect(noteIds(state, 4)).not.toContain('note:preseason-windows-closing');
+    expect(noteIds(state, 17)).toContain('note:midseason-window-open');
+  });
+
+  it('opens the transfer window in week 1 after the story season', () => {
+    const state = { ...career(20260901), season: 2 };
+
     expect(noteIds(state, 1)).toContain('note:transfer-window-open');
-    expect(noteIds(state, 2)).not.toContain('note:transfer-window-open');
     expect(noteIds(state, 4)).toContain('note:preseason-windows-closing');
   });
 
@@ -41,7 +48,7 @@ describe("manager's notes", () => {
    * agree with the rule the market actually enforces.
    */
   it('names window weeks that match the market rule', () => {
-    const state = career(20260903);
+    const state = { ...career(20260903), season: 2 };
     const openWeeks: number[] = [];
     for (let week = 1; week <= SEASON_WEEKS; week += 1) {
       if (isTransferWindowOpen(week)) openWeeks.push(week);
@@ -72,7 +79,7 @@ describe("manager's notes", () => {
   });
 
   it('writes the whole message on the card', () => {
-    const notes = managerNotes({ ...career(20260905), week: 1 });
+    const notes = managerNotes({ ...career(20260905), season: 2, week: 1 });
 
     expect(notes).not.toHaveLength(0);
     for (const note of notes) {

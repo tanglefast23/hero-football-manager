@@ -1841,8 +1841,17 @@ function GameApp() {
           ),
         };
   }, [rivalHeroIntro, store.screen, store.career, locale]);
+  const firstCupRoundOf32GuideOwed =
+    careerTeaches &&
+    store.screen === 'management' &&
+    store.career !== null &&
+    store.career.eventFlags.includes('milestone:first-cup-win') &&
+    !hasAssistantGuideMilestone(store.career, 'first-cup-round-of-32-seen');
   const facilityComboReveal =
-    !careerTeaches || store.screen !== 'management' || store.career === null
+    !careerTeaches ||
+    store.screen !== 'management' ||
+    store.career === null ||
+    firstCupRoundOf32GuideOwed
       ? undefined
       : store.career.facilities.grid?.discoveredAdjacencies
           .map((id) => facilityAdjacencyPresentation(id, t))
@@ -1919,6 +1928,7 @@ function GameApp() {
     store.screen === 'season-end' &&
     expiredContractReached &&
     store.career !== null &&
+    store.career.market?.renewalTalks === undefined &&
     !hasAssistantGuideMilestone(store.career, 'expired-contract-seen');
   /**
    * Why a scouted player is still not signable.
@@ -1996,12 +2006,6 @@ function GameApp() {
     store.screen === 'management' &&
     store.postMatch !== null &&
     store.postMatchOverlay === 'summary';
-  const firstCupRoundOf32GuideOwed =
-    careerTeaches &&
-    store.screen === 'management' &&
-    store.career !== null &&
-    store.career.eventFlags.includes('milestone:first-cup-win') &&
-    !hasAssistantGuideMilestone(store.career, 'first-cup-round-of-32-seen');
   useEffect(() => {
     if (
       !firstCupRoundOf32GuideOwed ||

@@ -321,6 +321,13 @@ export function reconcilePendingCareerEvent(
     return next;
   }
 
+  const candidates = careerEventTargetCandidates(next, event);
+  const candidateCount =
+    kind === 'player'
+      ? candidates.playerIds.length
+      : kind === 'coach'
+        ? candidates.coachRoles.length
+        : candidates.facilityIds.length;
   const locked =
     kind === 'player'
       ? playerLocked === true
@@ -329,15 +336,26 @@ export function reconcilePendingCareerEvent(
         : facilityLocked === true;
   if (locked) return legal ? next : skipPendingCareerEventWithoutEffects(next);
 
-  const candidates = careerEventTargetCandidates(next, event);
-  const candidateCount =
-    kind === 'player'
-      ? candidates.playerIds.length
-      : kind === 'coach'
-        ? candidates.coachRoles.length
-        : candidates.facilityIds.length;
   if (candidateCount === 0) return skipPendingCareerEventWithoutEffects(next);
   if (legal) return next;
+
+  if (candidateCount === 1) {
+    return {
+      ...next,
+      pendingEvent:
+        kind === 'player'
+          ? { ...next.pendingEvent!, selectedPlayerId: candidates.playerIds[0] }
+          : kind === 'coach'
+            ? {
+                ...next.pendingEvent!,
+                selectedCoachRole: candidates.coachRoles[0],
+              }
+            : {
+                ...next.pendingEvent!,
+                selectedFacilityId: candidates.facilityIds[0],
+              },
+    };
+  }
 
   return {
     ...next,
