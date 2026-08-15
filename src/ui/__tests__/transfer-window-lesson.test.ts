@@ -108,6 +108,9 @@ describe('the insulting-offer warning', () => {
     expect(market).toContainSource(
       "label={walksOut ? t('market.theyWillWalkOut') : t('market.makeTheOfferArrow')}",
     );
+    expect(market).toContainSource(
+      'disabled={walksOut || selectedPerkBlocked}',
+    );
     // The warning moved into the copy catalog with the wage and the floor as
     // placeholders. Asserting the key and the English keeps the guarantee —
     // that the manager is told the number before the talks end, not after.

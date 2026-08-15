@@ -8,6 +8,7 @@ import {
 } from '../game/market-career';
 import {
   CAREER_CLUB_FAME_CEILING,
+  renewalOpeningOfferWage,
   scoutMissionCost,
   startScoutMission,
   type CoachCandidate,
@@ -208,13 +209,17 @@ export function careerMarketViewModelSource(
               `transfer talks ${talks.playerId} do not reference a transfer target`,
             );
           }
+          const wageStep = wageStepFor(player.weeklyWage);
           return {
             state: talks.negotiation,
             playerName: player.name,
             playerRole: player.role,
             lookId: player.lookId,
-            openingWeeklyWage: player.weeklyWage,
-            wageStep: wageStepFor(player.weeklyWage),
+            openingWeeklyWage: renewalOpeningOfferWage(
+              talks.negotiation.weeklyAsk,
+              wageStep,
+            ),
+            wageStep,
             // Signing, not renewal: the window is open mid-season, so week 30 will
             // still decrement this contract once before the season ends and the
             // term has to cover the season in progress too.

@@ -71,7 +71,10 @@ import {
 } from './pyramid';
 import { assertContractTermFitsCareer } from './retirement';
 import { assertUserCareerRosterSpace } from './youth-intake';
-import { isStoryScoutingUnlocked } from './story-progression';
+import {
+  isStoryFeaturePacingActive,
+  isStoryScoutingUnlocked,
+} from './story-progression';
 import {
   applyCareerContractPromise,
   ContractPromiseBlockedError,
@@ -392,7 +395,7 @@ export function resolveCareerScoutClock(
     completedWeek: state.week,
   }));
   const newIds = new Set(completed.map((report) => report.playerId));
-  return {
+  const reportedMarket: CareerMarketState = {
     ...currentMarket,
     activeScoutMission: undefined,
     activeScoutMissionFeeWaived: undefined,
@@ -401,6 +404,45 @@ export function resolveCareerScoutClock(
         (report) => !newIds.has(report.playerId),
       ),
       ...completed,
+    ],
+  };
+  return firstStoryScoutPrice(state, mission, reportedMarket);
+}
+
+/** Makes the first transfer lesson actionable without changing later prices. */
+function firstStoryScoutPrice(
+  state: GameState,
+  mission: ScoutMission,
+  market: CareerMarketState,
+): CareerMarketState {
+  if (
+    !isStoryFeaturePacingActive(state) ||
+    mission.id !== 'scout-1' ||
+    market.scoutReports.length === 0
+  ) {
+    return market;
+  }
+  const cash = userClub(state).cash;
+  if (cash < 1) return market;
+  const cheapest = market.scoutReports
+    .map((report) => ({
+      playerId: report.playerId,
+      fee: careerBuyingTransferQuote(state, market, report.playerId).fee,
+    }))
+    .sort((left, right) => left.fee - right.fee)[0]!;
+  if (cheapest.fee <= cash) return market;
+  const targetFee = Math.floor(cash * 0.9);
+  const percent = Math.max(
+    -100,
+    Math.floor((targetFee * 100) / cheapest.fee) - 100,
+  );
+  return {
+    ...market,
+    transferFeeAdjustments: [
+      ...(market.transferFeeAdjustments ?? []).filter(
+        (adjustment) => adjustment.playerId !== cheapest.playerId,
+      ),
+      { playerId: cheapest.playerId, percent },
     ],
   };
 }
