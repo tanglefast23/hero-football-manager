@@ -177,22 +177,33 @@ remaining leaks were all in components, and all four are fixed above.
 
 ## Gameplay and balance notes
 
-### Energy is the whole game in D5, and training is what spends it
+### The energy plan decides D5 matches; training barely moves it
 
-The clearest finding of the session. Two matches, same squad:
+Three matches, same squad, all the numbers I actually recorded:
 
-- **W10 cup tie vs Neon Athletic** — trained 4 players that week. Started at
-  92% team energy, halftime 52%, 57' 38%, full time 15%. **Lost 0–5.**
-- **W9 away at Thunder Borough** (league leaders, 1 opposing hero) — trained 5,
-  but started `5-3-2 Deep Counter` on **Sparen**. Halftime 74%. Switched to
-  `3-4-3` when 1–0 down. **Won 3–2.**
+| Week | Drills that week | Energy at kickoff | At halftime | Plan | Result |
+|---|---|---|---|---|---|
+| W3 vs Quartz | 1 | 98% | 46% | Normal | Won 3–0 |
+| W9 at Thunder Borough | 5 | 90% | 74% | **Sparen** | Won 3–2 |
+| W10 cup vs Neon Athletic | 4 | 92% | 52% | Normal | **Lost 0–5** |
 
-The handoff's "train a priority starter once per week by default" is right, and
-I broke it. Worth saying plainly in the handoff that heavy training in a match
-week is not a small tax — it is match-losing.
+**Normal costs roughly 50 points of team energy per half. Sparen costs about
+16.** That gap is three times larger than anything training does, and it is the
+only variable that separates these three matches.
 
-Energy on **Normal** drains fast: 98% → 46% by halftime in W3. On **Sparen** the
-same squad held 74%. Sparen is close to mandatory away from home.
+Training is a genuinely small tax by comparison. `INSTANT_DRILL_CONDITION_COST`
+is 8, and it lands on the one player who trained. Four drills across four
+different players move the eleven-man average by about 3 points — which is why
+the kickoff figures above are 98, 90 and 92 despite 1, 5 and 4 drills. W3 ran a
+single drill and still hit 46% at halftime.
+
+So the actionable finding is **Sparen away from home**, not "train less". An
+earlier draft of this report blamed match-week training for the 0–5; the
+kickoff column disproves it.
+
+The open balance question is whether Normal should cost half a squad's energy
+in 45 minutes at all. It makes Normal a trap pick and Sparen the default, which
+flattens a three-way choice into a two-way one.
 
 ### Facility money is genuinely tight
 
@@ -202,6 +213,43 @@ $10,000 floor. It recovered to $9,358 by W22 on home gates (3 stands ×400% =
 +$5,784 per home match). The order works, but only just, and it needed the
 $5,935 from selling Zip Vela to afford the $20,000 Training Pitch upgrade at
 all.
+
+### The career was evicted at W22 — the browser pane refuses persistent storage
+
+The save died mid-session. The banner read `VEREIN WIRD NICHT GESPEICHERT` and
+the week stopped advancing. Measured in the pane at the moment of failure:
+
+```
+navigator.storage.persisted()  -> false
+navigator.storage.persist()    -> false      // the browser refuses to grant it
+OPFS expo-sqlite/ directory    -> empty      // the career database file is gone
+origin usage                   -> 1345 bytes // only a probe DB I created myself
+```
+
+**Cause is the browser, not the game.** The web build keeps the career in
+SQLite over OPFS. `src/persistence/persistent-storage.ts` already asks for
+persistent storage on boot and logs the answer — exactly the right thing. This
+browser answers *refused*, which leaves the origin on best-effort storage that
+Chrome may evict at any time. It did. Chrome normally grants persistence to an
+origin it considers engaged (bookmarked, installed as a PWA, or visited
+repeatedly from a normal profile); a fresh automation-controlled profile has
+none of that signal.
+
+**Two app-side gaps this exposes, both worth fixing:**
+
+1. **The retry cannot succeed.** OPFS is writable right now — a worker probe
+   created, wrote, sized and deleted a file in the game's own `expo-sqlite`
+   directory while the banner was still up. So the storage layer is healthy and
+   only the app's SQLite connection is dead: it points at a file that no longer
+   exists, and `Nochmal speichern` retries on that same dead connection instead
+   of reopening. An eviction should cost a reload, not the session.
+2. **A refused grant is never shown to the player.** It goes to `console.info`
+   only. A player who is told "this browser may delete your save — export it, or
+   install the app" can act; a player who loses a 22-week career cannot. The
+   export button already exists.
+
+Recorded here rather than fixed: the retry path is a save-layer change and this
+session was scoped to the language pass.
 
 ### Other observations
 
