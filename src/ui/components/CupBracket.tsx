@@ -323,6 +323,7 @@ function TieSide({
   /** Your club, weighted so the eye finds it before it reads the tie. */
   mine: boolean;
 }) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   return (
     <View style={styles.sideRow}>
@@ -337,7 +338,7 @@ function TieSide({
           mine ? styles.sideMine : null,
         ]}
       >
-        {name}
+        {placeholder ? t('cupBracket.placeholderClub') : name}
       </Text>
       {division === undefined ? null : (
         <Text

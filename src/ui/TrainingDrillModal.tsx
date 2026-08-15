@@ -993,8 +993,10 @@ export function TrainingDrillModal({
                             : 'font-pixel text-sm text-stamp'
                         }
                       >
-                        {pendingConfirm.tpCost * repeatCount} of{' '}
-                        {trainingPoints}
+                        {t('trainingDrill.pointsOfAvailable', {
+                          cost: pendingConfirm.tpCost * repeatCount,
+                          available: trainingPoints,
+                        })}
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
