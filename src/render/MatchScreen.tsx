@@ -1772,8 +1772,15 @@ export function MatchScreen({
             state.kind === 'active' &&
             state.carrierIdx !== undefined
           ) {
-            effectOrigin = { player: state.carrierIdx };
-            anchor = { ...s.players[state.carrierIdx].pos };
+            // The carrier is `state.ball.by`, which is a decoy clone (22/23)
+            // whenever the clone is the one holding the ball. Clones live in
+            // `s.decoyClones`, not in the 22-entry `s.players`, so only
+            // `playerAt` resolves them.
+            const carrier = playerAt(s, state.carrierIdx);
+            if (carrier !== undefined) {
+              effectOrigin = { player: state.carrierIdx };
+              anchor = { ...carrier.pos };
+            }
           }
           if (e.power === 'RALLY_CRY') {
             const encore = s.players.findIndex(
@@ -1992,15 +1999,22 @@ export function MatchScreen({
           });
         }
         if (!reduceMotion && e.kind === 'SLIDE_STARTED') {
-          const rotation = Math.atan2(e.direction.y, e.direction.x);
-          actionRef.current[e.by] = {
-            kind: 'slide',
-            startTick: e.t,
-            origin: { ...playerAt(s, e.by)!.pos },
-            direction: { ...e.direction },
-            rotation,
-            untilTick: e.untilTick + SLIDE_SUCCESS_RECOVERY_TICKS,
-          };
+          // A decoy clone can slide, and this batch is read after up to
+          // MAX_CATCHUP_TICKS further ticks — long enough for the clone to be
+          // dismissed by expiry, a restart, or an auto-substitution. The
+          // TACKLE handler below guards the same lookup for the same reason.
+          const slider = playerAt(s, e.by);
+          if (slider !== undefined) {
+            const rotation = Math.atan2(e.direction.y, e.direction.x);
+            actionRef.current[e.by] = {
+              kind: 'slide',
+              startTick: e.t,
+              origin: { ...slider.pos },
+              direction: { ...e.direction },
+              rotation,
+              untilTick: e.untilTick + SLIDE_SUCCESS_RECOVERY_TICKS,
+            };
+          }
         }
         if (!reduceMotion && e.kind === 'TACKLE') {
           if (e.style === 'slide') {
