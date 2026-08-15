@@ -15,6 +15,11 @@ import { join } from 'node:path';
  *
  * The rule this test holds: an effect that forces the tab must stand down while
  * another guide is already claiming it. Only one claim may be live at a time.
+ *
+ * The guard is belt-and-braces on purpose. The reveal is not computed at all
+ * while the briefing is owed, and the effect and the visibility flag check the
+ * same condition again. Any one of the three is enough to break the loop; all
+ * three together mean a later edit to one of them cannot quietly restore it.
  */
 const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
@@ -30,6 +35,17 @@ function effectContaining(marker: string): string {
 }
 
 describe('only one guide claims the management tab', () => {
+  test('the pending facility combo is not even computed while the Cup guide is owed', () => {
+    const discovery = app.slice(
+      app.indexOf('const firstCupRoundOf32GuideOwed ='),
+      app.indexOf("Bert's one consolation"),
+    );
+    expect(discovery).toContain('firstCupRoundOf32GuideOwed');
+    expect(discovery).toMatch(
+      /store\.career === null \|\|\s*firstCupRoundOf32GuideOwed\s*\? undefined/,
+    );
+  });
+
   test('the facility-combo reveal stands down while the Cup briefing is owed', () => {
     const effect = effectContaining("store.setActiveTab('club')");
     expect(effect).toContain('firstCupRoundOf32GuideOwed');

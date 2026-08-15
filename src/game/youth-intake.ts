@@ -136,7 +136,7 @@ const ROLE_TARGETS: Readonly<Record<Role, number>> = {
 };
 const SIGNING_BONUS_BY_FIELD_LEVEL = [500, 750, 1000, 1250] as const;
 
-/** Generates the season's one or two offers. A full roster blocks signing, not discovery. */
+/** Generates two real choices. A full roster blocks signing, not discovery. */
 export function createPreseasonYouthIntake(state: GameState): YouthIntakeState {
   assertPreseasonManagePhase(state);
   validateSeed(state.careerSeed);
@@ -145,7 +145,7 @@ export function createPreseasonYouthIntake(state: GameState): YouthIntakeState {
   const random = mulberry32(
     mixSeed(state.careerSeed, state.season, 'youth-intake'),
   );
-  const offeredCount = 1 + integerRoll(random, 0, 1);
+  const offeredCount = 2;
   const fieldLevel = youthFieldLevel(state);
   const roles = youthRoles(roster, offeredCount, random);
   const appearancePool = [...state.players];

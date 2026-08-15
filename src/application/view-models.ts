@@ -93,8 +93,6 @@ import {
   trainingPathAttribute,
   cappedFacilityBoost,
   cappedCoachBoost,
-  coachMotivatorBonusPercent,
-  coachTrainingBonusPercent,
   coachWeeklyTrainingPointsWithBoosts,
   FACILITY_NAME_KEYS,
   trainingSessionPoints,
@@ -1896,16 +1894,17 @@ export function storyEventViewModel(
     const specialties = coach.specialties.map((specialty) =>
       coachSpecialtyName(t, specialty),
     );
-    const trainingPercent =
-      coachTrainingBonusPercent(coach.level, role) +
-      cappedCoachBoost(coach.boosts, 'trainingPercent');
+    const trainingSpecialties = coach.specialties
+      .filter((specialty) => specialty !== 'MOTIVATOR')
+      .map((specialty) => coachSpecialtyName(t, specialty));
+    const roleEffects = coachRoleEffectLabels(coach, role, t);
     const trainingBoost = cappedCoachBoost(coach.boosts, 'trainingPercent');
     const tpBoost = cappedCoachBoost(coach.boosts, 'weeklyTp');
     const earned = [
       trainingBoost === 0
         ? undefined
         : t('coachStaff.effectTraining', {
-            stats: specialties.join(', '),
+            stats: trainingSpecialties.join(', '),
             percent: `${trainingBoost > 0 ? '+' : ''}${trainingBoost}%`,
           }),
       tpBoost === 0
@@ -1927,20 +1926,8 @@ export function storyEventViewModel(
       name: coach.name,
       levelLabel: t('facilityCompletionCard.level', { level: coach.level }),
       specialtyLabels: specialties,
-      trainingLine: t('coachStaff.effectTraining', {
-        stats: specialties.join(', '),
-        percent: `${trainingPercent}%`,
-      }),
-      trainingPointsLine: t('coachStaff.effectTpWeekly', {
-        points: coachWeeklyTrainingPointsWithBoosts(coach, role),
-      }),
-      ...(coach.specialties.includes('MOTIVATOR')
-        ? {
-            motivatorLine: t('coachStaff.effectMotivator', {
-              percent: `${coachMotivatorBonusPercent(coach.level, role)}%`,
-            }),
-          }
-        : {}),
+      trainingLine: roleEffects.slice(0, -1).join(' · '),
+      trainingPointsLine: roleEffects[roleEffects.length - 1]!,
       ...(earned.length === 0 ? {} : { earnedLine: earned.join(' · ') }),
     };
   };

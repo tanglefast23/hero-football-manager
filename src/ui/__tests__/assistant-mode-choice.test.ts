@@ -93,9 +93,14 @@ describe('the app wires the choice to every teaching surface', () => {
       app.indexOf('const cupExitConsolationVisible ='),
       app.indexOf('const fansLessonVisible ='),
     );
+    // Ends at the memo's own dependency list, not at whatever declaration
+    // happens to follow. It used to slice to `facilityComboReveal`, which meant
+    // any new const landing in between was read as part of this one — and
+    // `firstCupRoundOf32GuideOwed` is a teaching guide, so it legitimately says
+    // `careerTeaches` and failed a rule that was never about it.
     const cupWarningDeclaration = app.slice(
       app.indexOf('const cupMismatchWarning ='),
-      app.indexOf('const facilityComboReveal ='),
+      app.indexOf('}, [rivalHeroIntro'),
     );
 
     expect(cupExitDeclaration).not.toContainSource('careerTeaches');

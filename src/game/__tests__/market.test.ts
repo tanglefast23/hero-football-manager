@@ -779,6 +779,9 @@ describe('coach market', () => {
       ),
     ).toBe(true);
     expect(
+      new Set(first.map((candidate) => candidate.specialties[0])).size,
+    ).toBeGreaterThan(1);
+    expect(
       first.every((candidate) => isCoachCandidateEligible(candidate, 3, 300)),
     ).toBe(true);
     expect(

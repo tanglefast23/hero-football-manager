@@ -93,7 +93,12 @@ export function SeasonEndScreen({
   const [agentGreetingPlayerId, setAgentGreetingPlayerId] = useState<
     string | null
   >(null);
+  const [hiddenRenewalId, setHiddenRenewalId] = useState<string | null>(null);
   const contract = viewModel.expiredContract;
+  const renewalNegotiation = viewModel.renewalNegotiation;
+  const renewalHidden =
+    renewalNegotiation !== undefined &&
+    hiddenRenewalId === renewalNegotiation.id;
   /*
    * Three measurements decide whether the renewal queue has been reached, and
    * all three live in refs rather than state. Storing the scroll offset in
@@ -630,7 +635,7 @@ export function SeasonEndScreen({
                 </View>
               ) : null}
 
-              {viewModel.renewalNegotiation === undefined ? (
+              {renewalNegotiation === undefined ? (
                 <>
                   {contract.renewalBlockedReason === undefined ? (
                     <>
@@ -743,14 +748,25 @@ export function SeasonEndScreen({
                     />
                   </View>
                 </>
+              ) : renewalHidden ? (
+                <View className="mt-4">
+                  <ActionButton
+                    label={t('seasonEnd.resumeAgentTalks')}
+                    accessibilityLabel={t('seasonEnd.a11y.resumeAgentTalks', {
+                      player: contract.playerName,
+                    })}
+                    onPress={() => setHiddenRenewalId(null)}
+                  />
+                </View>
               ) : null}
             </PaperPanel>
-            {viewModel.renewalNegotiation ? (
+            {renewalNegotiation && !renewalHidden ? (
               <NegotiationPanel
-                viewModel={viewModel.renewalNegotiation}
+                viewModel={renewalNegotiation}
                 draft={renewalDraft}
                 onSubmitContractOffer={onSubmitRenewalOffer}
                 onClose={onCloseRenewal}
+                onDismiss={() => setHiddenRenewalId(renewalNegotiation.id)}
               />
             ) : null}
           </View>

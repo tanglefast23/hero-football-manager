@@ -1732,6 +1732,25 @@ describe('M1 app store integration', () => {
     // timed out there the moment the suite could finish at all.
   }, 300000);
 
+  it('keeps the second-tab diagnosis in the persistent save warning', async () => {
+    setStoreCopy(copyFor('en'));
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        async save() {
+          throw new Error(
+            'NoModificationAllowedError: Access Handles cannot be created',
+          );
+        },
+      }),
+    );
+
+    useM1Store.getState().startNewCareer(20260815);
+    await waitFor(() => useM1Store.getState().saveWarning !== null);
+
+    expect(useM1Store.getState().saveWarning).toContain('Another game tab');
+    expect(useM1Store.getState().saveWarning).not.toContain('space');
+  });
+
   it('restores the season backup when the live save stops loading', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);

@@ -1824,6 +1824,23 @@ function GameApp() {
   // arrives with its catalog key and raw params beside the English, and they are
   // resolved here. Memoised because `BertBriefingWalkOn` keys his beats — and
   // the voice tick that plays them — on this object's identity.
+  const cupMismatchWarning = useMemo(() => {
+    const warning =
+      rivalHeroIntro === undefined &&
+      store.screen === 'matchday' &&
+      store.career !== null
+        ? pendingCupMismatchWarning(store.career)
+        : undefined;
+    return warning === undefined
+      ? undefined
+      : {
+          ...warning,
+          title: copyOrEnglish(t, warning.titleKey, warning.title),
+          body: warning.bodyLines.map((line) =>
+            copyOrEnglish(t, line.textKey, line.text, line.textParams),
+          ),
+        };
+  }, [rivalHeroIntro, store.screen, store.career, locale]);
   /**
    * Declared here, above the facility-combo reveal, because that reveal has to
    * stand down while this one is owed. Two effects that each force a different
@@ -1842,25 +1859,11 @@ function GameApp() {
     store.career !== null &&
     store.career.eventFlags.includes('milestone:first-cup-win') &&
     !hasAssistantGuideMilestone(store.career, 'first-cup-round-of-32-seen');
-  const cupMismatchWarning = useMemo(() => {
-    const warning =
-      rivalHeroIntro === undefined &&
-      store.screen === 'matchday' &&
-      store.career !== null
-        ? pendingCupMismatchWarning(store.career)
-        : undefined;
-    return warning === undefined
-      ? undefined
-      : {
-          ...warning,
-          title: copyOrEnglish(t, warning.titleKey, warning.title),
-          body: warning.bodyLines.map((line) =>
-            copyOrEnglish(t, line.textKey, line.text, line.textParams),
-          ),
-        };
-  }, [rivalHeroIntro, store.screen, store.career, locale]);
   const facilityComboReveal =
-    !careerTeaches || store.screen !== 'management' || store.career === null
+    !careerTeaches ||
+    store.screen !== 'management' ||
+    store.career === null ||
+    firstCupRoundOf32GuideOwed
       ? undefined
       : store.career.facilities.grid?.discoveredAdjacencies
           .map((id) => facilityAdjacencyPresentation(id, t))
@@ -1943,6 +1946,7 @@ function GameApp() {
     store.screen === 'season-end' &&
     expiredContractReached &&
     store.career !== null &&
+    store.career.market?.renewalTalks === undefined &&
     !hasAssistantGuideMilestone(store.career, 'expired-contract-seen');
   /**
    * Why a scouted player is still not signable.

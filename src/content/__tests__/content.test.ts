@@ -1093,22 +1093,22 @@ describe('plain and truthful career event copy', () => {
     ).toEqual([]);
   });
 
-  test('halves every risky coach and facility success chance, rounding down', () => {
+  test('keeps coach risks viable and facility risks intentionally harsher', () => {
     const expected = new Map<string, number>([
-      ['the-badge-course', 32],
-      ['the-ladder-fortnight', 30],
-      ['assistant-takes-the-week', 30],
-      ['the-motivator-experiment', 27],
-      ['the-keeper-week', 30],
-      ['back-one-drill', 27],
-      ['the-clipboard-fire', 27],
-      ['sports-science-salesman', 27],
+      ['the-badge-course', 40],
+      ['the-ladder-fortnight', 40],
+      ['assistant-takes-the-week', 40],
+      ['the-motivator-experiment', 40],
+      ['the-keeper-week', 40],
+      ['back-one-drill', 40],
+      ['the-clipboard-fire', 40],
+      ['sports-science-salesman', 40],
       ['the-grass-mix', 30],
       ['volunteer-work-party', 30],
       ['donated-equipment', 30],
       ['the-sleep-room', 30],
       ['floodlight-night', 30],
-      ['what-he-brought-back', 30],
+      ['what-he-brought-back', 40],
       ['the-plaque', 30],
       ['leaking-stand-roof', 30],
     ]);

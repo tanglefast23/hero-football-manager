@@ -5,9 +5,13 @@ const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
 describe('Bert Cup mismatch warning wiring', () => {
   it('opens only over the match-day formation screen', () => {
+    // Ends at the memo's own dependency list, not at whatever declaration
+    // happens to follow. Slicing to `facilityComboReveal` swept in any const
+    // declared in between, and `firstCupRoundOf32GuideOwed` is a teaching guide
+    // that legitimately reads `careerTeaches`.
     const declaration = app.slice(
       app.indexOf('const cupMismatchWarning ='),
-      app.indexOf('const facilityComboReveal ='),
+      app.indexOf('}, [rivalHeroIntro'),
     );
 
     expect(declaration).toContainSource("store.screen === 'matchday'");
@@ -17,9 +21,13 @@ describe('Bert Cup mismatch warning wiring', () => {
   });
 
   it('is flavour in both assistant modes, never a Teacher-only lesson', () => {
+    // Ends at the memo's own dependency list, not at whatever declaration
+    // happens to follow. Slicing to `facilityComboReveal` swept in any const
+    // declared in between, and `firstCupRoundOf32GuideOwed` is a teaching guide
+    // that legitimately reads `careerTeaches`.
     const declaration = app.slice(
       app.indexOf('const cupMismatchWarning ='),
-      app.indexOf('const facilityComboReveal ='),
+      app.indexOf('}, [rivalHeroIntro'),
     );
 
     expect(declaration).not.toContainSource('careerTeaches');

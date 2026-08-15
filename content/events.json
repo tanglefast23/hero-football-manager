@@ -2773,7 +2773,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 32,
+              "weight": 40,
               "id": "success",
               "successHeadline": "They come back running sessions nobody here has seen",
               "text": "Six Tuesdays gone and they return with sessions nobody at this level has run before.",
@@ -2791,7 +2791,7 @@
               ]
             },
             {
-              "weight": 68,
+              "weight": 60,
               "id": "setback",
               "text": "Six Tuesdays gone, one laminated certificate, no visible difference.",
               "effects": [
@@ -2844,7 +2844,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 30,
+              "weight": 40,
               "id": "success",
               "successHeadline": "They come home with new coaching ideas",
               "text": "They spend fourteen days watching the bigger club train and bring their best ideas home.",
@@ -2863,7 +2863,7 @@
               "nextEventId": "what-he-brought-back"
             },
             {
-              "weight": 70,
+              "weight": 60,
               "id": "setback",
               "text": "They return with a system that needs players with skills this club does not have.",
               "effects": [
@@ -2917,7 +2917,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 30,
+              "weight": 40,
               "id": "success",
               "successHeadline": "Their weeks are worth more than they were on Monday",
               "text": "Five days, their plan, and the squad arrives on Saturday sharper than it left.",
@@ -2939,7 +2939,7 @@
               ]
             },
             {
-              "weight": 70,
+              "weight": 60,
               "id": "setback",
               "text": "By Wednesday it is clear the week had no plan in it at all.",
               "effects": [
@@ -2996,7 +2996,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 27,
+              "weight": 40,
               "id": "success",
               "successHeadline": "Nobody says a word for a full minute afterwards",
               "text": "Eleven grown men sit in the dark and afterwards nobody speaks for a full minute.",
@@ -3018,7 +3018,7 @@
               ]
             },
             {
-              "weight": 73,
+              "weight": 60,
               "id": "setback",
               "text": "Eleven grown men sit in the dark and cannot look at each other for a week.",
               "effects": [
@@ -3075,7 +3075,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 30,
+              "weight": 40,
               "id": "success",
               "successHeadline": "They are a goalkeeping coach now, and the gloves came back out",
               "text": "Three weeks of courses and the gloves come back out of the loft for good.",
@@ -3092,7 +3092,7 @@
               ]
             },
             {
-              "weight": 70,
+              "weight": 60,
               "id": "setback",
               "text": "It turns out they remember a great deal less than they told everybody.",
               "effects": [
@@ -3146,7 +3146,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 27,
+              "weight": 40,
               "id": "success",
               "successHeadline": "The chosen drill works",
               "text": "You support one coach in front of the other. Their drill works, and the argument ends by Friday.",
@@ -3164,7 +3164,7 @@
               ]
             },
             {
-              "weight": 73,
+              "weight": 60,
               "id": "setback",
               "text": "Their drill does not work, and the whole squad sees it fail all week.",
               "effects": [
@@ -3221,7 +3221,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 27,
+              "weight": 40,
               "id": "success",
               "successHeadline": "The new notes are better than the old ones",
               "text": "A month of evenings, and the new folder is sharper than the one that burned.",
@@ -3244,7 +3244,7 @@
               ]
             },
             {
-              "weight": 73,
+              "weight": 60,
               "id": "setback",
               "text": "Half of what they write from memory turns out to be wrong.",
               "effects": [
@@ -3297,7 +3297,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 27,
+              "weight": 40,
               "id": "success",
               "successHeadline": "One measurement improves training",
               "text": "Ten measurements are useless. The eleventh helps the coaches plan a better training week.",
@@ -3319,7 +3319,7 @@
               ]
             },
             {
-              "weight": 73,
+              "weight": 60,
               "id": "setback",
               "text": "None of the eleven measurements help. The salesman keeps the deposit.",
               "effects": [
@@ -3781,7 +3781,7 @@
           "risky": true,
           "outcomes": [
             {
-              "weight": 30,
+              "weight": 40,
               "id": "success",
               "successHeadline": "The squad adopts the new style",
               "text": "Two weeks later, the squad uses the new style without arguing about it.",
@@ -3803,7 +3803,7 @@
               ]
             },
             {
-              "weight": 70,
+              "weight": 60,
               "id": "setback",
               "text": "The new drill falls apart in the next Tuesday training session.",
               "effects": [

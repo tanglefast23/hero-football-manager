@@ -2,6 +2,7 @@ import {
   CUP_SETTLEMENT_WEEKS,
   SEASON_WEEKS,
   cupRoundNameWith,
+  isStoryScoutingUnlocked,
   isStoryYouthUnlocked,
   type GameState,
   type NationalCupRoundLabel,
@@ -59,7 +60,7 @@ function transferWindowNotes(
   t: CopyFn,
 ): ManagerNoteViewModel[] {
   // Legacy careers have no market screen, so the window is not a thing there.
-  if (state.market === undefined) return [];
+  if (state.market === undefined || !isStoryScoutingUnlocked(state)) return [];
   const academyOpen = isStoryYouthUnlocked(state);
 
   if (state.week === 1) {

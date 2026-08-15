@@ -1554,7 +1554,18 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
         : { unlockId: shuffledUnlockIds[result.length] }),
     });
   }
-  return result;
+  const firstPrimary = result[0]?.specialties[0];
+  return result.map((candidate, index) =>
+    index > 0 && candidate.specialties[0] === firstPrimary
+      ? {
+          ...candidate,
+          specialties: [
+            candidate.specialties[1],
+            candidate.specialties[0],
+          ] as const,
+        }
+      : candidate,
+  );
 }
 
 export function isCoachCandidateEligible(
