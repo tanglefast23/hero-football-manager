@@ -91,8 +91,8 @@ function placeUserInDivision(
   state: GameState,
   level: DivisionLevel,
 ): GameState {
-  const userClub = state.m2!.pyramid.divisions
-    .flatMap((division) => division.clubs)
+  const userClub = state
+    .m2!.pyramid.divisions.flatMap((division) => division.clubs)
     .find((club) => club.id === state.userClubId)!;
   return {
     ...state,

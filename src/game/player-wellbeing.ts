@@ -42,9 +42,7 @@ export function matchConditionCost(division: DivisionLevel): number {
 }
 
 /** A substitute pays half the starter cost, rounded to a whole condition point. */
-export function substituteMatchConditionCost(
-  division: DivisionLevel,
-): number {
+export function substituteMatchConditionCost(division: DivisionLevel): number {
   return Math.round(matchConditionCost(division) / 2);
 }
 
@@ -141,12 +139,13 @@ function addClubMatchCosts(
   const substituteCost = substituteMatchConditionCost(division);
   participantIds.forEach((playerId, index) => {
     if (playerClubById.get(playerId) !== clubId) {
-      throw new Error(`match participant ${playerId} is outside club ${clubId}`);
+      throw new Error(
+        `match participant ${playerId} is outside club ${clubId}`,
+      );
     }
     costs.set(
       playerId,
-      (costs.get(playerId) ?? 0) +
-        (index < 11 ? starterCost : substituteCost),
+      (costs.get(playerId) ?? 0) + (index < 11 ? starterCost : substituteCost),
     );
   });
 }

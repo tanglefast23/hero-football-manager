@@ -399,8 +399,8 @@ describe('Hero Cup app routing', () => {
     useM1Store.getState().finishWatchedMatch(result);
 
     const settled = useM1Store.getState();
-    const cupFixture = settled.career!.m2!.nationalCups
-      .flatMap((cup) => cup.rounds)
+    const cupFixture = settled
+      .career!.m2!.nationalCups.flatMap((cup) => cup.rounds)
       .flatMap((round) => round.fixtures)
       .find((fixture) => fixture.id === watched.fixture.id)!;
     expect(settled).toMatchObject({

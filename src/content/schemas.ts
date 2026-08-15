@@ -1663,7 +1663,12 @@ const SponsorProfileSchema = z.strictObject({
       LEAGUE_GOALS: z.number().int().nonnegative().max(1_000).optional(),
       LEAGUE_FINISH: z.number().int().nonnegative().max(1_000).optional(),
       LEAGUE_CLEAN_SHEETS: z.number().int().nonnegative().max(1_000).optional(),
-      LEAGUE_THREE_GOAL_GAMES: z.number().int().nonnegative().max(1_000).optional(),
+      LEAGUE_THREE_GOAL_GAMES: z
+        .number()
+        .int()
+        .nonnegative()
+        .max(1_000)
+        .optional(),
       LEAGUE_AWAY_POINTS: z.number().int().nonnegative().max(1_000).optional(),
     })
     .optional(),
@@ -1776,8 +1781,7 @@ export const SponsorCatalogSchema = z
         SponsorObjectiveKindSchema.options.some(
           (kind) =>
             (actual.bonusPercentByObjective?.[kind] ?? actual.bonusPercent) !==
-            (expected.bonusPercentByObjective?.[kind] ??
-              expected.bonusPercent),
+            (expected.bonusPercentByObjective?.[kind] ?? expected.bonusPercent),
         )
       ) {
         addIssue(

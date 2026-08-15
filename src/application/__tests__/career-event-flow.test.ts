@@ -86,13 +86,12 @@ describe('shared career event flow', () => {
     expect(midfielderAfter.attrs.def).toBeGreaterThan(
       midfielderBefore.attrs.def,
     );
-    expect(midfielderAfter.attrs.pas).toBeLessThan(
-      midfielderBefore.attrs.pas,
-    );
+    expect(midfielderAfter.attrs.pas).toBeLessThan(midfielderBefore.attrs.pas);
 
     const initial = career();
     const trial = event('meteor-shard-center-circle');
-    const eligibleId = careerEventTargetCandidates(initial, trial).playerIds[0]!;
+    const eligibleId = careerEventTargetCandidates(initial, trial)
+      .playerIds[0]!;
     const withWeakPace = {
       ...initial,
       players: initial.players.map((player) =>
@@ -114,24 +113,20 @@ describe('shared career event flow', () => {
       'pac',
       2,
     );
-    let away = resolveCareerEventChoice(
-      selected,
-      catalog,
-      'display-meteor',
-    );
-    expect(away.players.find((player) => player.id === eligibleId)).toMatchObject(
-      {
-        awayWeeks: 4,
-        attrs: { pac: 1 },
-        returnTraining: { attribute: 'pac', points: expectedGain },
-      },
-    );
+    let away = resolveCareerEventChoice(selected, catalog, 'display-meteor');
+    expect(
+      away.players.find((player) => player.id === eligibleId),
+    ).toMatchObject({
+      awayWeeks: 4,
+      attrs: { pac: 1 },
+      returnTraining: { attribute: 'pac', points: expectedGain },
+    });
     for (let week = 0; week < 4; week += 1) {
       away = advancePlayerRequests(away, false);
     }
-    expect(away.players.find((player) => player.id === eligibleId)).toMatchObject(
-      { awayWeeks: 0, attrs: { pac: 1 + expectedGain } },
-    );
+    expect(
+      away.players.find((player) => player.id === eligibleId),
+    ).toMatchObject({ awayWeeks: 0, attrs: { pac: 1 + expectedGain } });
     expect(
       away.players.find((player) => player.id === eligibleId)?.returnTraining,
     ).toBeUndefined();

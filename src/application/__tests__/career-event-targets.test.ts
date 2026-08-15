@@ -163,7 +163,10 @@ describe('career event target candidates', () => {
       players: base.players.map((player) => {
         const leader = leaders.includes(player.id);
         if (field === 'pace')
-          return { ...player, attrs: { ...player.attrs, pac: leader ? 99 : 1 } };
+          return {
+            ...player,
+            attrs: { ...player.attrs, pac: leader ? 99 : 1 },
+          };
         if (field === 'age') return { ...player, age: leader ? 17 : 30 };
         return { ...player, fame: leader ? 50 : 0 };
       }),

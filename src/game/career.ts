@@ -702,11 +702,10 @@ function settleWeekResults(
               sponsor: challengeSettlement.payment.sponsorName,
             },
             amount: challengeSettlement.payment.actualAmount,
-            idempotencyKey:
-              weeklySettlementAwardKeys.sponsorWeeklyChallenge(
-                state.userClubId,
-                state.season,
-              ),
+            idempotencyKey: weeklySettlementAwardKeys.sponsorWeeklyChallenge(
+              state.userClubId,
+              state.season,
+            ),
           },
         },
       ],
@@ -1750,11 +1749,7 @@ function merchandiseIncomeFromPerLevel(
     'fan-shop-income',
   );
   const afterMultiplier = Math.floor(
-    checkedMultiply(
-      perLevel,
-      incomePercent,
-      'Fan Shop merchandise base',
-    ) / 100,
+    checkedMultiply(perLevel, incomePercent, 'Fan Shop merchandise base') / 100,
   );
   const adjacencyPercent = facilityEffects(grid).merchIncomeBonusPercent;
   const adjacencyAmount = Math.floor(

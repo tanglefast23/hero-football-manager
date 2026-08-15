@@ -1,9 +1,4 @@
-import {
-  contestStat,
-  drainStamina,
-  restartKickoff,
-  speedFor,
-} from '../engine';
+import { contestStat, drainStamina, restartKickoff, speedFor } from '../engine';
 import { PITCH_H } from '../geometry';
 import {
   createMatch,

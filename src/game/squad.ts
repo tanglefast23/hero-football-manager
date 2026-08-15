@@ -184,11 +184,7 @@ export function buildCareerMatchTeamDef(
     ...take('MID', 4),
     ...take('FWD', 2),
   ];
-  const lineupIds = fresherOpponentLineupIds(
-    roster,
-    lineupTemplate,
-    heroLimit,
-  );
+  const lineupIds = fresherOpponentLineupIds(roster, lineupTemplate, heroLimit);
   return buildTeamDef(club, roster, lineupIds, heroLimit);
 }
 

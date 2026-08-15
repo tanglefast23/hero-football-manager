@@ -169,9 +169,10 @@ describe('career event state', () => {
     const state = { ...initial, facilities: { ...initial.facilities, grid } };
 
     expect(
-      applyCareerFacilityFire(state, 'TWO_SMALL').facilities.grid?.buildings.map(
-        (building) => building.id,
-      ),
+      applyCareerFacilityFire(
+        state,
+        'TWO_SMALL',
+      ).facilities.grid?.buildings.map((building) => building.id),
     ).toEqual(['gym', 'shop-high', 'stand']);
     expect(
       applyCareerFacilityFire(state, 'PRIMARY').facilities.grid?.buildings.map(

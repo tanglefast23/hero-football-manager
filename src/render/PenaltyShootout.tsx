@@ -221,12 +221,7 @@ export function PenaltyShootout({
     const ball = atlas.rectFor('ball');
     return [
       Skia.XYWHRect(shooter.x, shooter.y, shooter.w, shooter.h),
-      Skia.XYWHRect(
-        goalkeeper.x,
-        goalkeeper.y,
-        goalkeeper.w,
-        goalkeeper.h,
-      ),
+      Skia.XYWHRect(goalkeeper.x, goalkeeper.y, goalkeeper.w, goalkeeper.h),
       Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h),
     ];
   }, [atlas, goalkeeperVisualId, shooterVisualId]);
@@ -319,8 +314,14 @@ export function PenaltyShootout({
         {[0.25, 0.5, 0.75].map((fraction) => (
           <Line
             key={`net-${fraction}`}
-            p1={{ x: goalX - goalWidth / 2, y: goalY - goalHeight / 2 + goalHeight * fraction }}
-            p2={{ x: goalX + goalWidth / 2, y: goalY - goalHeight / 2 + goalHeight * fraction }}
+            p1={{
+              x: goalX - goalWidth / 2,
+              y: goalY - goalHeight / 2 + goalHeight * fraction,
+            }}
+            p2={{
+              x: goalX + goalWidth / 2,
+              y: goalY - goalHeight / 2 + goalHeight * fraction,
+            }}
             color="rgba(244, 241, 234, 0.28)"
             strokeWidth={1}
             antiAlias={false}
@@ -372,9 +373,7 @@ export function PenaltyShootout({
 
       {outcomeVisible && !reduceMotion ? (
         <View pointerEvents="none" style={styles.outcomeWrap}>
-          <Text
-            style={kick.outcome === 'score' ? styles.outcome : styles.miss}
-          >
+          <Text style={kick.outcome === 'score' ? styles.outcome : styles.miss}>
             {t(
               kick.outcome === 'score'
                 ? 'penaltyShootout.score'
@@ -428,9 +427,7 @@ function ScoreSide({
           <View
             key={kick.id}
             style={
-              kick.outcome === 'score'
-                ? styles.markerScore
-                : styles.markerMiss
+              kick.outcome === 'score' ? styles.markerScore : styles.markerMiss
             }
           >
             {kick.outcome === 'miss' ? (

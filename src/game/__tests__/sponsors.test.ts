@@ -429,13 +429,7 @@ describe('one-match sponsor challenge', () => {
     });
 
     expect(
-      sponsorWeeklyChallengeOptions(
-        sponsorship,
-        [scheduled],
-        'user',
-        3,
-        14,
-      ),
+      sponsorWeeklyChallengeOptions(sponsorship, [scheduled], 'user', 3, 14),
     ).toEqual([]);
     const options = sponsorWeeklyChallengeOptions(
       sponsorship,
@@ -462,7 +456,11 @@ describe('one-match sponsor challenge', () => {
       settleSponsorWeeklyChallenge(accepted, [scheduled], 'user', 3, 80),
     ).toEqual({ sponsorship: accepted });
 
-    const played = { ...scheduled, status: 'played' as const, score: { homeGoals: 3, awayGoals: 1 } };
+    const played = {
+      ...scheduled,
+      status: 'played' as const,
+      score: { homeGoals: 3, awayGoals: 1 },
+    };
     const settled = settleSponsorWeeklyChallenge(
       accepted,
       [played],

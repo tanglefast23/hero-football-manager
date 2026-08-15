@@ -143,9 +143,7 @@ describe('squad register column widths', () => {
       '(Promise) Starter',
     );
     expect(
-      source.match(
-        /player\.contractPromisePerk !== 'GUARANTEED_STARTER'/g,
-      ),
+      source.match(/player\.contractPromisePerk !== 'GUARANTEED_STARTER'/g),
     ).toHaveLength(2);
   });
 

@@ -172,7 +172,11 @@ export function resolveCareerEventChoice(
       return undefined;
     const attribute =
       absence.returnTraining.attribute === 'WEAKEST'
-        ? (Object.keys(selectedPlayer.attrs) as (keyof typeof selectedPlayer.attrs)[])
+        ? (
+            Object.keys(
+              selectedPlayer.attrs,
+            ) as (keyof typeof selectedPlayer.attrs)[]
+          )
             .filter((candidate) =>
               attributeAffectsPlay(selectedPlayer.role, candidate),
             )

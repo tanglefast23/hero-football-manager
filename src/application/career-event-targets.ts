@@ -70,8 +70,8 @@ function automaticCareerEventPlayerId(
   event: GameEvent,
 ): string | undefined {
   if (event.trigger.autoSelectPlayer === undefined) return undefined;
-  const candidates = careerEventTargetPlayers(state, event).sort((left, right) =>
-    compareIds(left.id, right.id),
+  const candidates = careerEventTargetPlayers(state, event).sort(
+    (left, right) => compareIds(left.id, right.id),
   );
   if (candidates.length === 0) return undefined;
   const index = deterministicCareerEventRoll(

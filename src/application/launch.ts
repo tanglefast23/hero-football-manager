@@ -52,8 +52,7 @@ const SPECIAL_HERO_BY_ID = new Map(
   SPECIAL_HERO_ROSTER.map((hero) => [hero.id, hero] as const),
 );
 
-const CUP_CALENDAR_MIGRATION_FLAG =
-  'migration:cup-calendar:10-14-18-22-26-29';
+const CUP_CALENDAR_MIGRATION_FLAG = 'migration:cup-calendar:10-14-18-22-26-29';
 
 /**
  * Moves only unplayed league rounds around the new Cup calendar.

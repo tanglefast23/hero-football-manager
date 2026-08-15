@@ -1793,9 +1793,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
                 clubTeam,
                 opponentTeam,
                 winner:
-                  postMatch.result.outcomeLabel === 'WIN'
-                    ? 'club'
-                    : 'opponent',
+                  postMatch.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
               },
               t,
             );

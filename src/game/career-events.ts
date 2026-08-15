@@ -1058,8 +1058,7 @@ function applyPlayerEffect(
     ),
   );
   const awaySetback = safeDelta(effect.awayWeeks ?? 0, 'event away weeks');
-  if (awaySetback < 0)
-    throw new Error('event away weeks cannot be negative');
+  if (awaySetback < 0) throw new Error('event away weeks cannot be negative');
   const awayWeeks = Math.max(player.awayWeeks ?? 0, awaySetback);
 
   const loyaltyDelta = safeDelta(effect.loyaltyDelta ?? 0, 'event loyalty');

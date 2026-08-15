@@ -157,8 +157,7 @@ describe('career market view-model source adapter', () => {
         .playerIds,
     );
     const spare = full.players.find(
-      (player) =>
-        player.clubId === full.userClubId && !starters.has(player.id),
+      (player) => player.clubId === full.userClubId && !starters.has(player.id),
     )!;
     const state = {
       ...full,

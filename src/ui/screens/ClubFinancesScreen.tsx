@@ -1202,9 +1202,7 @@ interface SponsorBusinessSectionProps {
     offer: SponsorOfferViewModel,
     slot: SponsorSlotViewModel,
   ) => void;
-  onChooseWeeklyChallenge?: (
-    kind: SponsorWeeklyChallengeKindViewModel,
-  ) => void;
+  onChooseWeeklyChallenge?: (kind: SponsorWeeklyChallengeKindViewModel) => void;
   guideFocus?: AssistantGuideFocus;
   sponsorDeskTargetRef: RefObject<View | null>;
   sponsorBuzzTargetRef: RefObject<View | null>;

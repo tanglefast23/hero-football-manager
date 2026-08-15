@@ -576,10 +576,10 @@ export function settleSponsorWeeklyChallenge(
     throw new Error('the sponsor weekly challenge fixture has no score');
   const atHome = fixture.homeClubId === userClubId;
   if (!atHome && fixture.awayClubId !== userClubId)
-    throw new Error('the sponsor weekly challenge fixture is not the user club');
-  const goalsFor = atHome
-    ? fixture.score.homeGoals
-    : fixture.score.awayGoals;
+    throw new Error(
+      'the sponsor weekly challenge fixture is not the user club',
+    );
+  const goalsFor = atHome ? fixture.score.homeGoals : fixture.score.awayGoals;
   const goalsAgainst = atHome
     ? fixture.score.awayGoals
     : fixture.score.homeGoals;

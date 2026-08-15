@@ -882,73 +882,73 @@ function ScoutingDesk({
           />
         ) : (
           viewModel.scouting.choices.map((choice, index) => (
-              <View
-                key={choice.id}
-                className={
-                  choice.available
-                    ? 'border-2 border-b-4 border-ink bg-white p-3'
-                    : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'
-                }
-              >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <PixelText className="text-base uppercase text-ink">
-                      {choice.regionLabel}
-                    </PixelText>
-                    <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                      {choice.focusLabel}
-                    </Text>
-                  </View>
-                  <Text className="font-mono text-base text-ink">
-                    {choice.feeWaived === true
-                      ? t('market.free')
-                      : formatCurrency(t, choice.cost)}
+            <View
+              key={choice.id}
+              className={
+                choice.available
+                  ? 'border-2 border-b-4 border-ink bg-white p-3'
+                  : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'
+              }
+            >
+              <View className="flex-row items-start justify-between gap-3">
+                <View className="flex-1">
+                  <PixelText className="text-base uppercase text-ink">
+                    {choice.regionLabel}
+                  </PixelText>
+                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
+                    {choice.focusLabel}
                   </Text>
                 </View>
-                <Text className="mt-2 text-sm leading-5 text-ink/60">
-                  {choice.detail}
+                <Text className="font-mono text-base text-ink">
+                  {choice.feeWaived === true
+                    ? t('market.free')
+                    : formatCurrency(t, choice.cost)}
                 </Text>
-                <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
-                  <Text className="font-mono text-sm uppercase text-ink/50">
-                    {choice.durationLabel}
-                  </Text>
-                  <GuidedAction
-                    enabled={guideFocus === 'scout-mission' && index === 0}
-                    detail={t('market.sendTheScout')}
-                    targetRef={
-                      choice.id === scrollDismissTargetId
-                        ? southAmericaScoutActionRef
-                        : undefined
-                    }
-                  >
-                    <SmallAction
-                      label={
-                        choice.feeWaived === true
-                          ? t('market.sendFreeScout')
-                          : t('market.sendScout')
-                      }
-                      accessibilityLabel={
-                        choice.feeWaived === true
-                          ? t('market.a11y.sendScoutFreeFirstTrip', {
-                              region: choice.regionLabel,
-                              focus: choice.focusLabel,
-                            })
-                          : t('market.a11y.sendScoutTo', {
-                              region: choice.regionLabel,
-                              focus: choice.focusLabel,
-                            })
-                      }
-                      disabled={!choice.available}
-                      onPress={() => onStartScoutMission(choice.id)}
-                    />
-                  </GuidedAction>
-                </View>
-                {choice.blockedReason ? (
-                  <Text className="mt-2 text-right text-sm font-bold text-stamp">
-                    {choice.blockedReason}
-                  </Text>
-                ) : null}
               </View>
+              <Text className="mt-2 text-sm leading-5 text-ink/60">
+                {choice.detail}
+              </Text>
+              <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
+                <Text className="font-mono text-sm uppercase text-ink/50">
+                  {choice.durationLabel}
+                </Text>
+                <GuidedAction
+                  enabled={guideFocus === 'scout-mission' && index === 0}
+                  detail={t('market.sendTheScout')}
+                  targetRef={
+                    choice.id === scrollDismissTargetId
+                      ? southAmericaScoutActionRef
+                      : undefined
+                  }
+                >
+                  <SmallAction
+                    label={
+                      choice.feeWaived === true
+                        ? t('market.sendFreeScout')
+                        : t('market.sendScout')
+                    }
+                    accessibilityLabel={
+                      choice.feeWaived === true
+                        ? t('market.a11y.sendScoutFreeFirstTrip', {
+                            region: choice.regionLabel,
+                            focus: choice.focusLabel,
+                          })
+                        : t('market.a11y.sendScoutTo', {
+                            region: choice.regionLabel,
+                            focus: choice.focusLabel,
+                          })
+                    }
+                    disabled={!choice.available}
+                    onPress={() => onStartScoutMission(choice.id)}
+                  />
+                </GuidedAction>
+              </View>
+              {choice.blockedReason ? (
+                <Text className="mt-2 text-right text-sm font-bold text-stamp">
+                  {choice.blockedReason}
+                </Text>
+              ) : null}
+            </View>
           ))
         )}
       </View>

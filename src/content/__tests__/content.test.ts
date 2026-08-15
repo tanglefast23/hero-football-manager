@@ -186,9 +186,7 @@ describe('validated M1 launch content', () => {
     // touched condition. The category stays in the schema for future content.
     expect(
       new Set(content.events.events.map((event) => event.category)),
-    ).toEqual(
-      new Set(['club', 'media', 'sponsor', 'player', 'fan']),
-    );
+    ).toEqual(new Set(['club', 'media', 'sponsor', 'player', 'fan']));
     expect(
       content.events.events.some((event) =>
         event.choices.some((choice) => choice.risky),

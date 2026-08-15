@@ -885,9 +885,7 @@ export interface SponsorSlotViewModel {
   offers: readonly SponsorOfferViewModel[];
 }
 
-export type SponsorWeeklyChallengeKindViewModel =
-  | 'SCORE_THREE'
-  | 'CLEAN_SHEET';
+export type SponsorWeeklyChallengeKindViewModel = 'SCORE_THREE' | 'CLEAN_SHEET';
 
 export interface SponsorWeeklyChallengeViewModel {
   status: 'OFFER' | 'ACTIVE' | 'MET' | 'FAILED';

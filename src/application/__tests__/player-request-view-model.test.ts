@@ -108,17 +108,12 @@ describe('playerRequestViewModel', () => {
   });
 
   it('keeps every pending request in the Home inbox until a decision', () => {
-    const pending = withPending(
-      atStartWeek(career()),
-      'bahamas-fortnight',
-    );
+    const pending = withPending(atStartWeek(career()), 'bahamas-fortnight');
 
     const beforeOpening = homeViewModel(pending).alerts.map(
       (alert) => alert.id,
     );
-    const afterOpening = homeViewModel(pending).alerts.map(
-      (alert) => alert.id,
-    );
+    const afterOpening = homeViewModel(pending).alerts.map((alert) => alert.id);
     expect(beforeOpening).toContain('player-request-waiting');
     expect(afterOpening).toContain('player-request-waiting');
 
@@ -129,9 +124,9 @@ describe('playerRequestViewModel', () => {
         pending: undefined,
       },
     };
-    expect(homeViewModel(decided).alerts.map((alert) => alert.id)).not.toContain(
-      'player-request-waiting',
-    );
+    expect(
+      homeViewModel(decided).alerts.map((alert) => alert.id),
+    ).not.toContain('player-request-waiting');
   });
 
   it('states the harder Chairman refusal', () => {

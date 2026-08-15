@@ -2860,8 +2860,7 @@ export function homeProductAlerts(
             destination: 'club-finances' as const,
           },
         ]),
-    ...(sponsorChallenge === undefined ||
-    sponsorChallenge.outcome !== undefined
+    ...(sponsorChallenge === undefined || sponsorChallenge.outcome !== undefined
       ? []
       : [
           {

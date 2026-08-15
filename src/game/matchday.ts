@@ -1,6 +1,11 @@
 import * as simMatch from '../sim/match';
 import type { FormationId } from '../sim/tactics';
-import type { MatchState, PowerId, ReplayEnvelope, TeamDef } from '../sim/types';
+import type {
+  MatchState,
+  PowerId,
+  ReplayEnvelope,
+  TeamDef,
+} from '../sim/types';
 import { contributionsFrom } from './match-contributions';
 import {
   controlledMatchOptions,

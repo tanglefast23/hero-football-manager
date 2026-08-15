@@ -1108,7 +1108,9 @@ describe('advancePlayerRequests', () => {
     const base = tickingCareer();
     const onlyGoldBoots: PlayerRequestCatalog = {
       ...CATALOG,
-      requests: CATALOG.requests.filter((request) => request.id === 'gold-boots'),
+      requests: CATALOG.requests.filter(
+        (request) => request.id === 'gold-boots',
+      ),
     };
     const eligible = eligibleAskers(
       base.players.filter((player) => player.clubId === base.userClubId),

@@ -127,9 +127,7 @@ describe('Club Business phone and accessibility contracts', () => {
     expect(app).toContainSource(
       'fee: formatCurrency(t, offer.actualMonthlyFee)',
     );
-    expect(app).toContainSource(
-      'bonus: formatCurrency(t, offer.actualBonus)',
-    );
+    expect(app).toContainSource('bonus: formatCurrency(t, offer.actualBonus)');
     expect(app).not.toContainSource("t('confirm.sponsor.chairmanFee'");
   });
 

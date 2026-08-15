@@ -99,7 +99,11 @@ describe('launch career adapter', () => {
     };
     const playedBefore = stale.fixtures
       .filter((fixture) => fixture.status === 'played')
-      .map((fixture) => ({ id: fixture.id, week: fixture.week, score: fixture.score }));
+      .map((fixture) => ({
+        id: fixture.id,
+        week: fixture.week,
+        score: fixture.score,
+      }));
 
     const migrated = reconcileLaunchRoster(stale);
     const scheduled = migrated.fixtures.filter(
@@ -109,7 +113,11 @@ describe('launch career adapter', () => {
     expect(
       migrated.fixtures
         .filter((fixture) => fixture.status === 'played')
-        .map((fixture) => ({ id: fixture.id, week: fixture.week, score: fixture.score })),
+        .map((fixture) => ({
+          id: fixture.id,
+          week: fixture.week,
+          score: fixture.score,
+        })),
     ).toEqual(playedBefore);
     expect(scheduled.every((fixture) => fixture.week >= stale.week)).toBe(true);
     expect(
@@ -406,9 +414,7 @@ describe('launch career adapter', () => {
       'LEAGUE_THREE_GOAL_GAMES',
       'LEAGUE_AWAY_POINTS',
     ]);
-    expect(rebased.clubBusiness.sponsorship.activeContracts[0]).toEqual(
-      signed,
-    );
+    expect(rebased.clubBusiness.sponsorship.activeContracts[0]).toEqual(signed);
   });
 
   it('marks an established full career without restoring departed launch players', () => {

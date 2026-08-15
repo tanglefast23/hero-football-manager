@@ -49,7 +49,9 @@ const opponent = team('opponent', [
   player('opponent-5', 'FWD', { sho: 50, tec: 50 }),
 ]);
 
-function args(overrides: Partial<PenaltyShootoutArgs> = {}): PenaltyShootoutArgs {
+function args(
+  overrides: Partial<PenaltyShootoutArgs> = {},
+): PenaltyShootoutArgs {
   return {
     fixtureId: 'cup-1',
     careerSeed: 101,
@@ -99,7 +101,11 @@ describe('penaltyShootoutViewModel', () => {
         expect(model.kicks.length).toBeGreaterThanOrEqual(10);
 
         // No regulation kick may follow a mathematical clinch.
-        for (let index = 0; index < Math.min(9, model.kicks.length); index += 1) {
+        for (
+          let index = 0;
+          index < Math.min(9, model.kicks.length);
+          index += 1
+        ) {
           const kick = model.kicks[index]!;
           const clubTaken = Math.ceil((index + 1) / 2);
           const opponentTaken = Math.floor((index + 1) / 2);
@@ -111,9 +117,7 @@ describe('penaltyShootoutViewModel', () => {
 
         // Sudden death can only end after both sides take the paired kick.
         if (model.kicks.length > 10) {
-          expect(model.kicks[9]!.clubScore).toBe(
-            model.kicks[9]!.opponentScore,
-          );
+          expect(model.kicks[9]!.clubScore).toBe(model.kicks[9]!.opponentScore);
         }
       }
     },

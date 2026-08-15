@@ -15,8 +15,7 @@ export function goalBannerPresentation(
 ): { icon: '⚡' | '⚽'; tone: 'gold' | 'red' | 'blue' } {
   return {
     icon: powered ? '⚡' : '⚽',
-    tone:
-      scoringTeam !== controlledTeam ? 'red' : powered ? 'gold' : 'blue',
+    tone: scoringTeam !== controlledTeam ? 'red' : powered ? 'gold' : 'blue',
   };
 }
 
