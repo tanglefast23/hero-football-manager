@@ -374,3 +374,19 @@ tests passed, and all 20 translation gates passed. The focused checks cover the
 tab conflict, renewal dismissal, save-lock diagnosis, D5 market timing, youth
 intake, coach presentation, story targets, Portuguese copy, awards, Cup copy,
 settings, power labels, and neighbouring UI flows.
+
+## Balance note found while repairing main's tests
+
+25. `observed-open` — **The first scout report is unaffordable.** A D5 club
+    reaches the Week 15 scouting unlock on about **$51,000**. The two names the
+    first mission brings back are quoted at **$123,814** and **$74,986**. Neither
+    can be signed, so the feature unlocks into a shop the player cannot buy from.
+    This is what broke `story-recruitment-progression.test.ts` — it assumed one
+    affordable name and found none.
+
+    It matches what happened in the live career: I sent a D5 scout in Season 1
+    Week 17 with $6,279 in the bank, and never revisited the report because
+    nothing in it was reachable.
+
+    Either the first mission should quote against the club's division and cash,
+    or the unlock should land later, when a D5 club can act on it.
