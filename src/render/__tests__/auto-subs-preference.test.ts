@@ -40,10 +40,27 @@ describe('automatic substitution policy', () => {
     expect(loopEnd).toBeGreaterThan(loopStart);
     const catchUpLoop = match.slice(loopStart, loopEnd);
     expect(catchUpLoop).toMatch(
-      /if \(!heldForPowerReview && !heldForMatchVfxReview\) \{\s*tick\(s\);[\s\S]*?queueControlledAutoSubstitution\(s, autoSubsRef\.current\);\s*\}/,
+      /if \(!heldForPowerReview && !heldForMatchVfxReview\) \{\s*tick\(s\);[\s\S]*?queueControlledAutoSubstitution\(\s*s,\s*autoSubsRef\.current && !lessonOwnsBench,\s*\);\s*\}/,
     );
     expect(match.slice(loopEnd)).not.toContain(
-      'queueControlledAutoSubstitution(s, autoSubsRef.current);',
+      'queueControlledAutoSubstitution(',
+    );
+  });
+
+  it('stands the engine down while the first match is still teaching the swap', () => {
+    const match = source('src/render/MatchScreen.tsx');
+
+    // FIRST_MATCH_RED_ENERGY_THRESHOLD and AUTO_SUB_EMERGENCY_CONDITION are
+    // both 30%, so the tick that popped the coaching card also queued the
+    // engine's own substitution — and it applied when the board closed, Save
+    // or Cancel. The lesson holds the bench until it has been taught.
+    expect(match).toContain(
+      [
+        '          const lessonOwnsBench =',
+        '            firstMatchTutorial &&',
+        '            (!firstMatchPromptsSeenRef.current.tiredPlayer ||',
+        '              firstMatchTutorialStepRef.current !== null);',
+      ].join('\n'),
     );
   });
 

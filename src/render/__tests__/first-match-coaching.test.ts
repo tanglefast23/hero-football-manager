@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { queueControlledAutoSubstitution } from '../../game/match-policy';
 import { createMatch } from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
 import type { PlayerDef, TeamDef } from '../../sim/types';
@@ -169,5 +170,24 @@ describe('first match coaching prompts', () => {
       'guideLabel === undefined ? null : styles.cardGuided',
     );
     expect(board).toContainSource('consumeGuide(source);');
+  });
+
+  it('leaves the lesson’s swap to the manager instead of queueing the engine’s', () => {
+    // The red-energy band the card fires in IS the emergency Auto Subs band, so
+    // with Auto on the same tick queued a substitution of its own. It applied
+    // when the board closed — Cancel included — and the taught decision was
+    // never the manager's to make.
+    const state = watchedMatch();
+    state.players[9].condition = FIRST_MATCH_RED_ENERGY_THRESHOLD;
+
+    expect(
+      nextFirstMatchCoachingPrompt(state, 0, { tiredPlayer: false }),
+    ).toEqual({ kind: 'tired-player', player: 9 });
+    // What the lesson stands down: `enabled` false queues nothing at all.
+    expect(queueControlledAutoSubstitution(state, false)).toBe(false);
+    expect(state.pendingInputs).toHaveLength(0);
+    // And what it would otherwise have done, unguarded.
+    expect(queueControlledAutoSubstitution(state, true)).toBe(true);
+    expect(state.pendingInputs).toHaveLength(1);
   });
 });
