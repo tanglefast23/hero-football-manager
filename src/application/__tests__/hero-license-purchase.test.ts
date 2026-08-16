@@ -22,7 +22,9 @@ describe('Hero License purchases', () => {
     cash: number,
     highestDivisionReached: 5 | 3 | 1 = 5,
   ): GameState => {
-    const state = createCareer(createLaunchCareerSetup(414, undefined, content));
+    const state = createCareer(
+      createLaunchCareerSetup(414, undefined, content),
+    );
     return {
       ...state,
       m2: { ...state.m2!, highestDivisionReached },
@@ -95,7 +97,9 @@ describe('Hero License purchases', () => {
     const bought = purchaseCareerHeroLicense(before).state;
     // The bug this guards: match day licensed three heroes while the desk
     // still refused a starting promise for the third.
-    expect(careerContractPromiseHeroLimit(bought)).toBe(careerHeroLimit(bought));
+    expect(careerContractPromiseHeroLimit(bought)).toBe(
+      careerHeroLimit(bought),
+    );
     expect(careerContractPromiseHeroLimit(bought)).toBe(3);
   });
 
@@ -119,9 +123,9 @@ describe('Hero License purchases', () => {
       m2: { ...toFour.m2!, highestDivisionReached: 1 },
     };
     expect(nextHeroLicenseOffer(global).blockedReason).toBeUndefined();
-    expect(purchaseCareerHeroLicense(global).state.purchasedHeroLicenseCap).toBe(
-      5,
-    );
+    expect(
+      purchaseCareerHeroLicense(global).state.purchasedHeroLicenseCap,
+    ).toBe(5);
   });
 
   it('stops congratulating the club on a permit it already paid for', () => {

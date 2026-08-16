@@ -219,7 +219,9 @@ describe('automatic post-match awakenings', () => {
     });
 
     it('refuses a second hero in any season after the first', () => {
-      const start = playedUserFixture(createCareer(createLaunchCareerSetup(53)));
+      const start = playedUserFixture(
+        createCareer(createLaunchCareerSetup(53)),
+      );
       let state: GameState = { ...start, season: 2 };
       const fixtureId = userFixture(state).id;
 

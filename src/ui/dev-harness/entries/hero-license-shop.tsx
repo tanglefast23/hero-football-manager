@@ -106,7 +106,8 @@ export const heroLicenseShopEntry: DevHarnessEntry = Object.freeze({
   id: 'hero-license-shop',
   group: 'Match day',
   title: 'Hero License permit office',
-  summary: 'The counter that sells the next Hero License before promotion does.',
+  summary:
+    'The counter that sells the next Hero License before promotion does.',
   cases: Object.freeze(
     SHOP_CASES.map((entry) =>
       Object.freeze({
