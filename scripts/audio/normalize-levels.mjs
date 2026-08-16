@@ -515,9 +515,21 @@ try {
           `${entry.limited ? ', limited' : ''}${entry.unreachable ? ', target unreachable' : ''})`,
       );
     } else {
-      entry.after = entry.before;
-      entry.afterTruePeak = row.measured.truePeak;
-      entry.bytes = statSync(file).size;
+      const bytes = statSync(file).size;
+      const prior = recorded[row.assetPath];
+      // An untouched file measures at its *levelled* loudness, so re-deriving
+      // its record here records gain 0 and drops `unreachable` — the flag
+      // --check needs to hold a capped cue to the level the pass could actually
+      // reach, not to the class target it never reached. Same bytes as last
+      // time means nothing re-encoded it, so keep the record written when the
+      // file was really levelled.
+      if (prior?.bytes === bytes) {
+        Object.assign(entry, prior, { class: row.cls });
+      } else {
+        entry.after = entry.before;
+        entry.afterTruePeak = row.measured.truePeak;
+      }
+      entry.bytes = bytes;
     }
 
     manifest.assets[row.assetPath] = entry;

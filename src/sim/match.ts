@@ -292,8 +292,10 @@ export function queueInput(state: MatchState, input: MatchInput): void {
     requireControlledTeam(state);
     assertSpeechBoost(input.boost);
     assertSpeechTick(input.tick);
-    // One speech per match: the club banks at most one, and a second would
-    // stack a lift the career ring never sold.
+    // One speech per match. The club may BANK several, but half time spends
+    // exactly one, and a second here would stack a lift the career ring never
+    // sold. The rule is unchanged from when the bank held at most one; only
+    // the reason it holds has moved from the bank to the half-time prompt.
     if (state.inputLog.some((entry) => entry.kind === 'MOTIVATIONAL_SPEECH')) {
       throw new Error('this match has already had its motivational speech');
     }

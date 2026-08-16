@@ -1971,10 +1971,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const onboarded = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
-      // The bank is emptied from the RECORDED input log, never from a live
-      // callback during the match. The log is what the replay is built from, so
-      // the bank and the replay can never disagree about whether the speech was
-      // given — and a match abandoned before the whistle costs the club nothing.
+      // ONE speech is spent from the RECORDED input log, never from a live
+      // callback during the match, and the rest of the bank is left alone. The
+      // log is what the replay is built from, so the bank and the replay can
+      // never disagree about whether the speech was given — and a match
+      // abandoned before the whistle costs the club nothing.
       const completed = result.inputLog.some(
         (input) => input.kind === 'MOTIVATIONAL_SPEECH',
       )

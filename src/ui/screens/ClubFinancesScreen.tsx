@@ -2210,6 +2210,14 @@ function CoachCardSection({
       </Text>
       {coachSpeech === undefined || onTrainCoachSpeech === undefined ? null : (
         <View className="mt-3">
+          {/* The running tally sits ABOVE the button, so the stock is visible
+              whether or not this week's purchase is available. Absent at zero:
+              an empty shelf needs no label. */}
+          {coachSpeech.bankedLabel === undefined ? null : (
+            <Text className="mb-2 font-pixel text-sm uppercase text-ink">
+              {coachSpeech.bankedLabel}
+            </Text>
+          )}
           <ActionButton
             label={coachSpeech.label}
             accessibilityLabel={t('coachSpeech.a11y.trainCoach', {
