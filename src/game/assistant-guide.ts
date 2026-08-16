@@ -104,7 +104,13 @@ export type AssistantGuideMilestone =
    * game where walking away is one of the buttons. Said once, on the screen
    * that is asking.
    */
-  | 'expired-contract-seen';
+  | 'expired-contract-seen'
+  /**
+   * The permit office, explained the first time the manager reaches for a paid
+   * Hero License. Promotion hands these out free, so the one thing money buys
+   * is the calendar — said once, on the tap that would spend the money.
+   */
+  | 'hero-license-shop-seen';
 
 type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
 
@@ -171,6 +177,7 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'first-fans-seen': 'guide:bert:first-fans-seen',
   'first-fans-ledger-seen': 'guide:bert:first-fans-ledger-seen',
   'expired-contract-seen': 'guide:bert:expired-contract-seen',
+  'hero-license-shop-seen': 'guide:bert:hero-license-shop-seen',
 };
 
 const MILESTONE_BY_SEQUENCE: Readonly<

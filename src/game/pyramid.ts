@@ -469,24 +469,123 @@ const PERSONALITIES: readonly PlayerPersonality[] = [
   'Professional',
   'Timid',
 ];
+/**
+ * Fifty first words and fifty second words, paired one-to-one so no two clubs
+ * in a career share EITHER half of their name.
+ *
+ * The old pools were ten prefixes crossed with five suffixes, which put ten
+ * different "Rovers" and five different "Alder"s in the same pyramid and made
+ * the league read as one club with variations. Both lists are therefore exactly
+ * `CLUBS_PER_DIVISION * PYRAMID_DIVISION_COUNT` long and are consumed as a
+ * permutation, not a cross product — see `generateLeaguePyramid`.
+ *
+ * Neither list may contain a word from `content/clubs.json`: the manager's own
+ * club is dropped into D5 in place of a generated one, so a shared word there
+ * would be a collision the player sees in their own league table.
+ */
 const CLUB_PREFIXES = [
   'Alder',
+  'Amberly',
+  'Ashford',
   'Beacon',
+  'Bracken',
+  'Briarwood',
+  'Cinder',
   'Copper',
+  'Dovewell',
   'Dunwich',
   'Elm',
+  'Ember',
   'Fable',
+  'Fernhill',
   'Garnet',
-  'Harbour',
+  'Glimmer',
+  'Hollow',
+  'Inkwell',
   'Iron',
+  'Jasper',
   'Juniper',
+  'Kestrel',
+  'Kindle',
+  'Larkspur',
+  'Lumen',
+  'Marlow',
+  'Mistral',
+  'Nettle',
+  'Northgate',
+  'Opal',
+  'Orchard',
+  'Pemberton',
+  'Peregrine',
+  'Quarry',
+  'Rookwood',
+  'Rushmere',
+  'Sable',
+  'Silverbeck',
+  'Tarn',
+  'Thistle',
+  'Ulric',
+  'Redmarch',
+  'Vellum',
+  'Verdant',
+  'Willowbank',
+  'Wraith',
+  'Yarrow',
+  'Yewtree',
+  'Zephyr',
+  'Zircon',
 ] as const;
 const CLUB_SUFFIXES = [
-  'Athletic',
-  'City',
-  'Rovers',
-  'United',
+  'Albion',
+  'Alliance',
+  'Argyle',
+  'Badgers',
+  'Bulls',
+  'Casuals',
+  'Collieries',
+  'Corinthians',
+  'Dragons',
+  'Dynamo',
+  'Falcons',
+  'Forest',
+  'Foundry',
+  'Foxes',
+  'Galaxy',
+  'Giants',
+  'Griffins',
+  'Guardians',
+  'Harriers',
+  'Hawks',
+  'Hotspur',
+  'Steelworks',
+  'Legion',
+  'Lions',
+  'Mariners',
+  'Meteors',
+  'Olympic',
+  'Orient',
+  'Panthers',
+  'Phoenix',
+  'Pilgrims',
+  'Wayfarers',
+  'Rangers',
+  'Ravens',
+  'Rockets',
+  'Saints',
+  'Sentinels',
+  'Sporting',
+  'Stags',
+  'Strollers',
+  'Swifts',
+  'Nomads',
+  'Tigers',
+  'Titans',
+  'Union',
+  'Vanguard',
+  'Vikings',
   'Wanderers',
+  'Wolves',
+  'Wyverns',
 ] as const;
 const FIRST_NAMES = [
   'Ari',
@@ -543,12 +642,31 @@ const LAST_NAMES = [
 /** Generates all five divisions from one injected career seed. */
 export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
   validateSeed(careerSeed);
+  // A short pool would silently hand the last clubs `undefined Rovers`. Both
+  // lists are permutations of the pyramid's size, so say so where it matters.
+  if (
+    CLUB_PREFIXES.length !== NATIONAL_CUP_CLUB_COUNT ||
+    CLUB_SUFFIXES.length !== NATIONAL_CUP_CLUB_COUNT
+  ) {
+    throw new Error('club name pools must hold one word per generated club');
+  }
   const random = mulberry32(mixSeed(careerSeed, 0x50f1a4d));
-  const clubNames = shuffled(
-    CLUB_PREFIXES.flatMap((prefix) =>
-      CLUB_SUFFIXES.map((suffix) => `${prefix} ${suffix}`),
-    ),
-    random,
+  // Two shuffles zipped together: every first word and every second word is
+  // spent exactly once, so the fifty names share no half between them.
+  //
+  // Only the first shuffle draws from `random`, and it draws from a fifty-item
+  // array exactly as the old single pass over fifty crossed names did —
+  // Fisher-Yates consumes `length - 1` values whatever the array holds, so this
+  // stream, and therefore every generated squad, is byte-identical to before
+  // the pools were split. The second shuffle gets its own PRNG for that reason:
+  // renaming clubs must not re-roll the league's strength.
+  const shuffledPrefixes = shuffled([...CLUB_PREFIXES], random);
+  const shuffledSuffixes = shuffled(
+    [...CLUB_SUFFIXES],
+    mulberry32(mixSeed(careerSeed, 0x5cf1c5)),
+  );
+  const clubNames = shuffledPrefixes.map(
+    (prefix, index) => `${prefix} ${shuffledSuffixes[index]}`,
   );
   const divisions: PyramidDivision[] = [];
 

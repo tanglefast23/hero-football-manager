@@ -64,6 +64,7 @@ import {
   quickMatchForFixture,
   protectBoardUltimatumPlayer,
   pendingRivalHeroIntro,
+  purchaseCareerHeroLicense,
   purchaseCareerTrainingUpgrade,
   reconcilePendingClubLegends,
   closeCareerFacility,
@@ -94,6 +95,7 @@ import {
   submitCareerRenewalOffer,
   upgradeCareerFacility,
   withoutPowers,
+  reconcileCareerLineupLicenses,
   type CreatedPlayerDraft,
   type InstantDrillResolution,
   type CareerLegendLegacyChoice,
@@ -620,6 +622,8 @@ interface M1Store {
    */
   trainPlayerBatch: (playerId: string, pathId: string, runs: number) => void;
   purchaseTrainingUpgrade: (pathId: string) => void;
+  /** Buys one Hero License above the cap the club has earned on the pitch. */
+  purchaseHeroLicense: () => void;
   clearDrillResult: () => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
@@ -2797,6 +2801,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  purchaseHeroLicense() {
+    guarded(set, () => {
+      const transaction = purchaseCareerHeroLicense(requireCareer(get()));
+      set({
+        career: transaction.state,
+        error: null,
+        notice: {
+          tone: 'success',
+          message: t('store.heroLicenseBought', {
+            license: transaction.offer.licenseNumber,
+          }),
+        },
+      });
+      queueCareerSave(get, set, transaction.state);
+    });
+  },
+
   clearDrillResult() {
     set({ lastDrillResult: null });
   },
@@ -3664,7 +3685,13 @@ function reconcileLoadedCareer(state: GameState): GameState {
   return reconcilePendingAwakeningContent(
     reconcilePendingStoryEvent(
       reconcileLegacyFirstAwakening(
-        reconcileLaunchRoster(state, launchContent),
+        // Licenses first: a save written before license changes benched anyone
+        // can hold an unlicensed hero in the eleven, and that only surfaces at
+        // Play Match as "Hero <id> must be licensed or benched" -- past every
+        // point weekly settlement would have repaired it.
+        reconcileCareerLineupLicenses(
+          reconcileLaunchRoster(state, launchContent),
+        ),
       ),
       launchContent.events,
     ),

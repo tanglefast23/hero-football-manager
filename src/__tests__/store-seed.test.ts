@@ -46,6 +46,7 @@ const MILESTONES: readonly AssistantGuideMilestone[] = [
   'first-fans-seen',
   'first-fans-ledger-seen',
   'expired-contract-seen',
+  'hero-license-shop-seen',
 ];
 
 /** Silences every guide surface: milestones, sequences and the inbox queue. */

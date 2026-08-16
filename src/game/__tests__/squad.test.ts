@@ -235,18 +235,26 @@ describe('career squad integration', () => {
       ),
     ).toHaveLength(2);
 
+    // Taking p10's license benches him in the same step. Leaving him standing
+    // in the eleven used to make every later `buildCareerTeamDef` throw
+    // "must be licensed or benched", with no way out of the save.
     const relicensed = selectCareerLicensedHeroes(initial, [
       `${CLUB_IDS[0]}-p9`,
       `${CLUB_IDS[0]}-p11`,
     ]);
-    expect(() => buildCareerTeamDef(relicensed, CLUB_IDS[0])).toThrow(
-      'licensed or benched',
-    );
+    expect(relicensed.lineups[0].playerIds).not.toContain(`${CLUB_IDS[0]}-p10`);
+    expect(() => buildCareerTeamDef(relicensed, CLUB_IDS[0])).not.toThrow();
 
-    const lineup = relicensed.lineups[0].playerIds.map((id) =>
-      id === `${CLUB_IDS[0]}-p10` ? `${CLUB_IDS[0]}-p11` : id,
+    // p11 now holds the freed license, so he can take the slot p10 vacated.
+    const vacatedSlot = initial.lineups[0].playerIds.indexOf(
+      `${CLUB_IDS[0]}-p10`,
     );
-    const swapped = setCareerLineup(relicensed, lineup);
+    const swapped = setCareerLineup(
+      relicensed,
+      relicensed.lineups[0].playerIds.map((id, slot) =>
+        slot === vacatedSlot ? `${CLUB_IDS[0]}-p11` : id,
+      ),
+    );
     expect(
       buildCareerTeamDef(swapped, CLUB_IDS[0]).players.filter(
         (player) => player.power,

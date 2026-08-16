@@ -1495,6 +1495,9 @@ export interface ContractDraft {
   setTermSeasons: Dispatch<SetStateAction<1 | 2 | 3>>;
   perk: ContractPerk;
   setPerk: Dispatch<SetStateAction<ContractPerk>>;
+  /** The teammate chosen to give up a Hero License, when the promise needs one. */
+  reclaimPlayerId: string | undefined;
+  setReclaimPlayerId: Dispatch<SetStateAction<string | undefined>>;
   pitchCard: PitchCard | undefined;
   setPitchCard: Dispatch<SetStateAction<PitchCard | undefined>>;
 }
@@ -1521,6 +1524,7 @@ export function useContractDraft(
     Math.min(2, maxTerm) as 1 | 2 | 3,
   );
   const [perk, setPerk] = useState<ContractPerk>(contractDraftPerk(viewModel));
+  const [reclaimPlayerId, setReclaimPlayerId] = useState<string | undefined>();
   const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
 
   const id = viewModel?.id;
@@ -1549,6 +1553,13 @@ export function useContractDraft(
     setPerk(restoredPerk);
   }, [id, lastTermSeasons, maxTerm, restoredPerk]);
 
+  // The license a promise costs belongs to that promise. Switching to a promise
+  // that spends none, or to a different player entirely, must not leave a
+  // teammate silently marked for demotion.
+  useEffect(() => {
+    setReclaimPlayerId(undefined);
+  }, [id, perk]);
+
   // The wage tracks the agent's counter, and the pitch card MUST clear: cards
   // are one-use, and re-submitting a spent one throws in `submitContractOffer`.
   useEffect(() => {
@@ -1564,6 +1575,8 @@ export function useContractDraft(
     setTermSeasons,
     perk,
     setPerk,
+    reclaimPlayerId,
+    setReclaimPlayerId,
     pitchCard,
     setPitchCard,
   };
@@ -1597,6 +1610,8 @@ export function NegotiationPanel({
     setTermSeasons,
     perk,
     setPerk,
+    reclaimPlayerId,
+    setReclaimPlayerId,
     pitchCard,
     setPitchCard,
   } = draft;
@@ -1611,6 +1626,15 @@ export function NegotiationPanel({
   const finalDemand = viewModel.finalDemand;
   const selectedPerk = viewModel.perks.find((option) => option.id === perk);
   const selectedPerkBlocked = selectedPerk?.available === false;
+  // A promise that costs a Hero License cannot be sent until the club says
+  // whose. Blocking the button is what stops the agent accepting a deal the
+  // career would then refuse to complete.
+  const reclaimChoice = selectedPerk?.heroLicenseReclaim;
+  const reclaimUnchosen =
+    reclaimChoice !== undefined &&
+    !reclaimChoice.options.some(
+      (option) => option.playerId === reclaimPlayerId,
+    );
   const moodClass =
     viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
       ? 'border-red-dark bg-red-light'
@@ -1729,6 +1753,11 @@ export function NegotiationPanel({
                     weeklyWage: finalDemand.weeklyWage,
                     termSeasons: finalDemand.termSeasons,
                     perk: finalDemand.perk,
+                    // The agent's final demand keeps whichever promise was on
+                    // the table, so it keeps the license arrangement with it.
+                    ...(finalDemand.perk === perk && reclaimChoice !== undefined
+                      ? { reclaimHeroLicenseFromPlayerId: reclaimPlayerId }
+                      : {}),
                   }),
                 )
               }
@@ -1893,6 +1922,45 @@ export function NegotiationPanel({
                 </Pressable>
               ))}
             </View>
+            {/* Asked here, inline under the promise that causes it, rather than
+                in a modal after the fact: the license is part of the offer's
+                price, and the manager is choosing the price. Nothing is applied
+                until the agent signs, so abandoning the talks costs nothing. */}
+            {reclaimChoice === undefined ? null : (
+              <View className="mt-3 border-2 border-stamp bg-white px-3 py-3">
+                <Text className="text-sm leading-5 text-ink/80">
+                  {reclaimChoice.prompt}
+                </Text>
+                <View className="mt-2 gap-2">
+                  {reclaimChoice.options.map((holder) => (
+                    <Pressable
+                      key={holder.playerId}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${holder.name}, ${holder.role}, ${holder.statusLabel}`}
+                      accessibilityState={{
+                        selected: reclaimPlayerId === holder.playerId,
+                      }}
+                      onPress={() => setReclaimPlayerId(holder.playerId)}
+                      className={
+                        reclaimPlayerId === holder.playerId
+                          ? 'min-h-12 flex-row items-center justify-between gap-3 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                          : 'min-h-12 flex-row items-center justify-between gap-3 border-2 border-ink/30 bg-white px-3 py-2'
+                      }
+                    >
+                      <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
+                        {holder.name}
+                      </PixelText>
+                      <PixelText className="text-sm uppercase text-ink/70">
+                        {`${holder.role} · ${holder.statusLabel}`}
+                      </PixelText>
+                    </Pressable>
+                  ))}
+                </View>
+                <Text className="mt-2 text-sm leading-5 text-ink/60">
+                  {t('market.reclaimHeroLicenseWarning')}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View className="mt-4">
@@ -2013,11 +2081,18 @@ export function NegotiationPanel({
                     })
               }
               variant="confirm"
-              disabled={walksOut || selectedPerkBlocked}
+              disabled={walksOut || selectedPerkBlocked || reclaimUnchosen}
               onPress={() =>
                 guardTap(() =>
                   onSubmitContractOffer(
-                    { weeklyWage, termSeasons, perk },
+                    {
+                      weeklyWage,
+                      termSeasons,
+                      perk,
+                      ...(reclaimChoice === undefined
+                        ? {}
+                        : { reclaimHeroLicenseFromPlayerId: reclaimPlayerId }),
+                    },
                     pitchCard,
                   ),
                 )

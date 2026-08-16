@@ -545,6 +545,16 @@ function GameApp() {
   const [dismissedAssistantObjectiveKey, setDismissedAssistantObjectiveKey] =
     useState<string | null>(null);
   const [guidanceNudgeToken, setGuidanceNudgeToken] = useState(0);
+  /**
+   * Bert's one-time permit-office lesson, held between the tap and the
+   * question. Promotion gives these licenses away, so the first time money is
+   * offered for one he explains what the money actually buys — the calendar,
+   * not an extra permit — and the yes/no follows him off the screen.
+   */
+  const [heroLicenseBriefing, setHeroLicenseBriefing] = useState<{
+    license: number;
+    cost: number;
+  } | null>(null);
   const [incomeFacilitiesFlashToken, setIncomeFacilitiesFlashToken] =
     useState(0);
   const [tipDismissSequence, setTipDismissSequence] = useState(0);
@@ -992,6 +1002,21 @@ function GameApp() {
     },
     [],
   );
+
+  /** The yes/no half of a permit purchase, asked after Bert has had his say. */
+  const askToBuyHeroLicense = (license: number, cost: number) => {
+    requestConfirmation({
+      title: t('confirm.buyHeroLicense.title', { license }),
+      detail: t('confirm.buyHeroLicense.detail', {
+        license,
+        cost: formatCurrency(t, cost),
+      }),
+      confirmLabel: t('confirm.buyHeroLicense.confirm'),
+      cancelLabel: t('confirm.buyHeroLicense.cancel'),
+      tone: 'hero',
+      onConfirm: () => store.purchaseHeroLicense(),
+    });
+  };
 
   const saveDeveloperManualSlot = useCallback(
     (slot: DeveloperManualSaveSlot) => {
@@ -2827,8 +2852,12 @@ function GameApp() {
         />
       );
     } else {
+      // Captured, not read through `store` inside the callbacks below: the
+      // narrowing that makes `store.career` non-null here does not survive
+      // into a closure.
+      const matchdayCareer = store.career;
       const matchday = matchDayViewModel(
-        store.career,
+        matchdayCareer,
         content,
         preferences.formationPresets[0],
         t,
@@ -2874,6 +2903,27 @@ function GameApp() {
               tone: 'hero',
               onConfirm: toggle,
             });
+          }}
+          onBuyHeroLicense={() => {
+            const offer = matchday.heroLicenseOffer;
+            if (offer.blockedReason !== undefined) return;
+            // The lesson comes before the bill, once per career. A manager who
+            // has turned Bert off, or who has already heard it, goes straight
+            // to the question.
+            if (
+              careerTeaches &&
+              !hasAssistantGuideMilestone(
+                matchdayCareer,
+                'hero-license-shop-seen',
+              )
+            ) {
+              setHeroLicenseBriefing({
+                license: offer.licenseNumber,
+                cost: offer.cost,
+              });
+              return;
+            }
+            askToBuyHeroLicense(offer.licenseNumber, offer.cost);
           }}
           onSwapStartingPlayer={(starterId, replacementId) =>
             performManagementAction(
@@ -4360,6 +4410,33 @@ function GameApp() {
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
                 onDone={store.dismissInboxDutyReminder}
+              />
+            ) : null}
+            {heroLicenseBriefing !== null ? (
+              <BertBriefingWalkOn
+                key="hero-license-shop"
+                content={content.assistantGuide}
+                // Authored beats, like the inbox-duty reminder: this is his
+                // answer to a press, not a lesson the career queued. The id
+                // only picks the run of looks he wears while saying it.
+                sequenceId="hero-license-shop"
+                customMessage={{
+                  title: t('bert.heroLicense.title'),
+                  body: [
+                    t('bert.heroLicense.body1'),
+                    t('bert.heroLicense.body2'),
+                  ],
+                }}
+                navigationAnchor={navigationGuideAnchor}
+                reduceMotion={reduceMotion}
+                onDone={() => {
+                  store.completeGuideMilestone('hero-license-shop-seen');
+                  setHeroLicenseBriefing(null);
+                  askToBuyHeroLicense(
+                    heroLicenseBriefing.license,
+                    heroLicenseBriefing.cost,
+                  );
+                }}
               />
             ) : null}
             {!guideOverlayVisible &&

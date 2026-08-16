@@ -436,6 +436,7 @@ export type CashTransactionKind =
   | 'facility-relocation'
   | 'facility-closure'
   | 'training-upgrade'
+  | 'hero-license'
   | 'scouting'
   | 'transfer-buy'
   | 'transfer-sell'
@@ -960,6 +961,14 @@ export interface GameState {
    * a purchase — are owned at tier 1.
    */
   ownedTrainingTiers?: Record<string, number>;
+  /**
+   * Highest Hero License count the club has ever PAID the league for.
+   *
+   * A floor under the cap promotion earns, never an addition to it — see
+   * `careerHeroLimit`. Absent on every save written before permits went on
+   * sale, which simply means the club has bought none.
+   */
+  purchasedHeroLicenseCap?: number;
   /** Lifetime instant-drill count; the RNG nonce that keeps back-to-back taps distinct. */
   totalInstantDrills?: number;
   ledgers: WeeklyLedger[];

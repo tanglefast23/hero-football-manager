@@ -18,15 +18,15 @@ import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { createEmergencyYouthReplacement } from './youth-intake';
 import { coachMotivatorBonusPercent } from './coach-weekly';
 import {
-  heroLicenseLimitForDivision,
+  heroLicenseCap,
   highestDivisionReached,
+  type BlockedCopy,
 } from './promotion-progression';
 import type { CareerPlayer, GameState } from './types';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 import { roleOverall } from './archetype-caps';
 import { deterministicCareerEventRoll } from './event-clock';
 
-const DEFAULT_HERO_LIMIT = 2;
 const TRAINING_GROUND_COST = 8000;
 const STRONGEST_D1_OFF_DAY_CHANCE_PERCENT = 20;
 const STRONGEST_D1_OFF_DAY_ATTRIBUTE_PERCENT = 97;
@@ -56,10 +56,79 @@ const MATCH_FORM_PERCENT_BANDS = [
   { roll: 90, percent: 101 },
   { roll: 100, percent: 102 },
 ] as const;
-/** Hero License field cap earned by climbing the national pyramid. */
+/** Hero License field cap, won on the pitch or bought at the permit office. */
 export function careerHeroLimit(state: GameState): number {
-  if (state.m2 === undefined) return DEFAULT_HERO_LIMIT;
-  return heroLicenseLimitForDivision(highestDivisionReached(state));
+  return heroLicenseCap(state);
+}
+
+/**
+ * What the league charges for the next permit above the club's current cap.
+ *
+ * Priced by the permit's NUMBER, never by how many the club has bought, so the
+ * bill is the same whether the club climbed to it or paid its way to it: a
+ * third costs $100,000, a fourth $200,000, and every permit past the four a
+ * Global League club already holds starts at $300,000 and rises $50,000 each
+ * time.
+ */
+export function heroLicensePurchaseCost(licenseNumber: number): number {
+  if (licenseNumber <= 2) {
+    throw new Error(`hero license ${licenseNumber} is never sold`);
+  }
+  if (licenseNumber === 3) return 100_000;
+  if (licenseNumber === 4) return 200_000;
+  return 300_000 + 50_000 * (licenseNumber - 5);
+}
+
+export interface HeroLicenseOffer {
+  /** The permit on sale — one above the club's current cap. */
+  readonly licenseNumber: number;
+  readonly cost: number;
+  /** Why the club cannot buy it right now; undefined when the purchase is legal. */
+  readonly blockedReason?: BlockedCopy;
+}
+
+/**
+ * The permit on the counter, resolved once so the match-day office, the store
+ * action and the purchase itself all quote the same price and the same refusal.
+ */
+export function nextHeroLicenseOffer(state: GameState): HeroLicenseOffer {
+  const licenseNumber = careerHeroLimit(state) + 1;
+  const cost = heroLicensePurchaseCost(licenseNumber);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
+  // Past the four a Global League club holds, the permit is a top-flight
+  // privilege rather than an advance on a promotion the club can still win.
+  // Price alone would not hold the line: a District League side with a good
+  // season's takings could field five heroes against clubs the ladder says are
+  // its equals. It is also where the desktop rail runs out — it draws at most
+  // RAIL_HERO_TILE_CAP (4) power tiles — so a fifth hero plays without a tile.
+  const globalOnly =
+    licenseNumber > 4 &&
+    (state.m2 === undefined || highestDivisionReached(state) > 1);
+  return {
+    licenseNumber,
+    cost,
+    ...(globalOnly
+      ? {
+          blockedReason: {
+            /** @i18n-fallback for `fixtureMatchDay.heroLicenseGlobalOnly`. */
+            text: 'Only a Global League club may hold more than four.',
+            textKey: 'fixtureMatchDay.heroLicenseGlobalOnly',
+          },
+        }
+      : club.cash < cost
+        ? {
+            /** @i18n-fallback for `squadTraining.drillNotEnoughMoney`. */
+            blockedReason: {
+              text: 'Not enough money.',
+              textKey: 'squadTraining.drillNotEnoughMoney',
+            },
+          }
+        : {}),
+  };
 }
 
 export function rosterForClub(
@@ -447,9 +516,18 @@ function repairLineupForInjuries(
 
   for (let slot = 0; slot < playerIds.length; slot += 1) {
     const starter = playerById.get(playerIds[slot]);
-    if (starter === undefined || isAvailableForSelection(starter)) continue;
+    if (starter === undefined) continue;
+    // Two ways a starter can no longer start, repaired by one search. An
+    // unlicensed hero is as unplayable as an injured one -- `buildTeamDef`
+    // refuses the eleven either way -- and every route that takes a license
+    // away (the match-day toggle, a reclaim for a new signing, an old save
+    // written before those benched anyone) lands the squad here.
+    const unlicensedHero = starter.power !== undefined && !starter.licensed;
+    if (isAvailableForSelection(starter) && !unlicensedHero) continue;
 
-    if (!claimedSlots.has(slot)) {
+    // No return slot for a license: the player is fit and simply not picked, so
+    // holding the shirt open would promise a comeback nothing will trigger.
+    if (!unlicensedHero && !claimedSlots.has(slot)) {
       claimedSlots.add(slot);
       newReturns.set(starter.id, slot);
     }
@@ -647,7 +725,11 @@ export function selectCareerLicensedHeroes(
   );
   const selectedById = new Map(selected.map((player) => [player.id, player]));
 
-  return {
+  // Benching whoever just lost a license is part of taking it away, not a
+  // separate step a caller may forget. Without it the hero stayed in the eleven
+  // unlicensed, `buildTeamDef` refused to build it, and the career stopped at
+  // "Hero <id> must be licensed or benched" with no way forward from the save.
+  return repairCareerLineupForInjuries({
     ...state,
     players: state.players.map((player) => {
       const next = selectedById.get(player.id);
@@ -655,7 +737,32 @@ export function selectCareerLicensedHeroes(
         ? player
         : { ...player, ...next, attrs: { ...next.attrs } };
     }),
-  };
+  });
+}
+
+/**
+ * Load-time fail-soft for a save whose eleven already holds an unlicensed hero.
+ *
+ * Saves written before license changes benched anyone can carry an eleven the
+ * match boundary refuses, and the refusal lands at Play Match -- past the point
+ * weekly settlement would have repaired it. Repairing on load turns a dead
+ * career into a benched hero and a note in the squad list.
+ */
+export function reconcileCareerLineupLicenses(state: GameState): GameState {
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined) return state;
+  const playerById = new Map(
+    state.players.map((player) => [player.id, player]),
+  );
+  const stranded = lineup.playerIds.some((playerId) => {
+    const player = playerById.get(playerId);
+    return (
+      player !== undefined && player.power !== undefined && !player.licensed
+    );
+  });
+  return stranded ? repairCareerLineupForInjuries(state) : state;
 }
 
 export function buildTrainingGround(

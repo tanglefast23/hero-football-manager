@@ -46,7 +46,9 @@ import {
   startDetailedScoutReport,
   submitCareerTransferOffer,
 } from '../market-career';
-import type { GameState } from '../types';
+import type { CareerPlayer, GameState } from '../types';
+import { careerHeroLimit } from '../squad';
+import { buildCareerTeamDef as buildTeamDefForClub } from '../squad';
 
 describe('career market integration', () => {
   test('scales head coaches from 300 and assistants from 150 per level', () => {
@@ -1735,5 +1737,205 @@ describe('career market integration', () => {
       listCareerPlayer(state, state.market!, reserve.id).transferListings?.[0]
         .bids,
     ).toHaveLength(4);
+  });
+});
+
+describe('transfer promises and Hero Licenses', () => {
+  /**
+   * A club at its Hero License cap, one roster slot free, and a scouted rival
+   * hero on the desk. This is the shape that used to sign an unlicensed starter
+   * and then refuse to launch the next match.
+   */
+  function clubAtLicenseCap(seed: number) {
+    const initial = createCareer(createLaunchCareerSetup(seed));
+    const limit = careerHeroLimit(initial);
+    const lineup = initial.lineups.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const starterSet = new Set(lineup.playerIds);
+    const heroIds = initial.players
+      .filter(
+        (player) =>
+          player.clubId === initial.userClubId &&
+          starterSet.has(player.id) &&
+          player.role !== 'GK',
+      )
+      .slice(0, limit)
+      .map((player) => player.id);
+    // One reserve released, so the roster has room for the signing.
+    const reserve = initial.players.find(
+      (player) =>
+        player.clubId === initial.userClubId && !starterSet.has(player.id),
+    )!;
+    const state: GameState = {
+      ...initial,
+      players: initial.players
+        .filter((player) => player.id !== reserve.id)
+        .map((player) =>
+          heroIds.includes(player.id)
+            ? {
+                ...player,
+                power: 'SUPER_SPEED' as const,
+                powerTier: 1 as const,
+                licensed: true,
+              }
+            : player,
+        ),
+      clubs: initial.clubs.map((club) =>
+        club.id === initial.userClubId
+          ? {
+              ...club,
+              cash: 50_000_000,
+              weeklyWages: club.weeklyWages - reserve.weeklyWage,
+            }
+          : club,
+      ),
+    };
+    const target = state.players.find(
+      (player) =>
+        player.clubId !== state.userClubId &&
+        player.power !== undefined &&
+        player.role !== 'GK',
+    )!;
+    return { state, limit, heroIds, target };
+  }
+
+  function marketWithReport(state: GameState, target: CareerPlayer) {
+    return {
+      ...createCareerMarketState(state),
+      scoutReports: [
+        {
+          playerId: target.id,
+          role: target.role,
+          age: target.age ?? 24,
+          statRanges: Object.fromEntries(
+            Object.keys(target.attrs).map((key) => [
+              key,
+              {
+                minimum: target.attrs[key as keyof typeof target.attrs],
+                maximum: target.attrs[key as keyof typeof target.attrs],
+              },
+            ]),
+          ) as never,
+          potentialRange: { minimum: 3, maximum: 3 },
+        },
+      ],
+    };
+  }
+
+  test('refuses a starting promise with no license until one is reclaimed', () => {
+    const { state, target } = clubAtLicenseCap(7701);
+    const talks = beginCareerTransferTalks(
+      state,
+      marketWithReport(state, target),
+      target.id,
+    );
+    const ask = talks.transferTalks!.negotiation.weeklyAsk;
+
+    // The rival hero arrives carrying `licensed: true` from his own club. The
+    // guard used to read that flag and wave the promise through, so the agent
+    // accepted a deal `completeCareerTransfer` then threw away.
+    expect(() =>
+      submitCareerTransferOffer(state, talks, {
+        weeklyWage: ask,
+        termSeasons: 2,
+        perk: 'GUARANTEED_STARTER',
+      }),
+    ).toThrow('Choose the hero who gives one up');
+  });
+
+  test('signs the hero, benches the chosen holder, and keeps the eleven legal', () => {
+    const { state, heroIds, target } = clubAtLicenseCap(7702);
+    let talks = beginCareerTransferTalks(
+      state,
+      marketWithReport(state, target),
+      target.id,
+    );
+    const ask = talks.transferTalks!.negotiation.weeklyAsk;
+    talks = submitCareerTransferOffer(state, talks, {
+      weeklyWage: ask,
+      termSeasons: 2,
+      perk: 'GUARANTEED_STARTER',
+      reclaimHeroLicenseFromPlayerId: heroIds[0],
+    });
+    const completed = completeCareerTransfer(state, talks);
+    const lineup = completed.state.lineups.find(
+      (candidate) => candidate.clubId === completed.state.userClubId,
+    )!;
+
+    expect(
+      completed.state.players.find((player) => player.id === target.id),
+    ).toMatchObject({
+      clubId: state.userClubId,
+      licensed: true,
+      contractPromise: { perk: 'GUARANTEED_STARTER' },
+    });
+    expect(
+      completed.state.players.find((player) => player.id === heroIds[0])
+        ?.licensed,
+    ).toBe(false);
+    expect(lineup.playerIds).toContain(target.id);
+    expect(lineup.playerIds).not.toContain(heroIds[0]);
+    // The reported failure: Play Match died here on "must be licensed or benched".
+    expect(() =>
+      buildTeamDefForClub(completed.state, completed.state.userClubId),
+    ).not.toThrow();
+  });
+
+  test('abandoned talks leave every license, promise, and shirt untouched', () => {
+    const { state, heroIds, target } = clubAtLicenseCap(7703);
+    const market = marketWithReport(state, target);
+    let talks = beginCareerTransferTalks(state, market, target.id);
+    talks = submitCareerTransferOffer(state, talks, {
+      // Deliberately insulting, so the agent never signs.
+      weeklyWage: 1,
+      termSeasons: 2,
+      perk: 'GUARANTEED_STARTER',
+      reclaimHeroLicenseFromPlayerId: heroIds[0],
+    });
+    const closed = closeCareerTransferTalks(state, talks);
+
+    expect(closed.transferTalks).toBeUndefined();
+    expect(
+      state.players.find((player) => player.id === heroIds[0])?.licensed,
+    ).toBe(true);
+    expect(
+      state.lineups.find((candidate) => candidate.clubId === state.userClubId)
+        ?.playerIds,
+    ).toContain(heroIds[0]);
+  });
+
+  test('disables the promise when every license is promised to a starter', () => {
+    const { state, heroIds, limit, target } = clubAtLicenseCap(7704);
+    const allPromised: GameState = {
+      ...state,
+      players: state.players.map((player) =>
+        heroIds.includes(player.id)
+          ? {
+              ...player,
+              contractSeasonsRemaining: 2,
+              contractPromise: {
+                perk: 'GUARANTEED_STARTER' as const,
+                agreedSeason: state.season,
+              },
+            }
+          : player,
+      ),
+    };
+    const talks = beginCareerTransferTalks(
+      allPromised,
+      marketWithReport(allPromised, target),
+      target.id,
+    );
+
+    expect(limit).toBeGreaterThan(0);
+    expect(() =>
+      submitCareerTransferOffer(allPromised, talks, {
+        weeklyWage: talks.transferTalks!.negotiation.weeklyAsk,
+        termSeasons: 2,
+        perk: 'GUARANTEED_STARTER',
+        reclaimHeroLicenseFromPlayerId: heroIds[0],
+      }),
+    ).toThrow('Every Hero License is promised to a starter');
   });
 });

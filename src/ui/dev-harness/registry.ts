@@ -11,6 +11,7 @@ import { endgameCelebrationEntry } from './entries/endgame';
 import { financialReportEntry } from './entries/financial-report';
 import { fulltimeReportEntry } from './entries/fulltime-report';
 import { hallOfFameEntry } from './entries/hall-of-fame';
+import { heroLicenseShopEntry } from './entries/hero-license-shop';
 import { playerRequestsEntry } from './entries/player-requests';
 import { promotionTransitionEntry } from './entries/promotion-transition';
 import { retirementLegacyEntry } from './entries/retirement-legacy';
@@ -76,6 +77,7 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   midseasonTrainingEntry,
   squadSortHintEntry,
   boardUltimatumEntry,
+  heroLicenseShopEntry,
   cupMismatchWarningEntry,
   cupGiantKillingEntry,
   penaltyShootoutEntry,

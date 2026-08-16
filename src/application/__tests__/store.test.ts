@@ -874,8 +874,13 @@ describe('M1 app store integration', () => {
         perk: 'GUARANTEED_STARTER',
       });
 
+      // The cap is full and both holders are unpromised, so the promise is
+      // possible -- but only once the club says whose license pays for it. The
+      // offer carries no choice, so the typed backstop refuses it, localized.
       expect(useM1Store.getState().error).toBe(
-        vietnamese('market.promiseBlockedHeroLicense', { player: target.name }),
+        vietnamese('market.promiseNeedsHeroLicenseChoice', {
+          player: target.name,
+        }),
       );
       expect(useM1Store.getState().error).not.toContain(
         'No Hero License is free',

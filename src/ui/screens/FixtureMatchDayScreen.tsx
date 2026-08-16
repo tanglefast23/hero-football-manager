@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import {
+  ActionButton,
+  PaperPanel,
+  StatusChip,
+  formatCurrency,
+} from '../components/Scorecard';
 import {
   ChalkboardBackdrop,
   StageSection,
@@ -34,6 +39,7 @@ export interface FixtureMatchDayScreenProps {
   viewModel: MatchDayViewModel;
   onBack: () => void;
   onToggleHeroLicense: (playerId: string) => void;
+  onBuyHeroLicense: () => void;
   onSwapStartingPlayer: (starterId: string, replacementId: string) => void;
   onWatchMatch: () => void;
   onQuickResult: () => void;
@@ -262,6 +268,7 @@ export function FixtureMatchDayScreen({
   viewModel,
   onBack,
   onToggleHeroLicense,
+  onBuyHeroLicense,
   onSwapStartingPlayer,
   onWatchMatch,
   onQuickResult,
@@ -756,6 +763,46 @@ export function FixtureMatchDayScreen({
         <Text className="mt-3 text-sm leading-5 text-paper/75">
           {t('fixtureMatchDay.ownedHeroesWithoutA')}
         </Text>
+      ) : null}
+      {/*
+       * The counter opens only once the cap actually bites — a club with one
+       * hero and two permits is not being sold anything. Its refusal stays
+       * visible rather than hiding the price: a manager who cannot afford the
+       * permit still needs to know what it costs to plan for it.
+       */}
+      {viewModel.heroes.length >= viewModel.heroLimit ? (
+        <PaperPanel
+          className="mt-3"
+          kicker={t('fixtureMatchDay.permitOffice')}
+          title={t('fixtureMatchDay.oneMorePermit')}
+        >
+          <Text className="text-base leading-6 text-ink/65">
+            {t('fixtureMatchDay.oneMorePermitDetail', {
+              license: viewModel.heroLicenseOffer.licenseNumber,
+            })}
+          </Text>
+          <View className="mt-3">
+            <ActionButton
+              label={t('fixtureMatchDay.buyHeroLicense', {
+                license: viewModel.heroLicenseOffer.licenseNumber,
+                cost: formatCurrency(t, viewModel.heroLicenseOffer.cost),
+              })}
+              accessibilityLabel={t('fixtureMatchDay.a11y.buyHeroLicense', {
+                license: viewModel.heroLicenseOffer.licenseNumber,
+                cost: formatCurrency(t, viewModel.heroLicenseOffer.cost),
+              })}
+              variant="paper"
+              compact
+              disabled={viewModel.heroLicenseOffer.blockedReason !== undefined}
+              onPress={onBuyHeroLicense}
+            />
+          </View>
+          {viewModel.heroLicenseOffer.blockedReason === undefined ? null : (
+            <Text className="mt-2 text-sm leading-5 text-red-dark">
+              {viewModel.heroLicenseOffer.blockedReason}
+            </Text>
+          )}
+        </PaperPanel>
       ) : null}
       {!viewModel.licenseReady ? (
         <PixelText className="mt-3 text-center text-[12px] uppercase tracking-wide text-red-light">

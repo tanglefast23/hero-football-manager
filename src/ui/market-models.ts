@@ -193,6 +193,27 @@ export interface ContractPerkViewModel {
   readonly available: boolean;
   /** Player-facing, localized explanation shown on a disabled row. */
   readonly blockedReason?: string;
+  /**
+   * Present only when picking this promise costs a teammate their Hero License.
+   *
+   * The panel must collect `options[n].playerId` before the offer can be sent;
+   * a promise whose license has nowhere to come from arrives as `available:
+   * false` instead, never as an empty list here.
+   */
+  readonly heroLicenseReclaim?: HeroLicenseReclaimViewModel;
+}
+
+export interface HeroLicenseReclaimViewModel {
+  /** Why the club is being asked, naming the player who needs the license. */
+  readonly prompt: string;
+  /** Weakest first: the name the manager is likeliest to want is on top. */
+  readonly options: readonly {
+    readonly playerId: string;
+    readonly name: string;
+    readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+    /** "Starting XI" or "Bench", so the cost of the choice is on the row. */
+    readonly statusLabel: string;
+  }[];
 }
 
 export interface MarketNegotiationViewModel {

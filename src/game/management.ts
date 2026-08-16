@@ -20,6 +20,7 @@ import {
   type TrainingUpgradeOffer,
 } from './training-paths';
 import { dismissCareerCoach } from './market-career';
+import { nextHeroLicenseOffer, type HeroLicenseOffer } from './squad';
 import type { GameState } from './types';
 
 interface CareerFacilityTransaction extends FacilityTransaction {
@@ -328,6 +329,45 @@ export function purchaseCareerTrainingUpgrade(
       },
       amount: -offer.cost,
       referenceId: offer.drillId,
+    }),
+  };
+}
+
+interface CareerHeroLicenseTransaction {
+  readonly state: GameState;
+  readonly offer: HeroLicenseOffer;
+}
+
+/**
+ * Buys one Hero License above the cap the club has earned on the pitch.
+ *
+ * No phase assertion, for the same reason as the drill shop: nothing about the
+ * permit settles weekly, and the office is open whenever the manager is looking
+ * at a hero they cannot field.
+ */
+export function purchaseCareerHeroLicense(
+  state: GameState,
+): CareerHeroLicenseTransaction {
+  const offer = nextHeroLicenseOffer(state);
+  if (offer.blockedReason !== undefined)
+    throw new Error(offer.blockedReason.text);
+  const paid: GameState = {
+    ...state,
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId
+        ? { ...club, cash: club.cash - offer.cost }
+        : club,
+    ),
+    purchasedHeroLicenseCap: offer.licenseNumber,
+  };
+  return {
+    offer,
+    state: recordCashTransaction(paid, {
+      kind: 'hero-license',
+      label: `Hero License ${offer.licenseNumber} bought`,
+      labelKey: 'cashTransaction.heroLicenseBought',
+      labelParams: { license: offer.licenseNumber },
+      amount: -offer.cost,
     }),
   };
 }

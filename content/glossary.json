@@ -183,7 +183,11 @@
         },
         {
           "term": "Hero License",
-          "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once."
+          "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once. Promotion earns them free: two in the District and County Leagues, three in the Regional and National Leagues, four in the Global League. A permit is never taken back if the club is relegated."
+        },
+        {
+          "term": "Permit office",
+          "definition": "The counter on the match-day screen that sells a Hero License before the club has won it. A third costs $100,000, a fourth $200,000, and each one past the four a Global League club already holds starts at $300,000 and rises $50,000 every time. Buying only makes a permit arrive early: a later promotion raises the free number instead of stacking on top of what you paid for."
         }
       ]
     },
