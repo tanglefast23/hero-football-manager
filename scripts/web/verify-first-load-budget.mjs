@@ -216,17 +216,45 @@ const DIST = path.resolve('dist');
 // modules (`sprites.json` 1.98 MB, `portraits.json` 1.36 MB,
 // `management-sprites.json` 269 KB). A brief for getting the number DOWN is in
 // docs/plans/2026-08-16-first-load-budget-investigation-handoff.md.
+// Re-ratcheted 2026-08-16 (desktop possession card + swap-board dimming), on
+// top of the entry above. All 31 bytes of it are this branch's, and the
+// arithmetic is the cleanest this file has recorded.
+//
+// `origin/main` at 4dd164cb was exported and measured by this script:
+// 6_023_686 raw / 903_480 gzip — the exact local figure the entry above wrote
+// down for the merged tree, so main has not drifted a byte since. This branch's
+// own export reads 6_023_717 / 903_492, which is **+31 raw / +12 gzip**. CI
+// reported 6_024_754 raw for the same tree: local + the same +1_037 offset,
+// transferring unchanged for the fourth branch running.
+//
+// What the +31 is: three desktop style entries on the possession card, the
+// optional `height` prop on `HeroChargeMeter`, and the `blocked` prop that
+// fades an unavailable card on the substitution board. No new copy in any
+// locale, and no new module.
+//
+// Raw takes CI's own figure for this tree, 6_024_754, per the rule the entries
+// above settled on. Gzip is NOT moved: CI read 903_676 against a 903_743 mark,
+// so it never breached, and raising a budget nothing has hit is loosening for
+// free. It is not ratcheted DOWN either — the mark was set one entry ago from a
+// +263 estimate that CI has yet to test, so tightening onto this branch's
+// figure would bank an offset nobody has measured.
+//
+// Markers checked before moving the number, as every time: CI reported
+// `qaBodyMarkers: []` and `skiaBodyMarkers: []` on the failing run. This branch
+// adds no dev-harness entry, so there is no third-string check to run.
 // Ratcheted DOWN 2026-08-16 — the first time this number has gone down. The
 // two big pixel sheets left the first load. This tree, merged with main at
-// 4dd164cb, reads **3_403_037 raw / 829_687 gzip** against the 6_023_686 /
-// 903_480 the entry above measured for main itself: **-2_620_649 raw (-43.5%)
-// / -73_793 gzip**.
+// 97b9116c, reads **3_403_068 raw / 829_704 gzip** against the 6_023_717 /
+// 903_492 the entry above measured for main itself: **-2_620_649 raw (-43.5%)
+// / -73_788 gzip**.
 //
 // The attribution is exact rather than approximate, which is worth recording
 // because the entries above kept having to split growth between a branch and
 // what it inherited. This branch measured 3_397_529 / 828_115 before merging
-// main, and 3_397_529 + the +5_508 raw the entry above measured for the speech
-// cutscene is 3_403_037 — the merged figure to the byte. Nothing else moved.
+// anything. Adding the two deltas the entries above measured for themselves —
+// +5_508 raw for the speech cutscene, +31 for the possession card — gives
+// 3_403_068, the merged figure to the byte, across two separate merges.
+// Nothing in this change moved with either of them.
 //
 // What moved, and why it was in there at all:
 //
@@ -267,10 +295,10 @@ const DIST = path.resolve('dist');
 // layout.
 //
 // Raw below is this tree's local figure plus exactly the +1_037 CI offset,
-// which the entry above says has now transferred between branches unchanged
-// three times: 3_403_037 -> 3_404_074. Gzip does NOT transfer, so its +400 is
-// a rounded-up guess off the +263 the shot-danger entry measured for its own
-// tree — an estimate, said out loud, not a fact: 829_687 -> 830_087. Per the
+// which the entries above have now seen transfer between branches unchanged
+// four times: 3_403_068 -> 3_404_105. Gzip does NOT transfer, so its +400 is a
+// rounded-up guess off the +263 the shot-danger entry measured for its own
+// tree — an estimate, said out loud, not a fact: 829_704 -> 830_104. Per the
 // convention here: if CI reports lower, ratchet down to CI's own figure rather
 // than banking the slack.
 //
@@ -278,8 +306,8 @@ const DIST = path.resolve('dist');
 // on the local export. Verified in the browser pane as well as by byte count —
 // the title pop scene draws its two SVG sprites from the subset, and the
 // character-creation portrait draws from the fetched `portraits-*.js`.
-const RAW_BUDGET = 3_404_074;
-const GZIP_BUDGET = 830_087;
+const RAW_BUDGET = 3_404_105;
+const GZIP_BUDGET = 830_104;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

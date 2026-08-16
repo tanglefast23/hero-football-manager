@@ -17,6 +17,17 @@ const CARRIER_CARD_PADDING_X = 7;
 const CARRIER_CARD_BORDER = 2;
 export const CARRIER_CARD_CONTENT_WIDTH =
   CARRIER_CARD_WIDTH - (CARRIER_CARD_PADDING_X + CARRIER_CARD_BORDER) * 2;
+// The same card on a desktop window sits on a pitch several times the size and
+// is read from sitting distance, where phone-sized 11pt names and a 6px bar
+// vanish. Same geometry throughout, scaled ~1.7x.
+const CARRIER_CARD_DESKTOP_WIDTH = 260;
+const CARRIER_CARD_DESKTOP_PADDING_X = 12;
+export const CARRIER_CARD_DESKTOP_CONTENT_WIDTH =
+  CARRIER_CARD_DESKTOP_WIDTH -
+  (CARRIER_CARD_DESKTOP_PADDING_X + CARRIER_CARD_BORDER) * 2;
+/** Heat-strip height, phone and desktop. */
+export const CARRIER_CHARGE_HEIGHT = 4;
+export const CARRIER_CHARGE_DESKTOP_HEIGHT = 7;
 
 // MatchScreen's StyleSheet, lifted out of a 3,000-line file. Presentation only:
 // no component, no state, no behaviour — the screen imports `styles` and nothing
@@ -265,6 +276,12 @@ const makeStyles = (faces: LocaleFaces) =>
     },
     carrierCardLeft: { left: 8 },
     carrierCardRight: { right: 8 },
+    carrierCardDesktop: {
+      bottom: 12,
+      width: CARRIER_CARD_DESKTOP_WIDTH,
+      paddingHorizontal: CARRIER_CARD_DESKTOP_PADDING_X,
+      paddingVertical: 9,
+    },
     carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     carrierName: {
       fontFamily: faces.display,
@@ -290,7 +307,11 @@ const makeStyles = (faces: LocaleFaces) =>
       borderWidth: 1,
       borderColor: KIT_PANEL_BORDER_COLOR,
     },
+    carrierNameDesktop: { fontSize: 18 },
+    carrierEnergyDesktop: { fontSize: 16 },
+    energyTrackDesktop: { height: 12, marginTop: 7 },
     energyFill: { height: 4, backgroundColor: ENERGY_FILL_COLORS.green },
+    energyFillDesktop: { height: 10 },
     energyFillMedium: { backgroundColor: ENERGY_FILL_COLORS.amber },
     energyFillLow: { backgroundColor: ENERGY_FILL_COLORS.red },
     energyTextMedium: { color: '#edb54a' },

@@ -1719,6 +1719,10 @@ function GameApp() {
         // the previous career's table looked like — motion describing a match
         // this club never played.
         forgetLeagueRowPositions();
+        // Auto Subs is a touchline habit, not a device setting. It is remembered
+        // between the matches of one career, but a new manager starts in charge
+        // of their own bench rather than inheriting the last career's switch.
+        if (preferencesRef.current.autoSubs) saveAutoSubs(false);
         store.startNewCareer(undefined, assistantMode);
       };
       if (!store.hasSavedCareer) {
@@ -1733,7 +1737,12 @@ function GameApp() {
         onConfirm: begin,
       });
     },
-    [requestConfirmation, store.hasSavedCareer, store.startNewCareer],
+    [
+      requestConfirmation,
+      saveAutoSubs,
+      store.hasSavedCareer,
+      store.startNewCareer,
+    ],
   );
 
   const startNewCareer = useCallback(() => {

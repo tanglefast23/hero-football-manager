@@ -15,6 +15,8 @@ export interface HeroChargeMeterProps {
   meter: ChargeMeter;
   /** Content width of the carrier card — the strip is sized in real pixels. */
   trackWidth: number;
+  /** Bar height. Desktop's possession card is scaled up around it. */
+  height?: number;
   reduceMotion: boolean;
 }
 
@@ -26,6 +28,7 @@ export interface HeroChargeMeterProps {
 export function HeroChargeMeter({
   meter,
   trackWidth,
+  height = 4,
   reduceMotion,
 }: HeroChargeMeterProps) {
   const t = useCopy();
@@ -60,22 +63,28 @@ export function HeroChargeMeter({
     <View
       accessible
       accessibilityLabel={chargeMeterAccessibilityLabel(meter, t)}
-      style={styles.track}
+      style={[styles.track, { height }]}
     >
       {ready ? (
         <Animated.View
-          style={[styles.strip, { transform: [{ translateX: travel }] }]}
+          style={[
+            styles.strip,
+            { height, transform: [{ translateX: travel }] },
+          ]}
         >
           {rainbowStripBands(trackWidth).map((color, index) => (
             <View
               key={index}
-              style={[styles.band, { backgroundColor: color }]}
+              style={[styles.band, { height, backgroundColor: color }]}
             />
           ))}
         </Animated.View>
       ) : (
         <View
-          style={[styles.fill, { width: `${Math.round(meter.fill * 100)}%` }]}
+          style={[
+            styles.fill,
+            { height, width: `${Math.round(meter.fill * 100)}%` },
+          ]}
         />
       )}
     </View>

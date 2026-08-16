@@ -60,6 +60,18 @@ describe('automatic substitution policy', () => {
     expect(repository).toContain('autoSubs: false,');
   });
 
+  it('clears the switch when a new career begins, so a fresh manager starts off', () => {
+    const app = source('App.tsx');
+    const beginStart = app.indexOf('  const beginNewCareer = useCallback(');
+    const beginEnd = app.indexOf('  const startNewCareer = useCallback(');
+
+    expect(beginStart).toBeGreaterThan(-1);
+    expect(beginEnd).toBeGreaterThan(beginStart);
+    expect(app.slice(beginStart, beginEnd)).toContain(
+      'if (preferencesRef.current.autoSubs) saveAutoSubs(false);',
+    );
+  });
+
   it('always enables tired-player swaps for Quick Result without changing the live preference', () => {
     const app = source('App.tsx');
     const store = source('src/application/store.ts');
