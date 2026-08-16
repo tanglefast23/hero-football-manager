@@ -151,11 +151,21 @@ const DIST = path.resolve('dist');
 // first-load file.
 //
 // Both marks move this time. Local passes both, but CI is what has to pass and
-// CI runs high by a measured offset in each: +1_037 raw (it reported 6_008_191
-// for a tree this repo read at 6_007_154) and +227 gzip (#170's 901_868 local
-// became 902_095 on CI). So 6_018_178 + 1_037 = 6_019_215 and 901_962 + 227 =
-// 902_189. Gzip is NOT being loosened for free here — unlike the last two
-// entries it genuinely breaches, by about 94 bytes.
+// CI runs high by a per-stream offset. Raw was predicted from the measured
+// +1_037 (CI reported 6_008_191 for a tree this repo read at 6_007_154), and
+// CI then reported exactly 6_019_215 — the prediction to the byte.
+//
+// Gzip took two goes, and the correction is the useful part. Deriving its
+// offset from #170 (901_868 local -> 902_095 CI) gave +227, so the mark was
+// first set to 902_189. CI reported 902_225: the real offset for this tree is
+// **+263**. So the raw offset transfers between branches and the gzip offset
+// does not — compression ratio depends on content, so a byte count borrowed
+// from someone else's tree is a guess. Both numbers below are now CI's own
+// figures for THIS tree, which is what the entries above meant by ratcheting
+// against CI.
+//
+// Gzip is NOT being loosened for free here — unlike the last two entries it
+// genuinely breaches, by about 94 bytes locally.
 //
 // Markers checked before moving the numbers, and this branch does touch the dev
 // harness: it renames the Match VFX shot case. `qaBodyMarkers` and
@@ -165,7 +175,7 @@ const DIST = path.resolve('dist');
 // lazy. Heeding the warning above, none of those three is a substring of app
 // code: the sim's shot grading uses no such string.
 const RAW_BUDGET = 6_019_215;
-const GZIP_BUDGET = 902_189;
+const GZIP_BUDGET = 902_225;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
