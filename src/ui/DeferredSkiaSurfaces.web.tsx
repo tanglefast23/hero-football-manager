@@ -10,11 +10,18 @@ import type { EndgameCelebrationScreenProps } from './screens/EndgameCelebration
 import type { MidseasonTrainingCelebrationScreenProps } from './screens/MidseasonTrainingCelebrationScreen';
 import type { StoryEventScreenProps } from './screens/StoryEventScreen';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
+import { loadPixelSheets } from '../render/sprites/pixel-sheets';
 
 async function loadSkia() {
   const { LoadSkiaWeb } =
     await import('@shopify/react-native-skia/lib/module/web');
-  await LoadSkiaWeb({ locateFile: (file) => `/${file}` });
+  // The sprite pool is its own chunk on web and the atlas builders read it
+  // synchronously, so it rides along with CanvasKit here. App starts the fetch
+  // at module eval, so this is nearly always already resolved.
+  await Promise.all([
+    LoadSkiaWeb({ locateFile: (file) => `/${file}` }),
+    loadPixelSheets(),
+  ]);
 }
 
 function LoadingSurface() {

@@ -174,8 +174,62 @@ const DIST = path.resolve('dist');
 // zero hits in `index-*.js` and `__common-*.js`. The entry is lazy and stayed
 // lazy. Heeding the warning above, none of those three is a substring of app
 // code: the sim's shot grading uses no such string.
-const RAW_BUDGET = 6_019_215;
-const GZIP_BUDGET = 902_225;
+// Ratcheted DOWN 2026-08-16 — the first time this number has gone down. The
+// two big pixel sheets left the first load. A local export of this tree reads
+// 3_397_492 raw / 828_116 gzip, against the 6_018_607 / 902_320 the same tree
+// measured before the change: **-2_621_115 raw (-43.6%) / -74_204 gzip**.
+//
+// What moved, and why it was in there at all:
+//
+// - `sprites.json` (1_563_286 raw / ~43_760 gzip in the bundle) reached the
+//   first load twice over. `src/ui/title-match-sprite-model.ts` imported the
+//   whole 1893-sprite pool so the title pop scene could draw 13 of them, and
+//   `src/render/PlayerRunSprite.web.tsx` imported the same module for the
+//   walk-ons, podium, ledger and awards screens that `App.tsx` imports
+//   eagerly. The title now imports `title-sprites.json`, a 14 KB subset
+//   EXTRACTED from the checked-in sheet by `scripts/generate-title-sprites.mjs`
+//   — extracted, not regenerated: `scripts/generate-sprites.mjs` has drifted
+//   from what ships (the hair ramp, see `hair-skin-separation.test.ts`), so a
+//   regenerated subset would quietly change title pixels.
+// - `portraits.json` (1_069_840 raw / ~28_276 gzip) reached it through
+//   `pixel-portrait-model.ts` -> `PixelPortrait`, used by the squad, market,
+//   club-home and character-creation screens, all eagerly imported.
+//
+// Both are now fetched as their own chunks (`sprites-*.js`, `portraits-*.js`)
+// by `src/render/sprites/pixel-sheets.web.ts`, warmed by `prefetchPixelSheets()`
+// at `App.tsx` module eval while the title draws its own subset. Native keeps
+// the static imports — `pixel-sheets.ts` is the non-web half of the pair — so
+// iOS behaviour is unchanged.
+//
+// The trap this cost an export to find, for whoever tries the same thing on
+// another asset: **`import()` alone does not get a module out of the first
+// load.** The first attempt left `loader.ts` importing `sprites.json`
+// statically inside the lazy match chunk, so the sheet was shared between the
+// main graph and an async graph, and Metro answered by hoisting all 1.5 MB
+// into `__common-*.js` — which is itself a first-load file. Measured result of
+// that version: 6_029_873 raw, i.e. 11 KB WORSE. The saving only appears when
+// exactly ONE module imports the JSON. `pixel-sheets.ts` is that module and
+// must stay that module; `loader.ts` now calls `requirePixelSheets()`.
+//
+// `management-sprites.json` (215_425 raw but only ~10_063 gzip) was left
+// eager on purpose. `ManagementSprite` takes its height from the sprite rows,
+// so a late arrival would reflow the finances and staff rows — the worst
+// bytes-per-risk of the three sheets, and the only one that can shift a
+// layout.
+//
+// Both numbers below sit a little over this tree's local figures: +1_108 on
+// raw, +1_184 on gzip. CI has run about 1_037 above local on raw, and the gzip
+// offset does not transfer between trees — see the shot-danger entry below,
+// where a borrowed offset was wrong by 36 bytes. Per the convention here: if
+// CI reports lower, ratchet down to CI's own figure rather than banking the
+// slack.
+//
+// Markers checked, as every time: `qaBodyMarkers: []` and `skiaBodyMarkers: []`
+// on the local export. Verified in the browser pane as well as by byte count —
+// the title pop scene draws its two SVG sprites from the subset, and the
+// character-creation portrait draws from the fetched `portraits-*.js`.
+const RAW_BUDGET = 3_398_600;
+const GZIP_BUDGET = 829_300;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

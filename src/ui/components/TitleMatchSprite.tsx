@@ -4,9 +4,15 @@ import {
   titleMatchSpriteRuns,
   titleMatchSpriteSheet,
 } from '../title-match-sprite-model';
+import type { TitleSpriteKey } from './title-sprite-keys';
 
 export interface TitleMatchSpriteProps {
-  readonly spriteKey: string;
+  /**
+   * Constrained to the title subset on purpose: the title draws its sprites
+   * synchronously from `title-sprites.json`, so a key outside that 14 KB file
+   * has to fail at compile time, not on the first screen a player sees.
+   */
+  readonly spriteKey: TitleSpriteKey;
   readonly scale?: number;
 }
 

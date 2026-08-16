@@ -293,12 +293,27 @@ import { careerMarketViewModelSource } from './src/application/market-source-ada
 import { rivalHeroIntroViewModel } from './src/application/rival-hero-intro';
 import { midseasonTrainingViewModel } from './src/application/midseason-training';
 import type { QaRootAppProps } from './src/ui/qa/QaRootApp';
+import {
+  loadPixelSheets,
+  prefetchPixelSheets,
+} from './src/render/sprites/pixel-sheets';
+
+// The pixel sheets are their own chunks on web, so they no longer sit in front
+// of first paint. Warm them at module eval — while the title is still drawing
+// its own 14 KB subset — so every in-game walk-on finds them already resident.
+// A no-op on native, where they are in the one bundle already.
+prefetchPixelSheets();
 
 const QaRootApp = lazy(async () => {
   if (Platform.OS === 'web') {
     const { LoadSkiaWeb } =
       await import('@shopify/react-native-skia/lib/module/web');
-    await LoadSkiaWeb({ locateFile: (file) => `/${file}` });
+    // The harness draws match surfaces, whose atlas builders read the sprite
+    // pool synchronously. Same gate as the three other web lazy factories.
+    await Promise.all([
+      LoadSkiaWeb({ locateFile: (file) => `/${file}` }),
+      loadPixelSheets(),
+    ]);
   }
   const module = await import('./src/ui/SkiaSurfaceImplementations');
   return { default: module.QaRootApp };

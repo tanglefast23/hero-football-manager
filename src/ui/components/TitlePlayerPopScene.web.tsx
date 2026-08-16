@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 import { TitleMatchSprite } from './TitleMatchSprite';
+import type { TitleSpriteBaseKey } from './title-sprite-keys';
 
 interface WebPopHero {
-  readonly spriteKey: string;
+  readonly spriteKey: TitleSpriteBaseKey;
   readonly powerLabelKey: string;
   readonly color: string;
-  readonly targetSpriteKey?: string;
+  readonly targetSpriteKey?: TitleSpriteBaseKey;
 }
 
 const HEROES: readonly WebPopHero[] = [

@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { playerLookId } from './sprites/player-look';
-import {
-  titleMatchSpriteRuns,
-  titleMatchSpriteSheet,
-} from '../ui/title-match-sprite-model';
+import { spriteRuns } from './sprites/sprite-runs';
+import { usePixelSheets } from './sprites/use-pixel-sheets';
 
 const CELL_WIDTH = 24;
 const CELL_HEIGHT = 30;
@@ -53,14 +51,19 @@ export function PlayerRunSprite({
     )}`;
     return `${visualId}:${frame % 2 === 0 ? 'run0' : 'run1'}`;
   }, [frame, lookId, playerId, role, side]);
+  // The sheet is its own chunk on web, prefetched by App at module eval, so it
+  // is resident well before any walk-on renders. `undefined` is the cold-start
+  // tick: draw the empty cell rather than throw.
+  const sheets = usePixelSheets();
   const runs = useMemo(() => {
+    if (sheets === undefined) return [];
     try {
-      return titleMatchSpriteRuns(spriteKey);
+      return spriteRuns(sheets.sprites, spriteKey);
     } catch (error) {
       console.warn('PlayerRunSprite: sprite unavailable', error);
-      return titleMatchSpriteRuns('r:f00:run0');
+      return spriteRuns(sheets.sprites, 'r:f00:run0');
     }
-  }, [spriteKey]);
+  }, [sheets, spriteKey]);
 
   return (
     <View
@@ -88,7 +91,6 @@ export function PlayerRunSprite({
   );
 }
 
-export const PLAYER_SPRITE_CELL = {
-  width: titleMatchSpriteSheet.cell.w,
-  height: titleMatchSpriteSheet.cell.h,
-};
+// Literals, matching the native file. Reading them off the sheet would make
+// this module's own export wait for a chunk that has not arrived yet.
+export const PLAYER_SPRITE_CELL = { width: CELL_WIDTH, height: CELL_HEIGHT };
