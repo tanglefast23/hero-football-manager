@@ -47,6 +47,7 @@ import {
 } from '../game/archetype-caps';
 import type {
   ContractPerkViewModel,
+  HeroLicenseReclaimViewModel,
   MarketNegotiationViewModel,
   MarketSectionId,
   MarketViewModel,
@@ -65,6 +66,8 @@ import {
 } from '../game/market-career';
 import {
   careerContractPromiseBlockedReason,
+  heroLicenseReclaimRequired,
+  reclaimableHeroLicenseHolders,
   type ContractPromiseBlockedReason,
 } from '../game/contract-promises';
 import type { CareerPlayer, GameState } from '../game/types';
@@ -310,6 +313,10 @@ function perkViewModels(
             perk.id,
             context.heroLimit,
           );
+    const reclaim =
+      context === undefined || blocked !== undefined
+        ? undefined
+        : heroLicenseReclaimViewModel(t, context, perk.id);
     return {
       id: perk.id,
       label: t(perk.label),
@@ -319,8 +326,57 @@ function perkViewModels(
       ...(blocked === undefined
         ? {}
         : { blockedReason: blockedReasonCopy(t, blocked) }),
+      ...(reclaim === undefined ? {} : { heroLicenseReclaim: reclaim }),
     };
   });
+}
+
+/**
+ * The "who gives up their license?" chooser, or nothing when none is needed.
+ *
+ * Only built for a promise that is otherwise available: `blocked` already
+ * covers the case where no license can be freed at all, so an empty option list
+ * cannot reach the panel.
+ */
+function heroLicenseReclaimViewModel(
+  t: CopyFn,
+  context: NonNullable<NegotiationViewSource['contractPromiseContext']>,
+  perk: ContractPerk,
+): HeroLicenseReclaimViewModel | undefined {
+  if (
+    !heroLicenseReclaimRequired(
+      context.state,
+      context.player,
+      perk,
+      context.heroLimit,
+    )
+  ) {
+    return undefined;
+  }
+  const starters = new Set(
+    context.state.lineups.find(
+      (lineup) => lineup.clubId === context.state.userClubId,
+    )?.playerIds ?? [],
+  );
+  const options = reclaimableHeroLicenseHolders(
+    context.state,
+    context.player,
+  ).map((holder) => ({
+    playerId: holder.id,
+    name: holder.name,
+    role: holder.role,
+    statusLabel: starters.has(holder.id)
+      ? t('market.reclaimHolderStarting')
+      : t('market.reclaimHolderBench'),
+  }));
+  return options.length === 0
+    ? undefined
+    : {
+        prompt: t('market.reclaimHeroLicensePrompt', {
+          player: context.player.name,
+        }),
+        options,
+      };
 }
 
 function blockedReasonCopy(

@@ -17,6 +17,7 @@ import {
 import type { CareerPlayer, GameState } from '../../game/types';
 import { playerGrowthGrade } from '../../game/training';
 import { renewalOpeningOfferWage } from '../../game/market';
+import { careerContractPromiseHeroLimit } from '../../game/contract-promises';
 import { copyFor } from '../../i18n';
 
 function fullCareer(seed = 20260719): GameState {
@@ -303,15 +304,24 @@ describe('career market view-model source adapter', () => {
     });
   });
 
-  it('disables starting promises with a translated reason when the Hero Licenses are full', () => {
-    const initial = fullCareer(20260808);
+  /**
+   * A full Hero License cap with a scouted rival hero on the desk. `licensed`
+   * is true on every AI-club hero, so this is also the shape that used to slip
+   * a Starter promise past the guard entirely.
+   */
+  function licenseCapFull(seed: number, promiseHolders: boolean) {
+    const initial = fullCareer(seed);
+    const limit = careerContractPromiseHeroLimit(initial);
     const target = initial.players.find(
-      (player) => player.clubId !== initial.userClubId,
+      (player) => player.clubId !== initial.userClubId && player.role !== 'GK',
     )!;
-    const licensedIds = new Set(
+    const holderIds = new Set(
       initial.players
-        .filter((player) => player.clubId === initial.userClubId)
-        .slice(0, 2)
+        .filter(
+          (player) =>
+            player.clubId === initial.userClubId && player.role !== 'GK',
+        )
+        .slice(0, limit)
         .map((player) => player.id),
     );
     const state: GameState = {
@@ -320,9 +330,21 @@ describe('career market view-model source adapter', () => {
         if (player.id === target.id) {
           return { ...player, power: 'FIRE_TORCH' as never, licensed: false };
         }
-        return licensedIds.has(player.id)
-          ? { ...player, power: 'FIRE_TORCH' as never, licensed: true }
-          : player;
+        if (!holderIds.has(player.id)) return player;
+        return {
+          ...player,
+          power: 'FIRE_TORCH' as never,
+          licensed: true,
+          ...(promiseHolders
+            ? {
+                contractSeasonsRemaining: 2,
+                contractPromise: {
+                  perk: 'GUARANTEED_STARTER' as const,
+                  agreedSeason: initial.season,
+                },
+              }
+            : {}),
+        };
       }),
     };
     const poweredTarget = state.players.find(
@@ -332,17 +354,47 @@ describe('career market view-model source adapter', () => {
       ...state.market!,
       scoutReports: [exactReport(poweredTarget)],
     };
-    const talks = beginCareerTransferTalks(state, scouted, poweredTarget.id, 5);
     const t = copyFor('vi');
-
-    const visible = marketViewModel(
-      careerMarketViewModelSource(state, talks, t),
+    return {
+      poweredTarget,
       t,
-    );
-    const starter = visible.negotiation?.perks.find(
+      negotiation: marketViewModel(
+        careerMarketViewModelSource(
+          state,
+          beginCareerTransferTalks(state, scouted, poweredTarget.id, 5),
+          t,
+        ),
+        t,
+      ).negotiation,
+    };
+  }
+
+  it('offers a translated license reclaim when the Hero Licenses are full', () => {
+    const { poweredTarget, t, negotiation } = licenseCapFull(20260808, false);
+    const starter = negotiation?.perks.find(
       (perk) => perk.id === 'GUARANTEED_STARTER',
     );
-    const captaincy = visible.negotiation?.perks.find(
+
+    // Available, but not sendable until the club names whose license it takes.
+    expect(starter?.available).toBe(true);
+    expect(starter?.heroLicenseReclaim?.prompt).toBe(
+      t('market.reclaimHeroLicensePrompt', { player: poweredTarget.name }),
+    );
+    expect(starter?.heroLicenseReclaim?.options.length).toBeGreaterThan(0);
+    expect(starter?.heroLicenseReclaim?.prompt).not.toContain(
+      'No Hero License is free',
+    );
+    expect(
+      starter?.heroLicenseReclaim?.options.map((option) => option.statusLabel),
+    ).not.toContain('Starting XI');
+  });
+
+  it('disables starting promises with a translated reason when every license is promised', () => {
+    const { poweredTarget, t, negotiation } = licenseCapFull(20260808, true);
+    const starter = negotiation?.perks.find(
+      (perk) => perk.id === 'GUARANTEED_STARTER',
+    );
+    const captaincy = negotiation?.perks.find(
       (perk) => perk.id === 'CAPTAINCY',
     );
 
@@ -352,9 +404,10 @@ describe('career market view-model source adapter', () => {
         player: poweredTarget.name,
       }),
     });
+    expect(starter?.heroLicenseReclaim).toBeUndefined();
     expect(captaincy).toMatchObject({ available: false });
-    expect(starter?.blockedReason).not.toContain('No Hero License is free');
-    expect(contractDraftPerk(visible.negotiation)).toBe('TRAINING_PRIORITY');
+    expect(starter?.blockedReason).not.toContain('Hero License is promised');
+    expect(contractDraftPerk(negotiation)).toBe('TRAINING_PRIORITY');
   });
 
   it('passes the employed head coach through so the shortlist can lock replacement hires', () => {

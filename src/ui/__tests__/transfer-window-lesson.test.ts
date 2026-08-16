@@ -109,7 +109,7 @@ describe('the insulting-offer warning', () => {
       "label={walksOut ? t('market.theyWillWalkOut') : t('market.makeTheOfferArrow')}",
     );
     expect(market).toContainSource(
-      'disabled={walksOut || selectedPerkBlocked}',
+      'disabled={walksOut || selectedPerkBlocked || reclaimUnchosen}',
     );
     // The warning moved into the copy catalog with the wage and the floor as
     // placeholders. Asserting the key and the English keeps the guarantee —
@@ -143,5 +143,42 @@ describe('the insulting-offer warning', () => {
       '? careerSquadNegotiationTarget(state, talks.playerId)',
     );
     expect(career).toContainSource('function careerSquadNegotiationTarget(');
+  });
+});
+
+describe('the Hero License reclaim chooser', () => {
+  const market = source('src/ui/screens/MarketScreen.tsx');
+
+  it('asks under the promise that costs the license, before the offer is sent', () => {
+    // The failure this replaces: the panel attached a Starter promise with the
+    // licence cap full, never asked whose licence paid for it, and the career
+    // then refused to launch the next match on "must be licensed or benched".
+    expect(market).toContainSource('reclaimChoice.prompt');
+    expect(market).toContainSource('setReclaimPlayerId(holder.playerId)');
+    expect(market).toContainSource("t('market.reclaimHeroLicenseWarning')");
+    // Sent with the offer, so the choice and the promise are applied together
+    // or not at all — abandoned talks change no licence.
+    expect(market).toContainSource(
+      'reclaimHeroLicenseFromPlayerId: reclaimPlayerId',
+    );
+    // Cleared whenever the promise or the player changes, so a teammate cannot
+    // stay quietly marked for demotion under a promise that no longer spends one.
+    expect(market).toContainSource('setReclaimPlayerId(undefined);');
+    expect(market).toContainSource('}, [id, perk]);');
+  });
+
+  it('keeps the two holder labels in the pixel voice and the question in prose', () => {
+    // Gate 5 glyph-checks display copy only. The names render in `PixelText`,
+    // the question and its warning in plain `<Text>`, and `voice.ts` has to
+    // agree with both or a Vietnamese string is checked against the wrong face.
+    const viewModel = source('src/application/market-view-model.ts');
+    expect(viewModel).toContainSource("t('market.reclaimHolderStarting')");
+    expect(viewModel).toContainSource("t('market.reclaimHolderBench')");
+    expect(market).toContainSource(
+      '{`${holder.role} · ${holder.statusLabel}`}',
+    );
+    const voice = source('src/i18n/voice.ts');
+    expect(voice).toContainSource("'market.reclaimHeroLicense',");
+    expect(voice).not.toContainSource("'market.reclaimHolder");
   });
 });

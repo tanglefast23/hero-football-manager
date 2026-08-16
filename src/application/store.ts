@@ -93,6 +93,7 @@ import {
   submitCareerRenewalOffer,
   upgradeCareerFacility,
   withoutPowers,
+  reconcileCareerLineupLicenses,
   type CreatedPlayerDraft,
   type InstantDrillResolution,
   type CareerLegendLegacyChoice,
@@ -3653,7 +3654,13 @@ function reconcileLoadedCareer(state: GameState): GameState {
   return reconcilePendingAwakeningContent(
     reconcilePendingStoryEvent(
       reconcileLegacyFirstAwakening(
-        reconcileLaunchRoster(state, launchContent),
+        // Licenses first: a save written before license changes benched anyone
+        // can hold an unlicensed hero in the eleven, and that only surfaces at
+        // Play Match as "Hero <id> must be licensed or benched" -- past every
+        // point weekly settlement would have repaired it.
+        reconcileCareerLineupLicenses(
+          reconcileLaunchRoster(state, launchContent),
+        ),
       ),
       launchContent.events,
     ),
