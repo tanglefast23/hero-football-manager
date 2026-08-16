@@ -135,6 +135,8 @@ import {
 } from './power-cut-in';
 import { releaseMenuThemeToMatch, yieldMenuThemeToMatch } from './menu-audio';
 import { PowerTitleTakeover } from './PowerTitleTakeover';
+import { IncapacityCountdowns } from './IncapacityCountdowns';
+import { incapacityCountdowns } from './incapacity-countdown';
 import {
   appendBannerNewestFour,
   goalBannerPresentation,
@@ -316,7 +318,9 @@ type MatchBanner = {
   id: string;
   text: string;
   untilTick: number;
-  tone: 'gold' | 'red' | 'blue';
+  tone: 'gold' | 'red' | 'blue' | 'green';
+  /** A footnote to the banner above it — currently the power behind a goal. */
+  size?: 'small';
   /** Set for the three coaching controls so a tap and the sim's confirming
    * event share one tile instead of stacking two identical banners. */
   subject?: MatchBannerSubject;
@@ -1625,6 +1629,20 @@ export function MatchScreen({
             };
           }
         }
+        // A won slide is the defensive equivalent of a goal moment: rare
+        // (~5 a match, measured over 20 seeded matches) and always decisive.
+        // Won STANDING challenges are ~23 a match and would bury the stack.
+        if (e.kind === 'TACKLE' && e.won && e.style === 'slide') {
+          const tackler = playerAt(s, e.by);
+          if (tackler !== undefined) {
+            bannerRef.current = appendNewestFour(bannerRef.current, {
+              id: `tackle:${e.t}:${e.by}`,
+              text: t('matchScreen.bannerTackle', { player: tackler.def.name }),
+              untilTick: e.t + FLASH_TICKS,
+              tone: 'green',
+            });
+          }
+        }
         if (e.kind === 'TACKLE' && e.contact) {
           const challenger = eventAfter.players[e.by];
           const target = eventAfter.players[e.on];
@@ -1694,14 +1712,14 @@ export function MatchScreen({
             [...teamDef.players, ...(teamDef.bench ?? [])].find(
               (def) => def.id === e.scoredById,
             )?.name ?? 'Unknown';
-          const powered = goalsFrom(s).some(
+          const scoringPower = goalsFrom(s).find(
             (goal) =>
               goal.tick === e.t &&
               goal.playerId === e.scoredById &&
               goal.power !== undefined,
-          );
+          )?.power;
           const presentation = goalBannerPresentation(
-            powered,
+            scoringPower !== undefined,
             e.team,
             controlledTeam,
           );
@@ -1713,6 +1731,23 @@ export function MatchScreen({
             untilTick: e.t + FLASH_TICKS,
             tone: presentation.tone,
           });
+          // A powered finish names the power on a smaller tile directly under
+          // the goal banner. The name comes from the already-translated power
+          // catalog, so this adds no new string to the i18n catalogs. It shares
+          // the goal banner's tone, so a rival's powered goal stays a threat
+          // rather than turning half gold. Both tiles hold for the same window;
+          // three further banners inside those 3s could slice the goal tile off
+          // and leave this one orphaned, which is rare enough to live with.
+          if (scoringPower !== undefined) {
+            const power = powerCutInPresentation(scoringPower, t);
+            bannerRef.current = appendNewestFour(bannerRef.current, {
+              id: `goal-power:${e.t}:${e.by}`,
+              text: `${power.glyph} ${power.name}`,
+              untilTick: e.t + FLASH_TICKS,
+              tone: presentation.tone,
+              size: 'small',
+            });
+          }
           scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
         }
         if (e.kind === 'POWER_FIRED') {
@@ -2433,6 +2468,17 @@ export function MatchScreen({
           },
         ]
       : [],
+  );
+
+  // Seconds-until-back numbers over stricken players. Measured over 10 seeded
+  // matches: at most two at once, longest hold 15s, and something to draw on
+  // ~20% of ticks — so this stays a two-path draw, not a per-player node tree.
+  const countdowns = useMemo(
+    () =>
+      incapacityCountdowns(match).filter(
+        (countdown) => frame.visible[countdown.slot],
+      ),
+    [frame, hud.tick, match],
   );
 
   const screenPoint = (point: PowerEffectPoint): PowerEffectPoint => ({
@@ -3359,6 +3405,16 @@ export function MatchScreen({
                     ringRadius={ringR}
                     hiddenPlayer={-1}
                   />
+                  {/* Last inside the camera: a Fire Torch victim's flame tongues
+                    rise well above his head, exactly where this plate sits, so
+                    drawing the number earlier hid it for its whole short life. */}
+                  <IncapacityCountdowns
+                    countdowns={countdowns}
+                    positions={frame.players}
+                    scale={scale}
+                    playerDrawScale={playerSpriteScale.drawScale}
+                    devicePixelRatio={devicePixelRatio}
+                  />
                 </Group>
                 {/* White-out for the speed powers, over the camera so a punched-in
                   frame flashes evenly. Peaks well short of a full white screen
@@ -3444,6 +3500,8 @@ export function MatchScreen({
                 styles.banner,
                 banner.tone === 'red' ? styles.bannerThreat : null,
                 banner.tone === 'blue' ? styles.bannerAction : null,
+                banner.tone === 'green' ? styles.bannerTackle : null,
+                banner.size === 'small' ? styles.bannerSmall : null,
               ]}
             >
               {banner.text}

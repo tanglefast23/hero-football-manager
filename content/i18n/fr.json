@@ -2667,6 +2667,7 @@
     "matchScreen.bannerHalfTime": "MI-TEMPS",
     "matchScreen.bannerRivalZone": "{player} EST CHAUD, ÉLOIGNE LE BALLON",
     "matchScreen.bannerSubstitution": "CHANGEMENT · {player} ENTRE",
+    "matchScreen.bannerTackle": "TACLE ! {player}",
     "matchScreen.clickHere": "Clique ici",
     "matchScreen.cupTitleCardTitle": "COUPE DES HÉROS",
     "matchScreen.energyMode.allOut": "À FOND",

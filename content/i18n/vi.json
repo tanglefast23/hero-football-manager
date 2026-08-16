@@ -2667,6 +2667,7 @@
     "matchScreen.bannerHalfTime": "HẾT HIỆP 1",
     "matchScreen.bannerRivalZone": "{player} ĐANG NÓNG, GIỮ BÓNG TRÁNH RA",
     "matchScreen.bannerSubstitution": "THAY NGƯỜI · {player} VÀO",
+    "matchScreen.bannerTackle": "CƯỚP BÓNG! {player}",
     "matchScreen.clickHere": "Bấm đây",
     "matchScreen.cupTitleCardTitle": "CÚP ANH HÙNG",
     "matchScreen.energyMode.allOut": "DỐC SỨC",

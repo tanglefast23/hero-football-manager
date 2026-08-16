@@ -1674,6 +1674,7 @@
     "matchScreen.bannerHalfTime": "HALF TIME",
     "matchScreen.bannerRivalZone": "{player} IS HOT, KEEP THE BALL AWAY",
     "matchScreen.bannerSubstitution": "SUBSTITUTION · {player} ON",
+    "matchScreen.bannerTackle": "TACKLE! {player}",
     "matchScreen.clickHere": "Click here",
     "matchScreen.cupTitleCardTitle": "HERO CUP",
     "matchScreen.energyMode.allOut": "ALL OUT",

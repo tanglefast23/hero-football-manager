@@ -2667,6 +2667,7 @@
     "matchScreen.bannerHalfTime": "INTERVALO",
     "matchScreen.bannerRivalZone": "{player} TÁ QUENTE, TIRE A BOLA DELE",
     "matchScreen.bannerSubstitution": "TROCA · ENTRA {player}",
+    "matchScreen.bannerTackle": "DESARME! {player}",
     "matchScreen.clickHere": "Clique aqui",
     "matchScreen.cupTitleCardTitle": "COPA",
     "matchScreen.energyMode.allOut": "NO MÁXIMO",

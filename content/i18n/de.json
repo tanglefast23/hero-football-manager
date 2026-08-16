@@ -2667,6 +2667,7 @@
     "matchScreen.bannerHalfTime": "HALBZEIT",
     "matchScreen.bannerRivalZone": "{player} IST HEISS, BALL WEGHALTEN",
     "matchScreen.bannerSubstitution": "WECHSEL · {player} KOMMT",
+    "matchScreen.bannerTackle": "TACKLING! {player}",
     "matchScreen.clickHere": "Hier klicken",
     "matchScreen.cupTitleCardTitle": "HELDENPOKAL",
     "matchScreen.energyMode.allOut": "VOLLGAS",

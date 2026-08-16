@@ -6,6 +6,10 @@ import { ROVERS, UNITED } from './teams';
 // enough to run in both Node CI and the app's Hermes boot path.
 // Rebaselined deliberately for m2.1 (auto-substitution entry-condition rating +
 // freshness floor, incremental replay-input feeding, FIRE_WHEN_READY default).
+// m2.3 rebaseline: owner balance decision of 2026-08-16 on how long a stricken
+// player stays down — Fire Torch ignite 1.5s -> 3.0s, Web Trap root 12.0s ->
+// 6.0s, Super Strength flatten 15.0s -> 6.0s. Removal windows move, so play
+// diverges. RNG consumption is unchanged; only the tick counts differ.
 // m2.2 rebaseline: GOAL events now carry the scorer's stable id (scoredById),
 // which changes the hashed event payloads. Ball physics, RNG consumption and
 // scores are unchanged from m2.1.
@@ -13,7 +17,7 @@ import { ROVERS, UNITED } from './teams';
 // domains, career condition carryover, fixed-point PAC/STA movement), m1.29
 // (presser standoff ring; PAC-widened duel spacing), m1.25 (five named subs,
 // immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
-const EXPECTED_RUNTIME_GOLDEN = '7d48fa26';
+const EXPECTED_RUNTIME_GOLDEN = 'a8916d3d';
 
 // Seed 42 finishes 0-0, so neither this hash nor parity-replay's snapshot has
 // ever contained a GOAL payload — adding assistedById to that event moved
@@ -22,7 +26,7 @@ const EXPECTED_RUNTIME_GOLDEN = '7d48fa26';
 // unassisted (which covers the omitted-field branch too). Kept as a second
 // baseline rather than folded into the first so a regression stays readable as
 // "the goalless one still passes, the scoring one moved".
-const EXPECTED_GOAL_GOLDEN = '15e4df15';
+const EXPECTED_GOAL_GOLDEN = '207af89d';
 
 const GOAL_GOLDEN_SEED = 81;
 
