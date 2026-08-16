@@ -4,7 +4,7 @@ Two strictly separated layers: a **deterministic simulation core** (pure TypeScr
 
 ## Deterministic ≠ predetermined
 
-The match is a live simulation: 22 agents making stat-driven decisions, with a dice roll at every contested moment. Powers fire automatically in their authored context, so the match plays itself out; **the user's real inputs are the live coaching controls** — Formation, Playstyle, Swap, and Energy Use — each recorded and each capable of changing the outcome.
+The match is a live simulation: 22 agents making stat-driven decisions, with a dice roll at every contested moment. Powers fire automatically in their authored context, so the match plays itself out; **the user's real inputs are the live coaching controls** — Formation, Playstyle, Swap, and Energy Use — each recorded and each capable of changing the outcome. A fifth recorded input exists but is not a live control: the head coach's **motivational speech**, offered once at half time when the club has one banked (see `docs/05`), which lifts every attribute in the squad for the second half.
 
 "Deterministic" is an engineering promise, not a gameplay one: every dice roll comes from one seeded generator, and the sim reads no clocks or device state. (Like a deck shuffled once at kickoff — the shuffle is fixed, but which cards get drawn depends on how play unfolds, including your coaching changes.)
 

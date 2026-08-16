@@ -39,6 +39,8 @@ import {
   signCareerRenewalAtAsk,
   createCareer,
   currentUserDivision,
+  buyCoachSpeech as purchaseCoachSpeech,
+  spendCoachSpeech,
   acceptGreenBullTraining as applyGreenBullTraining,
   acceptMidseasonTraining as applyMidseasonTraining,
   completeMidseasonTraining as markMidseasonTrainingComplete,
@@ -639,6 +641,8 @@ interface M1Store {
   ) => void;
   hireCoach: (coachId: string, role?: 'HEAD' | 'ASSISTANT') => void;
   dismissCoach: (role?: 'HEAD' | 'ASSISTANT') => void;
+  /** Spends every training point held to bank the head coach's half-time speech. */
+  buyCoachSpeech: () => void;
   protectBoardCandidate: (playerId: string) => void;
   signYouth: (playerId: string) => void;
   declineYouth: () => void;
@@ -1960,9 +1964,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ...(goal.power === undefined ? {} : { power: goal.power }),
       }));
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
-      const completed = isOnboardingMatch
+      const onboarded = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
+      // The bank is emptied from the RECORDED input log, never from a live
+      // callback during the match. The log is what the replay is built from, so
+      // the bank and the replay can never disagree about whether the speech was
+      // given — and a match abandoned before the whistle costs the club nothing.
+      const completed = result.inputLog.some(
+        (input) => input.kind === 'MOTIVATIONAL_SPEECH',
+      )
+        ? spendCoachSpeech(onboarded)
+        : onboarded;
       const awakening =
         kind === 'league'
           ? resolvePostMatchAwakening(
@@ -3254,6 +3267,24 @@ export const useM1Store = create<M1Store>((set, get) => ({
         role,
       );
       const next = { ...transaction.state, market: transaction.market };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  buyCoachSpeech() {
+    guarded(set, () => {
+      const current = get();
+      const blocked = blockedInboxDutyForAction(current, false);
+      if (blocked !== undefined) {
+        set({ inboxDutyReminder: [blocked], error: null });
+        return;
+      }
+      const career = requireCareer(current);
+      const next = purchaseCoachSpeech(career);
+      // A refused purchase changes nothing, so say nothing: the button is
+      // already disabled with the reason on it.
+      if (next === career) return;
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

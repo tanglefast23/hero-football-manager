@@ -552,6 +552,22 @@ export interface FocusDrillViewModel {
   lockedReason?: string;
 }
 
+/**
+ * The "Train coach" button under the head coach card.
+ *
+ * `blockedLabel` carries the reason the button is dead, already translated, so
+ * the board renders a sentence rather than deciding what an enum means.
+ */
+export interface CoachSpeechViewModel {
+  /** Every training point the club holds — the price is all of them. */
+  trainingPointsCost: number;
+  banked: boolean;
+  /** What each attribute gains for the second half, by current division. */
+  boost: number;
+  label: string;
+  blockedLabel?: string;
+}
+
 export interface CoachStaffMemberViewModel {
   id: string;
   role: 'HEAD' | 'ASSISTANT';
@@ -944,6 +960,8 @@ export interface ClubFinancesViewModel {
   /** Titles the office. The board being read is named by the tab strip under it. */
   clubName: string;
   coachingStaff: readonly CoachStaffMemberViewModel[];
+  /** The head coach's half-time speech desk. Absent until the club reaches D3. */
+  coachSpeech?: CoachSpeechViewModel;
   facilities: ClubFacilityGridViewModel;
   trainingPointIncome: TrainingPointIncomeViewModel;
   incomeGeneration: IncomeGenerationViewModel;

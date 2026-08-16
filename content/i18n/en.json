@@ -2813,6 +2813,22 @@
     "storyCallback.veteranRestThanks": "Thanks for giving me the time. My legs feel ready again.",
     "storyCallback.deniedLeaveUnderstands": "I was angry, but I understand why you needed me here.",
     "storyCallback.deniedLeaveUnhappy": "I stayed, boss. I have not forgotten that you said no.",
-    "storyCallback.facilityFireRebuild": "Boss, the rebuilding work is under way. The place is starting to feel like our club again."
+    "storyCallback.facilityFireRebuild": "Boss, the rebuilding work is under way. The place is starting to feel like our club again.",
+    "coachSpeech.trainCoach": "Train coach · Speech",
+    "coachSpeech.costDetail": "Spends all {points} TP. Every player gains +{boost} for the second half.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Speech ready · your coach is holding one",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Hire a head coach first",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Training points already spent this week",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "No training points to spend",
+    "coachSpeech.a11y.trainCoach": "Train {name} with all {points} training points for one half-time speech",
+    "confirm.coachSpeech.title": "Train the head coach?",
+    "confirm.coachSpeech.detail": "Spends all {points} TP. Your coach banks one half-time speech worth +{boost} to every attribute for the second half.",
+    "confirm.coachSpeech.confirm": "Spend the points",
+    "matchScreen.speechKicker": "HALF TIME",
+    "matchScreen.speechTitle": "Give the team talk?",
+    "matchScreen.speechDetail": "Your head coach has one speech saved. Use it now and every player gains +{boost} to each attribute for the second half.",
+    "matchScreen.speechConfirm": "Give it",
+    "matchScreen.speechCancel": "Save it",
+    "matchScreen.bannerMotivationalSpeech": "TEAM TALK"
   }
 }

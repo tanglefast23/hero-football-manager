@@ -4012,6 +4012,24 @@
     "storyCallback.veteranRestThanks": "Terima kasih sudah memberiku waktu. Kakiku siap lagi.",
     "storyCallback.deniedLeaveUnderstands": "Aku sempat marah, tetapi sekarang aku paham kenapa tim membutuhkanku.",
     "storyCallback.deniedLeaveUnhappy": "Aku tetap di sini, Bos. Aku belum lupa bahwa Bos menolaknya.",
-    "storyCallback.facilityFireRebuild": "Bos, pembangunan ulang sudah berjalan. Tempat ini mulai terasa seperti klub kita lagi."
+    "storyCallback.facilityFireRebuild": "Bos, pembangunan ulang sudah berjalan. Tempat ini mulai terasa seperti klub kita lagi.",
+    "coachSpeech.trainCoach": "Latih pelatih · Pidato",
+    "coachSpeech.costDetail": "Menghabiskan semua {points} TP. Setiap pemain dapat +{boost} untuk babak kedua.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Pidato siap · pelatihmu sudah punya satu",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Rekrut kepala pelatih dulu",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Poin Latihan sudah dipakai minggu ini",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Tidak ada poin latihan",
+    "coachSpeech.a11y.trainCoach": "Latih {name} dengan semua {points} poin latihan untuk satu pidato turun minum",
+    "confirm.coachSpeech.title": "Latih kepala pelatih?",
+    "confirm.coachSpeech.detail": "Menghabiskan semua {points} TP. Pelatihmu menyimpan satu pidato turun minum senilai +{boost} pada setiap atribut untuk babak kedua.",
+    "confirm.coachSpeech.confirm": "Pakai poinnya",
+    "matchScreen.speechKicker": "TURUN MINUM",
+    "matchScreen.speechTitle": "Beri pidato?",
+    "matchScreen.speechDetail": "Pelatihmu menyimpan satu pidato. Pakai sekarang dan setiap pemain dapat +{boost} pada tiap atribut untuk babak kedua.",
+    "matchScreen.speechConfirm": "Berikan",
+    "matchScreen.speechCancel": "Simpan",
+    "matchScreen.bannerMotivationalSpeech": "PIDATO",
+    "bert.guide.coach-speech.page1.body1": "Bos, kepala pelatih juga bisa melatih dirinya sendiri. Berikan poin latihan minggu ini dan dia akan menyiapkan pidato ruang gantinya.",
+    "bert.guide.coach-speech.page2.body1": "Habiskan semuanya dan dia menyimpan satu pidato. Beri isyarat saat turun minum, anak-anak akan terbang di babak kedua."
   }
 }

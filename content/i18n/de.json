@@ -4012,6 +4012,24 @@
     "storyCallback.veteranRestThanks": "Danke für die Pause. Meine Beine fühlen sich wieder bereit an.",
     "storyCallback.deniedLeaveUnderstands": "Ich war wütend, aber ich verstehe, warum du mich hier gebraucht hast.",
     "storyCallback.deniedLeaveUnhappy": "Ich bin geblieben, Chef. Ich habe nicht vergessen, dass du Nein gesagt hast.",
-    "storyCallback.facilityFireRebuild": "Chef, der Wiederaufbau läuft. Langsam fühlt es sich wieder wie unser Verein an."
+    "storyCallback.facilityFireRebuild": "Chef, der Wiederaufbau läuft. Langsam fühlt es sich wieder wie unser Verein an.",
+    "coachSpeech.trainCoach": "Trainer schulen · Ansprache",
+    "coachSpeech.costDetail": "Kostet alle {points} TP. Jeder Spieler erhält +{boost} für die zweite Halbzeit.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Ansprache bereit · dein Trainer hat eine",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Erst Cheftrainer einstellen",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Trainingspunkte diese Woche schon ausgegeben",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Keine Trainingspunkte vorhanden",
+    "coachSpeech.a11y.trainCoach": "{name} mit allen {points} Trainingspunkten für eine Halbzeitansprache schulen",
+    "confirm.coachSpeech.title": "Cheftrainer schulen?",
+    "confirm.coachSpeech.detail": "Kostet alle {points} TP. Dein Trainer hält eine Halbzeitansprache bereit: +{boost} auf jeden Wert in der zweiten Halbzeit.",
+    "confirm.coachSpeech.confirm": "Punkte ausgeben",
+    "matchScreen.speechKicker": "HALBZEIT",
+    "matchScreen.speechTitle": "Ansprache halten?",
+    "matchScreen.speechDetail": "Dein Trainer hat eine Ansprache gespart. Nutze sie jetzt: jeder Spieler erhält +{boost} auf jeden Wert für die zweite Halbzeit.",
+    "matchScreen.speechConfirm": "Halten",
+    "matchScreen.speechCancel": "Aufheben",
+    "matchScreen.bannerMotivationalSpeech": "ANSPRACHE",
+    "bert.guide.coach-speech.page1.body1": "Chef, dein Cheftrainer kann auch an sich selbst arbeiten. Gib ihm die Trainingspunkte der Woche, dann feilt er an seiner Kabinenansprache.",
+    "bert.guide.coach-speech.page2.body1": "Gib alles aus, dann hat er eine Ansprache auf Lager. Ein Nicken in der Halbzeit und die Jungs fliegen in die zweite Hälfte."
   }
 }

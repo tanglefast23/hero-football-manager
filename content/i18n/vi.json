@@ -4012,6 +4012,24 @@
     "storyCallback.veteranRestThanks": "Cảm ơn vì đã cho tôi nghỉ. Đôi chân tôi đã sẵn sàng trở lại.",
     "storyCallback.deniedLeaveUnderstands": "Tôi đã giận, nhưng giờ tôi hiểu vì sao đội cần tôi ở lại.",
     "storyCallback.deniedLeaveUnhappy": "Tôi đã ở lại, sếp. Tôi vẫn chưa quên rằng sếp đã từ chối.",
-    "storyCallback.facilityFireRebuild": "Sếp, việc xây dựng lại đã bắt đầu. Nơi này đang dần giống câu lạc bộ của chúng ta trở lại."
+    "storyCallback.facilityFireRebuild": "Sếp, việc xây dựng lại đã bắt đầu. Nơi này đang dần giống câu lạc bộ của chúng ta trở lại.",
+    "coachSpeech.trainCoach": "Rèn HLV · Bài nói",
+    "coachSpeech.costDetail": "Tiêu hết {points} TP. Mỗi cầu thủ được +{boost} cho hiệp hai.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Đã có bài nói · huấn luyện viên đang giữ một bài",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Hãy thuê HLV trưởng trước",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Tuần này đã tiêu điểm tập luyện",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Không còn điểm tập luyện",
+    "coachSpeech.a11y.trainCoach": "Rèn {name} bằng toàn bộ {points} điểm tập luyện để có một bài nói giữa hiệp",
+    "confirm.coachSpeech.title": "Rèn huấn luyện viên trưởng?",
+    "confirm.coachSpeech.detail": "Tiêu hết {points} TP. Huấn luyện viên giữ một bài nói giữa hiệp, cộng +{boost} cho mọi chỉ số trong hiệp hai.",
+    "confirm.coachSpeech.confirm": "Tiêu điểm",
+    "matchScreen.speechKicker": "GIỮA HIỆP",
+    "matchScreen.speechTitle": "Nói với đội bóng?",
+    "matchScreen.speechDetail": "Huấn luyện viên còn giữ một bài nói. Dùng ngay và mỗi cầu thủ được +{boost} cho mọi chỉ số trong hiệp hai.",
+    "matchScreen.speechConfirm": "Nói ngay",
+    "matchScreen.speechCancel": "Để dành",
+    "matchScreen.bannerMotivationalSpeech": "BÀI NÓI",
+    "bert.guide.coach-speech.page1.body1": "Sếp à, huấn luyện viên trưởng cũng có thể tự rèn mình. Đưa điểm tập luyện của tuần cho ông ấy, ông ấy sẽ chuẩn bị bài nói trong phòng thay đồ.",
+    "bert.guide.coach-speech.page2.body1": "Tiêu hết đi thì ông ấy để dành được một bài nói. Gật đầu lúc giữa hiệp là cả đội bước ra hiệp hai như bay."
   }
 }

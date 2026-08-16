@@ -27,6 +27,13 @@ import type {
   TeamDef,
 } from './types';
 
+// m2.4 adds the MOTIVATIONAL_SPEECH coaching input (the head coach's half-time
+// speech: a flat temporary attribute lift for the controlled team). No existing
+// match changes — no new RNG draw, no altered tick — but a replay recorded here
+// can carry an input kind m2.3 cannot read, so the version has to say so. Both
+// runtime golden fingerprints hash ENGINE_VERSION and move for that reason
+// alone; the parity snapshot holds no version and must NOT move.
+// m2.3 shortens how long a stricken player stays down (owner decision).
 // m2.2 stamps the scorer's stable id on GOAL events at shot launch, so a
 // substitution landing while the shot is in flight can no longer hand the
 // goal to the slot's new occupant. No RNG or behavior change; the event
@@ -50,7 +57,7 @@ import type {
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.3';
+export const ENGINE_VERSION = 'm2.4';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -58,6 +65,13 @@ const STOPPAGE_CAP = 50;
 // so this bound rejects corrupt/DoS input floods without touching any real replay.
 const MAX_REPLAY_TICK = TOTAL_TICKS + STOPPAGE_CAP;
 const MAX_REPLAY_INPUTS = MAX_REPLAY_TICK;
+/**
+ * The largest half-time speech the engine will accept. The career ring's own
+ * top value is 10 (twice the D1 midseason gain); the slack above it is room for
+ * a balance change, and the bound exists so a corrupt replay cannot hand a
+ * squad a thousand-point lift.
+ */
+export const MAX_SPEECH_BOOST = 20;
 const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
 const VALID_POWER_IDS: ReadonlySet<string> = new Set([
   'SUPER_SPEED',
@@ -274,6 +288,15 @@ export function queueInput(state: MatchState, input: MatchInput): void {
     requireControlledTeam(state);
     if (!isEnergyUse(input.energyUse))
       throw new Error(`invalid energy use ${String(input.energyUse)}`);
+  } else if (input.kind === 'MOTIVATIONAL_SPEECH') {
+    requireControlledTeam(state);
+    assertSpeechBoost(input.boost);
+    assertSpeechTick(input.tick);
+    // One speech per match: the club banks at most one, and a second would
+    // stack a lift the career ring never sold.
+    if (state.inputLog.some((entry) => entry.kind === 'MOTIVATIONAL_SPEECH')) {
+      throw new Error('this match has already had its motivational speech');
+    }
   } else if (input.kind === 'SUBSTITUTE') {
     validateSubstitutionInput(state, input);
   }
@@ -393,6 +416,11 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
     return;
   }
 
+  if (input.kind === 'MOTIVATIONAL_SPEECH') {
+    applyMotivationalSpeech(state, team, input.boost);
+    return;
+  }
+
   performSubstitution(
     state,
     team,
@@ -400,6 +428,65 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
     input.replacementId,
     cancelPowerReferencesForSubstitution,
   );
+}
+
+/**
+ * Lifts every stored attribute of one team by `boost` for the rest of the match.
+ *
+ * Copy-on-write, and that is the whole subtlety. `makePlayers` stores each def
+ * BY REFERENCE from `state.teams`, and `envelopeFrom` serializes `state.teams`
+ * as the replay's opening squad — so mutating a def in place would bake the
+ * lift into the saved line-up, and replaying it would start pre-boosted and
+ * then apply this input again. Replacing the object leaves the recorded squad
+ * exactly as it took the field. Nothing in the engine compares a def by
+ * identity, so the swap is invisible to everything else.
+ *
+ * The bench is lifted too, so a substitute who comes on afterwards arrives
+ * carrying the speech rather than undoing it.
+ */
+function applyMotivationalSpeech(
+  state: MatchState,
+  team: 0 | 1,
+  boost: number,
+): void {
+  const lift = (attrs: Attrs): Attrs => {
+    const next = { ...attrs };
+    for (const key of ATTR_KEYS) {
+      next[key] = Math.min(MAX_PLAYER_ATTRIBUTE, attrs[key] + boost);
+    }
+    return next;
+  };
+  const first = team * 11;
+  for (let index = first; index < first + 11; index += 1) {
+    const player = state.players[index];
+    player.def = { ...player.def, attrs: lift(player.def.attrs) };
+  }
+  state.bench[team] = state.bench[team].map((def) => ({
+    ...def,
+    attrs: lift(def.attrs),
+  }));
+}
+
+/**
+ * A team talk happens at half time. Nothing in the app can stamp one earlier —
+ * the prompt only opens on the HALF_TIME event — so this exists for the other
+ * door: a corrupt or hand-edited replay that would otherwise lift a squad for
+ * the whole match.
+ */
+function assertSpeechTick(tick: number): void {
+  if (tick <= HALF_TICKS) {
+    throw new Error(
+      `a motivational speech is given at half time, so its tick must be past ${HALF_TICKS}, got ${String(tick)}`,
+    );
+  }
+}
+
+function assertSpeechBoost(boost: number): void {
+  if (!Number.isSafeInteger(boost) || boost < 1 || boost > MAX_SPEECH_BOOST) {
+    throw new Error(
+      `motivational speech boost must be an integer from 1 to ${MAX_SPEECH_BOOST}, got ${String(boost)}`,
+    );
+  }
 }
 
 /**
@@ -714,6 +801,9 @@ export function validateEnvelope(env: ReplayEnvelope): void {
       `replay envelope: too many inputs (${env.inputs.length} > ${MAX_REPLAY_INPUTS} max) — a tap can only land on a simulated tick`,
     );
   }
+  const speechInputs = (env.inputs as MatchInput[]).filter(
+    (input) => input?.kind === 'MOTIVATIONAL_SPEECH',
+  ).length;
   for (const input of env.inputs as MatchInput[]) {
     if (!input || typeof input !== 'object') {
       throw new Error('replay envelope: input must be an object');
@@ -771,6 +861,24 @@ export function validateEnvelope(env: ReplayEnvelope): void {
       ) {
         throw new Error(
           'replay envelope: automatic powers input needs a controlled team and boolean mode',
+        );
+      }
+      continue;
+    }
+    if (input.kind === 'MOTIVATIONAL_SPEECH') {
+      if (env.opts?.controlledTeam === undefined) {
+        throw new Error(
+          'replay envelope: motivational speech input needs a controlled team',
+        );
+      }
+      assertSpeechBoost(input.boost);
+      assertSpeechTick(input.tick);
+      // Refused here as well as in queueInput: this is the gate a stored
+      // envelope passes through before anything runs, and a corrupt one
+      // should be rejected whole rather than part-way through a replay.
+      if (speechInputs > 1) {
+        throw new Error(
+          'replay envelope: a match may hold only one motivational speech',
         );
       }
       continue;

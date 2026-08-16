@@ -949,6 +949,12 @@ export interface GameState {
   onboarding?: CareerOnboardingState;
   trainingPoints: number;
   /**
+   * Whether the head coach is holding a motivational speech for half time.
+   * At most one, so a boolean rather than a count. Absent on every save
+   * written before the Staff board could sell one.
+   */
+  coachSpeechBanked?: boolean;
+  /**
    * Drill tier the club has bought for each training path, keyed by path id.
    * Absent paths — and every path in a save written before drill upgrades were
    * a purchase — are owned at tier 1.

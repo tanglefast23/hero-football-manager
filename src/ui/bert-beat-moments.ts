@@ -26,6 +26,9 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   ],
   'desk-intro': ['pointing-out', 'encouraging'],
   'green-bull-training': ['explaining', 'encouraging'],
+  // He explains what the button does, then sells what it buys. Same pair as the
+  // Green Bull briefing, and for the same reason: a lesson, then the payoff.
+  'coach-speech': ['explaining', 'encouraging'],
   // The season's last screen. He explains the ritual, counts the three doors
   // out of it, then drops his voice for the part that is advice rather than
   // rules — `confiding` is the only look that separates "here is how it works"
