@@ -20,7 +20,13 @@ import {
   BALL_AIRBORNE_THRESHOLD_CM,
   ballShadowOpacity,
   ballShadowRadius,
+  ballVisualOffset,
 } from './ball-flight-visuals';
+import {
+  BALL_FLAME_LAYERS,
+  ballFlameTongues,
+  type BallFlameLayerStyle,
+} from './ball-flame';
 import {
   TACKLE_DUST_COLOR,
   TACKLE_DUST_OPACITY,
@@ -408,6 +414,103 @@ export function WorkletBallShadow({
   const opacity = useDerivedValue(() => ballShadowOpacity(ballHeight.value));
 
   return <Path path={shadow} color="#26512f" opacity={opacity} />;
+}
+
+/**
+ * Fire riding a scorching shot, drawn for exactly as long as the ball is one.
+ * The shape itself lives in `ball-flame.ts` so it can be unit-tested and
+ * rendered headlessly; this is only the Skia half.
+ *
+ * Anchored to the ball's *visual* centre (ground position lifted by
+ * `ballVisualOffset`) rather than its ground position, so the flame travels
+ * with the sprite through the arc instead of sliding along the turf.
+ */
+export function WorkletBallFlame({
+  ballGroundPosition,
+  ballHeight,
+  scorching,
+  visualTick,
+  scale,
+  reduceMotion,
+}: {
+  ballGroundPosition: SharedValue<Float32Array>;
+  ballHeight: SharedValue<number>;
+  /** 1 while the ball is a tier-2 shot in flight, 0 otherwise. */
+  scorching: SharedValue<number>;
+  visualTick: SharedValue<number>;
+  scale: number;
+  reduceMotion: boolean;
+}) {
+  return (
+    <Fragment>
+      {BALL_FLAME_LAYERS.map((layer, index) => (
+        <BallFlameLayer
+          key={`ball-flame-${index}`}
+          layer={layer}
+          ballGroundPosition={ballGroundPosition}
+          ballHeight={ballHeight}
+          scorching={scorching}
+          visualTick={visualTick}
+          scale={scale}
+          reduceMotion={reduceMotion}
+        />
+      ))}
+    </Fragment>
+  );
+}
+
+function BallFlameLayer({
+  layer,
+  ballGroundPosition,
+  ballHeight,
+  scorching,
+  visualTick,
+  scale,
+  reduceMotion,
+}: {
+  layer: BallFlameLayerStyle;
+  ballGroundPosition: SharedValue<Float32Array>;
+  ballHeight: SharedValue<number>;
+  scorching: SharedValue<number>;
+  visualTick: SharedValue<number>;
+  scale: number;
+  reduceMotion: boolean;
+}) {
+  const path = usePathValue((builder) => {
+    'worklet';
+    if (scorching.value < 1) return;
+    const cx = ballGroundPosition.value[0] * scale;
+    const cy =
+      ballGroundPosition.value[1] * scale -
+      ballVisualOffset(ballHeight.value, scale);
+    // 1, NOT `scale`. The pitch scale converts pitch units to pixels and runs
+    // about 0.03; flame sizes are absolute pixels like `ballShadowRadius`'s
+    // 7.5. Passing `scale` here made the whole flame half a pixel wide, which
+    // on screen is an ordinary white ball with no fire on it at all.
+    const tongues = ballFlameTongues(
+      cx,
+      cy,
+      1,
+      layer,
+      Math.max(0, visualTick.value),
+      reduceMotion,
+    );
+    for (let i = 0; i < tongues.length; i += 1) {
+      const t = tongues[i];
+      builder.moveTo(t.baseLeftX, t.baseY);
+      builder.quadTo(t.controlLeftX, t.controlY, t.tipX, t.tipY);
+      builder.quadTo(t.controlRightX, t.controlY, t.baseRightX, t.baseY);
+      builder.close();
+    }
+  });
+  return (
+    <Path
+      path={path}
+      color={layer.color}
+      opacity={layer.opacity}
+      antiAlias={false}
+    />
+  );
 }
 
 /** Gameplay overlays share the Atlas worklet's interpolated player centers. */

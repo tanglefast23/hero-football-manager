@@ -137,8 +137,45 @@ const DIST = path.resolve('dist');
 // 893_727 earlier that day, 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at
 // b26e1399 (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
 // 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 6_018_860;
-const GZIP_BUDGET = 902_095;
+// Re-ratcheted 2026-08-16 (shot-danger branch), on top of the entry above after
+// merging #170. All of this one is the branch's, and it is small: a local export
+// of this tree reads 6_018_178 raw / 901_962 gzip against #170's own local
+// figures of 6_017_823 / 901_868, so the branch is **+355 raw / +94 gzip**.
+//
+// That +355 has now been measured against three separate main baselines
+// (5c4d7303, 84a30233, e052a5c1) and come out identical every time, which is
+// what makes it trustworthy rather than a sampling artifact. It is
+// `shot-danger.ts`, the `shot-scorch` cue entry in `audio.ts`, and the
+// shot-tier branch in the MatchScreen tick loop. `ball-flame.ts` does not
+// appear: it lands in `SkiaSurfaceImplementations-*.js`, which is not a
+// first-load file.
+//
+// Both marks move this time. Local passes both, but CI is what has to pass and
+// CI runs high by a per-stream offset. Raw was predicted from the measured
+// +1_037 (CI reported 6_008_191 for a tree this repo read at 6_007_154), and
+// CI then reported exactly 6_019_215 — the prediction to the byte.
+//
+// Gzip took two goes, and the correction is the useful part. Deriving its
+// offset from #170 (901_868 local -> 902_095 CI) gave +227, so the mark was
+// first set to 902_189. CI reported 902_225: the real offset for this tree is
+// **+263**. So the raw offset transfers between branches and the gzip offset
+// does not — compression ratio depends on content, so a byte count borrowed
+// from someone else's tree is a guess. Both numbers below are now CI's own
+// figures for THIS tree, which is what the entries above meant by ratcheting
+// against CI.
+//
+// Gzip is NOT being loosened for free here — unlike the last two entries it
+// genuinely breaches, by about 94 bytes locally.
+//
+// Markers checked before moving the numbers, and this branch does touch the dev
+// harness: it renames the Match VFX shot case. `qaBodyMarkers` and
+// `skiaBodyMarkers` were both empty, and three strings unique to the renamed
+// case — "Top-tier shot danger", "Dangerous Shot", "dangerous-shot" — return
+// zero hits in `index-*.js` and `__common-*.js`. The entry is lazy and stayed
+// lazy. Heeding the warning above, none of those three is a substring of app
+// code: the sim's shot grading uses no such string.
+const RAW_BUDGET = 6_019_215;
+const GZIP_BUDGET = 902_225;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

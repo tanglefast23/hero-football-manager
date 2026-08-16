@@ -736,6 +736,16 @@
       "unreachable": false,
       "bytes": 22128
     },
+    "assets/audio/sfx/shot-scorch.wav": {
+      "class": "sfx",
+      "before": -12.7,
+      "beforeTruePeak": -2.3,
+      "gainDb": -3.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5.6,
+      "bytes": 68718
+    },
     "assets/audio/sfx/stat-step-tap-loud.m4a": {
       "class": "sfx",
       "before": -14.9,

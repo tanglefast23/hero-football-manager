@@ -11,11 +11,12 @@ import {
   matchVfxShowcaseSeed,
 } from '../match-vfx-showcase';
 import type { MatchVfxKind } from '../match-vfx';
+import { shotDanger, shotTier } from '../shot-danger';
 
 const kinds: readonly MatchVfxKind[] = [
   'slide-tackle',
   'standing-tackle',
-  'hard-shot',
+  'dangerous-shot',
   'save-impact',
   'power-interruption',
 ];
@@ -84,11 +85,14 @@ describe('production-path match VFX showcase fixtures', () => {
     );
   });
 
-  it('makes the hard-shot fixture clear the exact render threshold', () => {
-    const event = matchVfxShowcaseEvent(run('hard-shot'), 'hard-shot');
+  it('makes the dangerous-shot fixture reach the top tier', () => {
+    // Graded off the ball, not off `SHOT.power`: the retired threshold never
+    // looked at the keeper, so a stacked shooter alone no longer proves this.
+    const match = run('dangerous-shot');
+    const event = matchVfxShowcaseEvent(match, 'dangerous-shot');
     expect(event).toMatchObject({ kind: 'SHOT', by: 21 });
-    if (event?.kind !== 'SHOT') throw new Error('expected hard shot');
-    expect(event.power).toBeGreaterThanOrEqual(55);
+    expect(match.ball.kind).toBe('shot');
+    expect(shotTier(shotDanger(match, match.ball))).toBe(2);
   });
 
   it('interrupts a real winding power through a won tackle', () => {
