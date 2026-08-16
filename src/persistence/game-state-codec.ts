@@ -1438,6 +1438,7 @@ const contractOfferSchema = z
       'TRAINING_PRIORITY',
       'JERSEY_10',
     ]),
+    reclaimHeroLicenseFromPlayerId: nonemptyString.optional(),
   })
   .passthrough();
 const transferQuoteSchema = z

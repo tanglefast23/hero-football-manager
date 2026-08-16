@@ -706,6 +706,14 @@ export interface ContractOffer {
   readonly weeklyWage: number;
   readonly termSeasons: number;
   readonly perk: ContractPerk;
+  /**
+   * The teammate who gives up a Hero License so this player can be promised a
+   * starting place, when the club has none free. The agent never sees it -- it
+   * is the club's own arrangement -- so it changes no negotiation outcome, and
+   * it rides on the offer only so an accepted deal applies the same choice the
+   * manager made when they picked the promise.
+   */
+  readonly reclaimHeroLicenseFromPlayerId?: string;
 }
 
 interface ContractNegotiationSetup {

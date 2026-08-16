@@ -16,6 +16,84 @@ const STARTING_PROMISES: readonly CareerContractPerk[] = [
   'CAPTAINCY',
 ];
 
+/**
+ * Whether this player already holds one of the club's Hero Licenses.
+ *
+ * Club-scoped on purpose. `licensed` is also set on players who belong to
+ * OTHER clubs — `pyramidCareerPlayer` and `buildCareerSquad` both write
+ * `licensed: power !== undefined` — so reading the flag bare told the transfer
+ * panel that every rival hero arrived with a license of his own. That is how a
+ * Starter promise reached ACCEPTED with the cap full: the guard below skipped,
+ * the agent shook hands, and completion then threw and discarded the deal.
+ */
+function holdsClubHeroLicense(state: GameState, player: CareerPlayer): boolean {
+  return player.clubId === state.userClubId && player.licensed;
+}
+
+/**
+ * Licensed heroes whose license the club may take back to license `incoming`.
+ *
+ * Three exclusions, each for its own reason:
+ * - A promised starter. Taking their license benches them, which is the one
+ *   thing the club agreed not to do.
+ * - `incoming` himself, who cannot free a license he does not hold.
+ * - A STARTING holder on the wrong side of the goalkeeper line. The reclaim
+ *   hands `incoming` the vacated slot, and a striker cannot stand in slot 0.
+ *   A benched holder has no slot to hand over, so any of them will do.
+ *
+ * Weakest first, so the name the manager sees first is the one they are
+ * likeliest to want. `compareIds` breaks ties, keeping the order replay-stable.
+ */
+export function reclaimableHeroLicenseHolders(
+  state: GameState,
+  incoming: Pick<CareerPlayer, 'id' | 'role'>,
+): CareerPlayer[] {
+  const starters = new Set(
+    state.lineups.find((lineup) => lineup.clubId === state.userClubId)
+      ?.playerIds ?? [],
+  );
+  return state.players
+    .filter(
+      (candidate) =>
+        candidate.clubId === state.userClubId &&
+        candidate.licensed &&
+        candidate.id !== incoming.id &&
+        !hasActiveCareerContractPromise(candidate, 'GUARANTEED_STARTER') &&
+        !hasActiveCareerContractPromise(candidate, 'CAPTAINCY') &&
+        (!starters.has(candidate.id) ||
+          (candidate.role === 'GK') === (incoming.role === 'GK')),
+    )
+    .sort(
+      (left, right) =>
+        roleOverall(left.role, left.attrs) -
+          roleOverall(right.role, right.attrs) || compareIds(left.id, right.id),
+    );
+}
+
+/**
+ * Whether promising this player a place forces another hero to give up a license.
+ *
+ * The offer panel asks this to decide between showing the promise plainly and
+ * showing it with the "who loses their license?" chooser attached.
+ */
+export function heroLicenseReclaimRequired(
+  state: GameState,
+  player: CareerPlayer,
+  perk: CareerContractPerk,
+  heroLimit: number,
+): boolean {
+  if (!STARTING_PROMISES.includes(perk)) return false;
+  if (player.power === undefined) return false;
+  if (holdsClubHeroLicense(state, player)) return false;
+  return licensedHeroCount(state) >= heroLimit;
+}
+
+function licensedHeroCount(state: GameState): number {
+  return state.players.filter(
+    (candidate) => candidate.clubId === state.userClubId && candidate.licensed,
+  ).length;
+}
+
 /** A promise remains binding for as long as the negotiated contract is active. */
 export function hasActiveCareerContractPromise(
   player: CareerPlayer,
@@ -42,6 +120,12 @@ export function applyCareerContractPromise(
    * cannot reject a promise that offer-submit already allowed.
    */
   heroLimit?: number,
+  /**
+   * The licensed hero the club gives up to license this one, when the cap is
+   * already full. Chosen by the manager during the negotiation and applied only
+   * here, so abandoned talks leave every license where it was.
+   */
+  reclaimFromPlayerId?: string,
 ): GameState {
   const player = state.players.find(
     (candidate) =>
@@ -56,15 +140,18 @@ export function applyCareerContractPromise(
     STARTING_PROMISES.includes(perk) &&
     player.power !== undefined &&
     !player.licensed;
+  let reclaimedFrom: CareerPlayer | undefined;
   if (needsHeroLicense) {
-    const licensedCount = state.players.filter(
-      (candidate) =>
-        candidate.clubId === state.userClubId && candidate.licensed,
-    ).length;
-    if (licensedCount >= (heroLimit ?? contractPromiseHeroLimit(state))) {
-      throw new Error(
-        `${player.name}'s starting promise requires an available Hero License`,
+    const cap = heroLimit ?? contractPromiseHeroLimit(state);
+    if (licensedHeroCount(state) >= cap) {
+      reclaimedFrom = reclaimableHeroLicenseHolders(state, player).find(
+        (candidate) => candidate.id === reclaimFromPlayerId,
       );
+      if (reclaimedFrom === undefined) {
+        throw new Error(
+          `${player.name}'s starting promise requires an available Hero License`,
+        );
+      }
     }
   }
 
@@ -90,6 +177,7 @@ export function applyCareerContractPromise(
     }
     return {
       ...candidate,
+      ...(candidate.id === reclaimedFrom?.id ? { licensed: false } : {}),
       ...(perk === 'CAPTAINCY' && candidate.isCaptain === true
         ? { isCaptain: false }
         : {}),
@@ -101,7 +189,31 @@ export function applyCareerContractPromise(
 
   let lineups = state.lineups;
   if (STARTING_PROMISES.includes(perk)) {
-    lineups = restoreCareerContractPromiseLineup({ ...state, players }).lineups;
+    // The hero who gave up the license takes the newly promised one's place on
+    // the bench, and the promised one takes his slot. Doing the swap here, in
+    // the same step that moves the license, is what keeps the eleven legal: an
+    // unlicensed hero left standing in it stops the next match dead. Only the
+    // reclaimed hero is displaced -- `reclaimableHeroLicenseHolders` has
+    // already ruled out a starter whose slot this player could not fill.
+    const displaced = reclaimedFrom;
+    if (displaced !== undefined) {
+      lineups = lineups.map((candidate) =>
+        candidate.clubId !== state.userClubId ||
+        candidate.playerIds.includes(playerId)
+          ? candidate
+          : {
+              ...candidate,
+              playerIds: candidate.playerIds.map((id) =>
+                id === displaced.id ? playerId : id,
+              ),
+            },
+      );
+    }
+    lineups = restoreCareerContractPromiseLineup({
+      ...state,
+      players,
+      lineups,
+    }).lineups;
   }
 
   // TRAINING_PRIORITY is an obligation, not a slot: the manager owes the
@@ -248,6 +360,11 @@ function putPromisedPlayerInStartingLineup(
   );
   if (lineup === undefined) throw new Error('the user club has no lineup');
   if (lineup.playerIds.includes(playerId)) return state.lineups;
+  // An unlicensed hero is bench-only. Honouring the promise here would build an
+  // eleven `buildTeamDef` refuses, and this runs during weekly settlement -- so
+  // the promise goes unhonoured for as long as the license is missing, exactly
+  // as it does when two promises compete for the single goalkeeper's slot.
+  if (player.power !== undefined && !player.licensed) return state.lineups;
 
   const playerById = new Map(
     state.players.map((candidate) => [candidate.id, candidate]),
@@ -381,22 +498,18 @@ export function careerContractPromiseBlockedReason(
   const holderOf = (held: CareerContractPerk): CareerPlayer | undefined =>
     squad.find((candidate) => hasActiveCareerContractPromise(candidate, held));
 
+  // A full Hero License cap no longer blocks the promise outright: the club may
+  // take a license back off an unpromised hero instead. Only when there is
+  // nobody left to take one from is the promise impossible.
   if (
-    STARTING_PROMISES.includes(perk) &&
-    player.power !== undefined &&
-    !player.licensed
+    heroLicenseReclaimRequired(state, player, perk, heroLimit) &&
+    reclaimableHeroLicenseHolders(state, player).length === 0
   ) {
-    const licensed = state.players.filter(
-      (candidate) =>
-        candidate.clubId === state.userClubId && candidate.licensed,
-    ).length;
-    if (licensed >= heroLimit) {
-      return {
-        text: `No Hero License is free. ${player.name} needs one to be promised a place.`,
-        key: 'market.promiseBlockedHeroLicense',
-        params: { player: player.name },
-      };
-    }
+    return {
+      text: `Every Hero License is promised to a starter. ${player.name} cannot be promised a place.`,
+      key: 'market.promiseBlockedHeroLicense',
+      params: { player: player.name },
+    };
   }
 
   // Single-holder roles. The second promise used to silently strip the first,

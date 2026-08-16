@@ -447,9 +447,18 @@ function repairLineupForInjuries(
 
   for (let slot = 0; slot < playerIds.length; slot += 1) {
     const starter = playerById.get(playerIds[slot]);
-    if (starter === undefined || isAvailableForSelection(starter)) continue;
+    if (starter === undefined) continue;
+    // Two ways a starter can no longer start, repaired by one search. An
+    // unlicensed hero is as unplayable as an injured one -- `buildTeamDef`
+    // refuses the eleven either way -- and every route that takes a license
+    // away (the match-day toggle, a reclaim for a new signing, an old save
+    // written before those benched anyone) lands the squad here.
+    const unlicensedHero = starter.power !== undefined && !starter.licensed;
+    if (isAvailableForSelection(starter) && !unlicensedHero) continue;
 
-    if (!claimedSlots.has(slot)) {
+    // No return slot for a license: the player is fit and simply not picked, so
+    // holding the shirt open would promise a comeback nothing will trigger.
+    if (!unlicensedHero && !claimedSlots.has(slot)) {
       claimedSlots.add(slot);
       newReturns.set(starter.id, slot);
     }
@@ -647,7 +656,11 @@ export function selectCareerLicensedHeroes(
   );
   const selectedById = new Map(selected.map((player) => [player.id, player]));
 
-  return {
+  // Benching whoever just lost a license is part of taking it away, not a
+  // separate step a caller may forget. Without it the hero stayed in the eleven
+  // unlicensed, `buildTeamDef` refused to build it, and the career stopped at
+  // "Hero <id> must be licensed or benched" with no way forward from the save.
+  return repairCareerLineupForInjuries({
     ...state,
     players: state.players.map((player) => {
       const next = selectedById.get(player.id);
@@ -655,7 +668,32 @@ export function selectCareerLicensedHeroes(
         ? player
         : { ...player, ...next, attrs: { ...next.attrs } };
     }),
-  };
+  });
+}
+
+/**
+ * Load-time fail-soft for a save whose eleven already holds an unlicensed hero.
+ *
+ * Saves written before license changes benched anyone can carry an eleven the
+ * match boundary refuses, and the refusal lands at Play Match -- past the point
+ * weekly settlement would have repaired it. Repairing on load turns a dead
+ * career into a benched hero and a note in the squad list.
+ */
+export function reconcileCareerLineupLicenses(state: GameState): GameState {
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined) return state;
+  const playerById = new Map(
+    state.players.map((player) => [player.id, player]),
+  );
+  const stranded = lineup.playerIds.some((playerId) => {
+    const player = playerById.get(playerId);
+    return (
+      player !== undefined && player.power !== undefined && !player.licensed
+    );
+  });
+  return stranded ? repairCareerLineupForInjuries(state) : state;
 }
 
 export function buildTrainingGround(
