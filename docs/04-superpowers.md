@@ -44,6 +44,16 @@ Three reasons:
 
 `SimPlayer.cards`, the `CARD` event and the `'redcard'` out-reason remain in the schema so saved replays and their UI still deserialize, but nothing in the sim can now produce them.
 
+**Decision record — how long a stricken player stays down (owner, 2026-08-16, ENGINE_VERSION m2.3)**: the three removal windows were set independently and had drifted an order of magnitude apart — Fire Torch's ignite 1.5s against Web Trap's 12.0s and Super Strength's 15.0s. They are now, at the shipped auto grade:
+
+| Effect | Was | Now | Also does |
+| --- | --- | --- | --- |
+| Fire Torch ignite | 1.5s | **3.0s** | burns 1–3 markers at tiers 1–3; caster gets a shot/aim lift and a longer carry |
+| Web Trap root | 12.0s | **6.0s** | ball drops loose — contested, not won |
+| Super Strength flatten | 15.0s | **6.0s** | caster takes possession outright |
+
+Shapes are unchanged, only magnitudes: Fire still tapers toward `FIRE_MIN_MARKER_TICKS` in a saturated mismatch (the anti-runaway lever from the m1.18 note in `powers.ts`), and both defensive holds still lengthen with a well-timed tap and an upgraded tier. Super Strength's 15.0s was 7.5% of a match **plus** guaranteed possession, with nothing left standing in for the card risk this document removed at m1.12; 6.0s brings it back in line with Web Trap, which pays for its hold by leaving the ball contested.
+
 ## The catalog: 20 designed powers
 
 Launch ships **17** of these. Magnet Touch was cut at M4; Bend It and Time Skip remain post-launch candidates. Powers are data files, so later additions do not need bespoke career code. ⚙ = implemented in M0. ★ = legendary, one use per match.

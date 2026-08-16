@@ -151,13 +151,13 @@ describe('m1.18 approved power contracts', () => {
       kind: 'loose',
       pos: { x: 2200, y: 5000 },
     });
-    expect(match.players[victim].webbedUntilTick).toBe(200);
+    expect(match.players[victim].webbedUntilTick).toBe(100);
     const before = { ...match.players[victim].pos };
     movementTick(match);
     possessionTick(match);
     expect(match.players[victim].pos).toEqual(before);
     expect(match.ball.kind !== 'held' || match.ball.by).not.toBe(victim);
-    match.tick = 200;
+    match.tick = 100;
     powerTick(match);
     expect(match.players[victim].webbedUntilTick).toBeUndefined();
   });
@@ -177,9 +177,9 @@ describe('m1.18 approved power contracts', () => {
     const auto = rootUntil(0.85, 1);
     const manual = rootUntil(1, 1);
     const tier3 = rootUntil(1, 3);
-    expect(auto).toBe(120);
-    expect(manual).toBe(200);
-    expect(tier3).toBe(200);
+    expect(auto).toBe(60);
+    expect(manual).toBe(100);
+    expect(tier3).toBe(100);
   });
 
   it('Ice keeps carrier and ball together while sliding toward the carrier own goal', () => {

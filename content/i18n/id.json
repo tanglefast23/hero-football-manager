@@ -2667,6 +2667,7 @@
     "matchScreen.bannerHalfTime": "TURUN MINUM",
     "matchScreen.bannerRivalZone": "{player} LAGI PANAS, JAUHKAN BOLA",
     "matchScreen.bannerSubstitution": "PERGANTIAN · {player} MASUK",
+    "matchScreen.bannerTackle": "TEKEL! {player}",
     "matchScreen.clickHere": "Klik di sini",
     "matchScreen.cupTitleCardTitle": "PIALA",
     "matchScreen.energyMode.allOut": "TOTAL",

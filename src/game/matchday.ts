@@ -1,4 +1,5 @@
 import * as simMatch from '../sim/match';
+import { maxActiveTicks } from '../sim/powers';
 import type { FormationId } from '../sim/tactics';
 import type {
   MatchState,
@@ -189,7 +190,7 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
   const slotOwners = match.teams.flatMap((team) =>
     team.players.map((player) => player.id),
   );
-  const readyPower = new Map<string, PowerId>();
+  const readyPower = new Map<string, { power: PowerId; firedTick: number }>();
   const shotPower = new Map<string, PowerId>();
   const goals: MatchGoal[] = [];
   for (const event of match.events) {
@@ -197,10 +198,21 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
       slotOwners[event.player] = event.inPlayerId;
     } else if (event.kind === 'POWER_FIRED') {
       const owner = slotOwners[event.player];
-      if (owner !== undefined) readyPower.set(owner, event.power);
+      if (owner !== undefined)
+        readyPower.set(owner, { power: event.power, firedTick: event.t });
     } else if (event.kind === 'SHOT') {
       const owner = slotOwners[event.by];
-      const power = owner === undefined ? undefined : readyPower.get(owner);
+      const ready = owner === undefined ? undefined : readyPower.get(owner);
+      // An activation only explains a shot taken while it was still live. The
+      // clears below only fire on a shot by the same hero or on any MISS, SAVE
+      // or GOAL, so without this bound a defensive power — a Web Trap sprung in
+      // the tenth minute — rode along until that hero's own next shot and
+      // credited the goal to a power that had ended minutes earlier.
+      const power =
+        ready !== undefined &&
+        event.t - ready.firedTick <= maxActiveTicks(ready.power)
+          ? ready.power
+          : undefined;
       if (owner !== undefined) {
         if (power === undefined) shotPower.delete(owner);
         else shotPower.set(owner, power);

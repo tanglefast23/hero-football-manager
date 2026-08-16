@@ -2667,6 +2667,7 @@
     "matchScreen.bannerHalfTime": "DESCANSO",
     "matchScreen.bannerRivalZone": "{player} ESTÁ ENCENDIDO, ALEJA EL BALÓN",
     "matchScreen.bannerSubstitution": "CAMBIO · ENTRA {player}",
+    "matchScreen.bannerTackle": "¡ENTRADA! {player}",
     "matchScreen.clickHere": "Haz clic aquí",
     "matchScreen.cupTitleCardTitle": "COPA",
     "matchScreen.energyMode.allOut": "AL MÁXIMO",
