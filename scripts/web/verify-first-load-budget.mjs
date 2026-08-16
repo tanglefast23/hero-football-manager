@@ -49,11 +49,33 @@ const DIST = path.resolve('dist');
 // tree. CI is the measurement that has to pass, so CI is the one ratcheted
 // against. Markers clean again — no QA bodies, no Skia in the title load.
 //
-// Previous marks: 5_977_355 / 893_727 earlier today, 5_922_802 / 879_373 at
-// #158, 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the stat-tip
-// branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 5_999_912;
-const GZIP_BUDGET = 899_580;
+// Re-ratcheted 2026-08-16 off CI's figure for 6a2c27e2 on
+// fix/honest-first-season-market: 6_000_786 raw / 896_680 gzip. Raw ate the old
+// 5 KB headroom and 874 bytes past it; gzip is still 2_900 under its old mark.
+//
+// The growth is English catalog keys, and the first-load set is why. Locale
+// bundles ship as their own chunks (de-*.js and friends) and are not in
+// `firstLoadFiles`, so only the English strings land in `index-*.js`. This
+// branch adds ten: six for the `scout-report-unaffordable` sequence, and four
+// for the Coaching Office levels, the scout range note and the storage warning.
+// The rest is the branch's game code — match-day form, Coaching Office levels,
+// the save reconnect.
+//
+// Checked before moving the number, same as every time: CI reported
+// `qaBodyMarkers: []` and `skiaBodyMarkers: []` on the failing run. That matters
+// here because 6a2c27e2 touches the dev-harness reel — the markers prove none of
+// it reached the title load.
+//
+// Nobody saw this breach until now for the usual reason: `format:check` is the
+// first gate in the same job and had been failing, so the budget check was never
+// reached. Fixing the formatting is what exposed it.
+//
+// Previous marks: 5_994_912 / 894_580 at the 2026-08-15 merge, 5_977_355 /
+// 893_727 earlier that day, 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at
+// b26e1399 (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
+// 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 6_005_786;
+const GZIP_BUDGET = 901_680;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

@@ -513,11 +513,6 @@ export function upgradeFacility(
   validateSpendableCash(availableCash);
   assertNoActiveConstruction(grid);
   const building = findBuilding(grid, buildingId);
-  if (building.type === 'coaching-office') {
-    throw new Error(
-      'Coaching Office upgrades are disabled until they have a gameplay benefit',
-    );
-  }
   if (building.level === MAX_FACILITY_LEVEL) {
     throw new Error(`${buildingId} is already at level ${MAX_FACILITY_LEVEL}`);
   }

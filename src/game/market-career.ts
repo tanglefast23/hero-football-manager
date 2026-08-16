@@ -71,10 +71,7 @@ import {
 } from './pyramid';
 import { assertContractTermFitsCareer } from './retirement';
 import { assertUserCareerRosterSpace } from './youth-intake';
-import {
-  isStoryFeaturePacingActive,
-  isStoryScoutingUnlocked,
-} from './story-progression';
+import { isStoryScoutingUnlocked } from './story-progression';
 import {
   applyCareerContractPromise,
   ContractPromiseBlockedError,
@@ -383,11 +380,28 @@ export function resolveCareerScoutClock(
     return currentMarket;
   const candidates = scoutableCareerPlayers(state);
   const shortlistSize = scoutShortlistSize(mission.scoutOfficeLevel);
+  // Quotes are memoised because `withAffordableSlot` reads every eligible
+  // candidate's fee, and a quote walks the pyramid to find the selling club.
+  const quoted = new Map<string, number>();
   const result = resolveScoutMission(
     mission,
     absoluteCareerWeek(state),
     candidates,
     shortlistSize,
+    {
+      budget: userClub(state).cash,
+      feeOf: (playerId) => {
+        const cached = quoted.get(playerId);
+        if (cached !== undefined) return cached;
+        const fee = careerBuyingTransferQuote(
+          state,
+          currentMarket,
+          playerId,
+        ).fee;
+        quoted.set(playerId, fee);
+        return fee;
+      },
+    },
   );
   const completed = result.reports.map((report) => ({
     ...report,
@@ -395,7 +409,7 @@ export function resolveCareerScoutClock(
     completedWeek: state.week,
   }));
   const newIds = new Set(completed.map((report) => report.playerId));
-  const reportedMarket: CareerMarketState = {
+  return {
     ...currentMarket,
     activeScoutMission: undefined,
     activeScoutMissionFeeWaived: undefined,
@@ -404,45 +418,6 @@ export function resolveCareerScoutClock(
         (report) => !newIds.has(report.playerId),
       ),
       ...completed,
-    ],
-  };
-  return firstStoryScoutPrice(state, mission, reportedMarket);
-}
-
-/** Makes the first transfer lesson actionable without changing later prices. */
-function firstStoryScoutPrice(
-  state: GameState,
-  mission: ScoutMission,
-  market: CareerMarketState,
-): CareerMarketState {
-  if (
-    !isStoryFeaturePacingActive(state) ||
-    mission.id !== 'scout-1' ||
-    market.scoutReports.length === 0
-  ) {
-    return market;
-  }
-  const cash = userClub(state).cash;
-  if (cash < 1) return market;
-  const cheapest = market.scoutReports
-    .map((report) => ({
-      playerId: report.playerId,
-      fee: careerBuyingTransferQuote(state, market, report.playerId).fee,
-    }))
-    .sort((left, right) => left.fee - right.fee)[0]!;
-  if (cheapest.fee <= cash) return market;
-  const targetFee = Math.floor(cash * 0.9);
-  const percent = Math.max(
-    -100,
-    Math.floor((targetFee * 100) / cheapest.fee) - 100,
-  );
-  return {
-    ...market,
-    transferFeeAdjustments: [
-      ...(market.transferFeeAdjustments ?? []).filter(
-        (adjustment) => adjustment.playerId !== cheapest.playerId,
-      ),
-      { playerId: cheapest.playerId, percent },
     ],
   };
 }
@@ -1606,7 +1581,33 @@ export function hireCareerCoach(
             candidate.unlockId,
           ]),
         );
-  const employed = { ...candidate, weeklyWage };
+  // A level-2 office hires better: the coach arrives already developed, and is
+  // paid for the level he actually works at rather than the one he applied at.
+  const hiredLevel = Math.min(
+    5,
+    candidate.level + coachHireLevelBonus(coachingOfficeLevel(state)),
+  );
+  const employed =
+    hiredLevel === candidate.level
+      ? { ...candidate, weeklyWage }
+      : {
+          ...candidate,
+          level: hiredLevel,
+          weeklyWage: coachWeeklyWageForRole(
+            {
+              weeklyWage: Math.round(
+                (checkedMultiply(
+                  COACH_WAGE_PER_LEVEL,
+                  hiredLevel,
+                  'hired coach base wage',
+                ) *
+                  (100 - candidate.loyaltyDiscountPercent)) /
+                  100,
+              ),
+            },
+            role,
+          ),
+        };
   return {
     ...market,
     coachCandidates: market.coachCandidates.filter(
@@ -1703,15 +1704,18 @@ export function refreshCareerMarketForNewSeason(
     employedPortraitIds,
     DEFAULT_COACH_CONTENT_UNLOCK_IDS.filter((id) => !unlockedContent.has(id)),
   );
+  const officeLevel = coachingOfficeLevel(state);
   const head = progressEmployedCoach(
     previous.headCoach,
     previous.headCoachSeasonsEmployed,
     'HEAD',
+    officeLevel,
   );
   const assistant = progressEmployedCoach(
     previous.assistantCoach,
     previous.assistantCoachSeasonsEmployed,
     'ASSISTANT',
+    officeLevel,
   );
   return {
     ...refreshed,
@@ -2431,14 +2435,41 @@ function varyListedBidQuote(
 }
 
 function hasCoachingOffice(state: GameState): boolean {
+  return coachingOfficeLevel(state) > 0;
+}
+
+/**
+ * The operational Coaching Office's level, or 0 when the club has none.
+ *
+ * A site under construction is not operational, so a club that has just
+ * ordered the upgrade keeps the old level until the works finish — the same
+ * rule every other facility benefit follows.
+ */
+export function coachingOfficeLevel(state: GameState): number {
   const grid = state.facilities.grid;
-  return (
-    grid?.buildings.some(
-      (building) =>
-        building.type === 'coaching-office' &&
-        isFacilityOperational(grid, building.id),
-    ) === true
+  const office = grid?.buildings.find(
+    (building) =>
+      building.type === 'coaching-office' &&
+      isFacilityOperational(grid, building.id),
   );
+  return office?.level ?? 0;
+}
+
+/**
+ * Seasons a coach must serve for his next level, by office level.
+ *
+ * The office is what the building does for BOTH coaches: at level 2 it hires
+ * better, at level 3 it develops twice as fast. It is deliberately not another
+ * training-point tap — the club already has three of those, and the weekly
+ * income was cut on purpose.
+ */
+export function coachSeasonsPerLevel(officeLevel: number): number {
+  return officeLevel >= 3 ? 1 : 2;
+}
+
+/** Levels a newly hired coach gains from the office he walks into. */
+export function coachHireLevelBonus(officeLevel: number): number {
+  return officeLevel >= 2 ? 1 : 0;
 }
 
 function careerClubFame(state: GameState, market: CareerMarketState): number {
@@ -2461,6 +2492,7 @@ function progressEmployedCoach(
   coach: CoachCandidate | undefined,
   previousSeasonsEmployed: number | undefined,
   role: CareerCoachRole,
+  officeLevel: number,
 ): { coach: CoachCandidate; seasonsEmployed: number } | undefined {
   if (coach === undefined) return undefined;
   const label = role === 'HEAD' ? 'head coach' : 'assistant coach';
@@ -2470,7 +2502,9 @@ function progressEmployedCoach(
     `${label} seasons employed`,
   );
   const level =
-    seasonsEmployed % 2 === 0 ? Math.min(5, coach.level + 1) : coach.level;
+    seasonsEmployed % coachSeasonsPerLevel(officeLevel) === 0
+      ? Math.min(5, coach.level + 1)
+      : coach.level;
   const loyaltyPercent = 100 - coach.loyaltyDiscountPercent;
   const headCoachWage = Math.round(
     (checkedMultiply(COACH_WAGE_PER_LEVEL, level, `${label} base wage`) *

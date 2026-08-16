@@ -230,20 +230,24 @@ describe('opening sentinel', () => {
     // the opening squad arrives weaker and the opener is harder again. Verified
     // deterministic: two consecutive runs produced byte-identical digests.
     //
-    // One thing worth watching rather than asserting: `ordinary`,
-    // `smart-breadth` and `smart-extra-fwd` now share the same digest. Three
-    // different opening training plans produce the same eight results, so over
-    // this sample the plan no longer separates them. Eight seeds cannot prove
-    // that, but if a later change is meant to make training matter early, this
-    // is the line that should move first.
+    // REBASELINED again for match-day form (`matchFormPercent`), which gives
+    // every club a +-2% week, so two squads no longer produce the same margin
+    // every time they meet. The engine is untouched — the golden replay is
+    // byte-identical and stored envelopes carry their own team defs — so this
+    // is an input change, not an ENGINE_VERSION one. The opening's shape holds:
+    // still loss-heavy, still no policy running away with it.
+    //
+    // The line flagged last time did move. `ordinary` and `smart-breadth` no
+    // longer share a digest, so the opening plan separates them again over this
+    // sample. `smart-breadth` and `smart-extra-fwd` still match; watch that one.
     expect(digests).toEqual({
-      ordinary: 'LWLWLLLL',
-      'smart-breadth': 'LWLWLLLL',
-      'smart-extra-fwd': 'LWLWLLLL',
-      'smart-concentration': 'DLLDLLWD',
-      'joe-observed-coach': 'DLLDLDDD',
-      'joe-observed-no-coach': 'LWLWWLWW',
-      'no-training': 'LWDLLLWD',
+      ordinary: 'LWDWLWLL',
+      'smart-breadth': 'LWLWLWLL',
+      'smart-extra-fwd': 'LWLWLWLL',
+      'smart-concentration': 'DLLDDLWD',
+      'joe-observed-coach': 'DLLDLLDL',
+      'joe-observed-no-coach': 'LWLWLLWL',
+      'no-training': 'LWLLLLWW',
     });
   });
 });

@@ -316,6 +316,53 @@
       ]
     },
     {
+      "id": "scout-report-unaffordable",
+      "inbox": {
+        "title": "The scout came back short",
+        "detail": "The shortlist is honest. The bank balance is the problem."
+      },
+      "destination": "market-scouting",
+      "pages": [
+        {
+          "kicker": "A thin envelope",
+          "title": "The best he could do",
+          "body": [
+            "The scout's back, gaffer. These were the most affordable players he could find anywhere."
+          ],
+          "focus": "scout-report",
+          "buttonLabel": "Let's see the damage."
+        },
+        {
+          "kicker": "The bottom line",
+          "title": "We can't reach them",
+          "body": [
+            "And our budget can't reach a single one of them today. That's not his fault, it's ours."
+          ],
+          "focus": "scout-report",
+          "buttonLabel": "Go on, twist the knife."
+        },
+        {
+          "kicker": "The long way round",
+          "title": "Saving is the only route",
+          "body": [
+            "Reports don't sit on the desk forever, so saving up is the only way we sign one."
+          ],
+          "focus": "scout-report",
+          "buttonLabel": "Understood."
+        },
+        {
+          "kicker": "The real job",
+          "title": "Bring the money in",
+          "body": [
+            "Let's get the income up. Next time he knocks, I want us able to answer."
+          ],
+          "focus": "scout-report",
+          "objective": "GROW THE CLUB'S INCOME.",
+          "buttonLabel": "We'll go and earn it."
+        }
+      ]
+    },
+    {
       "id": "roster-cap",
       "inbox": {
         "title": "Your 17-player squad is full",

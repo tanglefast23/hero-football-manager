@@ -357,6 +357,7 @@ describe('marketViewModel', () => {
           declined: false,
           rosterCount: 15,
           rosterCapacity: 17,
+          exclusiveChoice: false,
           offers: [
             {
               player: {
@@ -375,6 +376,41 @@ describe('marketViewModel', () => {
         },
       };
     }
+
+    /** Two offers on the desk — the only case where "the other" means anything. */
+    function withTwoYouth(exclusiveChoice: boolean): MarketViewModelSource {
+      const source = withYouth('MID');
+      const intake = source.youthIntake!;
+      return {
+        ...source,
+        youthIntake: {
+          ...intake,
+          exclusiveChoice,
+          offers: [
+            intake.offers[0],
+            {
+              ...intake.offers[0],
+              player: {
+                ...intake.offers[0].player,
+                id: 'kid-2',
+                name: 'Rio Vane',
+              },
+            },
+          ],
+        },
+      };
+    }
+
+    it('tells the truth about whether the other prospect goes home', () => {
+      // Season 1, or one roster slot left: signing closes the intake on the rest.
+      const exclusive = marketViewModel(withTwoYouth(true)).youth?.detail;
+      // Season 2+ with room to spare: both offers stay on the desk.
+      const open = marketViewModel(withTwoYouth(false)).youth?.detail;
+
+      expect(exclusive).toContain('sends the other home');
+      expect(open).toContain('remain on the desk');
+      expect(exclusive).not.toBe(open);
+    });
 
     it('states the prospect exact stats rather than a scouted range', () => {
       const offer = marketViewModel(withYouth('FWD')).youth?.offers[0];

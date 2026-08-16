@@ -116,6 +116,12 @@ describe('Hero Cup app routing', () => {
 
     useM1Store.getState().quickResult();
     useM1Store.getState().completeFaceOff();
+    // This tie is not rigged, and match-day form moves the scoreline, so it may
+    // legitimately finish level. A knockout that ends level goes to penalties —
+    // still the routing under test, one screen later.
+    if (useM1Store.getState().screen === 'shootout') {
+      useM1Store.getState().completeShootout();
+    }
     const final = useM1Store.getState();
     expect(final).toMatchObject({
       screen: 'postmatch',

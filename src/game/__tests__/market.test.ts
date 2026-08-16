@@ -103,6 +103,80 @@ describe('deterministic scouting', () => {
     marketPlayer('local-mid', { region: 'LOCAL' }),
   ];
 
+  it('swaps the dearest name for one the club can afford, and keeps the rest', () => {
+    const pool: ScoutablePlayer[] = [
+      marketPlayer('rich-1'),
+      marketPlayer('rich-2'),
+      marketPlayer('rich-3'),
+      marketPlayer('rich-4'),
+      marketPlayer('bargain'),
+    ];
+    const fees: Record<string, number> = {
+      'rich-1': 90_000,
+      'rich-2': 80_000,
+      'rich-3': 70_000,
+      'rich-4': 60_000,
+      bargain: 10_000,
+    };
+    const mission = startScoutMission({
+      careerSeed: 4242,
+      missionId: 'affordable-1',
+      startWeek: 5,
+      region: 'EUROPE',
+      focus: { kind: 'POSITION', role: 'MID' },
+      scoutOfficeLevel: 1,
+      division: 5,
+    });
+    const feeOf = (playerId: string) => fees[playerId] ?? 0;
+    const broke = resolveScoutMission(mission, mission.dueWeek, pool, 3, {
+      budget: 20_000,
+      feeOf,
+    });
+    const named = broke.reports.map((report) => report.playerId);
+
+    expect(named).toContain('bargain');
+    expect(named).toHaveLength(3);
+    // The stretch targets survive: only the single dearest slot gave way, so a
+    // shortlist is never flattened to bargains.
+    expect(named.filter((id) => id !== 'bargain')).toHaveLength(2);
+
+    // A club that can already sign someone gets the untouched draw.
+    const flush = resolveScoutMission(mission, mission.dueWeek, pool, 3, {
+      budget: 500_000,
+      feeOf,
+    });
+    expect(flush.reports.map((report) => report.playerId)).toEqual(
+      resolveScoutMission(mission, mission.dueWeek, pool, 3).reports.map(
+        (report) => report.playerId,
+      ),
+    );
+  });
+
+  it('reports honestly when the pool holds nothing the club can afford', () => {
+    const pool: ScoutablePlayer[] = [
+      marketPlayer('dear-1'),
+      marketPlayer('dear-2'),
+      marketPlayer('dear-3'),
+    ];
+    const mission = startScoutMission({
+      careerSeed: 99,
+      missionId: 'affordable-2',
+      startWeek: 5,
+      region: 'EUROPE',
+      focus: { kind: 'POSITION', role: 'MID' },
+      scoutOfficeLevel: 1,
+      division: 5,
+    });
+    const plain = resolveScoutMission(mission, mission.dueWeek, pool, 3);
+    const broke = resolveScoutMission(mission, mission.dueWeek, pool, 3, {
+      budget: 500,
+      feeOf: () => 75_000,
+    });
+
+    // No discount, no substitution — the prices stay real and Bert explains it.
+    expect(JSON.stringify(broke)).toBe(JSON.stringify(plain));
+  });
+
   it('schedules a 2-3 week mission and resolves the same filtered shortlist from the same seed', () => {
     const mission = startScoutMission({
       careerSeed: 8128,

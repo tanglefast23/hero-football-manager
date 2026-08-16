@@ -679,6 +679,7 @@ describe('validated M1 launch content', () => {
       'facility-adjacency',
       'scout-mission',
       'scout-report',
+      'scout-report-unaffordable',
       'roster-cap',
       'transfer-list',
       'transfer-bid',
@@ -754,7 +755,7 @@ describe('validated M1 launch content', () => {
     const m2Sequences = content.assistantGuide.sequences.filter(
       (sequence) => !screenDelivered.includes(sequence.id),
     );
-    expect(m2Sequences).toHaveLength(27);
+    expect(m2Sequences).toHaveLength(28);
     expect(
       m2Sequences.every(
         (sequence) =>

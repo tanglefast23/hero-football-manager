@@ -9,6 +9,8 @@ import {
 import {
   buildCareerMatchTeamDef,
   buildCareerTeamDef,
+  matchFormPercent,
+  rosterForClub,
   buildTrainingGround,
   releaseCareerPlayer,
   renewCareerPlayer,
@@ -18,6 +20,7 @@ import {
   swapCareerLineupPlayer,
   tryRepairCareerLineupForInjuries,
 } from '../squad';
+import { buildTeamDef } from '../lineup';
 import { enableFullCareer } from '../full-career';
 import { trainPlayerInstantly } from '../training';
 import {
@@ -710,5 +713,36 @@ describe('career squad integration', () => {
     );
     // The two entry points that used to brick the save.
     expect(() => advanceWeek(noKeeper)).not.toThrow();
+  });
+});
+
+describe('match-day form', () => {
+  const state = career();
+
+  it('is deterministic and stays inside the ±2% band', () => {
+    const base = buildTeamDef(
+      state.clubs.find((club) => club.id === CLUB_IDS[1])!,
+      rosterForClub(state, CLUB_IDS[1]),
+      state.lineups.find((lineup) => lineup.clubId === CLUB_IDS[1])!.playerIds,
+      2,
+    );
+    const built = buildCareerTeamDef(state, CLUB_IDS[1]);
+    expect(buildCareerTeamDef(state, CLUB_IDS[1])).toEqual(built);
+    for (const [index, player] of built.players.entries()) {
+      const before = base.players[index].attrs.pac;
+      expect(player.attrs.pac).toBeGreaterThanOrEqual(
+        Math.round(before * 0.98),
+      );
+      expect(player.attrs.pac).toBeLessThanOrEqual(Math.round(before * 1.02));
+    }
+  });
+
+  it('moves between weeks rather than holding one figure all season', () => {
+    const percents = new Set(
+      Array.from({ length: 20 }, (_, index) =>
+        matchFormPercent({ ...state, week: (index + 1) as never }, CLUB_IDS[1]),
+      ),
+    );
+    expect(percents.size).toBeGreaterThan(1);
   });
 });

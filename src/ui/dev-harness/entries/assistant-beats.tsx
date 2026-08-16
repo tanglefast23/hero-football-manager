@@ -68,6 +68,7 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'sponsor-desk',
   'sponsor-desk-continuity',
   'sponsor-buzz',
+  'scout-report-unaffordable',
   // The last eight are authored the same way but have no content sequence: they
   // are one-off remarks App.tsx hands him as a custom message, so the reel
   // cannot play them. They belong here all the same — this list is a claim
@@ -97,6 +98,7 @@ const SEQUENCE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'facility-adjacency': 'EDGES',
   'scout-mission': 'MISSION',
   'scout-report': 'REPORT',
+  'scout-report-unaffordable': 'NO CASH',
   'roster-cap': 'CAP',
   'transfer-list': 'LIST',
   'transfer-bid': 'BID',
@@ -165,6 +167,7 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
     sequenceIds: [
       'scout-mission',
       'scout-report',
+      'scout-report-unaffordable',
       'roster-cap',
       'transfer-list',
       'transfer-bid',

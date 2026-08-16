@@ -1,5 +1,7 @@
 import {
   assistantTeaches,
+  careerBuyingTransferQuote,
+  careerTransferTarget,
   boardUltimatumConsequence,
   hasAssistantGuideSequenceCompleted,
   hasAssistantGuideMilestone,
@@ -93,6 +95,32 @@ function isFirstFixtureWeek(state: GameState): boolean {
       earliestWeek = fixture.week;
   }
   return earliestWeek !== undefined && earliestWeek === state.week;
+}
+
+/**
+ * Whether the club could sign anyone the scout named, on the fee alone.
+ *
+ * The scout already prefers a signable name (`withAffordableSlot`), so a false
+ * here means the pool genuinely held nothing in reach — the one case Bert has
+ * to explain rather than let the manager stare at prices they cannot meet.
+ *
+ * Reports outlive their players: one can retire, or move, between the report
+ * landing and the desk opening. `careerTransferTarget` returns undefined there
+ * where `careerBuyingTransferQuote` throws, and this runs on every desk render,
+ * so the missing target is skipped rather than allowed to take the screen down.
+ */
+function anyScoutReportAffordable(state: GameState): boolean {
+  const market = state.market;
+  if (market === undefined) return true;
+  const cash =
+    state.clubs.find((club) => club.id === state.userClubId)?.cash ?? 0;
+  return market.scoutReports.some((report) => {
+    if (careerTransferTarget(state, report.playerId) === undefined)
+      return false;
+    return (
+      careerBuyingTransferQuote(state, market, report.playerId).fee <= cash
+    );
+  });
 }
 
 /**
@@ -190,6 +218,9 @@ export function dueAssistantInboxGuideSequences(
   if (scoutingUnlocked) {
     if (state.market.scoutReports.length > 0) {
       due.push('scout-report');
+      if (!anyScoutReportAffordable(state)) {
+        due.push('scout-report-unaffordable');
+      }
     } else if (state.market.activeScoutMission === undefined) {
       due.push('scout-mission');
     }

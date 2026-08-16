@@ -44,6 +44,17 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // A quiet favor, not another lesson about how the scouting desk works.
   'first-scout-favor': ['confiding'],
   'scout-report': ['listing'],
+  // The scout did his job and the club still cannot sign anyone. Four beats, and
+  // the wince belongs on the second one: he hands over the shortlist flat, takes
+  // the blame himself, states the one constraint that decides it, then turns it
+  // into a target. `bad-news` rather than `very-bad-news` — an empty wallet is a
+  // setback, and the sequence ends on the way out of it.
+  'scout-report-unaffordable': [
+    'listing',
+    'bad-news',
+    'warning-money',
+    'encouraging',
+  ],
   // The squad is full and someone has to go — bad news, not instruction.
   'roster-cap': ['bad-news'],
   'transfer-list': ['explaining'],

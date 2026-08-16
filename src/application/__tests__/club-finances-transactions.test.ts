@@ -91,7 +91,7 @@ describe('club finances immediate transaction history', () => {
     ).toMatchObject({ affordable: true, blockedByOpeningTrainingPitch: false });
   });
 
-  test('does not offer a no-effect Coaching Office upgrade', () => {
+  test('offers the Coaching Office upgrade and says what each level does', () => {
     const initial = createCareer(createLaunchCareerSetup(20260814));
     const project = buildCareerFacility(initial, 'coaching-office', {
       x: 0,
@@ -105,15 +105,18 @@ describe('club finances immediate transaction history', () => {
       },
     };
 
-    expect(
-      clubFinancesViewModel(ready).facilities.buildings.find(
-        (building) => building.type === 'coaching-office',
-      ),
-    ).toMatchObject({
-      canUpgrade: false,
-      upgradeBlockedReason:
-        'The Coaching Office has no upgrade available yet, boss.',
+    const office = clubFinancesViewModel(ready).facilities.buildings.find(
+      (building) => building.type === 'coaching-office',
+    );
+    expect(office).toMatchObject({
+      level: 1,
+      effectLabel: 'Unlock Assistant Coach',
+      nextLevelEffectLabel:
+        'Assistant Coach unlocked \u00b7 new coaches start a level higher',
     });
+    // Only cash decides it now. The office used to be blocked outright because
+    // higher levels did nothing; they develop both coaches faster.
+    expect(office?.upgradeBlockedReason).toBeUndefined();
   });
 
   test('shows newest M2 purchases separately from the weekly statement', () => {

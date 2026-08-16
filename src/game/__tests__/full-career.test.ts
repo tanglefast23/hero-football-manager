@@ -451,7 +451,12 @@ describe('full M2 career clock', () => {
 
       expect(currentUserDivision(promoted.m2!)).toBe(4);
       expect(userStrength).toBeGreaterThanOrEqual(45);
-      expect(userStrength).toBeLessThanOrEqual(48);
+      // 49, not 48: this reads strength through buildCareerTeamDef, which now
+      // applies that week's match-day form, so every figure here carries +-2%.
+      // Form lives only in the TeamDef handed to the sim — no stored
+      // squadStrength moved — but a measurement taken at the match boundary
+      // has to allow for it.
+      expect(userStrength).toBeLessThanOrEqual(49);
       // This test used to assert two relegation minnows and a 35-point gulf up
       // to the rest. That gulf WAS the defect: a promoted club could beat the
       // pack home and away for twelve points and nothing else all season. The

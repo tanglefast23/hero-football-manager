@@ -915,6 +915,13 @@ function ScoutingDesk({
                   </View>
                 ))}
               </View>
+              {report.aboveHundredNote ? (
+                // Body face, not the pixel face: this is a sentence explaining
+                // a number, and it has to stay readable in every locale.
+                <Text className="mt-2 text-xs leading-4 text-ink/70">
+                  {report.aboveHundredNote}
+                </Text>
+              ) : null}
               <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">
                 {t('market.fullReportRangesShown')}
               </Text>

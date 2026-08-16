@@ -1,4 +1,5 @@
 import type { TeamDef } from '../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { conditionedRatingD64 } from '../sim/contest';
 import { buildTeamDef, isAvailableForSelection } from './lineup';
 import { compareIds } from './ordering';
@@ -29,6 +30,32 @@ const DEFAULT_HERO_LIMIT = 2;
 const TRAINING_GROUND_COST = 8000;
 const STRONGEST_D1_OFF_DAY_CHANCE_PERCENT = 20;
 const STRONGEST_D1_OFF_DAY_ATTRIBUTE_PERCENT = 97;
+/**
+ * Match-day form: every club, every week, plays a little above or below itself.
+ *
+ * Without it the same two squads produce the same margin every time they meet,
+ * which is what made a stronger club feel like a settled result rather than a
+ * fixture. The band is ±2% of every attribute, neutral 40% of the time, so form
+ * colours a match without deciding it.
+ *
+ * ±2% is a measured ceiling, not a taste call. The training-leverage rail
+ * compares what a training point buys a keeper against what it buys a striker;
+ * at ±4% the striker arm collapsed from 0.0757 to 0.0020 and the ratio went
+ * 0.16 -> 11.92, past the rail's limit of 10. At ±2% it reads 0.87 with both
+ * arms healthy. Widen this band only with a fresh rail run to point at.
+ *
+ * Rolled from the career seed plus season, week and club, so a watched match
+ * and its Quick Result agree and a replay reproduces byte-identically. Two
+ * matches in one week (a shared league and cup week) share the week's form:
+ * form is how the squad turned up, not a per-fixture coin flip.
+ */
+const MATCH_FORM_PERCENT_BANDS = [
+  { roll: 10, percent: 98 },
+  { roll: 30, percent: 99 },
+  { roll: 70, percent: 100 },
+  { roll: 90, percent: 101 },
+  { roll: 100, percent: 102 },
+] as const;
 /** Hero License field cap earned by climbing the national pyramid. */
 export function careerHeroLimit(state: GameState): number {
   if (state.m2 === undefined) return DEFAULT_HERO_LIMIT;
@@ -99,7 +126,8 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
         ),
     careerHeroLimit(state),
   );
-  if (clubId !== state.userClubId) return applyStrongestD1OffDay(state, team);
+  const inForm = applyMatchDayForm(state, clubId, team);
+  if (clubId !== state.userClubId) return applyStrongestD1OffDay(state, inForm);
   const headCoach = state.market?.headCoach;
   const assistantCoach = state.market?.assistantCoach;
   const headBonus =
@@ -112,8 +140,8 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
       : 0;
   const heroGaugeBonusPercent = headBonus + assistantBonus;
   return heroGaugeBonusPercent === 0
-    ? team
-    : { ...team, heroGaugeRatePercent: 100 + heroGaugeBonusPercent };
+    ? inForm
+    : { ...inForm, heroGaugeRatePercent: 100 + heroGaugeBonusPercent };
 }
 
 function applyStrongestD1OffDay(state: GameState, team: TeamDef): TeamDef {
@@ -149,23 +177,55 @@ function applyStrongestD1OffDay(state: GameState, team: TeamDef): TeamDef {
   ) {
     return team;
   }
-  const soften = (player: TeamDef['players'][number]) => {
+  return scaleTeamAttributes(team, STRONGEST_D1_OFF_DAY_ATTRIBUTE_PERCENT);
+}
+
+/** Every attribute of the eleven and the bench, at `percent` of itself. */
+function scaleTeamAttributes(team: TeamDef, percent: number): TeamDef {
+  if (percent === 100) return team;
+  const scale = (player: TeamDef['players'][number]) => {
     const attrs = { ...player.attrs };
     for (const attribute of Object.keys(attrs) as Array<keyof typeof attrs>) {
-      attrs[attribute] = Math.max(
-        1,
-        Math.round(
-          (attrs[attribute] * STRONGEST_D1_OFF_DAY_ATTRIBUTE_PERCENT) / 100,
-        ),
+      // Both ends clamped: form above 100% on a maxed attribute would hand the
+      // sim a value past the legal ceiling, and validateTeamDef rejects the
+      // whole team rather than the one number.
+      attrs[attribute] = Math.min(
+        MAX_PLAYER_ATTRIBUTE,
+        Math.max(1, Math.round((attrs[attribute] * percent) / 100)),
       );
     }
     return { ...player, attrs };
   };
   return {
     ...team,
-    players: team.players.map(soften),
-    bench: team.bench?.map(soften),
+    players: team.players.map(scale),
+    bench: team.bench?.map(scale),
   };
+}
+
+/** This club's form for this week, as a percent of its attributes. */
+export function matchFormPercent(state: GameState, clubId: string): number {
+  const roll = deterministicCareerEventRoll(
+    {
+      careerSeed: state.careerSeed,
+      season: state.season,
+      week: state.week,
+      riskyChoices: 0,
+    },
+    `match-form:${clubId}`,
+    0,
+    100,
+  );
+  const band = MATCH_FORM_PERCENT_BANDS.find((entry) => roll < entry.roll);
+  return band?.percent ?? 100;
+}
+
+function applyMatchDayForm(
+  state: GameState,
+  clubId: string,
+  team: TeamDef,
+): TeamDef {
+  return scaleTeamAttributes(team, matchFormPercent(state, clubId));
 }
 
 export function buildCareerTeams(
@@ -240,7 +300,11 @@ export function buildCareerMatchTeamDef(
     ...take('FWD', 2),
   ];
   const lineupIds = fresherOpponentLineupIds(roster, lineupTemplate, heroLimit);
-  return buildTeamDef(club, roster, lineupIds, heroLimit);
+  return applyMatchDayForm(
+    state,
+    clubId,
+    buildTeamDef(club, roster, lineupIds, heroLimit),
+  );
 }
 
 function fresherOpponentLineupIds(

@@ -25,6 +25,7 @@ export const M2_ASSISTANT_GUIDE_SEQUENCE_IDS = [
   'facility-adjacency',
   'scout-mission',
   'scout-report',
+  'scout-report-unaffordable',
   'roster-cap',
   'transfer-list',
   'transfer-bid',

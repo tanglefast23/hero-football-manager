@@ -158,6 +158,16 @@ export interface YouthIntakeViewSource {
   readonly declined: boolean;
   readonly rosterCount: number;
   readonly rosterCapacity: number;
+  /**
+   * Whether signing one prospect closes the intake on the rest.
+   *
+   * `signYouthIntakeOffer` keeps the other offers only while the story season
+   * is over AND a roster slot survives the signing, so the detail line has two
+   * truths to tell. It told one of them season-agnostically before this flag
+   * existed: "offers remain on the desk" was wrong in season 1, and the fix
+   * that replaced it was wrong in every season after.
+   */
+  readonly exclusiveChoice: boolean;
   readonly offers: readonly {
     readonly player: {
       readonly id: string;
@@ -455,6 +465,14 @@ export function marketViewModel(
             label: attribute.toUpperCase(),
             rangeLabel: `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,
           })),
+          // Attributes are cap-free, so a scouted range legitimately runs past
+          // 100 and reads as a bug when it does. Said once, on the reports that
+          // actually show it, rather than as permanent footer noise.
+          ...(stats.some(
+            (attribute) => report.statRanges[attribute].maximum > 100,
+          )
+            ? { aboveHundredNote: t('market.scoutRangeAboveHundred') }
+            : {}),
           dismissAvailable:
             source.negotiation?.state.playerId !== report.playerId,
           detailedReportAvailable:
@@ -599,9 +617,11 @@ function youthIntakeViewModel(
       : intake.declined
         ? t('market.youthHeadlineDeclined')
         : t('market.youthHeadlineClosed'),
-    detail: isOpen
-      ? t('market.youthDetailOpen')
-      : t('market.youthDetailClosed'),
+    detail: !isOpen
+      ? t('market.youthDetailClosed')
+      : intake.exclusiveChoice && intake.offers.length > 1
+        ? t('market.youthDetailOpenOne')
+        : t('market.youthDetailOpen'),
     rosterLabel: t('market.youthRosterLabel', {
       count: intake.rosterCount,
       capacity: intake.rosterCapacity,
