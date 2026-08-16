@@ -1,24 +1,28 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
-  HARD_SHOT_POWER_MIN,
   MATCH_VFX_DURATION_MS,
   MATCH_VFX_EMITTER_CAP,
   MATCH_VFX_PHASE_COUNT,
   MATCH_VFX_STEP_MS,
   activeMatchVfxEmitters,
   appendMatchVfxEmitter,
-  isHardShotPower,
   matchVfxFadeOpacity,
   prepareMatchVfxEmitter,
   sampleMatchVfxGeometry,
   type MatchVfxKind,
 } from '../match-vfx';
+import {
+  SHOT_DANGER_TIER_1,
+  SHOT_DANGER_TIER_2,
+  shotBurstIntensity,
+  shotTier,
+} from '../shot-danger';
 
 const kinds: readonly MatchVfxKind[] = [
   'slide-tackle',
   'standing-tackle',
-  'hard-shot',
+  'dangerous-shot',
   'save-impact',
   'power-interruption',
 ];
@@ -62,7 +66,7 @@ describe('procedural match VFX recipes', () => {
     expect(first.anchor).toEqual({ x: 3_401, y: 5_003 });
     expect(first.direction.x).toBeCloseTo(0.6);
     expect(first.direction.y).toBeCloseTo(0.8);
-    expect(emitter('hard-shot').seed).not.toBe(first.seed);
+    expect(emitter('dangerous-shot').seed).not.toBe(first.seed);
   });
 
   it.each(kinds)(
@@ -120,16 +124,32 @@ describe('procedural match VFX recipes', () => {
   });
 
   it('expires emitters at the exact duration', () => {
-    const prepared = emitter('hard-shot', 0);
+    const prepared = emitter('dangerous-shot', 0);
     expect(activeMatchVfxEmitters([prepared], 6.67)).toEqual([prepared]);
     expect(activeMatchVfxEmitters([prepared], 6.68)).toEqual([]);
   });
 
-  it('classifies 55 as hard and excludes 54', () => {
-    expect(HARD_SHOT_POWER_MIN).toBe(55);
-    expect(isHardShotPower(54)).toBe(false);
-    expect(isHardShotPower(55)).toBe(true);
-    expect(isHardShotPower(999)).toBe(true);
+  it('grades shots by keeper-relative danger, not by struck power', () => {
+    // The retired `SHOT.power >= 55` rule fired on 14% of Division 5 shots and
+    // on 100% of them once squad stats doubled. Danger holds its shape at every
+    // scale, so the thresholds are constants rather than a moving target.
+    expect(shotTier(0.32)).toBe(0);
+    expect(shotTier(SHOT_DANGER_TIER_1)).toBe(1);
+    expect(shotTier(0.49)).toBe(1);
+    expect(shotTier(SHOT_DANGER_TIER_2)).toBe(2);
+    expect(shotTier(1)).toBe(2);
+    // An unreadable shot grades as ordinary, never as special.
+    expect(shotTier(null)).toBe(0);
+  });
+
+  it('spreads burst intensity across the danger range shots actually reach', () => {
+    // `power / 100` wasted the dial: it never passed 0.66 at Division 5 and sat
+    // pinned at 1 from x4 stats up. Measured danger tops out near 0.62.
+    expect(shotBurstIntensity(SHOT_DANGER_TIER_1)).toBe(0);
+    expect(shotBurstIntensity(0.62)).toBeGreaterThan(0.9);
+    expect(shotBurstIntensity(0.49)).toBeGreaterThan(0.4);
+    expect(shotBurstIntensity(0.49)).toBeLessThan(0.6);
+    expect(shotBurstIntensity(null)).toBe(0);
   });
 
   it('contains no runtime randomness or wall-clock authority', () => {

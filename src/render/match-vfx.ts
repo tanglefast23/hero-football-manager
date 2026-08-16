@@ -11,12 +11,11 @@ export const MATCH_VFX_PHASE_COUNT = 4 as const;
 export const MATCH_VFX_DURATION_MS = MATCH_VFX_STEP_MS * MATCH_VFX_PHASE_COUNT;
 export const MATCH_VFX_TICK_MS = 100 as const;
 export const MATCH_VFX_EMITTER_CAP = 16 as const;
-export const HARD_SHOT_POWER_MIN = 55 as const;
 
 export type MatchVfxKind =
   | 'slide-tackle'
   | 'standing-tackle'
-  | 'hard-shot'
+  | 'dangerous-shot'
   | 'save-impact'
   | 'power-interruption';
 
@@ -153,10 +152,6 @@ export function activeMatchVfxEmitters(
   });
 }
 
-export function isHardShotPower(power: number): boolean {
-  return Number.isFinite(power) && power >= HARD_SHOT_POWER_MIN;
-}
-
 function mark(
   role: MatchVfxColorRole,
   along: number,
@@ -205,7 +200,7 @@ function standingMarks(
   return marks;
 }
 
-function hardShotMarks(
+function dangerousShotMarks(
   emitter: PreparedMatchVfxEmitter,
   phase: number,
   secondary: boolean,
@@ -289,8 +284,8 @@ export function sampleMatchVfxGeometry(
     case 'standing-tackle':
       marks = standingMarks(emitter, phase, secondary);
       break;
-    case 'hard-shot':
-      marks = hardShotMarks(emitter, phase, secondary);
+    case 'dangerous-shot':
+      marks = dangerousShotMarks(emitter, phase, secondary);
       break;
     case 'save-impact':
       marks = saveMarks(emitter, phase, secondary);

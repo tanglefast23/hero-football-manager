@@ -27,10 +27,10 @@ export const MATCH_VFX_CASES = [
     note: 'One compact contact burst for a real standing duel',
   },
   {
-    id: 'hard-shot',
-    kind: 'hard-shot',
-    label: 'Hard Shot',
-    note: 'Production SHOT event at power 55 or higher',
+    id: 'dangerous-shot',
+    kind: 'dangerous-shot',
+    label: 'Dangerous Shot',
+    note: 'Top-tier shot danger · burst, burning ball and scorch chord',
   },
   {
     id: 'save-impact',

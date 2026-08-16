@@ -11,7 +11,7 @@ describe('procedural match VFX Dev Harness entry', () => {
     const ids = [
       "id: 'slide-tackle'",
       "id: 'standing-tackle'",
-      "id: 'hard-shot'",
+      "id: 'dangerous-shot'",
       "id: 'save-impact'",
       "id: 'power-interruption'",
     ];

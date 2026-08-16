@@ -65,7 +65,8 @@ export type SfxKey =
   | 'save-slap'
   | 'crowd-ooh'
   | 'power-interrupt'
-  | 'decoy-pop';
+  | 'decoy-pop'
+  | 'shot-scorch';
 
 const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'kickoff-whistle': require('../../assets/audio/sfx/kickoff-whistle.m4a'),
@@ -112,6 +113,17 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'crowd-ooh': require('../../assets/audio/sfx/crowd-ooh.wav'),
   'power-interrupt': require('../../assets/audio/sfx/power-interrupt.wav'),
   'decoy-pop': require('../../assets/audio/sfx/decoy-pop.wav'),
+  // Supplied explosion, tail-trimmed to its 1.43s of content. It has NO attack
+  // — it sits at full scale for its first 350ms — so it never plays alone.
+  // `kick-shot` fires with it and supplies the boot contact at 0ms.
+  //
+  // Lossless for the same reason as `goal-net-hit`, arrived at by measurement:
+  // the source is hard-clipped flat, and AAC reconstruction of a flat top
+  // overshoots ~9dB whatever headroom it is given (+5.9 dBTP at unity, still
+  // +1.4 after an 8dB pre-cut). The levelling pass then had to pull it 12dB to
+  // clear the ceiling, landing 5dB under target and inaudible under the chord.
+  // PCM lands on its sample peak exactly, so the cue can sit where it belongs.
+  'shot-scorch': require('../../assets/audio/sfx/shot-scorch.wav'),
 };
 
 const THEME_SOURCE: AudioSource = require('../../assets/audio/music/match-theme.m4a');
@@ -575,6 +587,34 @@ export function playForEvent(e: MatchEvent): void {
 export function playBallFlightWhoosh(): void {
   if (!ready || masterVolume === 0) return;
   playSfxKey('ball-flight-whoosh', false);
+}
+
+/** How far `kick-shot` is bent down at each shot tier. */
+const SHOT_TIER_PITCH_RATE = [1, 0.94, 0.88] as const;
+
+/**
+ * Grades the shot cue before `playForEvent` fires it. Render-owned, because
+ * shot tier is a presentation reading of match state, not a field on the event
+ * — `filesForEvent` stays a pure switch and keeps its exhaustiveness contract.
+ *
+ * Must be called BEFORE `playForEvent(shotEvent)`: it sets `kick-shot`'s rate,
+ * and the rate has to be in place before that player starts. Thirteen shots a
+ * match used to sound byte-identical; a bend costs no asset and fixes that.
+ */
+export function playShotTierAudio(tier: 0 | 1 | 2): void {
+  if (!ready || masterVolume === 0) return;
+  const kick = sfxPlayers.get('kick-shot');
+  if (kick) {
+    try {
+      (
+        kick as unknown as { setPlaybackRate?: (rate: number) => void }
+      ).setPlaybackRate?.(SHOT_TIER_PITCH_RATE[tier]);
+    } catch (error) {
+      warnOnce('shot pitch adjust failed', error);
+    }
+  }
+  // The chord: `kick-shot` lands the contact, `shot-scorch` carries the weight.
+  if (tier === 2) playSfxKey('shot-scorch', false);
 }
 
 export function startTheme(): void {
