@@ -571,10 +571,13 @@ export interface FocusDrillViewModel {
 export interface CoachSpeechViewModel {
   /** Every training point the club holds — the price is all of them. */
   trainingPointsCost: number;
-  banked: boolean;
+  /** How many are banked. Absent from the card entirely when this is 0. */
+  bankedCount: number;
   /** What each attribute gains for the second half, by current division. */
   boost: number;
   label: string;
+  /** Pre-resolved so the card never counts in seven plural systems. */
+  bankedLabel?: string;
   blockedLabel?: string;
 }
 

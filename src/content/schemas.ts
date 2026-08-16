@@ -1438,6 +1438,25 @@ export const FulltimeBlameLinesSchema = z
   });
 
 /**
+ * Four of these are shown per half-time speech cutscene, so the pool only has
+ * to outlast a few matches before repeating rather than a season.
+ *
+ * Bounded to the ceremony length for the same reason the blame lines are: one
+ * speech bubble, one phone — and here the bubble also has to be read inside a
+ * four-second cutscene, which is a harder limit than the bubble itself.
+ */
+const COACH_SPEECH_LINE_POOL_SIZE = 20;
+
+export const CoachSpeechLinesSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    lines: z.array(ceremonyLineSchema).length(COACH_SPEECH_LINE_POOL_SIZE),
+  })
+  .superRefine((pool, context) => {
+    addDuplicateIssues(pool.lines, context, ['lines'], 'coach speech line');
+  });
+
+/**
  * What the gaffer says about the result itself, one pool per kind of afternoon.
  *
  * The league reads a result by how heavily it went; the cup reads it by who it
@@ -1901,6 +1920,7 @@ export const LaunchContentSchema = z
     assistantGuide: AssistantGuideContentSchema,
     awardCeremonyLines: AwardCeremonyLinesSchema,
     fulltimeBlameLines: FulltimeBlameLinesSchema,
+    coachSpeechLines: CoachSpeechLinesSchema,
     agentFinalLines: AgentFinalLinesSchema,
     fulltimeCoachLines: FulltimeCoachLinesSchema,
     clubs: ClubCatalogSchema,
@@ -2105,6 +2125,7 @@ export type AssistantGuideDestination = z.infer<
 export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
 export type AwardCeremonyLines = z.infer<typeof AwardCeremonyLinesSchema>;
 export type FulltimeBlameLines = z.infer<typeof FulltimeBlameLinesSchema>;
+export type CoachSpeechLines = z.infer<typeof CoachSpeechLinesSchema>;
 export type AgentFinalLines = z.infer<typeof AgentFinalLinesSchema>;
 export type FulltimeCoachLines = z.infer<typeof FulltimeCoachLinesSchema>;
 /** Which pool of the gaffer's lines an afternoon draws from. */

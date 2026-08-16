@@ -2835,7 +2835,6 @@
     "fixtureMatchDay.heroLicenseGlobalOnly": "Only a Global League club may hold more than four.",
     "coachSpeech.trainCoach": "Train coach · Speech",
     "coachSpeech.costDetail": "Spends all {points} TP. Every player gains +{boost} for the second half.",
-    "coachSpeech.blocked.ALREADY_BANKED": "Speech ready · your coach is holding one",
     "coachSpeech.blocked.NO_HEAD_COACH": "Hire a head coach first",
     "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Training points already spent this week",
     "coachSpeech.blocked.NOT_ENOUGH_TP": "No training points to spend",
@@ -2845,9 +2844,11 @@
     "confirm.coachSpeech.confirm": "Spend the points",
     "matchScreen.speechKicker": "HALF TIME",
     "matchScreen.speechTitle": "Give the team talk?",
-    "matchScreen.speechDetail": "Your head coach has one speech saved. Use it now and every player gains +{boost} to each attribute for the second half.",
+    "matchScreen.speechDetail": "Your head coach is ready to speak. Use a speech now and every player gains +{boost} to each attribute for the second half.",
     "matchScreen.speechConfirm": "Give it",
     "matchScreen.speechCancel": "Save it",
-    "matchScreen.bannerMotivationalSpeech": "TEAM TALK"
+    "matchScreen.bannerMotivationalSpeech": "TEAM TALK",
+    "coachSpeech.bankedTally": "BANKED · {count}",
+    "coachSpeech.blocked.BANK_FULL": "Your coach cannot hold any more"
   }
 }

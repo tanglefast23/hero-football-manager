@@ -132,13 +132,45 @@ const DIST = path.resolve('dist');
 // of them inside `MOTIVATIONAL_SPEECH`, the sim's own input kind, which belongs
 // in the first load. A substring of app code is not a harness marker.
 //
-// Previous marks: 6_007_581 / 901_680 at 33bbf4b0 (#166), 6_005_786 / 901_680
-// at 6a2c27e2, 5_994_912 / 894_580 at the 2026-08-15 merge, 5_977_355 /
-// 893_727 earlier that day, 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at
-// b26e1399 (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
-// 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 6_018_860;
-const GZIP_BUDGET = 902_095;
+// Re-ratcheted 2026-08-16 (second time that day) for the half-time speech
+// CUTSCENE, on claude/motivational-speech-cutscene-306228.
+//
+// Nothing is inherited this time, and that was checked rather than assumed.
+// The branch's own merge base, e7851793, was exported in a throwaway worktree
+// and measured the same way: 6_017_823 raw / 901_868 gzip — 1_037 raw and 227
+// gzip UNDER the mark it set. So the whole overrun is this branch's:
+//
+//   raw   6_023_331 - 6_017_823 = +5_508
+//   gzip    903_351 -   901_868 = +1_483
+//
+// The numbers below are those local figures plus the SAME CI-versus-local gap
+// the previous ratchet measured on its own tree (1_037 raw, 227 gzip), because
+// CI is what has to pass and CI reads high. If CI comes in under these, the
+// next branch should ratchet back down rather than bank the slack.
+//
+// What the 5_508 is, in descending order: the twenty English speech lines in
+// `coach-speech-lines.json`, `MotivationalSpeechCutscene.tsx` and
+// `coach-speech-audio.ts` (both reached eagerly from `MatchScreen`, which is
+// correct — the cutscene must appear on the frame the sheet is confirmed, and a
+// lazy chunk fetch at that moment is exactly the wrong place for a network
+// round trip), the `coach-portrait.ts` resolver, and three new English chrome
+// keys. The six locale catalogs are again NOT the story: `es-*.js` and friends
+// are their own chunks, so only the English half of the seven-language copy
+// lands in `index-*.js` — verified by grepping a Spanish line (0 hits in
+// `index-*.js`, 1 in `es-*.js`).
+//
+// Markers checked before moving the number. This branch adds a dev-harness
+// entry, and three strings unique to it — "Motivational speech cutscene",
+// "Half-time team talk", "Reduced motion ON" — return zero hits in BOTH
+// `index-*.js` and `__common-*.js`. The entry is lazy and stayed lazy.
+//
+// Previous marks: 6_018_860 / 902_095 at e052a5c1 (#170), 6_007_581 / 901_680
+// at 33bbf4b0 (#166), 6_005_786 / 901_680 at 6a2c27e2, 5_994_912 / 894_580 at
+// the 2026-08-15 merge, 5_977_355 / 893_727 earlier that day, 5_922_802 /
+// 879_373 at #158, 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the
+// stat-tip branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 6_024_368;
+const GZIP_BUDGET = 903_578;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

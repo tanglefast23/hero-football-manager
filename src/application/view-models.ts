@@ -1467,9 +1467,18 @@ function coachSpeechViewModel(
       : t(`coachSpeech.blocked.${offer.blockedReason}`);
   return {
     trainingPointsCost: offer.trainingPointsCost,
-    banked: offer.banked,
+    bankedCount: offer.bankedCount,
     boost: offer.boost,
     label: t('coachSpeech.trainCoach'),
+    // Nothing at zero: "Banked · 0" reads as a fault rather than as an
+    // empty shelf. The count-neutral form buys us out of six plural systems.
+    ...(offer.bankedCount > 0
+      ? {
+          bankedLabel: t('coachSpeech.bankedTally', {
+            count: offer.bankedCount,
+          }),
+        }
+      : {}),
     ...(blockedLabel === undefined ? {} : { blockedLabel }),
   };
 }

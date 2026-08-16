@@ -5,17 +5,20 @@ import { useM1Store } from '../store';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 /**
- * The bank is emptied from the settled match's recorded input log, not from a
+ * One speech is spent from the settled match's recorded input log, not from a
  * live callback during play. These two tests are the reason that matters: the
  * same finished match settles differently depending only on what the log says,
  * so the bank and the saved replay can never drift apart.
+ *
+ * The bank stacks, so this also pins the second half of the rule — a match that
+ * used a speech takes ONE, and leaves the rest of the stock alone.
  */
 describe('the banked speech and the settled match', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
-  it('empties the bank when the match recorded a speech, and only then', () => {
+  it('spends one banked speech when the match recorded one, and only then', () => {
     for (const withSpeech of [true, false]) {
       useM1Store.setState(useM1Store.getInitialState(), true);
       useM1Store.getState().startNewCareer(2468);
@@ -27,10 +30,11 @@ describe('the banked speech and the settled match', () => {
         career: withRivalHeroIntrosSeen(useM1Store.getState().career!),
       });
       advanceToMatchday();
-      // Bank a speech directly: how it was bought is the game ring's test, and
-      // this one is about what the settled match does with it.
+      // Bank TWO directly: how they were bought is the game ring's test, and
+      // this one is about what the settled match does with the stock. Two
+      // rather than one so a match that spends can be told from one that wipes.
       useM1Store.setState({
-        career: { ...useM1Store.getState().career!, coachSpeechBanked: true },
+        career: { ...useM1Store.getState().career!, coachSpeechesBanked: 2 },
       });
       useM1Store.getState().watchMatch();
       const watched = useM1Store.getState().watchedMatch;
@@ -59,7 +63,9 @@ describe('the banked speech and the settled match', () => {
 
       useM1Store.getState().finishWatchedMatch(match);
 
-      expect(useM1Store.getState().career?.coachSpeechBanked).toBe(!withSpeech);
+      expect(useM1Store.getState().career?.coachSpeechesBanked).toBe(
+        withSpeech ? 1 : 2,
+      );
     }
   });
 });

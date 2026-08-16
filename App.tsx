@@ -94,6 +94,7 @@ import {
   setCelebrationMasterVolume,
   teardownCelebrationAudio,
 } from './src/render/celebration-audio';
+import { setCoachSpeechMasterVolume } from './src/render/coach-speech-audio';
 import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import {
   menuThemeForScreen,
@@ -1326,6 +1327,7 @@ function GameApp() {
     setRivalHeroVoiceMasterVolume(devVolume);
     setAwakeningMasterVolume(devVolume);
     setCelebrationMasterVolume(devVolume);
+    setCoachSpeechMasterVolume(devVolume);
   }, [devVolume]);
 
   useEffect(() => {
@@ -2807,6 +2809,22 @@ function GameApp() {
       />
     );
   } else if (store.screen === 'watched' && store.watchedMatch !== null) {
+    // The coach is read ONCE into a local, rather than gated on
+    // `hasHeadCoach(state)`, because that returns a plain boolean and narrows
+    // nothing — the two required props would still need a non-null assertion.
+    //
+    // A club can bank a speech and then dismiss the coach who would give it.
+    // The stock survives that; the OFFER waits. Hiring a new head coach makes
+    // the banked speeches available again.
+    const headCoach = store.career?.market?.headCoach;
+    const motivationalSpeech =
+      headCoach !== undefined && (store.career?.coachSpeechesBanked ?? 0) > 0
+        ? {
+            boost: coachSpeechBoost(store.career!),
+            coachName: headCoach.name,
+            coachPortraitId: headCoach.portraitId ?? headCoach.id,
+          }
+        : undefined;
     screen = (
       <MatchScreen
         seed={store.watchedMatch.fixture.matchSeed}
@@ -2832,11 +2850,7 @@ function GameApp() {
           isFirstOnboardingFixture(store.career, store.watchedMatch.fixture.id)
         }
         cupRoundLabel={store.watchedMatch.cupRoundLabel}
-        motivationalSpeech={
-          store.career?.coachSpeechBanked === true
-            ? { boost: coachSpeechBoost(store.career) }
-            : undefined
-        }
+        motivationalSpeech={motivationalSpeech}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />

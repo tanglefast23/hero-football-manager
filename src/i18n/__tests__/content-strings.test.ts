@@ -182,6 +182,7 @@ describe('the story and glossary screens read the keys that exist', () => {
       ['ceremony.winner', content.awardCeremonyLines.winner],
       ['ceremony.runnerUp', content.awardCeremonyLines.runnerUp],
       ['coach.blame', content.fulltimeBlameLines.lines],
+      ['coach.speech', content.coachSpeechLines.lines],
       ...Object.entries(content.fulltimeCoachLines)
         .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]))
         .map(([pool, lines]): [string, readonly string[]] => [

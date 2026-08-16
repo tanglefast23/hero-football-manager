@@ -94,20 +94,60 @@ describe('head coach motivational speech', () => {
     ).toEqual([6, 8, 10]);
   });
 
-  it('costs every training point and banks exactly one speech', () => {
+  it('costs every training point and banks one speech', () => {
     const before = career();
     const offer = coachSpeechOffer(before);
     expect(offer?.blockedReason).toBeUndefined();
     expect(offer?.trainingPointsCost).toBe(40);
+    expect(offer?.bankedCount).toBe(0);
 
     const after = buyCoachSpeech(before);
     expect(after.trainingPoints).toBe(0);
-    expect(after.coachSpeechBanked).toBe(true);
+    expect(after.coachSpeechesBanked).toBe(1);
     expect(after.eventFlags).toContain(coachSpeechUsedFlag(1, 2));
 
-    // A second tap the same week is refused, and changes nothing.
-    expect(coachSpeechOffer(after)?.blockedReason).toBe('ALREADY_BANKED');
+    // A second tap the SAME WEEK is refused — by the weekly flag, not by stock.
+    expect(coachSpeechOffer(after)?.blockedReason).toBe(
+      'TRAINING_USED_THIS_WEEK',
+    );
     expect(buyCoachSpeech(after)).toEqual(after);
+  });
+
+  it('stacks across weeks, and spends one at a time', () => {
+    const first = buyCoachSpeech(career());
+    const second = buyCoachSpeech({
+      ...first,
+      week: 3,
+      trainingPoints: 25,
+    });
+    expect(second.coachSpeechesBanked).toBe(2);
+    expect(second.trainingPoints).toBe(0);
+    // Holding two does not block a third week's purchase: the bank is uncapped.
+    expect(
+      coachSpeechOffer({ ...second, week: 4, trainingPoints: 9 })
+        ?.blockedReason,
+    ).toBeUndefined();
+
+    // One match spends one, and leaves the other where it was.
+    expect(spendCoachSpeech(second).coachSpeechesBanked).toBe(1);
+    expect(spendCoachSpeech(spendCoachSpeech(second)).coachSpeechesBanked).toBe(
+      0,
+    );
+  });
+
+  it('refuses the sale at the safe-integer ceiling instead of taking the points', () => {
+    // Only a hand-edited save reaches this. What matters is that a refused sale
+    // costs nothing — a clamp here would spend every point and bank no speech.
+    const full: GameState = {
+      ...career(),
+      coachSpeechesBanked: Number.MAX_SAFE_INTEGER,
+    };
+    expect(coachSpeechOffer(full)?.blockedReason).toBe('BANK_FULL');
+
+    const after = buyCoachSpeech(full);
+    expect(after.trainingPoints).toBe(40);
+    expect(after.coachSpeechesBanked).toBe(Number.MAX_SAFE_INTEGER);
+    expect(after.eventFlags).not.toContain(coachSpeechUsedFlag(1, 2));
   });
 
   it('refuses when TP was already spent this week, in either order', () => {
@@ -118,7 +158,7 @@ describe('head coach motivational speech', () => {
     expect(coachSpeechOffer(drilledFirst)?.blockedReason).toBe(
       'TRAINING_USED_THIS_WEEK',
     );
-    expect(buyCoachSpeech(drilledFirst).coachSpeechBanked).toBeUndefined();
+    expect(buyCoachSpeech(drilledFirst).coachSpeechesBanked).toBeUndefined();
 
     // Speech first: the week's own flag closes the desk, and the drill flag is
     // deliberately left alone so Green Bull never claims individual training
@@ -148,9 +188,9 @@ describe('head coach motivational speech', () => {
     ).toBe('NOT_ENOUGH_TP');
   });
 
-  it('empties the bank when a match has used it', () => {
+  it('spends one speech when a match has used it', () => {
     const banked = buyCoachSpeech(career());
-    expect(spendCoachSpeech(banked).coachSpeechBanked).toBe(false);
+    expect(spendCoachSpeech(banked).coachSpeechesBanked).toBe(0);
     // Spending an empty bank is a no-op, not a negative.
     expect(spendCoachSpeech(career())).toEqual(career());
   });

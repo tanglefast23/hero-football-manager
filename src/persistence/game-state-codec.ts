@@ -2031,7 +2031,12 @@ const gameStateSchema = z
     onboarding: onboardingSchema.optional(),
     trainingPoints: nonnegativeInteger,
     // Absent on saves written before the head coach could bank a half-time
-    // speech; absent and false mean the same thing.
+    // speech; absent and 0 mean the same thing.
+    coachSpeechesBanked: nonnegativeInteger.optional(),
+    // Legacy. The first release of the speech held at most one and stored a
+    // boolean; `normalizeCoachSpeechBank` upgrades `true` to 1 and drops the
+    // key. Still accepted here so a MALFORMED value reaches this schema and is
+    // rejected, rather than being silently deleted by the normaliser.
     coachSpeechBanked: z.boolean().optional(),
     // Optional so a save written before drill upgrades became a purchase still
     // loads; every path it does not name is owned at tier 1.
@@ -3071,6 +3076,7 @@ export function parseStoredGameState(serialized: string): GameState {
   value = removeRetiredHeroSystems(value);
   value = removeRetiredWeeklyTraining(value);
   value = migrateRetiredPowers(value);
+  value = normalizeCoachSpeechBank(value);
   // Then walk the save up to the current schema version. This is the step that
   // lets a shipped update change the save shape without wiping the field.
   value = migrateStoredGameState(value);
@@ -3172,6 +3178,33 @@ function removeRetiredWeeklyTraining(value: unknown): unknown {
   const { maxFocusDrillsPerWeek: _maxFocusDrillsPerWeek, ...rulesWithoutCap } =
     trainingRules;
   return { ...withoutWeeklyTraining, trainingRules: rulesWithoutCap };
+}
+
+/**
+ * Upgrades the half-time speech bank from a boolean to a count.
+ *
+ * The first release held at most one speech and stored `coachSpeechBanked:
+ * true`. The bank now stacks, so it is a number. `true` was exactly one speech;
+ * `false` and absence were none.
+ *
+ * Two rules that look like details and are not:
+ *
+ * - A save that already carries the count WINS. Both keys can coexist only in a
+ *   save written by a build straddling this change, and the newer field is the
+ *   one that was being maintained.
+ * - A legacy value that is neither `true` nor `false` is LEFT IN PLACE, not
+ *   deleted. This normaliser runs before validation, so quietly dropping a
+ *   malformed field would hide exactly the corruption the schema exists to
+ *   catch. `z.boolean()` still names it in the error.
+ */
+function normalizeCoachSpeechBank(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const legacy = value.coachSpeechBanked;
+  if (typeof legacy !== 'boolean') return value;
+
+  const { coachSpeechBanked: _legacy, ...withoutLegacy } = value;
+  if (withoutLegacy.coachSpeechesBanked !== undefined) return withoutLegacy;
+  return legacy ? { ...withoutLegacy, coachSpeechesBanked: 1 } : withoutLegacy;
 }
 
 /**
