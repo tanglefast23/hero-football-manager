@@ -78,6 +78,8 @@ import {
   careerContractPromiseBlockedReason,
   careerContractPromiseHeroLimit,
   clearCareerContractPromise,
+  heroLicenseReclaimRequired,
+  reclaimableHeroLicenseHolders,
 } from './contract-promises';
 import {
   clearMetBoardUltimatum,
@@ -702,13 +704,15 @@ export function submitCareerTransferOffer(
   // GUARANTEED_STARTER: buying any hero with the Hero Licence cap full does it.
   const target = careerTransferTarget(state, market.transferTalks.playerId);
   if (target !== undefined) {
+    const cap = heroLimit ?? careerContractPromiseHeroLimit(state);
     const blocked = careerContractPromiseBlockedReason(
       state,
       target.player,
       offer.perk,
-      heroLimit ?? careerContractPromiseHeroLimit(state),
+      cap,
     );
     if (blocked !== undefined) throw new ContractPromiseBlockedError(blocked);
+    assertHeroLicenseReclaimChoice(state, target.player, offer, cap);
   }
   return {
     ...market,
@@ -832,7 +836,13 @@ export function completeCareerTransfer(
     referenceId: player.id,
   });
   return {
-    state: applyCareerContractPromise(recordedState, player.id, offer.perk),
+    state: applyCareerContractPromise(
+      recordedState,
+      player.id,
+      offer.perk,
+      undefined,
+      offer.reclaimHeroLicenseFromPlayerId,
+    ),
     market: {
       ...market,
       scoutReports: market.scoutReports.filter(
@@ -847,6 +857,39 @@ export function completeCareerTransfer(
       transferTalks: undefined,
     },
   };
+}
+
+/**
+ * Refuses an offer whose Hero License arrangement cannot be carried out.
+ *
+ * Both negotiation paths check it here, at submit, for the same reason the
+ * promise itself is checked here: an offer the agent accepts must always be
+ * completable, or `guarded()` throws away a signed deal and the panel resets as
+ * though the manager never spoke.
+ */
+function assertHeroLicenseReclaimChoice(
+  state: GameState,
+  player: CareerPlayer,
+  offer: ContractOffer,
+  heroLimit: number,
+): void {
+  const required = heroLicenseReclaimRequired(
+    state,
+    player,
+    offer.perk,
+    heroLimit,
+  );
+  if (!required) return;
+  const holders = reclaimableHeroLicenseHolders(state, player);
+  const chosen = holders.find(
+    (candidate) => candidate.id === offer.reclaimHeroLicenseFromPlayerId,
+  );
+  if (chosen !== undefined) return;
+  throw new ContractPromiseBlockedError({
+    text: `No Hero License is free. Choose the hero who gives one up for ${player.name}.`,
+    key: 'market.promiseNeedsHeroLicenseChoice',
+    params: { player: player.name },
+  });
 }
 
 /** The hero premium a renewal prices at. Doc 06 allows 3-5; renewals use the midpoint. */
@@ -1055,6 +1098,12 @@ export function submitCareerRenewalOffer(
     heroLimit ?? careerContractPromiseHeroLimit(state),
   );
   if (blocked !== undefined) throw new ContractPromiseBlockedError(blocked);
+  assertHeroLicenseReclaimChoice(
+    state,
+    player,
+    offer,
+    heroLimit ?? careerContractPromiseHeroLimit(state),
+  );
   return {
     ...market,
     renewalTalks: {
@@ -1083,6 +1132,7 @@ function applyCareerRenewalTerms(
   termSeasons: number,
   perk: ContractOffer['perk'] | undefined,
   heroLimit?: number,
+  reclaimHeroLicenseFromPlayerId?: string,
 ): GameState {
   assertContractTermFitsCareer(
     player,
@@ -1134,7 +1184,13 @@ function applyCareerRenewalTerms(
   };
   return perk === undefined
     ? renewedState
-    : applyCareerContractPromise(renewedState, player.id, perk, heroLimit);
+    : applyCareerContractPromise(
+        renewedState,
+        player.id,
+        perk,
+        heroLimit,
+        reclaimHeroLicenseFromPlayerId,
+      );
 }
 
 /** Applies the accepted wage/term and clears talks so the next expired deal can be resolved. */
@@ -1158,6 +1214,7 @@ export function completeCareerRenewal(
       accepted.termSeasons,
       accepted.perk,
       heroLimit,
+      accepted.reclaimHeroLicenseFromPlayerId,
     ),
     market: { ...market, renewalTalks: undefined },
   };

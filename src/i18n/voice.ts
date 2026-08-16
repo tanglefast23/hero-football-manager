@@ -37,6 +37,11 @@ const BODY_PREFIXES = [
   // Disabled contract-promise explanations render as wrapping sans paragraphs
   // under each row (`MarketScreen.tsx`), not in the pixel label above them.
   'market.promiseBlocked',
+  // The Hero License reclaim question and its consequence line, both plain
+  // `<Text>` paragraphs inside the chooser (`MarketScreen.tsx`). The two names
+  // ABOVE them -- `market.reclaimHolderStarting` / `...Bench` -- are `PixelText`
+  // and deliberately fall outside this prefix, so they stay glyph-checked.
+  'market.reclaimHeroLicense',
   // Sponsor offer lines and objective sentences. The BRAND above them is the
   // pixel line on the card (`ClubFinancesScreen.tsx:1040`, `:1085`,
   // `SeasonEndScreen.tsx:148` — all `PixelText`) and stays English anyway, so
@@ -111,6 +116,7 @@ const BODY_LEAVES: readonly RegExp[] = [
   /^confirm\.sponsor\.(contract|chairmanFee|objective|chairmanBonus)$/, // joined into the same paragraph
   /^confirm\.hireCoach\.replaceNote$/, // joined into the same paragraph
   /^trainingDrill\.notEnoughTpDetail$/, // TrainingDrillModal.tsx:1295  <Text className="mt-2 text-center text-sm">
+  /^market\.promiseNeedsHeroLicenseChoice$/, // App.tsx:4890  FeedbackNotice  <Text className="flex-1 text-sm font-bold text-ink">
 ];
 
 export function voiceOf(key: string): Voice {
