@@ -390,7 +390,11 @@ describe('marketViewModel', () => {
             intake.offers[0],
             {
               ...intake.offers[0],
-              player: { ...intake.offers[0].player, id: 'kid-2', name: 'Rio Vane' },
+              player: {
+                ...intake.offers[0].player,
+                id: 'kid-2',
+                name: 'Rio Vane',
+              },
             },
           ],
         },

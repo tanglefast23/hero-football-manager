@@ -115,8 +115,11 @@ function anyScoutReportAffordable(state: GameState): boolean {
   const cash =
     state.clubs.find((club) => club.id === state.userClubId)?.cash ?? 0;
   return market.scoutReports.some((report) => {
-    if (careerTransferTarget(state, report.playerId) === undefined) return false;
-    return careerBuyingTransferQuote(state, market, report.playerId).fee <= cash;
+    if (careerTransferTarget(state, report.playerId) === undefined)
+      return false;
+    return (
+      careerBuyingTransferQuote(state, market, report.playerId).fee <= cash
+    );
   });
 }
 
