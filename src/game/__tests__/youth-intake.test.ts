@@ -16,6 +16,8 @@ import {
   youthFieldLevel,
   youthSigningBonus,
 } from '../youth-intake';
+import { DIVISION_STRENGTH_BANDS } from '../pyramid';
+import type { Attrs, Role } from '../../sim/types';
 import type { GameState } from '../types';
 import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../contract-wages';
 
@@ -66,37 +68,96 @@ function careerWithRosterSize(
   };
 }
 
+/**
+ * A player's strength in the stats their own role is judged on.
+ *
+ * The split matters. A keeper's finishing is noise, and averaging it in drags
+ * the number down by a fixed amount that has nothing to do with how good the
+ * keeper is — which is exactly how a role-blind floor passes for midfielders
+ * and fails for goalkeepers while the code under it is correct.
+ */
+function roleRelevantAverage(role: Role, attrs: Attrs): number {
+  return role === 'GK'
+    ? (attrs.ref + attrs.def + attrs.pas) / 3
+    : (attrs.pac + attrs.sho + attrs.pas + attrs.def + attrs.tec + attrs.sta) /
+        6;
+}
+
 function relevantAverage(
   state: ReturnType<typeof createPreseasonYouthIntake>,
 ): number {
-  const totals = state.offers.map((offer) => {
-    const attrs = offer.player.attrs;
-    return offer.player.role === 'GK'
-      ? (attrs.ref + attrs.def + attrs.pas) / 3
-      : (attrs.pac +
-          attrs.sho +
-          attrs.pas +
-          attrs.def +
-          attrs.tec +
-          attrs.sta) /
-          6;
-  });
+  const totals = state.offers.map((offer) =>
+    roleRelevantAverage(offer.player.role, offer.player.attrs),
+  );
   return totals.reduce((sum, value) => sum + value, 0) / totals.length;
 }
 
 describe('pre-season youth intake', () => {
-  it('keeps emergency board relief near the D5 starting strength', () => {
-    const replacement = createEmergencyYouthReplacement(
-      careerWithRosterSize(15, 404),
-      'DEF',
-      'board-test',
-    );
-    const attrs = replacement.attrs;
-    const average =
-      (attrs.pac + attrs.sho + attrs.pas + attrs.def + attrs.tec + attrs.sta) /
-      6;
+  /**
+   * Board relief is the fail-soft rescue: the board sells a player the club
+   * cannot pay for, and hands back an academy replacement. Its strength is the
+   * whole point. At the old target of 27 each rescue left the squad weaker than
+   * anything in Division 5, so a run of forced sales sank the club for good.
+   *
+   * The rail is therefore a band tied to the Division 5 clubs themselves, not a
+   * literal number: relief lands just under the division floor and never above
+   * its ceiling. It stays cheap relief, and it stays survivable.
+   *
+   * Every role, many draws. The first version of this test checked one DEF at
+   * one seed against a role-blind floor of 37 — which goalkeepers miss by
+   * construction, on 18 of 40 seeds, with the code working exactly as intended.
+   */
+  it('keeps emergency board relief inside the Division 5 band, in every role', () => {
+    const [d5Minimum, d5Maximum] = DIVISION_STRENGTH_BANDS[5];
+    // Just under the division floor: relief is a lifeline, not a signing.
+    const floor = d5Minimum - 5;
+    const state = careerWithRosterSize(15, 404);
+    const roles: readonly Role[] = ['GK', 'DEF', 'MID', 'FWD'];
 
-    expect(average).toBeGreaterThanOrEqual(37);
+    for (const role of roles) {
+      // The source ID is mixed into the seed, so one career yields many draws.
+      const drawn = Array.from({ length: 40 }, (_, index) =>
+        roleRelevantAverage(
+          role,
+          createEmergencyYouthReplacement(state, role, `board-test-${index}`)
+            .attrs,
+        ),
+      );
+
+      expect({
+        role,
+        tooWeak: drawn.filter((average) => average < floor),
+        tooStrong: drawn.filter((average) => average > d5Maximum),
+      }).toEqual({ role, tooWeak: [], tooStrong: [] });
+    }
+  });
+
+  /**
+   * The rescue kid grows. He takes the division-scaled potential roll a normal
+   * intake gets, floored at 2 — and the floor is the point, not a hedge.
+   * `potentialTierForDivision` is humble at the bottom and returns tier 1 on 90%
+   * of Division 5 rolls, so the raw roll would have downgraded board relief in
+   * the very division where the board sells players.
+   */
+  it('never hands board relief a worse growth tier than the old fixed one', () => {
+    const state = careerWithRosterSize(15, 404);
+    const roles: readonly Role[] = ['GK', 'DEF', 'MID', 'FWD'];
+
+    for (const role of roles) {
+      const drawn = Array.from({ length: 40 }, (_, index) =>
+        createEmergencyYouthReplacement(state, role, `potential-${index}`),
+      );
+
+      expect({
+        role,
+        belowOldFixedTier: drawn
+          .map((player) => player.potential)
+          .filter((potential) => potential === undefined || potential < 2),
+        missingCeiling: drawn.filter(
+          (player) => player.potentialCeiling === undefined,
+        ).length,
+      }).toEqual({ role, belowOldFixedTier: [], missingCeiling: 0 });
+    }
   });
 
   it('offers two deterministic, JSON-safe 16-17 year olds each pre-season', () => {

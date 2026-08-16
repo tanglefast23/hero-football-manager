@@ -274,6 +274,7 @@ describe('every archetype render site draws the translated word', () => {
         declined: false,
         rosterCount: 16,
         rosterCapacity: 20,
+        exclusiveChoice: false,
         offers: [
           {
             player: {

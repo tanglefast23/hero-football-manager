@@ -1546,7 +1546,7 @@ const careerMarketSchema = z
       .array(
         z.object({
           playerId: nonemptyString,
-          percent: z.number().int().min(-100).max(50),
+          percent: z.number().int().min(-50).max(50),
         }),
       )
       .optional(),

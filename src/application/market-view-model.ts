@@ -158,6 +158,16 @@ export interface YouthIntakeViewSource {
   readonly declined: boolean;
   readonly rosterCount: number;
   readonly rosterCapacity: number;
+  /**
+   * Whether signing one prospect closes the intake on the rest.
+   *
+   * `signYouthIntakeOffer` keeps the other offers only while the story season
+   * is over AND a roster slot survives the signing, so the detail line has two
+   * truths to tell. It told one of them season-agnostically before this flag
+   * existed: "offers remain on the desk" was wrong in season 1, and the fix
+   * that replaced it was wrong in every season after.
+   */
+  readonly exclusiveChoice: boolean;
   readonly offers: readonly {
     readonly player: {
       readonly id: string;
@@ -599,9 +609,11 @@ function youthIntakeViewModel(
       : intake.declined
         ? t('market.youthHeadlineDeclined')
         : t('market.youthHeadlineClosed'),
-    detail: isOpen
-      ? t('market.youthDetailOpen')
-      : t('market.youthDetailClosed'),
+    detail: !isOpen
+      ? t('market.youthDetailClosed')
+      : intake.exclusiveChoice && intake.offers.length > 1
+        ? t('market.youthDetailOpenOne')
+        : t('market.youthDetailOpen'),
     rosterLabel: t('market.youthRosterLabel', {
       count: intake.rosterCount,
       capacity: intake.rosterCapacity,

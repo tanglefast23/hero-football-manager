@@ -282,6 +282,11 @@ export function careerMarketViewModelSource(
             declined: state.youthIntake.declined,
             rosterCount,
             rosterCapacity,
+            // Mirrors `signYouthIntakeOffer`: the remaining offers survive only
+            // when the story season is over and a slot is left after this one.
+            exclusiveChoice:
+              isStoryFeaturePacingActive(state) ||
+              rosterCapacity - (rosterCount + 1) <= 0,
             offers: state.youthIntake.offers.map((offer) => ({
               player: {
                 id: offer.player.id,

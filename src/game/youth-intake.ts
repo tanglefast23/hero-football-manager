@@ -13,7 +13,7 @@ import type {
 } from './types';
 import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
-import { DIVISION_TYPICAL_PACE } from './pyramid';
+import { DIVISION_TYPICAL_PACE, type DivisionLevel } from './pyramid';
 import { reducedPlayerWeeklyWage } from './market';
 import { PROMOTION_WAGE_CLAUSE_PERCENT } from './contract-wages';
 import {
@@ -354,6 +354,15 @@ export function youthFieldLevel(
   return level;
 }
 
+/** The user club's division, defaulting to D5 before the pyramid exists. */
+function userDivisionLevel(state: GameState): DivisionLevel {
+  return (
+    state.m2?.pyramid.divisions.find((candidate) =>
+      candidate.clubs.some((club) => club.id === state.userClubId),
+    )?.level ?? 5
+  );
+}
+
 export function youthSigningBonus(fieldLevel: 0 | 1 | 2 | 3): number {
   return SIGNING_BONUS_BY_FIELD_LEVEL[fieldLevel];
 }
@@ -388,6 +397,26 @@ export function createEmergencyYouthReplacement(
   if (state.players.some((player) => player.id === id)) {
     throw new Error(`player ID ${id} is already in the career`);
   }
+  /*
+   * The rescue is a prospect, not just a body: the same division-scaled roll a
+   * normal intake gets, and the same Youth Field bonus on it.
+   *
+   * Floored at 2, which is not timidity — it is the whole reason this reads as
+   * an upgrade. `potentialTierForDivision` is deliberately humble at the bottom
+   * and returns tier 1 on 90% of Division 5 rolls, so handing board relief the
+   * raw roll would have made the rescue WORSE in the division where the board
+   * actually sells players. The floor keeps today's guarantee everywhere and
+   * lets D4 and above draw better, which is where the roll has room to give.
+   */
+  const potentialRoll = Math.max(
+    0,
+    integerRoll(random, 0, 99) - fieldLevel * 10,
+  );
+  const rolledPotential = potentialTierForDivision(
+    userDivisionLevel(state),
+    potentialRoll,
+  );
+  const potential = rolledPotential === 1 ? 2 : rolledPotential;
   return {
     id,
     clubId: state.userClubId,
@@ -403,13 +432,13 @@ export function createEmergencyYouthReplacement(
     injuryWeeks: 0,
     age: 17,
     archetype: 'All-Rounder',
-    potential: 2,
+    potential,
     potentialCeiling: developmentPotentialCeiling({
       id,
       role,
       attrs,
       age: 17,
-      potential: 2,
+      potential,
     }),
     consistency: 50 + integerRoll(random, 0, 10),
     personality: 'Professional',
@@ -433,10 +462,7 @@ function createOffer(
   fieldLevel: 0 | 1 | 2 | 3,
   random: Rng,
 ): YouthIntakeOffer {
-  const division =
-    state.m2?.pyramid.divisions.find((candidate) =>
-      candidate.clubs.some((club) => club.id === state.userClubId),
-    )?.level ?? 5;
+  const division = userDivisionLevel(state);
   const targetStrength =
     32 + fieldLevel * 5 + (5 - division) * 3 + integerRoll(random, 0, 6);
   const paceTarget = Math.max(

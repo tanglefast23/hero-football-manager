@@ -200,11 +200,26 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
   };
 }
 
+/**
+ * What the club can spend, so the scout brings back at least one name it can
+ * actually sign. The fee needs the selling club's division and the career seed,
+ * neither of which a `ScoutablePlayer` carries, so the caller supplies the
+ * quote rather than this ring recomputing a valuation it cannot see.
+ *
+ * Fee only, by decision: the wage bill is the manager's problem to weigh, and
+ * a scout who refuses to name a player the club could buy is not a scout.
+ */
+export interface ScoutAffordability {
+  readonly budget: number;
+  readonly feeOf: (playerId: string) => number;
+}
+
 export function resolveScoutMission(
   mission: ScoutMission,
   currentWeek: number,
   candidates: readonly ScoutablePlayer[],
   shortlistSize = 3,
+  affordability?: ScoutAffordability,
 ): ScoutMissionResult {
   validateScoutMission(mission);
   assertPositiveSafeInteger(currentWeek, 'scouting resolution week');
@@ -232,7 +247,7 @@ export function resolveScoutMission(
     .slice()
     .sort((left, right) => compareIds(left.id, right.id));
   const random = mulberry32(mixSeed(mission.missionSeed, 'shortlist'));
-  const shortlist =
+  const drawn =
     mission.focus.kind === 'RUMORED_HERO'
       ? rumoredHeroShortlist(
           eligible,
@@ -243,6 +258,7 @@ export function resolveScoutMission(
       : mission.focus.kind === 'PROFILE'
         ? profileShortlist(eligible, shortlistSize, mission, random)
         : shuffledShortlist(eligible, shortlistSize, random);
+  const shortlist = withAffordableSlot(drawn, eligible, affordability);
 
   return {
     missionId: mission.id,
@@ -275,6 +291,49 @@ export function resolveScoutMission(
         : {}),
     })),
   };
+}
+
+/**
+ * Guarantees one signable name without flattening the shortlist to bargains.
+ *
+ * The region and the focus stay hard filters — a scout sent for elite prospects
+ * reports on elite prospects. Affordability only decides which of those names
+ * come back, and only when the draw returned nothing the club could sign. The
+ * dearest slot gives way, so the aspirational target the manager is saving for
+ * still appears beside the one they can afford today.
+ *
+ * When the pool holds nothing affordable the drawn shortlist is returned
+ * untouched. That is the honest answer, and `scout-report-unaffordable` is
+ * where Bert explains it.
+ */
+function withAffordableSlot(
+  shortlist: ScoutablePlayer[],
+  eligible: readonly ScoutablePlayer[],
+  affordability: ScoutAffordability | undefined,
+): ScoutablePlayer[] {
+  if (affordability === undefined || shortlist.length === 0) return shortlist;
+  const { budget, feeOf } = affordability;
+  if (shortlist.some((candidate) => feeOf(candidate.id) <= budget))
+    return shortlist;
+  const drawnIds = new Set(shortlist.map((candidate) => candidate.id));
+  const replacement = eligible
+    .filter(
+      (candidate) =>
+        !drawnIds.has(candidate.id) && feeOf(candidate.id) <= budget,
+    )
+    // Cheapest first, then by ID: `eligible` has already been shuffled or
+    // sorted in place by the draw above, so its order is not a stable tiebreak.
+    .sort(
+      (left, right) =>
+        feeOf(left.id) - feeOf(right.id) || compareIds(left.id, right.id),
+    )[0];
+  if (replacement === undefined) return shortlist;
+  const dearest = shortlist.reduce((worst, candidate) =>
+    feeOf(candidate.id) > feeOf(worst.id) ? candidate : worst,
+  );
+  return shortlist.map((candidate) =>
+    candidate.id === dearest.id ? replacement : candidate,
+  );
 }
 
 function shuffledShortlist(
