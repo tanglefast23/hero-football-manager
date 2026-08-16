@@ -329,8 +329,8 @@ against Garnet. A later switch to `3-4-3 Attack` turned a 0-2 deficit into a
 
 ## Condition strategy
 
-Each start costs 4 / 6 / 8 / 10 / 12 condition in D5 / D4 / D3 / D2 / D1
-before weekly recovery. Substitutes pay half: 2 / 3 / 4 / 5 / 6.
+Each start costs 4 / 6 / 8 / 12 / 14 condition in D5 / D4 / D3 / D2 / D1
+before weekly recovery. Substitutes pay half: 2 / 3 / 4 / 6 / 7.
 Unused bench players pay nothing, and a player who appears twice pays twice.
 Computer clubs use the same costs, get division-appropriate Dorm recovery, and
 favor fresher same-role players. Confirm the Dorm helps without erasing the
