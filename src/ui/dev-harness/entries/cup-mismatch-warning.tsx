@@ -130,6 +130,7 @@ export function CupMismatchWarningReel({
         viewModel={viewModel}
         onBack={() => {}}
         onToggleHeroLicense={() => {}}
+        onBuyHeroLicense={() => {}}
         onSwapStartingPlayer={() => {}}
         onWatchMatch={() => {}}
         onQuickResult={() => {}}

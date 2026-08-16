@@ -70,11 +70,39 @@ const DIST = path.resolve('dist');
 // first gate in the same job and had been failing, so the budget check was never
 // reached. Fixing the formatting is what exposed it.
 //
-// Previous marks: 5_994_912 / 894_580 at the 2026-08-15 merge, 5_977_355 /
-// 893_727 earlier that day, 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at
-// b26e1399 (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
-// 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 6_005_786;
+// Re-ratcheted 2026-08-16 off CI's figure for 33bbf4b0 on
+// feat/hero-license-purchase: 6_007_581 raw / 898_981 gzip. Local export of the
+// same tree read 6_006_479, so CI still runs about 1_100 bytes high, and CI is
+// what has to pass.
+//
+// This one IS the branch's, unlike the last several. `origin/main` at 3a93760b
+// was exported and measured the same way: 5_999_703 raw / 896_385 gzip, which
+// is 6_083 UNDER the old mark. So the +6_776 raw is this branch and nothing
+// inherited. It is spread across fourteen English catalog keys for the permit
+// office, the glossary's extended Hero License entry plus its new Permit office
+// entry, the match-day panel itself, and the club name pools going from fifteen
+// words to a hundred.
+//
+// Gzip is deliberately NOT moved. It reads 898_981 against a 901_680 mark, so
+// it never breached; raising a budget nothing has hit is loosening for free.
+//
+// Markers checked before moving the number, and harder than usual, because this
+// branch adds a dev-harness entry. `qaBodyMarkers` and `skiaBodyMarkers` were
+// both empty on CI's failing run, and three strings unique to the new entry —
+// "Hero License permit office", "Third permit at",
+// "hero-license-shop:first-matchday" — return zero hits in both `index-*.js`
+// and `__common-*.js`. The entry is lazy and stayed lazy.
+//
+// Worth knowing for the next person: `"Cup mismatch warning"` DOES appear in
+// `index-*.js` on main, and no marker in QA_BODY_MARKERS catches it. The marker
+// list proves the absence of the three strings it names, not the absence of the
+// harness. Widening it is a separate job from this branch.
+//
+// Previous marks: 6_005_786 / 901_680 at 6a2c27e2, 5_994_912 / 894_580 at the
+// 2026-08-15 merge, 5_977_355 / 893_727 earlier that day, 5_922_802 / 879_373
+// at #158, 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the stat-tip
+// branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 6_007_581;
 const GZIP_BUDGET = 901_680;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',

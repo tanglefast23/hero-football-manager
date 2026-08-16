@@ -1951,7 +1951,7 @@
     "glossary.heroes.automatic-timing.term": "Disparo automático",
     "glossary.heroes.heat.definition": "Impulso ganado con toques, entradas, tiros, paradas y minutos. Al llegar al umbral, el Calor espera a que ese héroe tenga una ocasión útil para entrar en la Zona.",
     "glossary.heroes.heat.term": "Calor",
-    "glossary.heroes.hero-license.definition": "Un permiso que deja a un jugador con poder usarlo en el próximo partido. Puedes tener más héroes de los que puedes licenciar a la vez.",
+    "glossary.heroes.hero-license.definition": "Un permiso que deja a un jugador con poder usarlo en el próximo partido. Puedes tener más héroes de los que puedes licenciar a la vez. Los ascensos las dan gratis: dos en la Liga de Distrito y la Liga Comarcal, tres en la Liga Regional y la Liga Nacional, cuatro en la Liga Global. Un descenso nunca te quita un permiso.",
     "glossary.heroes.hero-license.term": "Licencia de Héroe",
     "glossary.heroes.power.definition": "La habilidad súper visible de un héroe, atada a un momento. Los poderes cambian la posesión o la geometría, no reparten una mejora oculta de estadísticas.",
     "glossary.heroes.power.term": "Poder",
@@ -4012,6 +4012,22 @@
     "storyCallback.veteranRestThanks": "Gracias por darme tiempo. Siento las piernas preparadas otra vez.",
     "storyCallback.deniedLeaveUnderstands": "Me enfadé, pero entiendo por qué necesitabas que me quedara.",
     "storyCallback.deniedLeaveUnhappy": "Me quedé, jefe. No he olvidado que me dijiste que no.",
-    "storyCallback.facilityFireRebuild": "Jefe, la reconstrucción ya está en marcha. Esto empieza a parecer nuestro club otra vez."
+    "storyCallback.facilityFireRebuild": "Jefe, la reconstrucción ya está en marcha. Esto empieza a parecer nuestro club otra vez.",
+    "bert.heroLicense.title": "Las licencias llegan con el ascenso",
+    "bert.heroLicense.body1": "Las Licencias de Héroe son gratis, jefe. Dos en la Liga de Distrito y la Liga Comarcal, tres en la Liga Regional y la Liga Nacional, cuatro en la Liga Global. Si bajas de división, conservas todas las que ganaste.",
+    "bert.heroLicense.body2": "Pagar solo adelanta ese permiso, nada más. Un ascenso posterior sube el número gratuito en vez de sumarse a lo que compraste. ¿Aun así lo quieres ya?",
+    "fixtureMatchDay.oneMorePermit": "Un permiso más",
+    "fixtureMatchDay.oneMorePermitDetail": "La liga le vende al club su siguiente Licencia de Héroe ahora en vez de hacerlo esperar al ascenso.",
+    "fixtureMatchDay.buyHeroLicense": "Comprar permiso {license} · {cost}",
+    "fixtureMatchDay.a11y.buyHeroLicense": "Comprar la Licencia de Héroe {license} por {cost}",
+    "confirm.buyHeroLicense.title": "¿Comprar permiso {license}?",
+    "confirm.buyHeroLicense.detail": "La liga registra un permiso más por {cost}. Desde el próximo partido tu club puede alinear {license} héroes a la vez.",
+    "confirm.buyHeroLicense.confirm": "Sí, comprar",
+    "confirm.buyHeroLicense.cancel": "No",
+    "store.heroLicenseBought": "Licencia de Héroe {license} registrada.",
+    "cashTransaction.heroLicenseBought": "Licencia de Héroe {license} comprada",
+    "glossary.heroes.permit-office.term": "Oficina de permisos",
+    "glossary.heroes.permit-office.definition": "El mostrador de la pantalla de día de partido que vende una Licencia de Héroe antes de que el club la gane. La tercera cuesta $100.000, la cuarta $200.000, y cada una por encima de las cuatro que ya tiene un club de la Liga Global empieza en $300.000 y sube $50.000 cada vez. Comprar solo adelanta el permiso: un ascenso posterior sube el número gratuito en vez de sumarse a lo que pagaste.",
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Solo un club de la Liga Global puede tener más de cuatro."
   }
 }

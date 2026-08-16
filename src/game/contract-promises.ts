@@ -7,7 +7,7 @@ import type {
   GameState,
 } from './types';
 import { playerAttributeCaps, roleOverall } from './archetype-caps';
-import { highestDivisionReached } from './promotion-progression';
+import { heroLicenseCap } from './promotion-progression';
 import { TRAINING_PATHS } from './training-paths';
 import { isAvailableForSelection } from './lineup';
 
@@ -490,9 +490,9 @@ export function careerContractPromiseHeroLimit(state: GameState): number {
 }
 
 function contractPromiseHeroLimit(state: GameState): number {
-  if (state.m2 === undefined) return 2;
-  // Ratchets on the highest division reached, matching `careerHeroLimit`:
-  // promotion unlocks are permanent, so relegation must not shrink the cap a
-  // promise negotiation checks against while match day still honours 4 slots.
-  return contractPromiseHeroLimitForDivision(highestDivisionReached(state));
+  // The same cap match day fields, from the same function. It used to re-derive
+  // the number from the division alone, which was right until permits went on
+  // sale: a club that had BOUGHT its third license could field three heroes and
+  // still be told at the transfer desk that no license was free.
+  return heroLicenseCap(state);
 }

@@ -77,6 +77,7 @@ import {
   superTrainingChancePercent,
   facilityEffects,
   facilityBuildLimit,
+  nextHeroLicenseOffer,
   nextTrainingUpgradeOffer,
   ownedTrainingTier,
   POSITION_TRAINING_ATTRIBUTES,
@@ -146,6 +147,7 @@ import type {
   IncomeGenerationViewModel,
   LedgerIconViewModel,
   MatchDayBannerViewModel,
+  HeroLicenseOfferViewModel,
   MatchDayViewModel,
   FulltimeReactionViewModel,
   RivalMockeryViewModel,
@@ -2253,7 +2255,10 @@ export function seasonEndViewModel(
   const newlyUnlockedRewards =
     promotedDivision !== undefined &&
     promotedDivision < highestDivisionReached(state)
-      ? promotionRewardsForDivision(promotedDivision)
+      ? promotionRewardsForDivision(
+          promotedDivision,
+          state.purchasedHeroLicenseCap ?? 0,
+        )
       : [];
   const recap = latestSeasonRecap(state);
   // `topScorer` is deliberately absent. It is a club-only award that counts cup
@@ -4200,6 +4205,21 @@ export function matchDayViewModel(
       ) &&
       lineupPlayers.filter((player) => player.licensed).length <=
         careerHeroLimit(state),
+    heroLicenseOffer: heroLicenseOfferViewModel(state, t),
+  };
+}
+
+function heroLicenseOfferViewModel(
+  state: GameState,
+  t: CopyFn,
+): HeroLicenseOfferViewModel {
+  const offer = nextHeroLicenseOffer(state);
+  return {
+    licenseNumber: offer.licenseNumber,
+    cost: offer.cost,
+    ...(offer.blockedReason === undefined
+      ? {}
+      : { blockedReason: resolveRingCopy(t, offer.blockedReason) }),
   };
 }
 

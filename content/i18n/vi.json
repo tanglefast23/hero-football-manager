@@ -1951,7 +1951,7 @@
     "glossary.heroes.automatic-timing.term": "Tự canh thời điểm",
     "glossary.heroes.heat.definition": "Đà tích từ chạm bóng, tắc bóng, dứt điểm, cứu thua và thời gian trên sân. Chạm ngưỡng rồi, Nhiệt chờ tới khi anh hùng đó có cơ hội đáng giá để vào Vùng Bùng Nổ.",
     "glossary.heroes.heat.term": "Nhiệt",
-    "glossary.heroes.hero-license.definition": "Giấy phép cho một cầu thủ có năng lực được dùng nó ở trận kế. Bạn có thể sở hữu nhiều anh hùng hơn số được cấp phép cùng lúc.",
+    "glossary.heroes.hero-license.definition": "Giấy phép cho một cầu thủ có năng lực được dùng nó ở trận kế. Bạn có thể sở hữu nhiều anh hùng hơn số được cấp phép cùng lúc. Thăng hạng cho không: hai ở Giải Tỉnh và Giải Quận, ba ở Giải Vùng và Giải Quốc Gia, bốn ở Giải Toàn Cầu. Xuống hạng không bao giờ lấy lại giấy phép.",
     "glossary.heroes.hero-license.term": "Giấy Phép Anh Hùng",
     "glossary.heroes.power.definition": "Năng lực siêu nhiên nhìn thấy được của anh hùng, gắn với một khoảnh khắc. Năng lực đổi quyền kiểm soát bóng hay hình học sân, chứ không cộng lén chỉ số.",
     "glossary.heroes.power.term": "Năng lực",
@@ -4012,6 +4012,22 @@
     "storyCallback.veteranRestThanks": "Cảm ơn vì đã cho tôi nghỉ. Đôi chân tôi đã sẵn sàng trở lại.",
     "storyCallback.deniedLeaveUnderstands": "Tôi đã giận, nhưng giờ tôi hiểu vì sao đội cần tôi ở lại.",
     "storyCallback.deniedLeaveUnhappy": "Tôi đã ở lại, sếp. Tôi vẫn chưa quên rằng sếp đã từ chối.",
-    "storyCallback.facilityFireRebuild": "Sếp, việc xây dựng lại đã bắt đầu. Nơi này đang dần giống câu lạc bộ của chúng ta trở lại."
+    "storyCallback.facilityFireRebuild": "Sếp, việc xây dựng lại đã bắt đầu. Nơi này đang dần giống câu lạc bộ của chúng ta trở lại.",
+    "bert.heroLicense.title": "Giấy phép có khi thăng hạng",
+    "bert.heroLicense.body1": "Giấy Phép Anh Hùng là miễn phí, sếp. Hai ở Giải Tỉnh và Giải Quận, ba ở Giải Vùng và Giải Quốc Gia, bốn ở Giải Toàn Cầu. Xuống hạng thì bạn vẫn giữ mọi giấy phép đã giành được.",
+    "bert.heroLicense.body2": "Trả tiền chỉ giúp giấy phép đó đến sớm hơn, không hơn. Lần thăng hạng sau nâng số miễn phí lên, chứ không cộng thêm vào phần bạn đã mua. Vẫn muốn mua ngay chứ?",
+    "fixtureMatchDay.oneMorePermit": "Thêm một giấy phép",
+    "fixtureMatchDay.oneMorePermitDetail": "Giải đấu bán cho CLB Giấy Phép Anh Hùng kế tiếp ngay bây giờ, thay vì bắt chờ thăng hạng.",
+    "fixtureMatchDay.buyHeroLicense": "Mua giấy phép {license} · {cost}",
+    "fixtureMatchDay.a11y.buyHeroLicense": "Mua Giấy Phép Anh Hùng {license} với giá {cost}",
+    "confirm.buyHeroLicense.title": "Mua giấy phép {license}?",
+    "confirm.buyHeroLicense.detail": "Giải đấu cấp thêm một giấy phép với giá {cost}. Từ trận kế tiếp, CLB của bạn có thể ra sân {license} anh hùng cùng lúc.",
+    "confirm.buyHeroLicense.confirm": "Có, mua",
+    "confirm.buyHeroLicense.cancel": "Không",
+    "store.heroLicenseBought": "Đã đăng ký Giấy Phép Anh Hùng {license}.",
+    "cashTransaction.heroLicenseBought": "Đã mua Giấy Phép Anh Hùng {license}",
+    "glossary.heroes.permit-office.term": "Phòng cấp phép",
+    "glossary.heroes.permit-office.definition": "Quầy trên màn hình ngày thi đấu bán Giấy Phép Anh Hùng trước khi CLB giành được. Cái thứ ba giá $100.000, cái thứ tư $200.000, và mỗi cái vượt quá bốn cái mà một CLB Giải Toàn Cầu đã có bắt đầu từ $300.000 và tăng thêm $50.000 mỗi lần. Mua chỉ giúp có sớm hơn: lần thăng hạng sau nâng số miễn phí lên, chứ không cộng vào phần bạn đã trả.",
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Chỉ CLB Giải Toàn Cầu mới được giữ hơn bốn."
   }
 }

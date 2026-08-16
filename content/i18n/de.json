@@ -1951,7 +1951,7 @@
     "glossary.heroes.automatic-timing.term": "Automatischer Auslöser",
     "glossary.heroes.heat.definition": "Schwung aus Ballkontakten, Zweikämpfen, Schüssen, Paraden und Spielzeit. An der Schwelle wartet die Hitze, bis dieser Held eine nützliche Gelegenheit für die Zone hat.",
     "glossary.heroes.heat.term": "Hitze",
-    "glossary.heroes.hero-license.definition": "Eine Erlaubnis, mit der ein Spieler seine Kraft im nächsten Spiel einsetzen darf. Du darfst mehr Helden besitzen, als du gleichzeitig lizenzieren kannst.",
+    "glossary.heroes.hero-license.definition": "Eine Erlaubnis, mit der ein Spieler seine Kraft im nächsten Spiel einsetzen darf. Du darfst mehr Helden besitzen, als du gleichzeitig lizenzieren kannst. Aufstiege bringen sie gratis: zwei in der Bezirksliga und der Kreisliga, drei in der Regionalliga und der Nationalliga, vier in der Weltliga. Bei einem Abstieg wird keine Lizenz zurückgenommen.",
     "glossary.heroes.hero-license.term": "Heldenlizenz",
     "glossary.heroes.power.definition": "Die sichtbare, momentgebundene Superfähigkeit eines Helden. Kräfte verändern Ballbesitz oder Geometrie, statt heimlich Werte zu schmieren.",
     "glossary.heroes.power.term": "Kraft",
@@ -4012,6 +4012,22 @@
     "storyCallback.veteranRestThanks": "Danke für die Pause. Meine Beine fühlen sich wieder bereit an.",
     "storyCallback.deniedLeaveUnderstands": "Ich war wütend, aber ich verstehe, warum du mich hier gebraucht hast.",
     "storyCallback.deniedLeaveUnhappy": "Ich bin geblieben, Chef. Ich habe nicht vergessen, dass du Nein gesagt hast.",
-    "storyCallback.facilityFireRebuild": "Chef, der Wiederaufbau läuft. Langsam fühlt es sich wieder wie unser Verein an."
+    "storyCallback.facilityFireRebuild": "Chef, der Wiederaufbau läuft. Langsam fühlt es sich wieder wie unser Verein an.",
+    "bert.heroLicense.title": "Lizenzen gibt es beim Aufstieg",
+    "bert.heroLicense.body1": "Heldenlizenzen sind gratis, Chef. Zwei in der Bezirksliga und der Kreisliga, drei in der Regionalliga und der Nationalliga, vier in der Weltliga. Steigst du ab, behältst du jede, die du dir verdient hast.",
+    "bert.heroLicense.body2": "Zahlen holt genau diese eine Lizenz vor, mehr nicht. Ein späterer Aufstieg hebt die freie Zahl an, statt etwas auf deinen Kauf draufzulegen. Willst du sie trotzdem jetzt?",
+    "fixtureMatchDay.oneMorePermit": "Eine Lizenz mehr",
+    "fixtureMatchDay.oneMorePermitDetail": "Die Liga verkauft dem Verein die nächste Heldenlizenz sofort, statt ihn auf den Aufstieg warten zu lassen.",
+    "fixtureMatchDay.buyHeroLicense": "Lizenz {license} kaufen · {cost}",
+    "fixtureMatchDay.a11y.buyHeroLicense": "Heldenlizenz {license} für {cost} kaufen",
+    "confirm.buyHeroLicense.title": "Lizenz {license} kaufen?",
+    "confirm.buyHeroLicense.detail": "Die Liga meldet eine weitere Lizenz für {cost} an. Ab dem nächsten Spiel kann dein Verein {license} Helden gleichzeitig aufstellen.",
+    "confirm.buyHeroLicense.confirm": "Ja, kaufen",
+    "confirm.buyHeroLicense.cancel": "Nein",
+    "store.heroLicenseBought": "Heldenlizenz {license} angemeldet.",
+    "cashTransaction.heroLicenseBought": "Heldenlizenz {license} gekauft",
+    "glossary.heroes.permit-office.term": "Meldestelle",
+    "glossary.heroes.permit-office.definition": "Der Schalter auf dem Spieltagsbildschirm, der eine Heldenlizenz verkauft, bevor der Verein sie erspielt hat. Die dritte kostet 100.000 $, die vierte 200.000 $, und jede weitere über die vier eines Weltliga-Vereins hinaus beginnt bei 300.000 $ und steigt jedes Mal um 50.000 $. Kaufen holt eine Lizenz nur früher: ein späterer Aufstieg hebt die freie Zahl an, statt auf den Kauf draufzulegen.",
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Nur ein Weltliga-Verein darf mehr als vier halten."
   }
 }
