@@ -4033,6 +4033,24 @@
     "cashTransaction.heroLicenseBought": "Licença de Herói {license} comprada",
     "glossary.heroes.permit-office.term": "Sala de licenças",
     "glossary.heroes.permit-office.definition": "O balcão da tela de dia de jogo que vende uma Licença de Herói antes de o clube conquistá-la. A terceira custa $100.000, a quarta $200.000, e cada uma acima das quatro que um clube da Liga Global já tem começa em $300.000 e sobe $50.000 a cada vez. Comprar só adianta a licença: um acesso mais tarde eleva o número gratuito em vez de somar ao que você pagou.",
-    "fixtureMatchDay.heroLicenseGlobalOnly": "Só um clube da Liga Global pode ter mais de quatro."
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Só um clube da Liga Global pode ter mais de quatro.",
+    "coachSpeech.trainCoach": "Treinar técnico · Conversa",
+    "coachSpeech.costDetail": "Gasta todos os {points} PT. Cada jogador ganha +{boost} no segundo tempo.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Conversa pronta · seu técnico já tem uma",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Contrate um técnico primeiro",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Pontos de Treino já gastos nesta semana",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Sem pontos de treino para gastar",
+    "coachSpeech.a11y.trainCoach": "Treinar {name} com todos os {points} pontos de treino para uma conversa no intervalo",
+    "confirm.coachSpeech.title": "Treinar o técnico?",
+    "confirm.coachSpeech.detail": "Gasta todos os {points} PT. Seu técnico guarda uma conversa de intervalo que dá +{boost} em cada atributo no segundo tempo.",
+    "confirm.coachSpeech.confirm": "Gastar os pontos",
+    "matchScreen.speechKicker": "INTERVALO",
+    "matchScreen.speechTitle": "Dar a conversa?",
+    "matchScreen.speechDetail": "Seu técnico tem uma conversa guardada. Use agora e cada jogador ganha +{boost} em cada atributo no segundo tempo.",
+    "matchScreen.speechConfirm": "Dar agora",
+    "matchScreen.speechCancel": "Guardar",
+    "matchScreen.bannerMotivationalSpeech": "CONVERSA",
+    "bert.guide.coach-speech.page1.body1": "Chefe, seu técnico também pode treinar a si mesmo. Passe os pontos de treino da semana para ele e ele vai preparar a conversa de vestiário.",
+    "bert.guide.coach-speech.page2.body1": "Gaste tudo e ele guarda uma conversa. Dê o aval no intervalo e a rapaziada volta voando para o segundo tempo."
   }
 }

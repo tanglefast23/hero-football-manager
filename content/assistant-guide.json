@@ -46,7 +46,9 @@
         {
           "kicker": "The bottom rail",
           "title": "Know your doors",
-          "body": ["Navigate round the facilities here."],
+          "body": [
+            "Navigate round the facilities here."
+          ],
           "focus": "navigation",
           "buttonLabel": "Got it!",
           "navItems": [
@@ -100,6 +102,29 @@
           ],
           "focus": "assistant",
           "buttonLabel": "We'll make it count."
+        }
+      ]
+    },
+    {
+      "id": "coach-speech",
+      "pages": [
+        {
+          "kicker": "The staff room",
+          "title": "Train the gaffer",
+          "body": [
+            "Boss, your head coach can take a session himself. Put the week's training points his way and he'll work on his team talk instead."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "Go on..."
+        },
+        {
+          "kicker": "One in the bank",
+          "title": "A word at half time",
+          "body": [
+            "Spend the lot and he'll have one speech saved up. Give him the nod at half time and the lads come out for the second half flying."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "He'll earn it."
         }
       ]
     },

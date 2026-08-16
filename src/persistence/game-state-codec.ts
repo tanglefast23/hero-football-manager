@@ -2030,6 +2030,9 @@ const gameStateSchema = z
     awakening: awakeningSchema.optional(),
     onboarding: onboardingSchema.optional(),
     trainingPoints: nonnegativeInteger,
+    // Absent on saves written before the head coach could bank a half-time
+    // speech; absent and false mean the same thing.
+    coachSpeechBanked: z.boolean().optional(),
     // Optional so a save written before drill upgrades became a purchase still
     // loads; every path it does not name is owned at tier 1.
     ownedTrainingTiers: z

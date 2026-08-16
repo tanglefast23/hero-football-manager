@@ -4033,6 +4033,24 @@
     "cashTransaction.heroLicenseBought": "Licence de Héros {license} achetée",
     "glossary.heroes.permit-office.term": "Bureau des permis",
     "glossary.heroes.permit-office.definition": "Le guichet de l'écran de jour de match qui vend une Licence de Héros avant que le club ne l'ait gagnée. La troisième coûte 100 000 $, la quatrième 200 000 $, et chacune au-delà des quatre d'un club de Ligue Mondiale part de 300 000 $ et monte de 50 000 $ à chaque fois. Acheter ne fait qu'avancer le permis : une montée plus tard relève le nombre gratuit au lieu de s'ajouter à ce que tu as payé.",
-    "fixtureMatchDay.heroLicenseGlobalOnly": "Seul un club de Ligue Mondiale peut en détenir plus de quatre."
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Seul un club de Ligue Mondiale peut en détenir plus de quatre.",
+    "coachSpeech.trainCoach": "Former le coach · Causerie",
+    "coachSpeech.costDetail": "Dépense les {points} PE. Chaque joueur gagne +{boost} en seconde période.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Causerie prête · ton coach en garde une",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Engage d'abord un entraîneur",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Points d'Entraînement déjà dépensés",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Aucun point à dépenser",
+    "coachSpeech.a11y.trainCoach": "Former {name} avec les {points} points d'entraînement pour une causerie de mi-temps",
+    "confirm.coachSpeech.title": "Former l'entraîneur ?",
+    "confirm.coachSpeech.detail": "Dépense les {points} PE. Ton coach garde une causerie de mi-temps qui donne +{boost} à chaque attribut en seconde période.",
+    "confirm.coachSpeech.confirm": "Dépenser les points",
+    "matchScreen.speechKicker": "MI-TEMPS",
+    "matchScreen.speechTitle": "Faire la causerie ?",
+    "matchScreen.speechDetail": "Ton coach garde une causerie. Utilise-la et chaque joueur gagne +{boost} à chaque attribut en seconde période.",
+    "matchScreen.speechConfirm": "La faire",
+    "matchScreen.speechCancel": "La garder",
+    "matchScreen.bannerMotivationalSpeech": "CAUSERIE",
+    "bert.guide.coach-speech.page1.body1": "Patron, ton entraîneur peut aussi travailler sur lui-même. Donne-lui les points d'entraînement de la semaine et il préparera sa causerie.",
+    "bert.guide.coach-speech.page2.body1": "Dépense le tout et il gardera une causerie. Fais-lui signe à la mi-temps et les gars repartiront des ailes aux pieds."
   }
 }

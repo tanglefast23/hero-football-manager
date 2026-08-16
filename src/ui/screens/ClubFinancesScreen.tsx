@@ -24,6 +24,7 @@ import { FacilitySprite } from '../components/FacilitySprite';
 import { ClubCrest } from '../components/ClubCrest';
 import type {
   ClubFacilityBuildingViewModel,
+  CoachSpeechViewModel,
   CoachStaffMemberViewModel,
   ClubFacilityGridViewModel,
   ClubFinancesViewModel,
@@ -183,6 +184,8 @@ export interface ClubFinancesScreenProps {
   onCloseFacility?: (buildingId: string) => void;
   onOpenCoachMarket?: () => void;
   onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
+  /** Buys the head coach's half-time speech with every training point held. */
+  onTrainCoachSpeech?: () => void;
   onReviewSponsorOffer?: (
     offer: SponsorOfferViewModel,
     slot: SponsorSlotViewModel,
@@ -218,6 +221,7 @@ export function ClubFinancesScreen({
   onCloseFacility,
   onOpenCoachMarket,
   onDismissCoach,
+  onTrainCoachSpeech,
   onReviewSponsorOffer,
   onChooseSponsorWeeklyChallenge,
   guideTrainingGround = false,
@@ -815,7 +819,14 @@ export function ClubFinancesScreen({
             key: `coach-${coach.role}`,
             weight: 12,
             node: (
-              <CoachCardSection coach={coach} onDismissCoach={onDismissCoach} />
+              <CoachCardSection
+                coach={coach}
+                coachSpeech={
+                  coach.role === 'HEAD' ? viewModel.coachSpeech : undefined
+                }
+                onDismissCoach={onDismissCoach}
+                onTrainCoachSpeech={onTrainCoachSpeech}
+              />
             ),
           })),
           ...(onOpenCoachMarket === undefined
@@ -2124,12 +2135,20 @@ function CoachingVacancySection({
 
 interface CoachCardSectionProps {
   coach: CoachStaffMemberViewModel;
+  /** Head coach only: the speech desk sits under his card, or nowhere. */
+  coachSpeech?: CoachSpeechViewModel;
   onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
+  onTrainCoachSpeech?: () => void;
 }
 
 /** One coach, one section: head and assistant stand side by side on a wide
  * window instead of stacking down a 1180pt-wide page. */
-function CoachCardSection({ coach, onDismissCoach }: CoachCardSectionProps) {
+function CoachCardSection({
+  coach,
+  coachSpeech,
+  onDismissCoach,
+  onTrainCoachSpeech,
+}: CoachCardSectionProps) {
   const t = useCopy();
   return (
     <View className="border-2 border-b-4 border-ink bg-white p-3">
@@ -2189,6 +2208,30 @@ function CoachCardSection({ coach, onDismissCoach }: CoachCardSectionProps) {
           count: coach.seasonsEmployed,
         })}
       </Text>
+      {coachSpeech === undefined || onTrainCoachSpeech === undefined ? null : (
+        <View className="mt-3">
+          <ActionButton
+            label={coachSpeech.label}
+            accessibilityLabel={t('coachSpeech.a11y.trainCoach', {
+              name: coach.name,
+              points: coachSpeech.trainingPointsCost,
+            })}
+            disabled={coachSpeech.blockedLabel !== undefined}
+            visuallyDisabled={coachSpeech.blockedLabel !== undefined}
+            onPress={onTrainCoachSpeech}
+          />
+          {/* One line under the button: the price when it can be paid, the
+              reason when it cannot. Never both — a dead button explaining
+              itself does not also need a price list. */}
+          <Text className="mt-2 text-sm text-ink/70">
+            {coachSpeech.blockedLabel ??
+              t('coachSpeech.costDetail', {
+                points: coachSpeech.trainingPointsCost,
+                boost: coachSpeech.boost,
+              })}
+          </Text>
+        </View>
+      )}
       {onDismissCoach ? (
         <View className="mt-3">
           <ActionButton

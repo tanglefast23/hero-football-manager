@@ -669,6 +669,7 @@ describe('validated M1 launch content', () => {
       'management-intro',
       'desk-intro',
       'green-bull-training',
+      'coach-speech',
       'expired-contract',
       'head-coach-market',
       'head-coach-hire',
@@ -750,6 +751,7 @@ describe('validated M1 launch content', () => {
       'management-intro',
       'desk-intro',
       'green-bull-training',
+      'coach-speech',
       'expired-contract',
     ];
     const m2Sequences = content.assistantGuide.sequences.filter(

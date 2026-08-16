@@ -4033,6 +4033,24 @@
     "cashTransaction.heroLicenseBought": "Licencia de Héroe {license} comprada",
     "glossary.heroes.permit-office.term": "Oficina de permisos",
     "glossary.heroes.permit-office.definition": "El mostrador de la pantalla de día de partido que vende una Licencia de Héroe antes de que el club la gane. La tercera cuesta $100.000, la cuarta $200.000, y cada una por encima de las cuatro que ya tiene un club de la Liga Global empieza en $300.000 y sube $50.000 cada vez. Comprar solo adelanta el permiso: un ascenso posterior sube el número gratuito en vez de sumarse a lo que pagaste.",
-    "fixtureMatchDay.heroLicenseGlobalOnly": "Solo un club de la Liga Global puede tener más de cuatro."
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Solo un club de la Liga Global puede tener más de cuatro.",
+    "coachSpeech.trainCoach": "Formar técnico · Charla",
+    "coachSpeech.costDetail": "Gasta los {points} PE. Cada jugador gana +{boost} en la segunda parte.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Charla lista · tu técnico ya tiene una",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Primero contrata a un técnico",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Puntos de Entreno ya gastados esta semana",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "No hay puntos de entrenamiento",
+    "coachSpeech.a11y.trainCoach": "Formar a {name} con los {points} puntos de entrenamiento para una charla de descanso",
+    "confirm.coachSpeech.title": "¿Formar al técnico?",
+    "confirm.coachSpeech.detail": "Gasta los {points} PE. Tu técnico guarda una charla de descanso que da +{boost} a cada atributo en la segunda parte.",
+    "confirm.coachSpeech.confirm": "Gastar los puntos",
+    "matchScreen.speechKicker": "DESCANSO",
+    "matchScreen.speechTitle": "¿Dar la charla?",
+    "matchScreen.speechDetail": "Tu técnico tiene una charla guardada. Úsala ahora y cada jugador gana +{boost} en cada atributo durante la segunda parte.",
+    "matchScreen.speechConfirm": "Darla",
+    "matchScreen.speechCancel": "Guardarla",
+    "matchScreen.bannerMotivationalSpeech": "CHARLA",
+    "bert.guide.coach-speech.page1.body1": "Jefe, tu entrenador también puede trabajar consigo mismo. Dale los puntos de entrenamiento de la semana y preparará su charla de vestuario.",
+    "bert.guide.coach-speech.page2.body1": "Gástalos todos y guardará una charla. Dale el visto bueno en el descanso y los chicos saldrán volando en la segunda parte."
   }
 }

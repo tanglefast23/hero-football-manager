@@ -4033,6 +4033,24 @@
     "cashTransaction.heroLicenseBought": "Heldenlizenz {license} gekauft",
     "glossary.heroes.permit-office.term": "Meldestelle",
     "glossary.heroes.permit-office.definition": "Der Schalter auf dem Spieltagsbildschirm, der eine Heldenlizenz verkauft, bevor der Verein sie erspielt hat. Die dritte kostet 100.000 $, die vierte 200.000 $, und jede weitere über die vier eines Weltliga-Vereins hinaus beginnt bei 300.000 $ und steigt jedes Mal um 50.000 $. Kaufen holt eine Lizenz nur früher: ein späterer Aufstieg hebt die freie Zahl an, statt auf den Kauf draufzulegen.",
-    "fixtureMatchDay.heroLicenseGlobalOnly": "Nur ein Weltliga-Verein darf mehr als vier halten."
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Nur ein Weltliga-Verein darf mehr als vier halten.",
+    "coachSpeech.trainCoach": "Trainer schulen · Ansprache",
+    "coachSpeech.costDetail": "Kostet alle {points} TP. Jeder Spieler erhält +{boost} für die zweite Halbzeit.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Ansprache bereit · dein Trainer hat eine",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Erst Cheftrainer einstellen",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Trainingspunkte diese Woche schon ausgegeben",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Keine Trainingspunkte vorhanden",
+    "coachSpeech.a11y.trainCoach": "{name} mit allen {points} Trainingspunkten für eine Halbzeitansprache schulen",
+    "confirm.coachSpeech.title": "Cheftrainer schulen?",
+    "confirm.coachSpeech.detail": "Kostet alle {points} TP. Dein Trainer hält eine Halbzeitansprache bereit: +{boost} auf jeden Wert in der zweiten Halbzeit.",
+    "confirm.coachSpeech.confirm": "Punkte ausgeben",
+    "matchScreen.speechKicker": "HALBZEIT",
+    "matchScreen.speechTitle": "Ansprache halten?",
+    "matchScreen.speechDetail": "Dein Trainer hat eine Ansprache gespart. Nutze sie jetzt: jeder Spieler erhält +{boost} auf jeden Wert für die zweite Halbzeit.",
+    "matchScreen.speechConfirm": "Halten",
+    "matchScreen.speechCancel": "Aufheben",
+    "matchScreen.bannerMotivationalSpeech": "ANSPRACHE",
+    "bert.guide.coach-speech.page1.body1": "Chef, dein Cheftrainer kann auch an sich selbst arbeiten. Gib ihm die Trainingspunkte der Woche, dann feilt er an seiner Kabinenansprache.",
+    "bert.guide.coach-speech.page2.body1": "Gib alles aus, dann hat er eine Ansprache auf Lager. Ein Nicken in der Halbzeit und die Jungs fliegen in die zweite Hälfte."
   }
 }

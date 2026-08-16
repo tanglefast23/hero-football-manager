@@ -187,6 +187,7 @@ import {
 } from '../ui/tutorial-cue-position';
 import { playUiClickSfx } from './management-sfx';
 import { FirstMatchCoachingModal } from './FirstMatchCoachingModal';
+import { ConfirmationSheet } from '../ui/components/ConfirmationSheet';
 import {
   nextFirstMatchCoachingPrompt,
   type FirstMatchCoachingPromptsSeen,
@@ -442,6 +443,7 @@ export function MatchScreen({
   colorSafeKits = true,
   pausedExternally = false,
   firstMatchTutorial = false,
+  motivationalSpeech,
   autoSubs: initialAutoSubs = false,
   onAutoSubsChange,
   onFormationChange,
@@ -472,6 +474,14 @@ export function MatchScreen({
   colorSafeKits?: boolean;
   pausedExternally?: boolean;
   firstMatchTutorial?: boolean;
+  /**
+   * Set only when the head coach is holding a speech for this match. Half time
+   * then stops play and asks whether to spend it; `boost` is what each stored
+   * attribute gains for the second half. The bank itself is emptied by the
+   * settled match, from the recorded input log — this screen only records the
+   * decision.
+   */
+  motivationalSpeech?: { readonly boost: number };
   /** Bench cover as the manager last left it, so it survives the final whistle. */
   autoSubs?: boolean;
   /** Fires only when the substitution board saves a different setting. */
@@ -727,6 +737,10 @@ export function MatchScreen({
   >(null);
   /** Stable identity shared by the card, Swap cue, and substitution-board cue. */
   const firstMatchTiredPlayerRef = useRef<number | null>(null);
+  // The half-time speech sheet. The ref is what the RAF loop reads, the state
+  // is what React renders — the same split every other mid-match prompt uses.
+  const [speechPromptOpen, setSpeechPromptOpen] = useState(false);
+  const speechPromptOfferedRef = useRef(false);
   const firstMatchPromptsSeenRef = useRef<FirstMatchCoachingPromptsSeen>({
     tiredPlayer: false,
   });
@@ -1466,6 +1480,28 @@ export function MatchScreen({
             before,
             after: nextRef.current,
           });
+        }
+
+        // Half time with a speech in the bank stops the catch-up loop dead,
+        // rather than letting the rest of a slow frame's ticks run first. The
+        // events below are handled after this loop, so without the break a
+        // stalled frame would simulate seconds of the second half before the
+        // question appeared — and the lift would arrive after the play it was
+        // meant to change. Same publish-then-freeze order as the showcase
+        // freeze directly below.
+        if (
+          motivationalSpeech !== undefined &&
+          !speechPromptOfferedRef.current &&
+          s.events
+            .slice(tickEventsBefore)
+            .some((event) => event.kind === 'HALF_TIME')
+        ) {
+          speechPromptOfferedRef.current = true;
+          setSpeechPromptOpen(true);
+          automaticPauseReasonsRef.current.add('halftime-speech');
+          pauseAfterPublish = true;
+          acc = 0;
+          break;
         }
 
         // The acquisition clip ends when the power's promise lands, not on a
@@ -2997,6 +3033,37 @@ export function MatchScreen({
     setFirstMatchTutorialStep('tired-swap-cue');
   };
 
+  /**
+   * Answers the half-time speech sheet.
+   *
+   * A `yes` records the input and flashes a banner; a `no` keeps the speech in
+   * the bank for another match. Either way the sheet closes and play resumes,
+   * and the sheet is never offered twice in one match.
+   */
+  const answerSpeechPrompt = (spend: boolean) => {
+    setSpeechPromptOpen(false);
+    if (spend && motivationalSpeech !== undefined) {
+      const recorded = recordCoachingInput({
+        tick: match.tick + 1,
+        kind: 'MOTIVATIONAL_SPEECH',
+        boost: motivationalSpeech.boost,
+      });
+      // Only announce a speech the engine accepted — a banner over a refused
+      // input would tell the manager the second half changed when it did not.
+      if (recorded) {
+        bannerRef.current = appendNewestFour(bannerRef.current, {
+          id: `speech:${match.tick}`,
+          text: t('matchScreen.bannerMotivationalSpeech'),
+          untilTick: match.tick + FLASH_TICKS,
+          tone: 'blue',
+        });
+        setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
+      }
+    }
+    automaticPauseReasonsRef.current.delete('halftime-speech');
+    syncPauseReasons();
+  };
+
   // Shared coaching actions. The phone dock and the desktop rail both call
   // these, so both issue byte-identical recorded inputs and the same banner.
   // The tap cue stays at each call site: the dock plays it explicitly, and the
@@ -3931,6 +3998,28 @@ export function MatchScreen({
           onContinue={continueTiredPlayerTutorial}
         />
       ) : null}
+      {/* Half time, one banked speech, one question. The club's own commit
+          sheet rather than a bespoke overlay: it already carries the focus
+          trap, the Escape/Back route, and reduced motion. */}
+      <ConfirmationSheet
+        confirmation={
+          speechPromptOpen && motivationalSpeech !== undefined
+            ? {
+                kicker: t('matchScreen.speechKicker'),
+                title: t('matchScreen.speechTitle'),
+                detail: t('matchScreen.speechDetail', {
+                  boost: motivationalSpeech.boost,
+                }),
+                confirmLabel: t('matchScreen.speechConfirm'),
+                cancelLabel: t('matchScreen.speechCancel'),
+                onConfirm: () => answerSpeechPrompt(true),
+              }
+            : null
+        }
+        reduceMotion={reduceMotion}
+        onCancel={() => answerSpeechPrompt(false)}
+        onConfirm={() => answerSpeechPrompt(true)}
+      />
       {/* Last child, so the cup card covers the whole match screen. */}
       {titleCard !== null && titleCardShowing ? (
         <CupTitleCard card={titleCard} onDone={dismissTitleCard} />

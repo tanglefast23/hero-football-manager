@@ -7,6 +7,8 @@ import {
   hasAssistantGuideMilestone,
   highestDivisionReached,
   careerRosterCapacity,
+  coachSpeechUnlocked,
+  hasHeadCoach,
   buildCareerFacility,
   hireCareerCoach,
   signYouthIntakeOffer,
@@ -66,6 +68,17 @@ export function pendingAssistantGuideSequence(
     !hasAssistantGuideSequenceCompleted(state, 'green-bull-training')
   ) {
     return 'green-bull-training';
+  }
+  // The head coach's half-time speech, explained the week its button appears.
+  // `hasHeadCoach` matters: without it Bert teaches a control that is not on
+  // the Staff board, because the card it hangs under does not exist yet.
+  if (
+    state.phase === 'manage' &&
+    coachSpeechUnlocked(state) &&
+    hasHeadCoach(state) &&
+    !hasAssistantGuideSequenceCompleted(state, 'coach-speech')
+  ) {
+    return 'coach-speech';
   }
   if (
     isFirstFixtureWeek(state) &&
