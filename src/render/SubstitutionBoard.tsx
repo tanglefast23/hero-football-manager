@@ -519,6 +519,11 @@ export function SubstitutionBoard({
                         active.id !== id &&
                         isEligible(active, id)
                       }
+                      blocked={
+                        active !== null &&
+                        active.id !== id &&
+                        !isEligible(active, id)
+                      }
                       picked={picked?.id === id}
                       hint={
                         dropTarget === id
@@ -679,6 +684,7 @@ export function SubstitutionBoard({
                             isKeeper: entry.sub.role === 'GK',
                           }}
                           lit={lit}
+                          blocked={active !== null && active.id !== id && !lit}
                           picked={picked?.id === id}
                           hint={
                             dropTarget === id
@@ -763,6 +769,11 @@ export function SubstitutionBoard({
                           active !== null &&
                           active.id !== id &&
                           isEligible(active, id)
+                        }
+                        blocked={
+                          active !== null &&
+                          active.id !== id &&
+                          !isEligible(active, id)
                         }
                         picked={picked?.id === id}
                         hint={
@@ -992,6 +1003,7 @@ function DragCard({
   id,
   source,
   lit,
+  blocked,
   picked,
   hint,
   guideLabel,
@@ -1012,6 +1024,8 @@ function DragCard({
   id: CardId;
   source: DragSource;
   lit: boolean;
+  /** A card the held or picked player cannot trade with: faded right back. */
+  blocked: boolean;
   /** This is the card waiting for a partner, chosen by tap rather than carried. */
   picked: boolean;
   /** Shown over this card while a compatible partner is carried onto it. */
@@ -1189,6 +1203,7 @@ function DragCard({
         compact ? styles.gridCell : null,
         // Pressable hands the web a pointer cursor; a dragged View has to ask.
         dragEnabled ? styles.cardPointer : null,
+        blocked ? styles.cardBlocked : null,
         lit ? styles.cardLit : null,
         hovered && !lifted ? styles.cardHovered : null,
         // The one card the release would actually take. Every eligible card is
@@ -1414,6 +1429,12 @@ const makeStyles = (faces: LocaleFaces) =>
       opacity: 0.6,
     },
     cardPointer: { cursor: 'pointer' },
+    /**
+     * While a player is carried or picked, everyone they cannot trade with
+     * fades right back, so the only bright cards left on the board are the
+     * legal partners. The ineligibility tag still says why.
+     */
+    cardBlocked: { opacity: 0.25 },
     cardGuided: {
       borderColor: '#3f6fb5',
       borderWidth: 4,
