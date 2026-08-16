@@ -139,6 +139,21 @@ const makeStyles = (faces: LocaleFaces) =>
       borderColor: '#77a4d8',
       backgroundColor: '#214566ee',
     },
+    // Defensive moments get their own colour. Deliberately a mint/spring green,
+    // far from the two pitch greens (#3f8a4a base, #5cb85c mow bands), so the
+    // tile never sinks into the grass behind it.
+    bannerTackle: {
+      color: '#8effc4',
+      borderColor: '#5ef2a0',
+      backgroundColor: '#0d3a24ee',
+    },
+    // A footnote tile, not an announcement: it reads as belonging to the banner
+    // directly above it rather than competing with it.
+    bannerSmall: {
+      fontSize: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
     performanceNotice: {
       position: 'absolute',
       zIndex: 12,

@@ -258,6 +258,14 @@ const TORCH_IGNITE_RANGE = 1400;
 const FIRE_FULL_MATCHUP_ADVANTAGE_D64 = 158; // 1.08x
 const FIRE_SATURATED_MATCHUP_ADVANTAGE_D64 = 538; // 1.30x
 const FIRE_MIN_MARKER_TICKS = 4;
+/**
+ * Ticks a burned marker stays down, per point of effect strength. At the shipped
+ * auto grade a Tier 1 Fire Torch has effect strength 1.4875, so this lands on 30
+ * ticks — 3.0s (owner decision, 2026-08-16; was 10, i.e. 1.5s). Higher tiers
+ * still scale up through effect strength, and a saturated mismatch still tapers
+ * toward FIRE_MIN_MARKER_TICKS.
+ */
+const FIRE_MARKER_TICKS_PER_STRENGTH = 20;
 /** Current defensive planning and landing ranges in deterministic pitch units. */
 const ICE_RINK_RANGE = 2400;
 const ICE_RINK_TRIGGER_RANGE = 2400;
@@ -901,6 +909,43 @@ const DUR: Record<PowerId, number> = {
   GUST: 130,
 };
 
+/**
+ * Powers whose active window is anchored per grade (auto / manual / tier 3)
+ * instead of scaling off `DUR`. One table rather than a chain of literals
+ * inside `beginPower`, because `maxActiveTicks` below has to agree with it and
+ * two hand-copied lists drift.
+ */
+const ANCHORED_DURATION: Partial<
+  Record<PowerId, readonly [number, number, number]>
+> = {
+  SUPER_SPEED: [80, 90, 100],
+  FUTURE_SIGHT: [180, 200, 240],
+  DECOY_DOUBLE: [120, 140, 140],
+  WEB_TRAP: [80, 100, 100],
+};
+
+/**
+ * Peak of `durationStrength` in `beginPower`: strength 1.0 x manual timing
+ * 1.15 x tier-3 scale 1.45. Rounded up so the bound is never short.
+ */
+const MAX_DURATION_STRENGTH = 1.7;
+
+/**
+ * The longest an activation of `power` can stay active, at any grade or tier.
+ *
+ * Report code needs an upper bound. `goalsFrom` walks the event log and has no
+ * player state to read, so without this it carried a fired power forward until
+ * the hero's next shot — possibly minutes later — and credited that goal to a
+ * power that had long since ended. Powers that finish early through
+ * `finishMomentPower` simply come in under the bound.
+ */
+export function maxActiveTicks(power: PowerId): number {
+  const anchored = ANCHORED_DURATION[power];
+  if (anchored !== undefined) return Math.max(...anchored);
+  if (power === 'SHADOW_MARK') return SHADOW_BURROW_TICKS + SHADOW_HUNT_TICKS;
+  return Math.round(DUR[power] * MAX_DURATION_STRENGTH);
+}
+
 /** Tier 1 is the balance floor. Tiers 2/3 increase both potency and, for
  * sustained powers, duration; Tier 3 therefore lands near twice Tier 1's total
  * influence without doubling any single on-pitch displacement or stat spike. */
@@ -1287,18 +1332,13 @@ export function activatePower(
   // higher-tier hero strictly worse after the same instantaneous transfer.
   const durationStrength =
     power === 'PORTAL_PASS' ? 1 : strength * timingScale * tierScale;
+  const anchoredDuration = ANCHORED_DURATION[power];
   const durationTicks =
-    power === 'SUPER_SPEED'
-      ? Math.round(anchoredEffect(durationStrength, 80, 90, 100))
-      : power === 'FUTURE_SIGHT'
-        ? Math.round(anchoredEffect(durationStrength, 180, 200, 240))
-        : power === 'DECOY_DOUBLE'
-          ? Math.round(anchoredEffect(durationStrength, 120, 140, 140))
-          : power === 'WEB_TRAP'
-            ? Math.round(anchoredEffect(durationStrength, 80, 100, 100))
-            : power === 'SHADOW_MARK'
-              ? SHADOW_BURROW_TICKS + SHADOW_HUNT_TICKS
-              : Math.round(DUR[power] * durationStrength);
+    anchoredDuration !== undefined
+      ? Math.round(anchoredEffect(durationStrength, ...anchoredDuration))
+      : power === 'SHADOW_MARK'
+        ? SHADOW_BURROW_TICKS + SHADOW_HUNT_TICKS
+        : Math.round(DUR[power] * durationStrength);
   p.powerState = {
     kind: 'active',
     untilTick: state.tick + durationTicks,
@@ -1360,7 +1400,9 @@ export function activatePower(
         0,
         1,
       );
-      const fullRemovalTicks = Math.round(10 * effectStrength);
+      const fullRemovalTicks = Math.round(
+        FIRE_MARKER_TICKS_PER_STRENGTH * effectStrength,
+      );
       const removalTicks = Math.round(
         FIRE_MIN_MARKER_TICKS +
           (fullRemovalTicks - FIRE_MIN_MARKER_TICKS) * matchupHeadroom,
@@ -1400,8 +1442,11 @@ export function activatePower(
           strengthLandingRange(p, strength),
         );
         const grade = activeActivationGrade(p);
+        // 6.0s flat at the shipped auto grade (owner decision, 2026-08-16; was
+        // 90/70/50, i.e. 15.0s). The three terms keep their old proportions, so
+        // a manual tap and a Tier 3 upgrade still lengthen the flatten.
         const flattenTicks = Math.round(
-          90 + 70 * grade + 50 * upgradeLift(grade),
+          36 + 28 * grade + 20 * upgradeLift(grade),
         );
         clearStrengthLock(state, idx, capturedTargetIdx);
         knockOut(state, capturedTargetIdx, state.tick + flattenTicks, 'ko');
@@ -2045,7 +2090,9 @@ function springWebTrap(state: MatchState, heroIdx: number): void {
   )
     return;
   const grade = activeActivationGrade(hero);
-  const rootTicks = Math.round(anchoredEffect(grade, 120, 200, 200));
+  // 6.0s at the shipped auto grade (owner decision, 2026-08-16; was
+  // 120/200/200, i.e. 12.0s). Halved at every grade, so the shape is unchanged.
+  const rootTicks = Math.round(anchoredEffect(grade, 60, 100, 100));
   carrier.webbedUntilTick = state.tick + rootTicks;
   carrier.slideTackle = undefined;
   carrier.tackleRecoveryUntil = 0;

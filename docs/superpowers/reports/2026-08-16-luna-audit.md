@@ -61,6 +61,34 @@ The observed English screens used readable copy for drills, financial reports, p
 
 The observed weekly reports matched the visible cash movement. This does not clear the previously logged mismatch; it only means the issue did not reproduce here.
 
+### Confirmed blocker: a transfer can create an unlicensed starter
+
+In Season 5, D4, Week 4, the club signed Dara Lane after selling Ivo Reed. The transfer negotiation attached a `Starter` promise even though no Hero License was available. The transfer screen showed the new player with two seasons and a Starter promise, but did not ask which licensed player should lose the license.
+
+When Week 5 advanced to the first match, the career stopped with: `Hero youth-s3-2 must be licensed or benched`. This left the saved career unable to launch the match. The existing renewal flow already explains that a Starter promise needs a free Hero License, so this is a transfer-negotiation gap rather than a general promise rule.
+
+#### Required behavior
+
+When a new player is hired into a Starter promise and no Hero License is free:
+
+1. Ask immediately which currently licensed player should lose the license.
+2. Exclude licensed players who have a Starter promise from that choice.
+3. Remove the selected player's license and move that player to the bench immediately.
+4. Give the new player the license and put the new player into the vacated starting slot.
+5. If every licensed player is protected by a Starter promise, disable the Starter promise option. Do not create an invalid unlicensed starter.
+6. If the negotiation is cancelled or fails, leave licenses, promises, and the starting eleven unchanged.
+7. A legacy invalid state must fail soft. It must repair the lineup or show a clear action, not block match launch with a technical error.
+
+#### Acceptance checks
+
+- A free license lets the signed player become a Starter immediately.
+- With no free license, the prompt lists only reclaimable license holders.
+- The displaced player is benched before the next match, and the new player starts.
+- Protected Starter promise holders cannot be displaced.
+- With no reclaimable holder, Starter is visibly disabled and no Starter promise is saved.
+- Transfer cancellation leaves the prior lineup and promises intact.
+- Loading an older invalid save cannot strand the career at match launch.
+
 ## Suggestions
 
 1. Move Bert's contract guidance away from the negotiation controls, or show it once in a non-blocking hint.

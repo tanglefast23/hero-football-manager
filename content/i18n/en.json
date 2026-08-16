@@ -1674,6 +1674,7 @@
     "matchScreen.bannerHalfTime": "HALF TIME",
     "matchScreen.bannerRivalZone": "{player} IS HOT, KEEP THE BALL AWAY",
     "matchScreen.bannerSubstitution": "SUBSTITUTION · {player} ON",
+    "matchScreen.bannerTackle": "TACKLE! {player}",
     "matchScreen.clickHere": "Click here",
     "matchScreen.cupTitleCardTitle": "HERO CUP",
     "matchScreen.energyMode.allOut": "ALL OUT",
@@ -2812,6 +2813,20 @@
     "storyCallback.veteranRestThanks": "Thanks for giving me the time. My legs feel ready again.",
     "storyCallback.deniedLeaveUnderstands": "I was angry, but I understand why you needed me here.",
     "storyCallback.deniedLeaveUnhappy": "I stayed, boss. I have not forgotten that you said no.",
-    "storyCallback.facilityFireRebuild": "Boss, the rebuilding work is under way. The place is starting to feel like our club again."
+    "storyCallback.facilityFireRebuild": "Boss, the rebuilding work is under way. The place is starting to feel like our club again.",
+    "bert.heroLicense.title": "Permits come with promotion",
+    "bert.heroLicense.body1": "Hero Licenses are free, boss. Two in the District and County Leagues, three in the Regional and National Leagues, four in the Global League. Drop a division and you keep every one you have earned.",
+    "bert.heroLicense.body2": "Paying brings that one permit forward, nothing more. A later promotion lifts the free number instead of adding to what you bought. Still want it now?",
+    "fixtureMatchDay.oneMorePermit": "One more permit",
+    "fixtureMatchDay.oneMorePermitDetail": "The league will sell the club its next Hero License now instead of making it wait for promotion.",
+    "fixtureMatchDay.buyHeroLicense": "Buy permit {license} · {cost}",
+    "fixtureMatchDay.a11y.buyHeroLicense": "Buy Hero License {license} for {cost}",
+    "confirm.buyHeroLicense.title": "Buy permit {license}?",
+    "confirm.buyHeroLicense.detail": "The league registers one more permit for {cost}. Your club can field {license} heroes at once from the next match on.",
+    "confirm.buyHeroLicense.confirm": "Yes, buy it",
+    "confirm.buyHeroLicense.cancel": "No",
+    "store.heroLicenseBought": "Hero License {license} registered.",
+    "cashTransaction.heroLicenseBought": "Hero License {license} bought",
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Only a Global League club may hold more than four."
   }
 }

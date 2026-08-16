@@ -243,6 +243,15 @@ export interface HeroLicenseViewModel {
   licensed: boolean;
 }
 
+/** The permit the league will sell the club next, priced and ready to draw. */
+export interface HeroLicenseOfferViewModel {
+  /** Which permit this is — the club's current cap plus one. */
+  licenseNumber: number;
+  cost: number;
+  /** Already resolved for the screen; undefined when the club can buy it. */
+  blockedReason?: string;
+}
+
 export interface MatchDayViewModel {
   fixture: FixtureViewModel;
   formationLabel: string;
@@ -253,6 +262,7 @@ export interface MatchDayViewModel {
   heroLimit: number;
   heroes: readonly HeroLicenseViewModel[];
   licenseReady: boolean;
+  heroLicenseOffer: HeroLicenseOfferViewModel;
 }
 
 /**

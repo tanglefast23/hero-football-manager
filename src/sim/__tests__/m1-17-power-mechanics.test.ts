@@ -656,7 +656,7 @@ describe('m1.18 authored one-moment powers', () => {
     expect(auto).toBeGreaterThan(0);
     expect(manual).toBeGreaterThan(auto);
     expect(upgradedManual).toBeGreaterThan(manual);
-    expect(upgradedManual).toBeLessThanOrEqual(30);
+    expect(upgradedManual).toBeLessThanOrEqual(60);
   });
 
   it('keeps targetless blind Fire Torch windups safe for movement', () => {
@@ -1044,7 +1044,7 @@ describe('m1.18 authored one-moment powers', () => {
       kind: 'loose',
       pos: web.match.players[web.victim].pos,
     });
-    expect(web.match.players[web.victim].webbedUntilTick).toBe(200);
+    expect(web.match.players[web.victim].webbedUntilTick).toBe(100);
 
     const ice = spring('ICE_RINK');
     expect(ice.match.ball).toEqual({ kind: 'held', by: ice.victim });
@@ -1076,7 +1076,7 @@ describe('m1.18 authored one-moment powers', () => {
         power === 'WEB_TRAP' ? 'loose' : 'held',
       );
       if (power === 'WEB_TRAP')
-        expect(insideMatch.players[11].webbedUntilTick).toBe(200);
+        expect(insideMatch.players[11].webbedUntilTick).toBe(100);
       else
         expect(insideMatch.players[11].forcedMovement?.kind).toBe('ICE_SLIDE');
       expect(insideMatch.players[2].powerState.kind).toBe('idle');

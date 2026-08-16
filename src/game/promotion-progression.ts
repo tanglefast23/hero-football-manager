@@ -50,6 +50,28 @@ export function heroLicenseLimitForDivision(
   return 2;
 }
 
+/**
+ * The club's Hero License cap: what it has won, or what it has paid for.
+ *
+ * The single answer, because there are two callers with two different reasons
+ * to ask — match day fields the heroes, and the transfer desk promises a hero
+ * a start — and a cap that disagrees with itself sells a permit the negotiating
+ * table then refuses to honour. It did exactly that for one commit.
+ *
+ * A bought permit is a FLOOR, never an addition: paying for an early third and
+ * then winning promotion to the Regional League leaves the club on three.
+ */
+export function heroLicenseCap(state: GameState): number {
+  const earned =
+    state.m2 === undefined
+      ? DEFAULT_HERO_LICENSE_LIMIT
+      : heroLicenseLimitForDivision(highestDivisionReached(state));
+  return Math.max(earned, state.purchasedHeroLicenseCap ?? 0);
+}
+
+/** What a club with no pyramid at all may field: the District League's two. */
+export const DEFAULT_HERO_LICENSE_LIMIT = 2;
+
 const TRAINING_DRILL_TIER_SUFFIX: Readonly<Record<TrainingDrillTier, string>> =
   {
     1: '',
@@ -341,8 +363,23 @@ export function leaguePrizeMoney(
   return LEAGUE_PRIZES_BY_DIVISION[division][position - 1] ?? 0;
 }
 
+/**
+ * What reaching `division` newly hands the club.
+ *
+ * `alreadyHeldLicenses` drops a Hero License the club has already bought at the
+ * permit office. The same rule that removed the "Level 2 facilities" line once
+ * level 2 became available from D5: a reward screen must not congratulate the
+ * manager on something they paid for two seasons ago.
+ */
 export function promotionRewardsForDivision(
   division: DivisionLevel,
+  alreadyHeldLicenses = 0,
 ): readonly PromotionReward[] {
-  return division === 5 ? [] : PROMOTION_REWARDS[division];
+  if (division === 5) return [];
+  const licenseGranted = heroLicenseLimitForDivision(division);
+  return PROMOTION_REWARDS[division].filter(
+    (reward) =>
+      !reward.titleKey.endsWith('HeroLicense.title') ||
+      licenseGranted > alreadyHeldLicenses,
+  );
 }

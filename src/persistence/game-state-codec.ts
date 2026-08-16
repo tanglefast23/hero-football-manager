@@ -205,6 +205,7 @@ const cashTransactionSchema = z
       'facility-relocation',
       'facility-closure',
       'training-upgrade',
+      'hero-license',
       'scouting',
       'transfer-buy',
       'transfer-sell',
@@ -2042,6 +2043,9 @@ const gameStateSchema = z
         ]),
       )
       .optional(),
+    // Absent on a save written before permits went on sale, and on every club
+    // that has only ever earned its licenses by winning promotion.
+    purchasedHeroLicenseCap: nonnegativeInteger.optional(),
     totalInstantDrills: nonnegativeInteger.optional(),
     ledgers: z.array(ledgerSchema),
     seasonOpeningCash: safeInteger.optional(),
