@@ -216,7 +216,33 @@ const DIST = path.resolve('dist');
 // modules (`sprites.json` 1.98 MB, `portraits.json` 1.36 MB,
 // `management-sprites.json` 269 KB). A brief for getting the number DOWN is in
 // docs/plans/2026-08-16-first-load-budget-investigation-handoff.md.
-const RAW_BUDGET = 6_024_723;
+// Re-ratcheted 2026-08-16 (desktop possession card + swap-board dimming), on
+// top of the entry above. All 31 bytes of it are this branch's, and the
+// arithmetic is the cleanest this file has recorded.
+//
+// `origin/main` at 4dd164cb was exported and measured by this script:
+// 6_023_686 raw / 903_480 gzip — the exact local figure the entry above wrote
+// down for the merged tree, so main has not drifted a byte since. This branch's
+// own export reads 6_023_717 / 903_492, which is **+31 raw / +12 gzip**. CI
+// reported 6_024_754 raw for the same tree: local + the same +1_037 offset,
+// transferring unchanged for the fourth branch running.
+//
+// What the +31 is: three desktop style entries on the possession card, the
+// optional `height` prop on `HeroChargeMeter`, and the `blocked` prop that
+// fades an unavailable card on the substitution board. No new copy in any
+// locale, and no new module.
+//
+// Raw takes CI's own figure for this tree, 6_024_754, per the rule the entries
+// above settled on. Gzip is NOT moved: CI read 903_676 against a 903_743 mark,
+// so it never breached, and raising a budget nothing has hit is loosening for
+// free. It is not ratcheted DOWN either — the mark was set one entry ago from a
+// +263 estimate that CI has yet to test, so tightening onto this branch's
+// figure would bank an offset nobody has measured.
+//
+// Markers checked before moving the number, as every time: CI reported
+// `qaBodyMarkers: []` and `skiaBodyMarkers: []` on the failing run. This branch
+// adds no dev-harness entry, so there is no third-string check to run.
+const RAW_BUDGET = 6_024_754;
 const GZIP_BUDGET = 903_743;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
