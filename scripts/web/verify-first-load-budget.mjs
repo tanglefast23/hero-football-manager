@@ -217,9 +217,16 @@ const DIST = path.resolve('dist');
 // `management-sprites.json` 269 KB). A brief for getting the number DOWN is in
 // docs/plans/2026-08-16-first-load-budget-investigation-handoff.md.
 // Ratcheted DOWN 2026-08-16 — the first time this number has gone down. The
-// two big pixel sheets left the first load. A local export of this tree reads
-// 3_397_492 raw / 828_116 gzip, against the 6_018_607 / 902_320 the same tree
-// measured before the change: **-2_621_115 raw (-43.6%) / -74_204 gzip**.
+// two big pixel sheets left the first load. This tree, merged with main at
+// 4dd164cb, reads **3_403_037 raw / 829_687 gzip** against the 6_023_686 /
+// 903_480 the entry above measured for main itself: **-2_620_649 raw (-43.5%)
+// / -73_793 gzip**.
+//
+// The attribution is exact rather than approximate, which is worth recording
+// because the entries above kept having to split growth between a branch and
+// what it inherited. This branch measured 3_397_529 / 828_115 before merging
+// main, and 3_397_529 + the +5_508 raw the entry above measured for the speech
+// cutscene is 3_403_037 — the merged figure to the byte. Nothing else moved.
 //
 // What moved, and why it was in there at all:
 //
@@ -259,19 +266,20 @@ const DIST = path.resolve('dist');
 // bytes-per-risk of the three sheets, and the only one that can shift a
 // layout.
 //
-// Both numbers below sit a little over this tree's local figures: +1_108 on
-// raw, +1_184 on gzip. CI has run about 1_037 above local on raw, and the gzip
-// offset does not transfer between trees — see the shot-danger entry below,
-// where a borrowed offset was wrong by 36 bytes. Per the convention here: if
-// CI reports lower, ratchet down to CI's own figure rather than banking the
-// slack.
+// Raw below is this tree's local figure plus exactly the +1_037 CI offset,
+// which the entry above says has now transferred between branches unchanged
+// three times: 3_403_037 -> 3_404_074. Gzip does NOT transfer, so its +400 is
+// a rounded-up guess off the +263 the shot-danger entry measured for its own
+// tree — an estimate, said out loud, not a fact: 829_687 -> 830_087. Per the
+// convention here: if CI reports lower, ratchet down to CI's own figure rather
+// than banking the slack.
 //
 // Markers checked, as every time: `qaBodyMarkers: []` and `skiaBodyMarkers: []`
 // on the local export. Verified in the browser pane as well as by byte count —
 // the title pop scene draws its two SVG sprites from the subset, and the
 // character-creation portrait draws from the fetched `portraits-*.js`.
-const RAW_BUDGET = 3_398_600;
-const GZIP_BUDGET = 829_300;
+const RAW_BUDGET = 3_404_074;
+const GZIP_BUDGET = 830_087;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
