@@ -9,6 +9,7 @@ import { createFacilityGrid } from '../facilities';
 import {
   BASE_ROSTER_CAPACITY,
   careerRosterCapacity,
+  createEmergencyYouthReplacement,
   createPreseasonYouthIntake,
   declineYouthIntakeOffers,
   signYouthIntakeOffer,
@@ -84,6 +85,20 @@ function relevantAverage(
 }
 
 describe('pre-season youth intake', () => {
+  it('keeps emergency board relief near the D5 starting strength', () => {
+    const replacement = createEmergencyYouthReplacement(
+      careerWithRosterSize(15, 404),
+      'DEF',
+      'board-test',
+    );
+    const attrs = replacement.attrs;
+    const average =
+      (attrs.pac + attrs.sho + attrs.pas + attrs.def + attrs.tec + attrs.sta) /
+      6;
+
+    expect(average).toBeGreaterThanOrEqual(37);
+  });
+
   it('offers two deterministic, JSON-safe 16-17 year olds each pre-season', () => {
     const state = careerWithRosterSize(14, 101);
     const before = JSON.stringify(state);

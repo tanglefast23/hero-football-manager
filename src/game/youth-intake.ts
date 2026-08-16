@@ -359,9 +359,9 @@ export function youthSigningBonus(fieldLevel: 0 | 1 | 2 | 3): number {
 }
 
 /**
- * Fail-soft academy relief after a board sale. It is deliberately weaker and
- * cheaper than a normal intake prospect, but preserves the canonical roster
- * size and the sold player's positional cover without charging a signing fee.
+ * Fail-soft academy relief after a board sale. It is deliberately cheaper than
+ * a normal intake prospect, but stays near the D5 starting strength so repeated
+ * rescue sales cannot permanently destroy the squad.
  */
 export function createEmergencyYouthReplacement(
   state: GameState,
@@ -382,7 +382,7 @@ export function createEmergencyYouthReplacement(
     ),
   );
   const fieldLevel = youthFieldLevel(state);
-  const targetStrength = 27 + fieldLevel * 3 + integerRoll(random, 0, 4);
+  const targetStrength = 37 + fieldLevel * 3 + integerRoll(random, 0, 4);
   const attrs = generateAttributes(targetStrength, role, random);
   const id = `board-relief-s${state.season}-w${state.week}-${hashString(`${sourceId}:${role}`).toString(16)}`;
   if (state.players.some((player) => player.id === id)) {
