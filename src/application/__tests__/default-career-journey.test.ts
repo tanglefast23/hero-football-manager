@@ -352,7 +352,7 @@ function playJourneyWeek(initial: GameState): GameState {
         {
           chancePercent: 10,
           secondInSeasonChancePercent: 2,
-          maxPerSeason: 2,
+          maxPerSeason: 1,
           minimumMatchesBetween: 3,
         },
       ).state,

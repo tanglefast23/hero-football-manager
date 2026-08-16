@@ -14,7 +14,7 @@ interface PostMatchAwakeningTuning {
   chancePercent: number;
   /** The roll once this season already has a hero — deliberately far smaller. */
   secondInSeasonChancePercent: number;
-  /** Heroes a single season may produce, the guaranteed first one included. */
+  /** Heroes a season may earn. Season 1 gets one more: its opener is free. */
   maxPerSeason: number;
   minimumMatchesBetween: number;
 }
@@ -103,10 +103,11 @@ export function resolvePostMatchAwakening(
       },
       awakened: false,
     });
-    // A season the club has already filled is done producing heroes. The
-    // guaranteed opening hero counts, so season 1 has room for exactly one
-    // more — a squad does not turn into a super-team inside a single year.
-    if (alreadyThisSeason >= tuning.maxPerSeason) {
+    // A season the club has already filled is done producing heroes. Season 1
+    // is allowed one extra because its opening hero is a free campaign gift;
+    // every later year makes at most one, so the squad cannot turn super.
+    const seasonCap = tuning.maxPerSeason + (state.season === 1 ? 1 : 0);
+    if (alreadyThisSeason >= seasonCap) {
       return nextWithoutAwakening();
     }
     if (matchesSinceLastAwakening < tuning.minimumMatchesBetween) {

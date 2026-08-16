@@ -148,13 +148,14 @@ export const PowerCatalogSchema = z
     awakening: z.strictObject({
       postMatchChancePercent: z.literal(10),
       /**
-       * The roll once the season already has one hero. A second in the same
-       * season is meant to be a surprise, not the expected second half of the
-       * year, so it is a fifth of the first chance rather than a shade off it.
+       * The roll once the season already has one hero. Only season 1 can reach
+       * it, because that season's cap is raised for the free opening hero, and
+       * a second hero there is meant to be a surprise rather than the expected
+       * other half of the year.
        */
       secondInSeasonChancePercent: z.literal(2),
-      /** Counting the campaign's guaranteed first hero: season 1 gets one more. */
-      maxPerSeason: z.literal(2),
+      /** Heroes a season may earn. Season 1 gets one more: its opener is free. */
+      maxPerSeason: z.literal(1),
       minimumMatchesBetween: z.literal(3),
     }),
     powers: z.array(PowerDefinitionSchema).length(17),
