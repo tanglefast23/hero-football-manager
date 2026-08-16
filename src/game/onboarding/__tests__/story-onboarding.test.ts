@@ -190,7 +190,7 @@ describe('story onboarding state machine', () => {
       {
         chancePercent: 10,
         secondInSeasonChancePercent: 2,
-        maxPerSeason: 2,
+        maxPerSeason: 1,
         minimumMatchesBetween: 3,
       },
     ).state;
@@ -345,7 +345,7 @@ describe('story onboarding state machine', () => {
         {
           chancePercent: 10,
           secondInSeasonChancePercent: 2,
-          maxPerSeason: 2,
+          maxPerSeason: 1,
           minimumMatchesBetween: 3,
         },
       ),

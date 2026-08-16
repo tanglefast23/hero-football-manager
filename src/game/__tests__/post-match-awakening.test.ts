@@ -25,7 +25,7 @@ const TRIGGERS = [
 const TUNING = {
   chancePercent: 10,
   secondInSeasonChancePercent: 2,
-  maxPerSeason: 2,
+  maxPerSeason: 1,
   minimumMatchesBetween: 3,
 } as const;
 
@@ -163,17 +163,17 @@ describe('automatic post-match awakenings', () => {
   });
 
   /**
-   * A season produces at most two heroes, the campaign's guaranteed first one
-   * included, and the second is a long shot rather than the expected other
-   * half of the year. Without the cap a 10% roll every third match handed out
-   * two or more heroes in a third of seasons, and a squad turned super inside
-   * a couple of years.
+   * A season produces at most one hero. Season 1 is the exception: its opening
+   * hero is a free campaign gift, so that year has room for a second, and that
+   * second is a long shot rather than the expected other half of the year.
+   * Without the cap a 10% roll every third match handed out two or more heroes
+   * in a third of seasons, and a squad turned super inside a couple of years.
    */
   describe('the season cap', () => {
     const forced = {
       chancePercent: 100,
       secondInSeasonChancePercent: 100,
-      maxPerSeason: 2,
+      maxPerSeason: 1,
       minimumMatchesBetween: 0,
     } as const;
 
@@ -216,6 +216,28 @@ describe('automatic post-match awakenings', () => {
         season: state.season,
         count: 2,
       });
+    });
+
+    it('refuses a second hero in any season after the first', () => {
+      const start = playedUserFixture(createCareer(createLaunchCareerSetup(53)));
+      let state: GameState = { ...start, season: 2 };
+      const fixtureId = userFixture(state).id;
+
+      for (const expected of [true, false, false]) {
+        const result = resolvePostMatchAwakening(
+          readyForAnother(state),
+          fixtureId,
+          userLineup(state),
+          POWERS,
+          TRIGGERS,
+          forced,
+        );
+        expect(result.awakened).toBe(expected);
+        state = result.awakened
+          ? completePostMatchAwakening(result.state)
+          : result.state;
+      }
+      expect(state.awakening.seasonTally).toEqual({ season: 2, count: 1 });
     });
 
     it('counts the guaranteed opening hero, so season one has room for one more', () => {
@@ -330,7 +352,7 @@ describe('automatic post-match awakenings', () => {
       const bracketed = {
         chancePercent: roll + 1,
         secondInSeasonChancePercent: roll,
-        maxPerSeason: 2,
+        maxPerSeason: 1,
         minimumMatchesBetween: 0,
       } as const;
 
