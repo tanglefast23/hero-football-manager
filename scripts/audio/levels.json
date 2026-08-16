@@ -150,6 +150,16 @@
       "afterTruePeak": -1.9,
       "bytes": 7495
     },
+    "assets/audio/sfx/ball-flight-whoosh.m4a": {
+      "class": "sfx",
+      "before": -15.7,
+      "beforeTruePeak": -1.7,
+      "gainDb": 0,
+      "limited": false,
+      "after": -15.7,
+      "afterTruePeak": -1.7,
+      "bytes": 9593
+    },
     "assets/audio/sfx/bert-voice-dialogue2.m4a": {
       "class": "sfx",
       "before": -13.7,
@@ -544,6 +554,16 @@
       "afterTruePeak": -6.6,
       "bytes": 34033
     },
+    "assets/audio/sfx/match-control-whistle.wav": {
+      "class": "sfx",
+      "before": -16,
+      "beforeTruePeak": -13.2,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -13.2,
+      "bytes": 576078
+    },
     "assets/audio/sfx/match-day-bugle.m4a": {
       "class": "sfx",
       "before": -15,
@@ -553,6 +573,16 @@
       "after": -16,
       "afterTruePeak": -2.5,
       "bytes": 45173
+    },
+    "assets/audio/sfx/match-day-fanfare.m4a": {
+      "class": "sfx",
+      "before": -16.6,
+      "beforeTruePeak": -7.3,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16.6,
+      "afterTruePeak": -7.3,
+      "bytes": 28054
     },
     "assets/audio/sfx/match-statement-positive.m4a": {
       "class": "sfx",
