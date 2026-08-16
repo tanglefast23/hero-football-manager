@@ -607,6 +607,13 @@ export function MatchScreen({
   layoutRef.current.scale = scale;
   layoutRef.current.devicePixelRatio = devicePixelRatio;
 
+  // Frozen for the life of the match. `onFormationChange` moves the picked
+  // formation into slot 0 so the NEXT match opens on it — which, read live,
+  // reordered the chip row under the manager's finger: tapping the middle chip
+  // swapped its label with the first, so a second tap in the same place undid
+  // the first and the white border never appeared to leave 4-4-2.
+  const presetsRef = useRef(formationPresets);
+  const livePresets = presetsRef.current;
   // Ledger item 1 — lazy init: never `useRef(createMatch(...))`, whose
   // argument expression would run (creating and discarding a fresh match)
   // on every render. Guard-then-assign only ever creates one match per mount.
@@ -616,7 +623,7 @@ export function MatchScreen({
       seed,
       home,
       away,
-      matchPoliciesForControlledTeam(controlledTeam, formationPresets[0]),
+      matchPoliciesForControlledTeam(controlledTeam, livePresets[0]),
     );
     if (powerMatchQa !== undefined) {
       initializePowerMatchShowcase(stateRef.current, powerMatchQa.power);
@@ -3367,7 +3374,7 @@ export function MatchScreen({
             onSelectSpeed={applySpeed}
             onTogglePause={toggleUserPause}
             onOpenSettings={onOpenSettings}
-            formations={formationPresets}
+            formations={livePresets}
             formation={displayedFormation}
             onSelectFormation={selectFormation}
             mentality={displayedMentality}
@@ -3808,9 +3815,7 @@ export function MatchScreen({
                 coachingDisabled ? styles.coachButtonDisabled : null,
               ]}
               onPress={() => {
-                selectFormation(
-                  nextFormation(displayedFormation, formationPresets),
-                );
+                selectFormation(nextFormation(displayedFormation, livePresets));
               }}
             >
               <FormationDiagram

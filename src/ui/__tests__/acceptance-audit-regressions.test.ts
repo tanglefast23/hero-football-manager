@@ -261,6 +261,23 @@ describe('player-facing acceptance audit regressions', () => {
     expect(liveMatch).toContainSource('onFormationChange?.(formation);');
   });
 
+  test('never reorders the live formation chips under the manager', () => {
+    // Remembering the pick moves it to slot 0 for the NEXT match. Read live,
+    // that swapped the tapped chip's label with the first one's, so the white
+    // border looked stuck on 4-4-2. The screen freezes the order at mount.
+    const liveMatch = source('src/render/MatchScreen.tsx');
+
+    expect(liveMatch).toContainSource(
+      'const presetsRef = useRef(formationPresets);',
+    );
+    expect(liveMatch).toContainSource('formations={livePresets}');
+    expect(liveMatch).toContainSource(
+      'nextFormation(displayedFormation, livePresets)',
+    );
+    // The live prop may only be read to seed the frozen copy.
+    expect(liveMatch.match(/formationPresets/g)).toHaveLength(3);
+  });
+
   test('keeps the match-day docket free of redundant live-coaching and auto-context blocks', () => {
     const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
 
