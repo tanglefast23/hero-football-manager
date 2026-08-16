@@ -227,6 +227,7 @@ import {
   nextDueStoryCallback,
   shouldShowSquadSortHint,
   userClubName,
+  coachSpeechBoost,
   hasAssistantGuideMilestone,
   type AssistantMode,
   staffedCoachingOfficeClosureConfirmation,
@@ -2831,6 +2832,11 @@ function GameApp() {
           isFirstOnboardingFixture(store.career, store.watchedMatch.fixture.id)
         }
         cupRoundLabel={store.watchedMatch.cupRoundLabel}
+        motivationalSpeech={
+          store.career?.coachSpeechBanked === true
+            ? { boost: coachSpeechBoost(store.career) }
+            : undefined
+        }
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
@@ -3517,6 +3523,31 @@ function GameApp() {
               store.setActiveTab('market');
             }}
             onDismissCoach={beginCoachDismissal}
+            onTrainCoachSpeech={() => {
+              // Every training point the club holds, gone in one tap. That is
+              // the same class of decision as an upgrade or a dismissal, so it
+              // gets the same commit sheet rather than firing on a single press.
+              const speech = clubFinancesViewModel(
+                useM1Store.getState().career!,
+                t,
+              ).coachSpeech;
+              if (speech === undefined || speech.blockedLabel !== undefined)
+                return;
+              requestConfirmation({
+                title: t('confirm.coachSpeech.title'),
+                detail: t('confirm.coachSpeech.detail', {
+                  points: speech.trainingPointsCost,
+                  boost: speech.boost,
+                }),
+                confirmLabel: t('confirm.coachSpeech.confirm'),
+                onConfirm: () =>
+                  performManagementAction(
+                    () => store.buyCoachSpeech(),
+                    'cash',
+                    'commit',
+                  ),
+              });
+            }}
             onReviewSponsorOffer={(offer, slot) =>
               requestConfirmation({
                 title: t('confirm.sponsor.title', {

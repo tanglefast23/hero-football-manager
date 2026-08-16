@@ -43,6 +43,7 @@ import {
   CUP_SETTLEMENT_WEEKS,
   contractTermOptions,
   createFacilityGrid,
+  coachSpeechOffer,
   currentUserDivision,
   greenBullTrainingOffer,
   difficultyRules,
@@ -139,6 +140,7 @@ import type {
   ClubLoanViewModel,
   ClubVariableIncomeViewModel,
   ClubAlertViewModel,
+  CoachSpeechViewModel,
   CoachStaffMemberViewModel,
   FixtureViewModel,
   HomeViewModel,
@@ -717,6 +719,7 @@ export function clubFinancesViewModel(
 ): ClubFinancesViewModel {
   const club = requireUserClub(state);
   const sponsorship = clubSponsorshipViewModel(state, club, t);
+  const coachSpeech = coachSpeechViewModel(state, t);
   const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
   const facilityUpkeep =
     state.facilities.grid === undefined
@@ -876,6 +879,7 @@ export function clubFinancesViewModel(
     legacyTrainingGroundVisible: false,
     clubName: club.name,
     coachingStaff: coachingStaffViewModels(state, t),
+    ...(coachSpeech === undefined ? {} : { coachSpeech }),
     facilities: facilityGridViewModel(state, t),
     trainingPointIncome: trainingPointIncomeViewModel(state, t),
     ...(sponsorship === undefined ? {} : { sponsorship }),
@@ -1443,6 +1447,33 @@ function outstandingLoanViewModel(
  * casting a translated string back to a literal it will not equal. Widening the
  * field is the fix; it belongs with the pass that threads the live `t` in.
  */
+/**
+ * The head coach's speech desk, or nothing at all before the club reaches D3.
+ *
+ * The blocked reason is turned into a sentence here rather than in the screen:
+ * the board's job is to render what it is handed, and every other refusal on
+ * this screen (the Green Bull desk, the coach market) resolves its copy in this
+ * layer too.
+ */
+function coachSpeechViewModel(
+  state: GameState,
+  t: CopyFn,
+): CoachSpeechViewModel | undefined {
+  const offer = coachSpeechOffer(state);
+  if (offer === undefined) return undefined;
+  const blockedLabel =
+    offer.blockedReason === undefined
+      ? undefined
+      : t(`coachSpeech.blocked.${offer.blockedReason}`);
+  return {
+    trainingPointsCost: offer.trainingPointsCost,
+    banked: offer.banked,
+    boost: offer.boost,
+    label: t('coachSpeech.trainCoach'),
+    ...(blockedLabel === undefined ? {} : { blockedLabel }),
+  };
+}
+
 function coachingStaffViewModels(
   state: GameState,
   t: CopyFn,

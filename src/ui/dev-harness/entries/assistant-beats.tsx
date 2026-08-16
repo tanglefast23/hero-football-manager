@@ -40,6 +40,7 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'management-intro',
   'desk-intro',
   'green-bull-training',
+  'coach-speech',
   'expired-contract',
   'head-coach-market',
   'head-coach-hire',
@@ -88,6 +89,7 @@ const SEQUENCE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'management-intro': 'INTRO',
   'desk-intro': 'DESK',
   'green-bull-training': 'GREEN',
+  'coach-speech': 'SPEECH',
   'expired-contract': 'RENEW',
   'head-coach-market': 'COACHES',
   'head-coach-hire': 'HEAD',
@@ -188,6 +190,7 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
     sequenceIds: [
       'player-requests',
       'green-bull-training',
+      'coach-speech',
       'first-injury',
       'first-emergency-loan',
       'first-transfer-request',

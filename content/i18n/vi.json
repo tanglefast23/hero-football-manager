@@ -4033,6 +4033,24 @@
     "cashTransaction.heroLicenseBought": "Đã mua Giấy Phép Anh Hùng {license}",
     "glossary.heroes.permit-office.term": "Phòng cấp phép",
     "glossary.heroes.permit-office.definition": "Quầy trên màn hình ngày thi đấu bán Giấy Phép Anh Hùng trước khi CLB giành được. Cái thứ ba giá $100.000, cái thứ tư $200.000, và mỗi cái vượt quá bốn cái mà một CLB Giải Toàn Cầu đã có bắt đầu từ $300.000 và tăng thêm $50.000 mỗi lần. Mua chỉ giúp có sớm hơn: lần thăng hạng sau nâng số miễn phí lên, chứ không cộng vào phần bạn đã trả.",
-    "fixtureMatchDay.heroLicenseGlobalOnly": "Chỉ CLB Giải Toàn Cầu mới được giữ hơn bốn."
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Chỉ CLB Giải Toàn Cầu mới được giữ hơn bốn.",
+    "coachSpeech.trainCoach": "Rèn HLV · Bài nói",
+    "coachSpeech.costDetail": "Tiêu hết {points} TP. Mỗi cầu thủ được +{boost} cho hiệp hai.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Đã có bài nói · huấn luyện viên đang giữ một bài",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Hãy thuê HLV trưởng trước",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Tuần này đã tiêu điểm tập luyện",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Không còn điểm tập luyện",
+    "coachSpeech.a11y.trainCoach": "Rèn {name} bằng toàn bộ {points} điểm tập luyện để có một bài nói giữa hiệp",
+    "confirm.coachSpeech.title": "Rèn huấn luyện viên trưởng?",
+    "confirm.coachSpeech.detail": "Tiêu hết {points} TP. Huấn luyện viên giữ một bài nói giữa hiệp, cộng +{boost} cho mọi chỉ số trong hiệp hai.",
+    "confirm.coachSpeech.confirm": "Tiêu điểm",
+    "matchScreen.speechKicker": "GIỮA HIỆP",
+    "matchScreen.speechTitle": "Nói với đội bóng?",
+    "matchScreen.speechDetail": "Huấn luyện viên còn giữ một bài nói. Dùng ngay và mỗi cầu thủ được +{boost} cho mọi chỉ số trong hiệp hai.",
+    "matchScreen.speechConfirm": "Nói ngay",
+    "matchScreen.speechCancel": "Để dành",
+    "matchScreen.bannerMotivationalSpeech": "BÀI NÓI",
+    "bert.guide.coach-speech.page1.body1": "Sếp à, huấn luyện viên trưởng cũng có thể tự rèn mình. Đưa điểm tập luyện của tuần cho ông ấy, ông ấy sẽ chuẩn bị bài nói trong phòng thay đồ.",
+    "bert.guide.coach-speech.page2.body1": "Tiêu hết đi thì ông ấy để dành được một bài nói. Gật đầu lúc giữa hiệp là cả đội bước ra hiệp hai như bay."
   }
 }

@@ -381,6 +381,13 @@ export type MatchInput =
   | { tick: number; kind: 'SET_FORMATION'; formation: FormationId }
   | { tick: number; kind: 'SET_MENTALITY'; mentality: Mentality }
   | { tick: number; kind: 'SET_ENERGY_USE'; energyUse: EnergyUse }
+  /**
+   * The head coach's half-time speech: a flat, temporary lift to every stored
+   * attribute of the controlled team, on the pitch and on the bench, for the
+   * rest of the match. The amount is decided by the career ring (it scales with
+   * division) and travels in the input, so a replay needs no career context.
+   */
+  | { tick: number; kind: 'MOTIVATIONAL_SPEECH'; boost: number }
   | { tick: number; kind: 'SUBSTITUTE'; player: number; replacementId: string };
 
 export interface MatchOpts {

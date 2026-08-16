@@ -4033,6 +4033,24 @@
     "cashTransaction.heroLicenseBought": "Lisensi Pahlawan {license} dibeli",
     "glossary.heroes.permit-office.term": "Kantor izin",
     "glossary.heroes.permit-office.definition": "Loket di layar hari pertandingan yang menjual Lisensi Pahlawan sebelum klub meraihnya. Yang ketiga $100.000, yang keempat $200.000, dan setiap lisensi di atas empat milik klub Liga Global mulai dari $300.000 dan naik $50.000 tiap kali. Membeli hanya mempercepat: promosi nanti menaikkan jumlah gratisnya, bukan menambah yang sudah kamu bayar.",
-    "fixtureMatchDay.heroLicenseGlobalOnly": "Hanya klub Liga Global yang boleh punya lebih dari empat."
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Hanya klub Liga Global yang boleh punya lebih dari empat.",
+    "coachSpeech.trainCoach": "Latih pelatih · Pidato",
+    "coachSpeech.costDetail": "Menghabiskan semua {points} TP. Setiap pemain dapat +{boost} untuk babak kedua.",
+    "coachSpeech.blocked.ALREADY_BANKED": "Pidato siap · pelatihmu sudah punya satu",
+    "coachSpeech.blocked.NO_HEAD_COACH": "Rekrut kepala pelatih dulu",
+    "coachSpeech.blocked.TRAINING_USED_THIS_WEEK": "Poin Latihan sudah dipakai minggu ini",
+    "coachSpeech.blocked.NOT_ENOUGH_TP": "Tidak ada poin latihan",
+    "coachSpeech.a11y.trainCoach": "Latih {name} dengan semua {points} poin latihan untuk satu pidato turun minum",
+    "confirm.coachSpeech.title": "Latih kepala pelatih?",
+    "confirm.coachSpeech.detail": "Menghabiskan semua {points} TP. Pelatihmu menyimpan satu pidato turun minum senilai +{boost} pada setiap atribut untuk babak kedua.",
+    "confirm.coachSpeech.confirm": "Pakai poinnya",
+    "matchScreen.speechKicker": "TURUN MINUM",
+    "matchScreen.speechTitle": "Beri pidato?",
+    "matchScreen.speechDetail": "Pelatihmu menyimpan satu pidato. Pakai sekarang dan setiap pemain dapat +{boost} pada tiap atribut untuk babak kedua.",
+    "matchScreen.speechConfirm": "Berikan",
+    "matchScreen.speechCancel": "Simpan",
+    "matchScreen.bannerMotivationalSpeech": "PIDATO",
+    "bert.guide.coach-speech.page1.body1": "Bos, kepala pelatih juga bisa melatih dirinya sendiri. Berikan poin latihan minggu ini dan dia akan menyiapkan pidato ruang gantinya.",
+    "bert.guide.coach-speech.page2.body1": "Habiskan semuanya dan dia menyimpan satu pidato. Beri isyarat saat turun minum, anak-anak akan terbang di babak kedua."
   }
 }

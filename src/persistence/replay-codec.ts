@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
 import type { ReplayEnvelope } from '../sim/types';
-import { ENGINE_VERSION, validateEnvelope } from '../sim/match';
+import {
+  ENGINE_VERSION,
+  MAX_SPEECH_BOOST,
+  validateEnvelope,
+} from '../sim/match';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
 import {
@@ -162,6 +166,15 @@ const inputSchema = z.discriminatedUnion('kind', [
       tick: positiveInteger,
       kind: z.literal('SET_ENERGY_USE'),
       energyUse: z.enum(['SAVE_ENERGY', 'BALANCED', 'ALL_OUT']),
+    })
+    .passthrough(),
+  z
+    .object({
+      tick: positiveInteger,
+      kind: z.literal('MOTIVATIONAL_SPEECH'),
+      // Same bound the engine enforces (MAX_SPEECH_BOOST); a replay that could
+      // not be simulated must not be storable either.
+      boost: positiveInteger.max(MAX_SPEECH_BOOST),
     })
     .passthrough(),
   z

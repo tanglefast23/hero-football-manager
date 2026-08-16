@@ -237,6 +237,7 @@ export const AssistantGuideSequenceIdSchema = z.enum([
   'management-intro',
   'desk-intro',
   'green-bull-training',
+  'coach-speech',
   'expired-contract',
   'head-coach-market',
   'head-coach-hire',
@@ -364,6 +365,7 @@ const SCREEN_DELIVERED_SEQUENCE_IDS = [
   'management-intro',
   'desk-intro',
   'green-bull-training',
+  'coach-speech',
   'expired-contract',
 ] as const satisfies readonly z.infer<typeof AssistantGuideSequenceIdSchema>[];
 
