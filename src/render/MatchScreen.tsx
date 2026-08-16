@@ -3785,9 +3785,7 @@ export function MatchScreen({
                 coachingDisabled ? styles.coachButtonDisabled : null,
               ]}
               onPress={() => {
-                selectFormation(
-                  nextFormation(displayedFormation, livePresets),
-                );
+                selectFormation(nextFormation(displayedFormation, livePresets));
               }}
             >
               <FormationDiagram
