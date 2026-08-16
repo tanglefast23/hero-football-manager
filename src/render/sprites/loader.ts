@@ -1,6 +1,6 @@
 // Pure TS sprite-sheet loader + atlas layout math. No React Native / Skia / Expo imports,
 // no Math.random / Date.now — safe to unit test headless.
-import sheetData from './sprites.json';
+import { requirePixelSheets } from './pixel-sheets';
 import { FIELD_PLAYER_LOOK_IDS, GOALKEEPER_LOOK_IDS } from './player-look';
 import {
   SLIDE_TACKLE_CELL,
@@ -298,7 +298,12 @@ function requiredKeys(playerIds: readonly string[]): string[] {
 export function loadSpriteSheet(
   visualIds: readonly string[] = PLAYER_IDS,
 ): SpriteSheet {
-  const baseSheet = sheetData as SpriteSheet;
+  // Through the owner module, never `./sprites.json` directly: a second
+  // importer makes the sheet shared between the main graph and the lazy match
+  // chunk, and Metro answers that by hoisting its 1_563_286 bundled bytes
+  // into `__common`,
+  // which is a web first-load file. Measured — it happened.
+  const baseSheet = requirePixelSheets().sprites as unknown as SpriteSheet;
 
   if (!baseSheet.cell || baseSheet.cell.w <= 0 || baseSheet.cell.h <= 0) {
     throw new Error('loadSpriteSheet: sheet.cell must have positive w/h');

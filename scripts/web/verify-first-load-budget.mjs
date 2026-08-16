@@ -242,8 +242,72 @@ const DIST = path.resolve('dist');
 // Markers checked before moving the number, as every time: CI reported
 // `qaBodyMarkers: []` and `skiaBodyMarkers: []` on the failing run. This branch
 // adds no dev-harness entry, so there is no third-string check to run.
-const RAW_BUDGET = 6_024_754;
-const GZIP_BUDGET = 903_743;
+// Ratcheted DOWN 2026-08-16 — the first time this number has gone down. The
+// two big pixel sheets left the first load. This tree, merged with main at
+// 97b9116c, reads **3_403_068 raw / 829_704 gzip** against the 6_023_717 /
+// 903_492 the entry above measured for main itself: **-2_620_649 raw (-43.5%)
+// / -73_788 gzip**.
+//
+// The attribution is exact rather than approximate, which is worth recording
+// because the entries above kept having to split growth between a branch and
+// what it inherited. This branch measured 3_397_529 / 828_115 before merging
+// anything. Adding the two deltas the entries above measured for themselves —
+// +5_508 raw for the speech cutscene, +31 for the possession card — gives
+// 3_403_068, the merged figure to the byte, across two separate merges.
+// Nothing in this change moved with either of them.
+//
+// What moved, and why it was in there at all:
+//
+// - `sprites.json` (1_563_286 raw / ~43_760 gzip in the bundle) reached the
+//   first load twice over. `src/ui/title-match-sprite-model.ts` imported the
+//   whole 1893-sprite pool so the title pop scene could draw 13 of them, and
+//   `src/render/PlayerRunSprite.web.tsx` imported the same module for the
+//   walk-ons, podium, ledger and awards screens that `App.tsx` imports
+//   eagerly. The title now imports `title-sprites.json`, a 14 KB subset
+//   EXTRACTED from the checked-in sheet by `scripts/generate-title-sprites.mjs`
+//   — extracted, not regenerated: `scripts/generate-sprites.mjs` has drifted
+//   from what ships (the hair ramp, see `hair-skin-separation.test.ts`), so a
+//   regenerated subset would quietly change title pixels.
+// - `portraits.json` (1_069_840 raw / ~28_276 gzip) reached it through
+//   `pixel-portrait-model.ts` -> `PixelPortrait`, used by the squad, market,
+//   club-home and character-creation screens, all eagerly imported.
+//
+// Both are now fetched as their own chunks (`sprites-*.js`, `portraits-*.js`)
+// by `src/render/sprites/pixel-sheets.web.ts`, warmed by `prefetchPixelSheets()`
+// at `App.tsx` module eval while the title draws its own subset. Native keeps
+// the static imports — `pixel-sheets.ts` is the non-web half of the pair — so
+// iOS behaviour is unchanged.
+//
+// The trap this cost an export to find, for whoever tries the same thing on
+// another asset: **`import()` alone does not get a module out of the first
+// load.** The first attempt left `loader.ts` importing `sprites.json`
+// statically inside the lazy match chunk, so the sheet was shared between the
+// main graph and an async graph, and Metro answered by hoisting all 1.5 MB
+// into `__common-*.js` — which is itself a first-load file. Measured result of
+// that version: 6_029_873 raw, i.e. 11 KB WORSE. The saving only appears when
+// exactly ONE module imports the JSON. `pixel-sheets.ts` is that module and
+// must stay that module; `loader.ts` now calls `requirePixelSheets()`.
+//
+// `management-sprites.json` (215_425 raw but only ~10_063 gzip) was left
+// eager on purpose. `ManagementSprite` takes its height from the sprite rows,
+// so a late arrival would reflow the finances and staff rows — the worst
+// bytes-per-risk of the three sheets, and the only one that can shift a
+// layout.
+//
+// Raw below is this tree's local figure plus exactly the +1_037 CI offset,
+// which the entries above have now seen transfer between branches unchanged
+// four times: 3_403_068 -> 3_404_105. Gzip does NOT transfer, so its +400 is a
+// rounded-up guess off the +263 the shot-danger entry measured for its own
+// tree — an estimate, said out loud, not a fact: 829_704 -> 830_104. Per the
+// convention here: if CI reports lower, ratchet down to CI's own figure rather
+// than banking the slack.
+//
+// Markers checked, as every time: `qaBodyMarkers: []` and `skiaBodyMarkers: []`
+// on the local export. Verified in the browser pane as well as by byte count —
+// the title pop scene draws its two SVG sprites from the subset, and the
+// character-creation portrait draws from the fetched `portraits-*.js`.
+const RAW_BUDGET = 3_404_105;
+const GZIP_BUDGET = 830_104;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

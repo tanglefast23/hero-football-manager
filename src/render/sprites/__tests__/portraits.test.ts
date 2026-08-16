@@ -2,6 +2,7 @@ import portraitData from '../portraits.json';
 import spriteData from '../sprites.json';
 import manifest from '../player-look-manifest.json';
 import { playerLookId } from '../player-look';
+import { PORTRAIT_CELL } from '../../../ui/pixel-portrait-model';
 import {
   CREATED_PLAYER_LOOK_COUNT,
   FIELD_PLAYER_LOOK_COUNT,
@@ -16,6 +17,15 @@ const sheet = portraitData as {
 const matchSheet = spriteData as { sprites: Record<string, string[]> };
 const IDS = [...manifest.field, ...manifest.goalkeeper, ...manifest.created];
 const EXPRESSIONS = ['rest', 'joy', 'ko'] as const;
+
+describe('portrait cell', () => {
+  it('matches the sheet, which PixelPortrait no longer reads at render time', () => {
+    // `PORTRAIT_CELL` is a literal so a portrait's box does not wait for the
+    // lazily fetched sheet and reflow the roster when it lands. That only
+    // holds while the literal and the sheet agree.
+    expect(PORTRAIT_CELL).toEqual(sheet.cell);
+  });
+});
 
 describe('career player portrait roster', () => {
   it('ships 208 roster looks plus every paper-doll combination with all three expressions', () => {

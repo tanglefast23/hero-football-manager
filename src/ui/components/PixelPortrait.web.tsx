@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { blinkRows } from '../portrait-blink';
 import {
   PIXEL_PORTRAIT_SCALE,
+  PORTRAIT_CELL,
   portraitPixelRuns,
-  portraitSheet,
   portraitSpriteKey,
   portraitSpriteRows,
   type PortraitExpression,
   type PortraitRole,
 } from '../pixel-portrait-model';
+import { usePixelSheets } from '../../render/sprites/use-pixel-sheets';
 import { useReducedMotion } from '../use-reduced-motion';
 
 export interface PixelPortraitProps {
@@ -36,10 +37,14 @@ export function PixelPortrait({
     () => portraitSpriteKey(playerId, role, expression, lookId),
     [expression, lookId, playerId, role],
   );
+  // The portrait sheet is its own chunk on web, prefetched by App at module
+  // eval. `undefined` is the cold-start tick: draw the empty cell, at full
+  // size, so the roster never reflows when the faces arrive.
+  const sheets = usePixelSheets();
   const blinkVariant = useMemo(() => {
-    const rows = portraitSheet.sprites[spriteKey];
-    return rows === undefined ? null : blinkRows(rows);
-  }, [spriteKey]);
+    const rows = sheets?.portraits.sprites[spriteKey];
+    return rows === undefined ? null : blinkRows([...rows]);
+  }, [sheets, spriteKey]);
 
   const reduce = useReducedMotion(reduceMotion);
   const canBlink = blinkVariant !== null && !reduce;
@@ -70,9 +75,12 @@ export function PixelPortrait({
   }, [canBlink, spriteKey]);
 
   const colorPaths = useMemo(() => {
+    if (sheets === undefined) return [];
     const rows =
-      blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
-    const runs = portraitPixelRuns(rows, spriteKey);
+      blinking && blinkVariant
+        ? blinkVariant
+        : portraitSpriteRows(sheets.portraits, spriteKey);
+    const runs = portraitPixelRuns(sheets.portraits, rows, spriteKey);
     const commandsByColor = new Map<string, string[]>();
     for (const run of runs) {
       const commands = commandsByColor.get(run.color) ?? [];
@@ -83,15 +91,15 @@ export function PixelPortrait({
       color,
       path: commands.join(''),
     }));
-  }, [blinkVariant, blinking, spriteKey]);
+  }, [blinkVariant, blinking, sheets, spriteKey]);
 
   return (
     <svg
       aria-hidden="true"
       focusable="false"
-      width={portraitSheet.cell.w * pixel}
-      height={portraitSheet.cell.h * pixel}
-      viewBox={`0 0 ${portraitSheet.cell.w} ${portraitSheet.cell.h}`}
+      width={PORTRAIT_CELL.w * pixel}
+      height={PORTRAIT_CELL.h * pixel}
+      viewBox={`0 0 ${PORTRAIT_CELL.w} ${PORTRAIT_CELL.h}`}
       shapeRendering="crispEdges"
       style={{ display: 'block' }}
     >

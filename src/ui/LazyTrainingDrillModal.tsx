@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { Platform } from 'react-native';
 import type { TrainingDrillModal } from './TrainingDrillModal';
+import { loadPixelSheets } from '../render/sprites/pixel-sheets';
 
 let pending: Promise<{ default: typeof TrainingDrillModal }> | undefined;
 
@@ -10,7 +11,12 @@ function loadTrainingDrillModal() {
     if (Platform.OS === 'web') {
       const { LoadSkiaWeb } =
         await import('@shopify/react-native-skia/lib/module/web');
-      await LoadSkiaWeb({ locateFile: (file) => `/${file}` });
+      // The drill scene's atlas reads the sprite pool synchronously, and on
+      // web that pool is its own chunk. It rides along with CanvasKit.
+      await Promise.all([
+        LoadSkiaWeb({ locateFile: (file) => `/${file}` }),
+        loadPixelSheets(),
+      ]);
     }
     const module = await import('./SkiaSurfaceImplementations');
     return { default: module.TrainingDrillModal };

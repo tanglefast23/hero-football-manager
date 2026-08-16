@@ -4,13 +4,14 @@ import { blinkRows } from '../portrait-blink';
 import { useReducedMotion } from '../use-reduced-motion';
 import {
   PIXEL_PORTRAIT_SCALE,
+  PORTRAIT_CELL,
   portraitPixelRuns,
-  portraitSheet,
   portraitSpriteKey,
   portraitSpriteRows,
   type PortraitExpression,
   type PortraitRole,
 } from '../pixel-portrait-model';
+import { usePixelSheets } from '../../render/sprites/use-pixel-sheets';
 
 export interface PixelPortraitProps {
   playerId: string;
@@ -41,10 +42,13 @@ export function PixelPortrait({
     () => portraitSpriteKey(playerId, role, expression, lookId),
     [expression, lookId, playerId, role],
   );
+  // Resident from the first render on native, where the sheet is in the one
+  // bundle. `undefined` only happens on web's cold-start tick.
+  const sheets = usePixelSheets();
   const blinkVariant = useMemo(() => {
-    const rows = portraitSheet.sprites[spriteKey];
-    return rows === undefined ? null : blinkRows(rows);
-  }, [spriteKey]);
+    const rows = sheets?.portraits.sprites[spriteKey];
+    return rows === undefined ? null : blinkRows([...rows]);
+  }, [sheets, spriteKey]);
 
   const reduce = useReducedMotion(reduceMotion);
   const canBlink = blinkVariant !== null && !reduce;
@@ -76,19 +80,22 @@ export function PixelPortrait({
   }, [canBlink, spriteKey]);
 
   const runs = useMemo(() => {
+    if (sheets === undefined) return [];
     const rows =
-      blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
+      blinking && blinkVariant
+        ? blinkVariant
+        : portraitSpriteRows(sheets.portraits, spriteKey);
     // The run id doubles as the React key, so it must stay STABLE across the
     // blink: a `:blink`-prefixed id unmounted and remounted every Rect in the
     // Canvas twice per blink (open and close) instead of diffing in place.
-    return portraitPixelRuns(rows, spriteKey);
-  }, [spriteKey, blinking, blinkVariant]);
+    return portraitPixelRuns(sheets.portraits, rows, spriteKey);
+  }, [sheets, spriteKey, blinking, blinkVariant]);
 
   return (
     <Canvas
       style={{
-        width: portraitSheet.cell.w * pixel,
-        height: portraitSheet.cell.h * pixel,
+        width: PORTRAIT_CELL.w * pixel,
+        height: PORTRAIT_CELL.h * pixel,
       }}
     >
       {runs.map((run) => (

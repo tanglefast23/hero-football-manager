@@ -6,15 +6,16 @@ import { livePowerEffectActors } from '../../render/live-power-effect-actors';
 import { PowerEffectScene } from '../../render/PowerEffectScene';
 import { powerEffectDescriptor } from '../../render/power-effect-descriptors';
 import { TitleMatchSprite } from './TitleMatchSprite';
+import type { TitleSpriteBaseKey } from './title-sprite-keys';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 interface PopHero {
-  readonly spriteKey: string;
+  readonly spriteKey: TitleSpriteBaseKey;
   readonly name: string;
   readonly power: PowerId;
   /** Catalog key for the speech bubble; the sprite and power are structure. */
   readonly powerLabelKey: string;
-  readonly targetSpriteKey?: string;
+  readonly targetSpriteKey?: TitleSpriteBaseKey;
 }
 
 const OUTFIELD_HEROES: readonly PopHero[] = [
