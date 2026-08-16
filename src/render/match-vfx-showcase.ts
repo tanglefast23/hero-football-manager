@@ -1,7 +1,7 @@
 import { attemptShot, shotFlightTick, tackleTick } from '../sim/engine';
 import { PITCH_H, PITCH_W } from '../sim/geometry';
 import type { MatchEvent, MatchState } from '../sim/types';
-import { isHardShotPower, type MatchVfxKind } from './match-vfx';
+import { type MatchVfxKind } from './match-vfx';
 
 export interface MatchVfxQaConfig {
   readonly kind: MatchVfxKind;
@@ -9,6 +9,12 @@ export interface MatchVfxQaConfig {
 
 export const MATCH_VFX_SHOWCASE_LEAD_TICKS = 6;
 export const MATCH_VFX_SHOWCASE_FREEZE_TICKS = 4;
+/**
+ * The shot fixture needs its whole flight plus the goal, not four ticks. The
+ * ball leaves the boot at tick 6 and crosses the line around tick 16, so the
+ * shared 4 froze it five ticks short of the net.
+ */
+export const MATCH_VFX_SHOWCASE_SHOT_FREEZE_TICKS = 14;
 export const MATCH_VFX_SHOWCASE_SAFETY_TICK = 60;
 
 const DEFENDER = 2;
@@ -18,7 +24,7 @@ const SHOOTER = 21;
 const SHOWCASE_SEEDS: Readonly<Record<MatchVfxKind, number>> = {
   'slide-tackle': 1,
   'standing-tackle': 1,
-  'hard-shot': 1,
+  'dangerous-shot': 1,
   'save-impact': 1,
   'power-interruption': 1,
 };
@@ -89,13 +95,30 @@ function arrangeTackle(
   match.ball = { kind: 'held', by: SHOOTER };
 }
 
-function arrangeHardShot(match: MatchState): void {
-  parkUnused(match, new Set([SHOOTER]));
-  place(match, SHOOTER, PITCH_W / 2, PITCH_H - 1_200);
+function arrangeDangerousShot(match: MatchState): void {
+  // The keeper is EXCLUDED from parking, unlike every earlier version of this
+  // fixture. `parkUnused` files everyone else down the touchlines, and it used
+  // to file the keeper away with them — so the shot flew into an empty net at
+  // the far end from him, and the sprite standing near the goal was a parked
+  // outfielder. It read as the goalkeeper scoring against himself.
+  parkUnused(match, new Set([SHOOTER, KEEPER]));
+  place(match, KEEPER, PITCH_W / 2, PITCH_H - 300);
+  // Struck from 3,000 rather than 1,200 so the flight lasts ~10 ticks. At the
+  // old range the ball crossed the line in 4 ticks and the burning-ball half of
+  // the effect was over before it could be looked at.
+  place(match, SHOOTER, PITCH_W / 2, PITCH_H - 3_000);
   const shooter = match.players[SHOOTER];
   shooter.def = {
     ...shooter.def,
-    attrs: { ...shooter.def.attrs, sho: 99 },
+    attrs: { ...shooter.def.attrs, sho: 999 },
+  };
+  // Shot tier reads keeper-relative danger, so the keeper is half the fixture.
+  // A stacked shooter alone no longer guarantees the top tier the way the old
+  // `power >= 55` check did — that threshold never looked at the keeper at all.
+  const keeper = match.players[KEEPER];
+  keeper.def = {
+    ...keeper.def,
+    attrs: { ...keeper.def.attrs, ref: 1 },
   };
   match.ball = { kind: 'held', by: SHOOTER };
 }
@@ -132,8 +155,8 @@ function arrange(match: MatchState, kind: MatchVfxKind): void {
     kind === 'power-interruption'
   ) {
     arrangeTackle(match, kind);
-  } else if (kind === 'hard-shot') {
-    arrangeHardShot(match);
+  } else if (kind === 'dangerous-shot') {
+    arrangeDangerousShot(match);
   } else {
     arrangeSave(match);
   }
@@ -149,8 +172,9 @@ export function matchVfxShowcaseEvent(
       return (
         event.kind === 'TACKLE' && event.style === 'standing' && event.contact
       );
-    if (kind === 'hard-shot')
-      return event.kind === 'SHOT' && isHardShotPower(event.power);
+    // Any SHOT: the arrangement above owns the only shot in the fixture, and
+    // its grade now lives on the ball rather than on the event.
+    if (kind === 'dangerous-shot') return event.kind === 'SHOT';
     if (kind === 'save-impact') return event.kind === 'SAVE';
     return event.kind === 'POWER_INTERRUPTED';
   });
@@ -182,8 +206,8 @@ export function advanceMatchVfxShowcase(
     kind === 'power-interruption'
   ) {
     tackleTick(match);
-  } else if (kind === 'hard-shot') {
-    attemptShot(match, SHOOTER, 1_200);
+  } else if (kind === 'dangerous-shot') {
+    attemptShot(match, SHOOTER, 3_000);
   } else {
     shotFlightTick(match);
   }

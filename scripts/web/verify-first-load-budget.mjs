@@ -132,45 +132,92 @@ const DIST = path.resolve('dist');
 // of them inside `MOTIVATIONAL_SPEECH`, the sim's own input kind, which belongs
 // in the first load. A substring of app code is not a harness marker.
 //
-// Re-ratcheted 2026-08-16 (second time that day) for the half-time speech
-// CUTSCENE, on claude/motivational-speech-cutscene-306228.
+// Previous marks: 6_007_581 / 901_680 at 33bbf4b0 (#166), 6_005_786 / 901_680
+// at 6a2c27e2, 5_994_912 / 894_580 at the 2026-08-15 merge, 5_977_355 /
+// 893_727 earlier that day, 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at
+// b26e1399 (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
+// 5_861_753 at 0b2fc042.
+// Re-ratcheted 2026-08-16 (shot-danger branch), on top of the entry above after
+// merging #170. All of this one is the branch's, and it is small: a local export
+// of this tree reads 6_018_178 raw / 901_962 gzip against #170's own local
+// figures of 6_017_823 / 901_868, so the branch is **+355 raw / +94 gzip**.
 //
-// Nothing is inherited this time, and that was checked rather than assumed.
-// The branch's own merge base, e7851793, was exported in a throwaway worktree
-// and measured the same way: 6_017_823 raw / 901_868 gzip — 1_037 raw and 227
-// gzip UNDER the mark it set. So the whole overrun is this branch's:
+// That +355 has now been measured against three separate main baselines
+// (5c4d7303, 84a30233, e052a5c1) and come out identical every time, which is
+// what makes it trustworthy rather than a sampling artifact. It is
+// `shot-danger.ts`, the `shot-scorch` cue entry in `audio.ts`, and the
+// shot-tier branch in the MatchScreen tick loop. `ball-flame.ts` does not
+// appear: it lands in `SkiaSurfaceImplementations-*.js`, which is not a
+// first-load file.
 //
-//   raw   6_023_331 - 6_017_823 = +5_508
-//   gzip    903_351 -   901_868 = +1_483
+// Both marks move this time. Local passes both, but CI is what has to pass and
+// CI runs high by a per-stream offset. Raw was predicted from the measured
+// +1_037 (CI reported 6_008_191 for a tree this repo read at 6_007_154), and
+// CI then reported exactly 6_019_215 — the prediction to the byte.
 //
-// The numbers below are those local figures plus the SAME CI-versus-local gap
-// the previous ratchet measured on its own tree (1_037 raw, 227 gzip), because
-// CI is what has to pass and CI reads high. If CI comes in under these, the
-// next branch should ratchet back down rather than bank the slack.
+// Gzip took two goes, and the correction is the useful part. Deriving its
+// offset from #170 (901_868 local -> 902_095 CI) gave +227, so the mark was
+// first set to 902_189. CI reported 902_225: the real offset for this tree is
+// **+263**. So the raw offset transfers between branches and the gzip offset
+// does not — compression ratio depends on content, so a byte count borrowed
+// from someone else's tree is a guess. Both numbers below are now CI's own
+// figures for THIS tree, which is what the entries above meant by ratcheting
+// against CI.
 //
-// What the 5_508 is, in descending order: the twenty English speech lines in
+// Gzip is NOT being loosened for free here — unlike the last two entries it
+// genuinely breaches, by about 94 bytes locally.
+//
+// Markers checked before moving the numbers, and this branch does touch the dev
+// harness: it renames the Match VFX shot case. `qaBodyMarkers` and
+// `skiaBodyMarkers` were both empty, and three strings unique to the renamed
+// case — "Top-tier shot danger", "Dangerous Shot", "dangerous-shot" — return
+// zero hits in `index-*.js` and `__common-*.js`. The entry is lazy and stayed
+// lazy. Heeding the warning above, none of those three is a substring of app
+// code: the sim's shot grading uses no such string.
+// Re-ratcheted 2026-08-16 (speech-cutscene branch), on top of the entry above
+// after merging main at a7d2c6bb. All of this one is the branch's.
+//
+// The delta was measured against TWO different main baselines and came out
+// byte-identical, which is the agreement the entry above calls trustworthy:
+// against e7851793 (#170's tree, local 6_017_823 / 901_868) and against this
+// merge (main local 6_018_178 / 901_962), the branch adds **+5_508 raw** both
+// times. Gzip reads +1_483 and +1_518 across the two — close, but not identical,
+// which is the compression-ratio point the entry above makes.
+//
+// Merged tree, measured locally by this script: 6_023_686 raw / 903_480 gzip.
+//
+// What the +5_508 is: the twenty English speech lines in
 // `coach-speech-lines.json`, `MotivationalSpeechCutscene.tsx` and
-// `coach-speech-audio.ts` (both reached eagerly from `MatchScreen`, which is
-// correct — the cutscene must appear on the frame the sheet is confirmed, and a
-// lazy chunk fetch at that moment is exactly the wrong place for a network
-// round trip), the `coach-portrait.ts` resolver, and three new English chrome
-// keys. The six locale catalogs are again NOT the story: `es-*.js` and friends
-// are their own chunks, so only the English half of the seven-language copy
-// lands in `index-*.js` — verified by grepping a Spanish line (0 hits in
-// `index-*.js`, 1 in `es-*.js`).
+// `coach-speech-audio.ts` — both reached eagerly from `MatchScreen`, which is
+// deliberate, because the cutscene has to appear on the frame the sheet is
+// confirmed and a lazy chunk fetch is the wrong thing to put there — plus the
+// `coach-portrait.ts` resolver and three English chrome keys. The six locale
+// catalogs are again not the story: a Spanish line returns 0 hits in
+// `index-*.js` and 1 in `es-*.js`.
 //
-// Markers checked before moving the number. This branch adds a dev-harness
-// entry, and three strings unique to it — "Motivational speech cutscene",
-// "Half-time team talk", "Reduced motion ON" — return zero hits in BOTH
-// `index-*.js` and `__common-*.js`. The entry is lazy and stayed lazy.
+// Offsets, heeding the correction above rather than repeating it. Raw uses the
+// +1_037 that has now transferred between branches unchanged three times:
+// 6_023_686 -> 6_024_723. Gzip does NOT transfer, and the entry above measured
+// +263 for its own tree; that is the nearest available estimate and it is used
+// here as an estimate, not a fact: 903_480 -> 903_743. If CI reports a
+// different gzip figure, take CI's and say so, exactly as the last entry did.
+// If CI comes in under either mark, ratchet DOWN rather than banking the slack.
 //
-// Previous marks: 6_018_860 / 902_095 at e052a5c1 (#170), 6_007_581 / 901_680
-// at 33bbf4b0 (#166), 6_005_786 / 901_680 at 6a2c27e2, 5_994_912 / 894_580 at
-// the 2026-08-15 merge, 5_977_355 / 893_727 earlier that day, 5_922_802 /
-// 879_373 at #158, 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the
-// stat-tip branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 6_024_368;
-const GZIP_BUDGET = 903_578;
+// Markers checked before moving the numbers, and this branch does add a
+// dev-harness entry. The script reported `qaBodyMarkers: []` and
+// `skiaBodyMarkers: []`, and three strings unique to that entry —
+// "Motivational speech cutscene", "Half-time team talk", "Reduced motion ON" —
+// return zero hits in all three first-load files. The entry compiles into
+// `SkiaSurfaceImplementations-*.js`, which is not a first-load file. It is lazy
+// and stayed lazy. None of the three is a substring of app code.
+//
+// Worth the next person's time: this number keeps going one way, and the reason
+// is now measured. ~3.6 MB of the ~6.0 MB first load is sprite JSON imported as
+// modules (`sprites.json` 1.98 MB, `portraits.json` 1.36 MB,
+// `management-sprites.json` 269 KB). A brief for getting the number DOWN is in
+// docs/plans/2026-08-16-first-load-budget-investigation-handoff.md.
+const RAW_BUDGET = 6_024_723;
+const GZIP_BUDGET = 903_743;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

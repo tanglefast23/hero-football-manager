@@ -84,6 +84,7 @@ import {
 import {
   ENCORE_MARKER_TICKS,
   type EncoreMarker,
+  WorkletBallFlame,
   WorkletBallShadow,
   WorkletMatchOverlays,
   WorkletSlideTackleEffects,
@@ -92,7 +93,6 @@ import {
 import { ProceduralMatchEffects } from './ProceduralMatchEffects';
 import {
   appendMatchVfxEmitter,
-  isHardShotPower,
   prepareMatchVfxEmitter,
   type MatchVfxKind,
   type PreparedMatchVfxEmitter,
@@ -102,6 +102,12 @@ import {
   ballFlightWhooshStarted,
   ballVisualOffset,
 } from './ball-flight-visuals';
+import {
+  shotBurstIntensity,
+  shotDanger,
+  shotTier,
+  type ShotTier,
+} from './shot-danger';
 import {
   matchPoliciesForControlledTeam,
   retainedCarrierIndex,
@@ -162,6 +168,7 @@ import {
   advanceMatchVfxShowcase,
   initializeMatchVfxShowcase,
   MATCH_VFX_SHOWCASE_FREEZE_TICKS,
+  MATCH_VFX_SHOWCASE_SHOT_FREEZE_TICKS,
   MATCH_VFX_SHOWCASE_SAFETY_TICK,
   matchVfxShowcaseEvent,
   type MatchVfxQaConfig,
@@ -231,6 +238,7 @@ import {
   initAudio,
   playBallFlightWhoosh,
   playForEvent,
+  playShotTierAudio,
   startFireAmbience,
   startTheme,
   stopFireAmbience,
@@ -275,7 +283,11 @@ const FLASH_TICKS = 30;
 
 // Ball-flight presentation (render-only) — lifted kicks show a curved history;
 // shots also retain the dust puff kicked up at the strike.
-const BALL_FLIGHT_TRAIL_LEN = 8; // longer arc history makes lifted kicks read at a glance
+const BALL_FLIGHT_TRAIL_LEN = 12; // longer arc history makes lifted kicks read at a glance
+/** Drawn trail length per shot tier. Tier 0 keeps the length it always had. */
+const BALL_TRAIL_LEN_BY_TIER = [8, 10, 12] as const;
+/** Trail colour per shot tier. Tier 2 uses the reserved flame accent. */
+const BALL_TRAIL_COLOR_BY_TIER = ['#ffffff', '#edb54a', '#ff6a00'] as const;
 const PUFF_TICKS = 16; // how long the kick-origin dust puff lingers, in sim ticks
 const PUFF_RINGS = 3; // concentric expanding dust rings
 
@@ -624,11 +636,18 @@ export function MatchScreen({
   const bannerRef = useRef<MatchBanner[]>([]);
   const scoreFlashUntilRef = useRef<number>(0);
   // Ball-flight presentation — recent positions while a shot or lifted pass
-  // flies. The old puff remains for ordinary shots and Decoy Pop only; hard
+  // flies. The old puff remains for ordinary shots and Decoy Pop only; graded
   // shots now use the shared procedural match-VFX layer.
   const ballFlightTrailRef = useRef<Array<{ x: number; y: number; z: number }>>(
     [],
   );
+  // Shot tier of the ball currently in flight, stamped once at launch. Held on
+  // the JS thread for the trail colour; mirrored into `scorchingShot` for the
+  // UI thread. Never recomputed mid-flight, so a Resolve drop or a keeper
+  // substitution cannot make a burning ball flicker.
+  const shotTierRef = useRef<ShotTier>(0);
+  const shotDangerAtLaunchRef = useRef<number | null>(null);
+  const shotInFlightRef = useRef(false);
   const puffRef = useRef<{
     x: number;
     y: number;
@@ -830,6 +849,10 @@ export function MatchScreen({
   const activationFlash = useSharedValue(0);
   const speedLineSlot = useSharedValue(-1);
   const speedLineLife = useSharedValue(0);
+  // 1 while a tier-2 shot is in flight. Written once when the shot launches and
+  // once when it ends, never per frame — the flame and the fire crackle both
+  // read this one flag, so they can never disagree about when the fire stops.
+  const scorchingShot = useSharedValue(0);
   const matchVisualIds = useMemo(
     () => [
       ...match.players.map((player, index) =>
@@ -1376,6 +1399,14 @@ export function MatchScreen({
         resetFramePacingMonitor(performanceMonitorRef.current);
         performanceBadWindowsRef.current = 0;
         performanceResumeAtRef.current = now + 1000;
+        // Silence the fire crackle here, not in the reconcile below — this
+        // branch returns before the loop ever reaches it. A scorching shot
+        // frozen mid-flight (the VFX harness does exactly that) otherwise
+        // crackles for ever, because the tick loop is what clears the flag.
+        if (fireLoopOnRef.current) {
+          stopFireAmbience();
+          fireLoopOnRef.current = false;
+        }
         raf = requestAnimationFrame(loop);
         return;
       }
@@ -1512,9 +1543,16 @@ export function MatchScreen({
             : matchVfxShowcaseEvent(s, matchVfxQa.kind);
         const matchVfxSafetyFreeze =
           matchVfxQa !== undefined && s.tick >= MATCH_VFX_SHOWCASE_SAFETY_TICK;
+        // A shot's effect lasts its whole flight, not four ticks. Freezing at
+        // the shared 4 stopped the fixture five ticks short of the net, so the
+        // burning ball never reached the keeper and it read as a hang.
+        const freezeTicks =
+          matchVfxQa?.kind === 'dangerous-shot'
+            ? MATCH_VFX_SHOWCASE_SHOT_FREEZE_TICKS
+            : MATCH_VFX_SHOWCASE_FREEZE_TICKS;
         if (
           (matchVfxQaEvent !== undefined &&
-            s.tick >= matchVfxQaEvent.t + MATCH_VFX_SHOWCASE_FREEZE_TICKS) ||
+            s.tick >= matchVfxQaEvent.t + freezeTicks) ||
           matchVfxSafetyFreeze
         ) {
           automaticPauseReasonsRef.current.add('showcase');
@@ -1566,6 +1604,33 @@ export function MatchScreen({
         ) {
           playBallFlightWhoosh();
         }
+
+        // Stamp the shot tier on the tick the ball BECOMES a shot, not when the
+        // SHOT event is drained below: up to MAX_CATCHUP_TICKS ticks run before
+        // events are read, by which point the ball may already have landed and
+        // `s.ball` would no longer be the shot we are grading.
+        const ballIsShot = s.ball.kind === 'shot';
+        if (ballIsShot && !shotInFlightRef.current) {
+          const danger = shotDanger(s, s.ball);
+          shotDangerAtLaunchRef.current = danger;
+          shotTierRef.current = shotTier(danger);
+          // Adaptive reduction drops tier 2 to the tier-1 burst, per the plan:
+          // the burst and both cues still play, only the per-frame flame goes.
+          // Reduce Motion is NOT checked here — it freezes the flame instead of
+          // removing it, which the worklet handles itself.
+          scorchingShot.value =
+            shotTierRef.current === 2 && !reducedEffectsRef.current ? 1 : 0;
+        } else if (!ballIsShot && shotInFlightRef.current) {
+          // One exit for every ending — goal, save, miss, restart, half time.
+          // The flame and the crackle both stop here, off this one flag.
+          //
+          // The launch grade itself is deliberately NOT cleared: the SHOT and
+          // SAVE handlers below run after the whole catch-up batch, by which
+          // point a short flight has already landed. Clearing here would leave
+          // them reading 0 and drawing nothing.
+          scorchingShot.value = 0;
+        }
+        shotInFlightRef.current = ballIsShot;
 
         acc -= TICK_MS;
       }
@@ -1634,6 +1699,9 @@ export function MatchScreen({
         const captured = eventFrames.get(e);
         const eventBefore = captured?.before ?? prevRef.current!;
         const eventAfter = captured?.after ?? nextRef.current!;
+        // Before playForEvent, never after: this sets kick-shot's playback rate
+        // and adds the scorch layer, and the rate must land before it starts.
+        if (e.kind === 'SHOT') playShotTierAudio(shotTierRef.current);
         playForEvent(e);
         playHapticForEvent(e, controlledTeam);
         if (e.kind === 'POWER_FIRED' && e.power === 'FIRE_TORCH') {
@@ -1651,21 +1719,24 @@ export function MatchScreen({
             ballDirection.x === 0 && ballDirection.y === 0
               ? { x: 0, y: shotPlayer.team === 0 ? -1 : 1 }
               : ballDirection;
-          if (origin !== undefined && isHardShotPower(e.power)) {
+          // The tier was stamped in the tick loop above, off the ball at launch.
+          // `e.power` is deliberately not consulted: it ignores the keeper, and
+          // cap-free development walks it past any fixed threshold.
+          if (origin !== undefined && shotTierRef.current >= 1) {
             if (puffRef.current?.owner === 'ordinary-shot')
               puffRef.current = null;
             recordMatchVfx(
-              'hard-shot',
+              'dangerous-shot',
               e,
               shotActor,
               origin,
               direction,
               undefined,
-              Math.min(1, e.power / 100),
+              shotBurstIntensity(shotDangerAtLaunchRef.current),
             );
           } else if (origin !== undefined && !suppressCosmeticEffects) {
-            // Ordinary shots retain the small legacy puff. A hard shot owns the
-            // new burst instead, so the two treatments never stack.
+            // Ordinary shots retain the small legacy puff. A graded shot owns
+            // the new burst instead, so the two treatments never stack.
             puffRef.current = {
               x: origin.x,
               y: origin.y,
@@ -1720,6 +1791,8 @@ export function MatchScreen({
         if (e.kind === 'SAVE') {
           const keeper = eventAfter.players[e.by];
           if (keeper !== undefined) {
+            // Stopping a scorching shot is the payoff for showing danger before
+            // the roll resolves, so the save it took gets drawn at full weight.
             recordMatchVfx(
               'save-impact',
               e,
@@ -1729,6 +1802,8 @@ export function MatchScreen({
                 x: eventBefore.ball.x - keeper.x,
                 y: eventBefore.ball.y - keeper.y,
               },
+              undefined,
+              shotTierRef.current === 2 ? 1 : 0.6,
             );
           }
         }
@@ -2213,14 +2288,26 @@ export function MatchScreen({
       // Torch hero is ablaze, off once none are. Reconciled from state each
       // frame (not off an event) so it also stops on a KO, interruption, or
       // natural expiry — none of which emit a "power ended" event.
-      // Both things that draw flames count: the caster while ablaze AND anyone
+      // Every thing that draws flames counts: the caster while ablaze, anyone
       // they set alight (WorkletMatchOverlays draws tongues for STATUS_IGNITED
-      // too), so the crackle covers every flame on the pitch and nothing else.
-      const fireActive = s.players.some(
-        (p, i) =>
-          (p.def.power === 'FIRE_TORCH' && isActive(s, i)) ||
-          (p.outReason === 'ignited' && p.outUntilTick > s.tick),
-      );
+      // too), AND a scorching shot in flight — so the crackle covers every
+      // flame on the pitch and nothing else.
+      //
+      // This must stay ONE predicate. A second start/stop pair for the ball
+      // would let a landing shot silence a Fire Torch hero who is still
+      // burning, because both share a single looping player.
+      // `paused` is part of the predicate, not just the sim state. The harness
+      // freezes the match with a scorching ball still in flight, and the tick
+      // loop is what clears the flag — so without this the crackle loops for
+      // ever with nothing left running to stop it.
+      const fireActive =
+        shotInFlightRef.current && shotTierRef.current === 2
+          ? true
+          : s.players.some(
+              (p, i) =>
+                (p.def.power === 'FIRE_TORCH' && isActive(s, i)) ||
+                (p.outReason === 'ignited' && p.outUntilTick > s.tick),
+            );
       if (fireActive && !fireLoopOnRef.current) {
         startFireAmbience();
         fireLoopOnRef.current = true;
@@ -3345,17 +3432,27 @@ export function MatchScreen({
                       opacity={0.55 * (1 - i / trailRef.current.length)}
                     />
                   ))}
-                  {/* Fading arc history behind driven shots and every lifted kick. */}
-                  {ballFlightTrailRef.current.map((t, i) => (
-                    <Circle
-                      key={`shot-${i}`}
-                      cx={t.x * scale}
-                      cy={t.y * scale - ballVisualOffset(t.z, scale)}
-                      r={Math.max(1.5, 6.5 - i)}
-                      color="#ffffff"
-                      opacity={0.64 * (1 - i / BALL_FLIGHT_TRAIL_LEN)}
-                    />
-                  ))}
+                  {/* Fading arc history behind driven shots and every lifted kick.
+                    A graded shot lengthens and recolours these same circles —
+                    no extra draw call, and the trail starts meaning something. */}
+                  {(() => {
+                    const tier = shotInFlightRef.current
+                      ? shotTierRef.current
+                      : 0;
+                    const len = BALL_TRAIL_LEN_BY_TIER[tier];
+                    return ballFlightTrailRef.current
+                      .slice(0, len)
+                      .map((t, i) => (
+                        <Circle
+                          key={`shot-${i}`}
+                          cx={t.x * scale}
+                          cy={t.y * scale - ballVisualOffset(t.z, scale)}
+                          r={Math.max(1.5, 6.5 - i)}
+                          color={BALL_TRAIL_COLOR_BY_TIER[tier]}
+                          opacity={0.64 * (1 - i / len)}
+                        />
+                      ));
+                  })()}
                   {/* Dust puff at the strike origin — a soft filled smoke body plus
                     expanding rings; both grow and fade over PUFF_TICKS. */}
                   {(() => {
@@ -3423,6 +3520,17 @@ export function MatchScreen({
                     ballGroundPosition={workletBallGroundPosition}
                     ballHeight={workletBallHeight}
                     scale={scale}
+                  />
+                  {/* Under the Atlas on purpose: the ball sprite draws on top,
+                    so a scorching shot keeps its readable white core and wears
+                    the fire around it. */}
+                  <WorkletBallFlame
+                    ballGroundPosition={workletBallGroundPosition}
+                    ballHeight={workletBallHeight}
+                    scorching={scorchingShot}
+                    visualTick={workletVisualTick}
+                    scale={scale}
+                    reduceMotion={reduceMotion}
                   />
                   <Atlas
                     image={atlas.image as SkImage}
