@@ -1951,7 +1951,7 @@
     "glossary.heroes.automatic-timing.term": "Déclenchement auto",
     "glossary.heroes.heat.definition": "Élan gagné par les touches, tacles, tirs, arrêts et minutes jouées. Au seuil, la Chaleur attend que ce héros ait une occasion utile d'entrer dans la Zone.",
     "glossary.heroes.heat.term": "Chaleur",
-    "glossary.heroes.hero-license.definition": "Un permis qui autorise un joueur doté d'un pouvoir à l'utiliser au prochain match. Tu peux posséder plus de héros que tu ne peux en licencier à la fois.",
+    "glossary.heroes.hero-license.definition": "Un permis qui autorise un joueur doté d'un pouvoir à l'utiliser au prochain match. Tu peux posséder plus de héros que tu ne peux en licencier à la fois. Les montées les donnent gratuitement : deux en Ligue de District et en Ligue Départementale, trois en Ligue Régionale et en Ligue Nationale, quatre en Ligue Mondiale. Une descente ne reprend jamais un permis.",
     "glossary.heroes.hero-license.term": "Licence de Héros",
     "glossary.heroes.power.definition": "La super-capacité visible d'un héros, liée à un moment précis. Les pouvoirs changent la possession ou la géométrie, pas des stats cachées.",
     "glossary.heroes.power.term": "Pouvoir",
@@ -4011,6 +4011,22 @@
     "storyCallback.veteranRestThanks": "Merci pour ce repos. Mes jambes sont de nouveau prêtes.",
     "storyCallback.deniedLeaveUnderstands": "J'étais en colère, mais je comprends pourquoi tu avais besoin de moi ici.",
     "storyCallback.deniedLeaveUnhappy": "Je suis resté, boss. Je n'ai pas oublié que tu as refusé.",
-    "storyCallback.facilityFireRebuild": "Boss, la reconstruction a commencé. Cet endroit recommence à ressembler à notre club."
+    "storyCallback.facilityFireRebuild": "Boss, la reconstruction a commencé. Cet endroit recommence à ressembler à notre club.",
+    "bert.heroLicense.title": "Les licences viennent avec la montée",
+    "bert.heroLicense.body1": "Les Licences de Héros sont gratuites, chef. Deux en Ligue de District et en Ligue Départementale, trois en Ligue Régionale et en Ligue Nationale, quatre en Ligue Mondiale. En cas de descente, tu gardes toutes celles que tu as gagnées.",
+    "bert.heroLicense.body2": "Payer ne fait qu'avancer ce permis-là, rien de plus. Une montée plus tard relève le nombre gratuit au lieu de s'ajouter à ton achat. Tu le veux quand même tout de suite ?",
+    "fixtureMatchDay.oneMorePermit": "Un permis de plus",
+    "fixtureMatchDay.oneMorePermitDetail": "La ligue vend au club sa prochaine Licence de Héros tout de suite au lieu de le faire attendre la montée.",
+    "fixtureMatchDay.buyHeroLicense": "Acheter permis {license} · {cost}",
+    "fixtureMatchDay.a11y.buyHeroLicense": "Acheter la Licence de Héros {license} pour {cost}",
+    "confirm.buyHeroLicense.title": "Acheter le permis {license} ?",
+    "confirm.buyHeroLicense.detail": "La ligue enregistre un permis de plus pour {cost}. Dès le prochain match, ton club peut aligner {license} héros à la fois.",
+    "confirm.buyHeroLicense.confirm": "Oui, acheter",
+    "confirm.buyHeroLicense.cancel": "Non",
+    "store.heroLicenseBought": "Licence de Héros {license} enregistrée.",
+    "cashTransaction.heroLicenseBought": "Licence de Héros {license} achetée",
+    "glossary.heroes.permit-office.term": "Bureau des permis",
+    "glossary.heroes.permit-office.definition": "Le guichet de l'écran de jour de match qui vend une Licence de Héros avant que le club ne l'ait gagnée. La troisième coûte 100 000 $, la quatrième 200 000 $, et chacune au-delà des quatre d'un club de Ligue Mondiale part de 300 000 $ et monte de 50 000 $ à chaque fois. Acheter ne fait qu'avancer le permis : une montée plus tard relève le nombre gratuit au lieu de s'ajouter à ce que tu as payé.",
+    "fixtureMatchDay.heroLicenseGlobalOnly": "Seul un club de Ligue Mondiale peut en détenir plus de quatre."
   }
 }

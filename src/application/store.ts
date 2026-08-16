@@ -62,6 +62,7 @@ import {
   quickMatchForFixture,
   protectBoardUltimatumPlayer,
   pendingRivalHeroIntro,
+  purchaseCareerHeroLicense,
   purchaseCareerTrainingUpgrade,
   reconcilePendingClubLegends,
   closeCareerFacility,
@@ -618,6 +619,8 @@ interface M1Store {
    */
   trainPlayerBatch: (playerId: string, pathId: string, runs: number) => void;
   purchaseTrainingUpgrade: (pathId: string) => void;
+  /** Buys one Hero License above the cap the club has earned on the pitch. */
+  purchaseHeroLicense: () => void;
   clearDrillResult: () => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
@@ -2777,6 +2780,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
               trainingPathLabel(pathId),
             ),
             tier: transaction.offer.tier,
+          }),
+        },
+      });
+      queueCareerSave(get, set, transaction.state);
+    });
+  },
+
+  purchaseHeroLicense() {
+    guarded(set, () => {
+      const transaction = purchaseCareerHeroLicense(requireCareer(get()));
+      set({
+        career: transaction.state,
+        error: null,
+        notice: {
+          tone: 'success',
+          message: t('store.heroLicenseBought', {
+            license: transaction.offer.licenseNumber,
           }),
         },
       });

@@ -108,6 +108,12 @@ describe('five-division pyramid generation', () => {
     expect(new Set(clubs.map((club) => club.id)).size).toBe(50);
     expect(new Set(players.map((player) => player.id)).size).toBe(800);
     expect(new Set(clubs.map((club) => club.name)).size).toBe(50);
+    // Not just whole names: ten different "Rovers" read as one club with
+    // variations, so each half of a name is spent once across the pyramid.
+    const halves = clubs.map((club) => club.name.split(' '));
+    expect(new Set(halves.map(([first]) => first)).size).toBe(50);
+    expect(new Set(halves.map(([, second]) => second)).size).toBe(50);
+    expect(halves.every((parts) => parts.length === 2)).toBe(true);
     for (const club of clubs) {
       expect(club.squad).toHaveLength(16);
       expect(club.squad.filter((player) => player.role === 'GK')).toHaveLength(
