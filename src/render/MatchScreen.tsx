@@ -1480,7 +1480,22 @@ export function MatchScreen({
           // A frame may catch up several engine ticks. Evaluate Auto Subs after
           // each one, in the same order as Quick Result, so a scheduled tick or
           // a one-tick red-energy emergency cannot be skipped by frame batching.
-          queueControlledAutoSubstitution(s, autoSubsRef.current);
+          //
+          // The first-match lesson owns the bench until it has been taught.
+          // FIRST_MATCH_RED_ENERGY_THRESHOLD and AUTO_SUB_EMERGENCY_CONDITION
+          // are the same 30%, so with Auto Subs on the tick that pops the
+          // coaching card ALSO queues the engine's own swap — and it applied
+          // the moment the board closed, whether the manager pressed Save or
+          // Cancel. Standing down here keeps the taught decision the manager's;
+          // Auto resumes for the rest of the match once the lesson is over.
+          const lessonOwnsBench =
+            firstMatchTutorial &&
+            (!firstMatchPromptsSeenRef.current.tiredPlayer ||
+              firstMatchTutorialStepRef.current !== null);
+          queueControlledAutoSubstitution(
+            s,
+            autoSubsRef.current && !lessonOwnsBench,
+          );
         }
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
