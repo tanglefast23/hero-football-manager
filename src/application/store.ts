@@ -444,6 +444,18 @@ interface M1Store {
   saveWarning: string | null;
   /** True once saves have failed enough times to stop the week advancing. */
   saveBlocked: boolean;
+  /**
+   * Builds a brand-new career repository on a brand-new database connection.
+   *
+   * Supplied by the app ring, which owns expo-sqlite. It exists for one
+   * failure the plain retry cannot clear: on web the career lives in SQLite
+   * over OPFS, and a browser that evicts the origin deletes the database file
+   * out from under a connection that stays open and keeps accepting writes
+   * that go nowhere. Retrying on that connection can never succeed. Opening a
+   * new one recreates the file, and the in-memory career is then written into
+   * it, so an eviction costs a reconnect instead of the session.
+   */
+  reopenRepository: (() => Promise<CareerRepository>) | null;
   /** The previous-generation save the player can fall back to, if any. */
   backupSummary: CareerBackupSummary | null;
   screen: M1Screen;
@@ -525,6 +537,10 @@ interface M1Store {
   /** Debug UI only: replaces the live career with an exact stored snapshot. */
   restoreDeveloperSave: (state: GameState, slotLabel: string) => void;
   retrySave: () => void;
+  /** Boot handing the store the reconnect it cannot build for itself. */
+  setReopenRepository: (
+    reopen: (() => Promise<CareerRepository>) | null,
+  ) => void;
   /**
    * Leaves a screen that threw, for the title, remembering that it threw so
    * Continue does not walk straight back into it.
@@ -819,6 +835,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   consecutiveSaveFailures: 0,
   saveWarning: null,
   saveBlocked: false,
+  reopenRepository: null,
   backupSummary: null,
   screen: 'welcome',
   recoveredFromScreenCrash: false,
@@ -1061,11 +1078,33 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  setReopenRepository(reopen) {
+    set({ reopenRepository: reopen });
+  },
+
   /** Retries the last career state, so a fixed disk can clear a save block. */
   retrySave() {
     const career = get().career;
     if (career === null) return;
-    queueCareerSave(get, set, career);
+    const reopen = get().reopenRepository;
+    // Straight through when the app ring supplied no reconnect (native, and
+    // every test double): the plain retry is the whole behaviour there.
+    if (reopen === null) {
+      queueCareerSave(get, set, career);
+      return;
+    }
+    // ponytail: one fresh connection per press, and the dead one is dropped
+    // rather than closed — a manual button pressed a handful of times cannot
+    // leak enough handles to matter. Pool them if retry ever becomes automatic.
+    void reopen().then(
+      (repository) => {
+        set({ repository });
+        queueCareerSave(get, set, career);
+      },
+      // A reconnect that fails proves nothing about the old connection, so the
+      // retry still happens on it — this is the fallback path, not the failure.
+      () => queueCareerSave(get, set, career),
+    );
   },
 
   recoverFromScreenCrash() {

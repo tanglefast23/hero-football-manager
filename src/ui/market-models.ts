@@ -60,6 +60,8 @@ export interface ScoutReportViewModel {
   readonly powerLabel?: string;
   readonly rumorLabel?: string;
   readonly stats: readonly ScoutedStatViewModel[];
+  /** Present only while a range on this report runs past 100. */
+  readonly aboveHundredNote?: string;
   readonly dismissAvailable: boolean;
   readonly detailedReportAvailable: boolean;
   readonly detailedReportLabel: string;

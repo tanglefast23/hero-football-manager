@@ -1546,11 +1546,7 @@ function facilityGridViewModel(
             )
           : undefined;
       const upgradeBlockedReason =
-        building.type === 'coaching-office' && building.level < 3
-          ? t('facilityError.coachingOfficeUpgrade')
-          : blocked === undefined
-            ? undefined
-            : resolveRingCopy(t, blocked);
+        blocked === undefined ? undefined : resolveRingCopy(t, blocked);
       // The rung as data. The screen used to read it back out of the sentence
       // with `/D[1-5]/`, which only worked while every translation kept an
       // English-authored token.
@@ -1761,7 +1757,11 @@ function facilityEffectLabel(
         : t('clubFinances.facilityScoutPowers', { names });
   }
   if (type === 'coaching-office')
-    return t('clubFinances.facilityCoachingOfficeEffect');
+    return level === 1
+      ? t('clubFinances.facilityCoachingOfficeEffect')
+      : level === 2
+        ? t('clubFinances.facilityCoachingOfficeHires')
+        : t('clubFinances.facilityCoachingOfficeFast');
   if (type === 'youth-field') {
     return t('clubFinances.facilityYouthEffect', { amount: level * 5 });
   }
@@ -1785,9 +1785,6 @@ function facilityNextLevelEffectLabel(
   nextLevel: FacilityLevel,
   t: CopyFn,
 ): string | undefined {
-  // The Coaching Office is a one-off unlock: its upgrades change nothing, so it
-  // is the only facility with no next-level promise to show.
-  if (type === 'coaching-office') return undefined;
   return facilityEffectLabel(type, nextLevel, t);
 }
 

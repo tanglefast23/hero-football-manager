@@ -465,6 +465,12 @@ export function marketViewModel(
             label: attribute.toUpperCase(),
             rangeLabel: `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,
           })),
+          // Attributes are cap-free, so a scouted range legitimately runs past
+          // 100 and reads as a bug when it does. Said once, on the reports that
+          // actually show it, rather than as permanent footer noise.
+          ...(stats.some((attribute) => report.statRanges[attribute].maximum > 100)
+            ? { aboveHundredNote: t('market.scoutRangeAboveHundred') }
+            : {}),
           dismissAvailable:
             source.negotiation?.state.playerId !== report.playerId,
           detailedReportAvailable:

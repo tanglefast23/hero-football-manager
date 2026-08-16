@@ -66,6 +66,7 @@ import {
   DEVELOPER_MANUAL_SAVE_SLOTS,
   isBrowserDatabaseLockError,
   migrateDatabase,
+  persistentStorageGrant,
   reloadBrowserDocument,
   rememberInitialFormation,
   replaceFormationPreset,
@@ -1531,10 +1532,30 @@ function GameApp() {
         preferencesRef.current = nextPreferences;
         setPreferences(nextPreferences);
         if (detected !== undefined) setLanguageOffer(detected);
+        // Handed over before the career loads, so the very first failed write
+        // already has a working way back. Web only: a native save lives in a
+        // real file that nothing deletes underneath the connection, so there is
+        // nothing there for a reconnect to fix.
+        store.setReopenRepository(
+          Platform.OS === 'web'
+            ? async () => {
+                const reopened = await openDatabaseAsync(DATABASE_NAME);
+                await migrateDatabase(reopened);
+                return createCareerRepository(reopened);
+              }
+            : null,
+        );
         await store.initializePersistence(
           repositories.careerRepository,
           repositories.replayRepository,
         );
+        // The browser's answer used to go to console.info and nowhere else, so
+        // the first a player heard of "this origin is evictable" was a career
+        // that had vanished. Said once per launch, and only when the answer was
+        // no — a granted origin has nothing to warn about.
+        if (active && persistentStorageGrant() === 'refused') {
+          store.notify(copyRef.current('app.storageNotPersistent'));
+        }
         if (active && repositories.warning !== undefined) {
           store.notify(repositories.warning);
         }

@@ -2462,6 +2462,13 @@ function driveStoreUntil(
       current.completeFaceOff();
       continue;
     }
+    // Match-day form lets a knockout tie finish level, so the journey can now
+    // reach penalties. Settling them is one more press, not a new branch of
+    // the flow being tested.
+    if (current.screen === 'shootout') {
+      current.completeShootout();
+      continue;
+    }
     if (current.screen === 'postmatch') {
       current.continueAfterMatch();
       continue;

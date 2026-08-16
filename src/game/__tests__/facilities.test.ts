@@ -1,3 +1,4 @@
+import { coachHireLevelBonus, coachSeasonsPerLevel } from '../market-career';
 import {
   FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
@@ -273,14 +274,22 @@ describe('facility upgrades and upkeep', () => {
     );
   });
 
-  test('rejects Coaching Office upgrades because higher levels have no benefit', () => {
+  test('upgrades the Coaching Office, which develops both coaches faster', () => {
     const grid = finishConstruction(
       build(createFacilityGrid(), 'coaching-office', { x: 0, y: 0 }).grid,
     );
 
-    expect(() => upgradeFacility(grid, 'facility-1', 100_000)).toThrow(
-      /Coaching Office upgrades are disabled/,
+    const upgraded = finishConstruction(
+      upgradeFacility(grid, 'facility-1', 100_000).grid,
     );
+    expect(
+      upgraded.buildings.find((building) => building.id === 'facility-1')?.level,
+    ).toBe(2);
+
+    // Level 1 and 2 keep the two-season cadence; level 3 halves it. Level 2 is
+    // the one that hires a coach in already developed.
+    expect([1, 2, 3].map(coachSeasonsPerLevel)).toEqual([2, 2, 1]);
+    expect([1, 2, 3].map(coachHireLevelBonus)).toEqual([0, 1, 1]);
   });
 
   test('upgrades one income building without changing its other copies', () => {
