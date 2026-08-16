@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { View } from 'react-native';
 import spriteData from '../../render/sprites/management-sprites.json';
+import { resolveCoachPortraitId } from './coach-portrait';
 
 interface ManagementSpriteSheet {
   palette: Record<string, string | null>;
@@ -75,11 +76,7 @@ function fallbackSpriteKey(spriteKey: string): string {
   if (!spriteKey.startsWith('coach:') || coachPortraitIds.length === 0) {
     return 'facility:worksite';
   }
-  let hash = 0;
-  for (let index = 0; index < spriteKey.length; index += 1) {
-    hash = (hash * 31 + spriteKey.charCodeAt(index)) >>> 0;
-  }
-  const portraitId = coachPortraitIds[hash % coachPortraitIds.length];
+  const portraitId = resolveCoachPortraitId(spriteKey.split(':')[1] ?? '');
   const expression = spriteKey.endsWith(':joy') ? 'joy' : 'rest';
   return `coach:${portraitId}:${expression}`;
 }

@@ -188,6 +188,7 @@ import {
 import { playUiClickSfx } from './management-sfx';
 import { FirstMatchCoachingModal } from './FirstMatchCoachingModal';
 import { ConfirmationSheet } from '../ui/components/ConfirmationSheet';
+import { MotivationalSpeechCutscene } from './MotivationalSpeechCutscene';
 import {
   nextFirstMatchCoachingPrompt,
   type FirstMatchCoachingPromptsSeen,
@@ -481,7 +482,11 @@ export function MatchScreen({
    * settled match, from the recorded input log — this screen only records the
    * decision.
    */
-  motivationalSpeech?: { readonly boost: number };
+  motivationalSpeech?: {
+    readonly boost: number;
+    readonly coachName: string;
+    readonly coachPortraitId: string;
+  };
   /** Bench cover as the manager last left it, so it survives the final whistle. */
   autoSubs?: boolean;
   /** Fires only when the substitution board saves a different setting. */
@@ -741,6 +746,10 @@ export function MatchScreen({
   // is what React renders — the same split every other mid-match prompt uses.
   const [speechPromptOpen, setSpeechPromptOpen] = useState(false);
   const speechPromptOfferedRef = useRef(false);
+  // The cutscene the confirmed sheet hands over to. The ref carries the
+  // decision across the sheet's dismissal animation; the state is what renders.
+  const [speechCutsceneOpen, setSpeechCutsceneOpen] = useState(false);
+  const speechCutsceneWantedRef = useRef(false);
   const firstMatchPromptsSeenRef = useRef<FirstMatchCoachingPromptsSeen>({
     tiredPlayer: false,
   });
@@ -3034,34 +3043,68 @@ export function MatchScreen({
   };
 
   /**
+   * Gives play back after the half-time speech, however that ended.
+   *
+   * ONE release path, three callers, and the third is the one that is easy to
+   * miss: a confirm whose input the engine REFUSED opens no cutscene, so no
+   * `onDone` ever arrives to release the pause. Without this being its own
+   * idempotent function that path leaves the match paused forever.
+   */
+  const releaseSpeechPause = () => {
+    automaticPauseReasonsRef.current.delete('halftime-speech');
+    syncPauseReasons();
+  };
+
+  /**
    * Answers the half-time speech sheet.
    *
    * A `yes` records the input and flashes a banner; a `no` keeps the speech in
-   * the bank for another match. Either way the sheet closes and play resumes,
-   * and the sheet is never offered twice in one match.
+   * the bank for another match. The sheet is never offered twice in one match.
+   *
+   * On a confirm the pause is HELD — the cutscene runs over a stopped match and
+   * releases it from `onDone`. The cutscene itself is opened by
+   * `onAfterConfirmDismiss`, not from here, so its flash and thunder cannot
+   * start behind a sheet that is still dismissing.
    */
   const answerSpeechPrompt = (spend: boolean) => {
     setSpeechPromptOpen(false);
-    if (spend && motivationalSpeech !== undefined) {
-      const recorded = recordCoachingInput({
-        tick: match.tick + 1,
-        kind: 'MOTIVATIONAL_SPEECH',
-        boost: motivationalSpeech.boost,
-      });
-      // Only announce a speech the engine accepted — a banner over a refused
-      // input would tell the manager the second half changed when it did not.
-      if (recorded) {
-        bannerRef.current = appendNewestFour(bannerRef.current, {
-          id: `speech:${match.tick}`,
-          text: t('matchScreen.bannerMotivationalSpeech'),
-          untilTick: match.tick + FLASH_TICKS,
-          tone: 'blue',
-        });
-        setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
-      }
+    if (!spend || motivationalSpeech === undefined) {
+      speechCutsceneWantedRef.current = false;
+      releaseSpeechPause();
+      return;
     }
-    automaticPauseReasonsRef.current.delete('halftime-speech');
-    syncPauseReasons();
+    const recorded = recordCoachingInput({
+      tick: match.tick + 1,
+      kind: 'MOTIVATIONAL_SPEECH',
+      boost: motivationalSpeech.boost,
+    });
+    // Only announce a speech the engine accepted — a banner over a refused
+    // input would tell the manager the second half changed when it did not,
+    // and a cutscene is a much louder version of that same lie.
+    speechCutsceneWantedRef.current = recorded;
+    if (!recorded) {
+      releaseSpeechPause();
+      return;
+    }
+    bannerRef.current = appendNewestFour(bannerRef.current, {
+      id: `speech:${match.tick}`,
+      text: t('matchScreen.bannerMotivationalSpeech'),
+      untilTick: match.tick + FLASH_TICKS,
+      tone: 'blue',
+    });
+    setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
+  };
+
+  /** Runs once the sheet has fully left the accessibility tree. */
+  const openSpeechCutsceneAfterSheet = () => {
+    if (!speechCutsceneWantedRef.current) return;
+    speechCutsceneWantedRef.current = false;
+    setSpeechCutsceneOpen(true);
+  };
+
+  const finishSpeechCutscene = () => {
+    setSpeechCutsceneOpen(false);
+    releaseSpeechPause();
   };
 
   // Shared coaching actions. The phone dock and the desktop rail both call
@@ -3998,7 +4041,7 @@ export function MatchScreen({
           onContinue={continueTiredPlayerTutorial}
         />
       ) : null}
-      {/* Half time, one banked speech, one question. The club's own commit
+      {/* Half time, a banked speech, one question. The club's own commit
           sheet rather than a bespoke overlay: it already carries the focus
           trap, the Escape/Back route, and reduced motion. */}
       <ConfirmationSheet
@@ -4012,6 +4055,7 @@ export function MatchScreen({
                 }),
                 confirmLabel: t('matchScreen.speechConfirm'),
                 cancelLabel: t('matchScreen.speechCancel'),
+                onAfterConfirmDismiss: openSpeechCutsceneAfterSheet,
                 onConfirm: () => answerSpeechPrompt(true),
               }
             : null
@@ -4020,6 +4064,15 @@ export function MatchScreen({
         onCancel={() => answerSpeechPrompt(false)}
         onConfirm={() => answerSpeechPrompt(true)}
       />
+      {speechCutsceneOpen && motivationalSpeech !== undefined ? (
+        <MotivationalSpeechCutscene
+          boost={motivationalSpeech.boost}
+          coachName={motivationalSpeech.coachName}
+          coachPortraitId={motivationalSpeech.coachPortraitId}
+          onDone={finishSpeechCutscene}
+          reduceMotion={reduceMotion}
+        />
+      ) : null}
       {/* Last child, so the cup card covers the whole match screen. */}
       {titleCard !== null && titleCardShowing ? (
         <CupTitleCard card={titleCard} onDone={dismissTitleCard} />

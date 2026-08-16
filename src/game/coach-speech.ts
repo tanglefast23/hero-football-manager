@@ -12,29 +12,43 @@ import type { GameState } from './types';
  * The head coach's motivational speech.
  *
  * Bought on the Staff board with every training point the club holds, banked
- * one at a time, and spent at half time for a flat lift to every attribute in
- * the squad — on the pitch and on the bench — for the second half only. The
- * lift itself lives in the match engine as a recorded input; this module owns
- * who may buy one, what it costs, and how big it is.
+ * one PURCHASE a week but stacked without limit, and spent one at a time at
+ * half time for a flat lift to every attribute in the squad — on the pitch and
+ * on the bench — for the second half only. The lift itself lives in the match
+ * engine as a recorded input; this module owns who may buy one, what it costs,
+ * and how big it is.
  */
 
 /** The week Bert explains it, and so the earliest the button may appear. */
 export const COACH_SPEECH_UNLOCK_WEEK = 2;
 
 export type CoachSpeechBlockedReason =
-  | 'ALREADY_BANKED'
   | 'NO_HEAD_COACH'
   | 'TRAINING_USED_THIS_WEEK'
-  | 'NOT_ENOUGH_TP';
+  | 'NOT_ENOUGH_TP'
+  /** Only a hand-edited save reaches this. See `BANK_CEILING`. */
+  | 'BANK_FULL';
 
 export interface CoachSpeechOffer {
   /** Every training point the club holds — the whole price, by design. */
   readonly trainingPointsCost: number;
-  readonly banked: boolean;
+  /** How many are already banked, for the Staff board's running tally. */
+  readonly bankedCount: number;
   /** What the second half is worth here, so the board can say it out loud. */
   readonly boost: number;
   readonly blockedReason?: CoachSpeechBlockedReason;
 }
+
+/**
+ * The bank is uncapped by owner decision, so this is not a game rule — it is
+ * the point past which the count stops being a safe integer, which is also the
+ * point `nonnegativeInteger` in the save codec stops accepting it.
+ *
+ * It refuses the SALE rather than clamping the count. A clamp would take every
+ * training point the club holds and hand back nothing, which is a worse failure
+ * than the overflow it prevents.
+ */
+const BANK_CEILING = Number.MAX_SAFE_INTEGER;
 
 export function coachSpeechUsedFlag(season: number, week: number): string {
   return `coach-speech:season-${season}:week-${week}:used`;
@@ -102,34 +116,47 @@ function trainingPointsSpentThisWeek(state: GameState): boolean {
   );
 }
 
+/** How many speeches the club is holding. Absent and zero are the same thing. */
+export function coachSpeechesBanked(state: GameState): number {
+  return state.coachSpeechesBanked ?? 0;
+}
+
 export function coachSpeechOffer(
   state: GameState,
 ): CoachSpeechOffer | undefined {
   if (!coachSpeechUnlocked(state)) return undefined;
+  const banked = coachSpeechesBanked(state);
   return {
     trainingPointsCost: state.trainingPoints,
-    banked: state.coachSpeechBanked === true,
+    bankedCount: banked,
     boost: coachSpeechBoost(state),
-    ...(state.coachSpeechBanked === true
-      ? { blockedReason: 'ALREADY_BANKED' as const }
-      : !hasHeadCoach(state)
-        ? { blockedReason: 'NO_HEAD_COACH' as const }
-        : trainingPointsSpentThisWeek(state)
-          ? { blockedReason: 'TRAINING_USED_THIS_WEEK' as const }
-          : state.trainingPoints <= 0
-            ? { blockedReason: 'NOT_ENOUGH_TP' as const }
+    // Order matters and is unchanged from when ALREADY_BANKED led it: a club
+    // with no coach AND no points must still be told about the coach first.
+    ...(!hasHeadCoach(state)
+      ? { blockedReason: 'NO_HEAD_COACH' as const }
+      : trainingPointsSpentThisWeek(state)
+        ? { blockedReason: 'TRAINING_USED_THIS_WEEK' as const }
+        : state.trainingPoints <= 0
+          ? { blockedReason: 'NOT_ENOUGH_TP' as const }
+          : banked >= BANK_CEILING
+            ? { blockedReason: 'BANK_FULL' as const }
             : {}),
   };
 }
 
-/** Pays every training point held and banks the one speech. Blocked is a no-op. */
+/**
+ * Pays every training point held and banks one more speech. Blocked is a no-op.
+ *
+ * The weekly flag is what holds this to one purchase a week; the bank itself
+ * has no game-rule limit, so buying in consecutive weeks stacks.
+ */
 export function buyCoachSpeech(state: GameState): GameState {
   const offer = coachSpeechOffer(state);
   if (offer === undefined || offer.blockedReason !== undefined) return state;
   return {
     ...state,
     trainingPoints: 0,
-    coachSpeechBanked: true,
+    coachSpeechesBanked: coachSpeechesBanked(state) + 1,
     eventFlags: [
       ...state.eventFlags,
       coachSpeechUsedFlag(state.season, state.week),
@@ -138,13 +165,14 @@ export function buyCoachSpeech(state: GameState): GameState {
 }
 
 /**
- * Empties the bank after a match that used it.
+ * Spends ONE speech after a match that used it, leaving the rest banked.
  *
  * Called from the settled watched match, off the recorded input log rather
  * than from a live callback, so the bank and the saved replay can never
  * disagree about whether the speech was given.
  */
 export function spendCoachSpeech(state: GameState): GameState {
-  if (state.coachSpeechBanked !== true) return state;
-  return { ...state, coachSpeechBanked: false };
+  const banked = coachSpeechesBanked(state);
+  if (banked <= 0) return state;
+  return { ...state, coachSpeechesBanked: banked - 1 };
 }

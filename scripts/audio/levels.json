@@ -100,6 +100,16 @@
       "afterTruePeak": -4.1,
       "bytes": 469567
     },
+    "assets/audio/music/speech-gospel.m4a": {
+      "class": "music",
+      "before": -20.1,
+      "beforeTruePeak": -9.4,
+      "gainDb": 0,
+      "limited": false,
+      "after": -20.1,
+      "afterTruePeak": -9.4,
+      "bytes": 60878
+    },
     "assets/audio/sfx/advance-week.m4a": {
       "class": "sfx",
       "before": -11.6,
@@ -199,6 +209,16 @@
       "after": -16,
       "afterTruePeak": -11.2,
       "bytes": 8898
+    },
+    "assets/audio/sfx/coach-voice.m4a": {
+      "class": "sfx",
+      "before": -16.7,
+      "beforeTruePeak": -3.4,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16.7,
+      "afterTruePeak": -3.4,
+      "bytes": 74087
     },
     "assets/audio/sfx/crowd-jeer.wav": {
       "class": "sfx",
@@ -775,6 +795,16 @@
       "after": -16,
       "afterTruePeak": -5.6,
       "bytes": 68718
+    },
+    "assets/audio/sfx/speech-thunder.m4a": {
+      "class": "sfx",
+      "before": -16.1,
+      "beforeTruePeak": -4.6,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -4.6,
+      "bytes": 35806
     },
     "assets/audio/sfx/stat-step-tap-loud.m4a": {
       "class": "sfx",
