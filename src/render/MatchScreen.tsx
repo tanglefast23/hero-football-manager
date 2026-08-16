@@ -230,6 +230,9 @@ import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
 import {
   CARRIER_CARD_CONTENT_WIDTH,
+  CARRIER_CARD_DESKTOP_CONTENT_WIDTH,
+  CARRIER_CHARGE_DESKTOP_HEIGHT,
+  CARRIER_CHARGE_HEIGHT,
   useMatchScreenStyles,
 } from './match-screen-styles';
 import { useCopy } from '../i18n';
@@ -3655,6 +3658,7 @@ export function MatchScreen({
                   hudSide === 'left'
                     ? styles.carrierCardLeft
                     : styles.carrierCardRight,
+                  railLayout ? styles.carrierCardDesktop : null,
                   // The panel wears the carrier's kit, so which team has the
                   // ball reads at a glance without looking back at the pitch.
                   {
@@ -3663,14 +3667,30 @@ export function MatchScreen({
                 ]}
               >
                 <View style={styles.carrierLine}>
-                  <Text numberOfLines={1} style={styles.carrierName}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.carrierName,
+                      railLayout ? styles.carrierNameDesktop : null,
+                    ]}
+                  >
                     {carrier.def.name}
                   </Text>
-                  <Text style={styles.carrierEnergy}>
+                  <Text
+                    style={[
+                      styles.carrierEnergy,
+                      railLayout ? styles.carrierEnergyDesktop : null,
+                    ]}
+                  >
                     {Math.round(carrier.condition)}%
                   </Text>
                 </View>
-                <View style={styles.energyTrack}>
+                <View
+                  style={[
+                    styles.energyTrack,
+                    railLayout ? styles.energyTrackDesktop : null,
+                  ]}
+                >
                   <View
                     style={[
                       styles.energyFill,
@@ -3680,6 +3700,7 @@ export function MatchScreen({
                       energyBand(carrier.condition) === 'red'
                         ? styles.energyFillLow
                         : null,
+                      railLayout ? styles.energyFillDesktop : null,
                       {
                         width: `${Math.max(0, Math.min(100, carrier.condition))}%`,
                       },
@@ -3690,7 +3711,16 @@ export function MatchScreen({
                 {carrier.def.power ? (
                   <HeroChargeMeter
                     meter={chargeMeter(carrier.gauge, carrier.powerState)}
-                    trackWidth={CARRIER_CARD_CONTENT_WIDTH}
+                    trackWidth={
+                      railLayout
+                        ? CARRIER_CARD_DESKTOP_CONTENT_WIDTH
+                        : CARRIER_CARD_CONTENT_WIDTH
+                    }
+                    height={
+                      railLayout
+                        ? CARRIER_CHARGE_DESKTOP_HEIGHT
+                        : CARRIER_CHARGE_HEIGHT
+                    }
                     reduceMotion={reduceMotion}
                   />
                 ) : null}
