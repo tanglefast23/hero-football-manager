@@ -127,8 +127,7 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
     careerHeroLimit(state),
   );
   const inForm = applyMatchDayForm(state, clubId, team);
-  if (clubId !== state.userClubId)
-    return applyStrongestD1OffDay(state, inForm);
+  if (clubId !== state.userClubId) return applyStrongestD1OffDay(state, inForm);
   const headCoach = state.market?.headCoach;
   const assistantCoach = state.market?.assistantCoach;
   const headBonus =

@@ -283,7 +283,8 @@ describe('facility upgrades and upkeep', () => {
       upgradeFacility(grid, 'facility-1', 100_000).grid,
     );
     expect(
-      upgraded.buildings.find((building) => building.id === 'facility-1')?.level,
+      upgraded.buildings.find((building) => building.id === 'facility-1')
+        ?.level,
     ).toBe(2);
 
     // Level 1 and 2 keep the two-season cadence; level 3 halves it. Level 2 is

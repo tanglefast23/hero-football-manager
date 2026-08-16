@@ -730,7 +730,9 @@ describe('match-day form', () => {
     expect(buildCareerTeamDef(state, CLUB_IDS[1])).toEqual(built);
     for (const [index, player] of built.players.entries()) {
       const before = base.players[index].attrs.pac;
-      expect(player.attrs.pac).toBeGreaterThanOrEqual(Math.round(before * 0.98));
+      expect(player.attrs.pac).toBeGreaterThanOrEqual(
+        Math.round(before * 0.98),
+      );
       expect(player.attrs.pac).toBeLessThanOrEqual(Math.round(before * 1.02));
     }
   });
