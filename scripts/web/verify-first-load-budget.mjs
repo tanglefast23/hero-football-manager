@@ -98,12 +98,47 @@ const DIST = path.resolve('dist');
 // list proves the absence of the three strings it names, not the absence of the
 // harness. Widening it is a separate job from this branch.
 //
-// Previous marks: 6_005_786 / 901_680 at 6a2c27e2, 5_994_912 / 894_580 at the
-// 2026-08-15 merge, 5_977_355 / 893_727 earlier that day, 5_922_802 / 879_373
-// at #158, 5_908_835 / 875_599 at b26e1399 (#159), 5_896_612 on the stat-tip
-// branch, 5_891_821 at 0128bcc4, 5_861_753 at 0b2fc042.
-const RAW_BUDGET = 6_007_581;
-const GZIP_BUDGET = 901_680;
+// Re-ratcheted 2026-08-16 off CI's figure for e052a5c1 on
+// claude/coach-motivational-speech-0bbc30: 6_018_860 raw / 902_095 gzip. A
+// local export of the same tree read 6_017_823 / 901_868, so CI still runs
+// about 1_000 bytes high, and CI is what has to pass.
+//
+// Split, because this one is BOTH the branch's and inherited. `origin/main` at
+// 84a30233 was exported and measured the same way: 6_011_010 raw / 900_102
+// gzip — already 3_429 raw past the old mark on its own. The mark was set from
+// CI's figure for 33bbf4b0 (#166's branch), and #168 landed after it. So of the
+// 10_242 raw this branch reports over the old mark, 3_429 arrived with main and
+// 6_813 is this branch: sixteen English catalog keys for the speech button,
+// its confirmation sheet and the half-time sheet, Bert's two-page briefing in
+// `assistant-guide.json`, the pure `coach-speech.ts` module, and the Staff
+// board button with its view model. Gzip splits the same way — main is 1_578
+// UNDER its old mark, this branch adds 1_766, so the 415-byte CI breach is the
+// branch's and the number moves.
+//
+// The locale bundles are again not the story: `de-*.js` and friends are their
+// own chunks and not in `firstLoadFiles`, so only the English half of the
+// seven-language copy lands in `index-*.js`.
+//
+// Markers checked before moving the number, as every time, and with the same
+// care #166 needed, because this branch also touches the dev-harness reel —
+// `assistant-beats.tsx` gains the new sequence id, its `SPEECH` chip label and
+// a group entry. CI reported `qaBodyMarkers: []` and `skiaBodyMarkers: []` on
+// the failing run, and three strings that exist only in that harness entry —
+// "Requests, injuries, the loan", "AUTHORED_EXPRESSION_RUNS", "Bert beats" —
+// return zero hits in `index-*.js`. The entry is lazy and stayed lazy.
+//
+// Worth knowing for the next person: do NOT grep the title bundle for the chip
+// label `SPEECH` to check that. It hits seven times on a clean build, every one
+// of them inside `MOTIVATIONAL_SPEECH`, the sim's own input kind, which belongs
+// in the first load. A substring of app code is not a harness marker.
+//
+// Previous marks: 6_007_581 / 901_680 at 33bbf4b0 (#166), 6_005_786 / 901_680
+// at 6a2c27e2, 5_994_912 / 894_580 at the 2026-08-15 merge, 5_977_355 /
+// 893_727 earlier that day, 5_922_802 / 879_373 at #158, 5_908_835 / 875_599 at
+// b26e1399 (#159), 5_896_612 on the stat-tip branch, 5_891_821 at 0128bcc4,
+// 5_861_753 at 0b2fc042.
+const RAW_BUDGET = 6_018_860;
+const GZIP_BUDGET = 902_095;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
