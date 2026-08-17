@@ -65,6 +65,14 @@ const DECOY_RING_COLOR = '#a3c8f0';
 export const ENCORE_MARKER_TICKS = 20;
 const ENCORE_BOLT_COLOR = '#edb54a';
 
+// Ball-carrier ring. `ringRadius` is sized from the sprite's WIDTH (24px cell),
+// so a circle at that radius clipped the top of taller hair on a 30px-tall
+// cell; 1.3x clears half the cell height at every draw scale. Bright yellow,
+// held lighter than the Zone's amber (#edb54a) so the two stay distinct.
+const POSSESSION_RING_COLOR = '#ffe14d';
+const POSSESSION_RING_SCALE = 1.3;
+const POSSESSION_RING_WIDTH = 3;
+
 export interface EncoreMarker {
   slot: number;
   grantTick: number;
@@ -539,7 +547,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     builder.addCircle(
       visualPositions.value[index * 2] * scale,
       visualPositions.value[index * 2 + 1] * scale,
-      ringRadius + 2,
+      ringRadius * POSSESSION_RING_SCALE,
     );
   });
 
@@ -575,7 +583,12 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           hiddenPlayer={hiddenPlayer}
         />
       ))}
-      <Path path={possession} color="#ffffff" style="stroke" strokeWidth={2} />
+      <Path
+        path={possession}
+        color={POSSESSION_RING_COLOR}
+        style="stroke"
+        strokeWidth={POSSESSION_RING_WIDTH}
+      />
       {DECOY_SLOTS.map((slot) => (
         <WorkletDecoyRing
           key={slot}
