@@ -306,8 +306,28 @@ const DIST = path.resolve('dist');
 // on the local export. Verified in the browser pane as well as by byte count —
 // the title pop scene draws its two SVG sprites from the subset, and the
 // character-creation portrait draws from the fetched `portraits-*.js`.
-const RAW_BUDGET = 3_404_105;
-const GZIP_BUDGET = 830_104;
+// 2026-08-17, the in-app privacy link. Apple requires the submitted privacy
+// policy to be reachable from inside the app, so Settings -> Privacy & Support
+// gained a Read privacy policy action: a `Linking.openURL` callback in
+// `App.tsx`, the `PRIVACY_POLICY_URL` constant, one `ActionButton`, the
+// `onOpenPrivacyPolicy` prop threaded through `SettingsOverlay` and
+// `TitleLandingScreen`, and three new English catalog strings. Only `en.json`
+// is in the startup graph — the other six locales are dynamic imports — so this
+// is the English strings plus the code.
+//
+// Measured, not estimated: +955 raw local (3_403_068 -> 3_404_023) and +231
+// gzip (829_704 -> 829_935). CI first reported 3_405_060 against the old
+// 3_404_105 budget, which is the local figure plus exactly the +1_037 offset
+// the entries above have now seen transfer unchanged five times. A local run
+// passed this by 82 bytes before CI failed it by 955 — the offset is the whole
+// reason, so **do not trust a local pass inside 1 KB of the budget.**
+//
+// Raw is therefore local + 1_037: 3_404_023 -> 3_405_060, which is CI's own
+// reported figure rather than banked slack. Gzip keeps the same +400 rounding
+// as the entry above: 829_935 -> 830_335. Per the convention here, if CI
+// reports lower than either, ratchet down to CI's figure.
+const RAW_BUDGET = 3_405_060;
+const GZIP_BUDGET = 830_335;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
