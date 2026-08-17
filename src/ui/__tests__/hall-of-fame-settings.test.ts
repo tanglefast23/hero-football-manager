@@ -119,6 +119,7 @@ function overlay(overrides: Partial<SettingsOverlayProps>) {
     onToggleColorSafeKits: jest.fn(),
     onToggleCutInMode: jest.fn(),
     onEmailSupport: jest.fn(),
+    onOpenPrivacyPolicy: jest.fn(),
     onSetAssistantMode: jest.fn(),
     onGlossaryOpenChange: jest.fn(),
     onPrivacySupportOpenChange: jest.fn(),

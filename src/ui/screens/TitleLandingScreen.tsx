@@ -282,6 +282,7 @@ export interface TitleSettingsScreenProps {
   onToggleColorSafeKits: () => void;
   onToggleCutInMode: () => void;
   onEmailSupport: () => void;
+  onOpenPrivacyPolicy: () => void;
   supportError?: string | null;
   accessibilityCopy?: { title: string; body: string };
   difficultyLabel?: 'COZY' | 'CHAIRMAN';
@@ -302,6 +303,7 @@ export function TitleSettingsScreen({
   onToggleColorSafeKits,
   onToggleCutInMode,
   onEmailSupport,
+  onOpenPrivacyPolicy,
   supportError,
   accessibilityCopy,
   difficultyLabel,
@@ -340,6 +342,7 @@ export function TitleSettingsScreen({
           <PrivacySupportPanel
             onBack={() => setShowPrivacySupport(false)}
             onEmailSupport={onEmailSupport}
+            onOpenPrivacyPolicy={onOpenPrivacyPolicy}
             supportError={supportError}
           />
         </View>

@@ -2,7 +2,7 @@
 title: "release: Submit Hero Football Manager to the Apple App Store"
 type: release
 date: 2026-08-05
-status: reviewed-and-revised-after-council-audit
+status: reviewed-and-revised-after-council-audit; account and build facts refreshed 2026-08-17
 owner: Joe
 operator: Website-controlling LLM with Joe present
 ---
@@ -93,10 +93,10 @@ The following table tells the operator what can be prefilled, what must be rever
 | Bundle ID | `com.tanglefast.herofootballmanager` | `VERIFIED_REPO` | Check correct Apple team, duplicate App ID/record, and final archive |
 | Version | `1.0.0` | `VERIFIED_REPO` | Verify final archive and ASC version |
 | Build number | Durable `expo.ios.buildNumber` is `1`; App Store Connect has the HFM record and version 1.0, but no uploaded build as of August 9, 2026 | `VERIFIED_REPO` and `VERIFIED_ACCOUNT` | Choose and verify the final build number against the signed archive before upload |
-| Minimum iOS | Today's ignored/generated native snapshot says iOS 16.4; the durable Expo source does not explicitly pin that value | `BLOCKED` | Regenerate with the approved release config, then verify the target and final archive before stating support |
+| Minimum iOS | iOS 16.4, read from the **built** Release app's `MinimumOSVersion` after a clean `expo prebuild --clean` regeneration on 2026-08-17 | `VERIFIED_BUILD` | Reconfirm on the final signed archive |
 | Devices | Joe chose one universal iPhone+iPad app | `OWNER_CONFIRMED` | Retain universal support only if the final iPad matrix and screenshot set pass |
 | Orientation | iPhone is portrait-first. iPad supports all orientations and multitasking; widths below 1100pt use the mobile composition and wider landscape windows use the desktop composition | `VERIFIED_BUILD` for current local Release | Repeat portrait, both landscape directions, resizing/multitasking, and common-flow QA on the final archive |
-| Language | The app currently enables English, Spanish, Brazilian Portuguese, French, German, Indonesian, and Vietnamese in `CFBundleLocalizations` and its in-game language picker | `VERIFIED_REPO` | Keep English (U.S.) as the primary App Store metadata localization for the unfinished release; verify the final archive advertises all seven app languages, then add each storefront localization only after its marketing copy and screenshots are reviewed |
+| Language | All seven locales (`en`, `es`, `pt-BR`, `fr`, `de`, `id`, `vi`) are in `app.json` **and**, since 2026-08-17, in the built binary's `CFBundleLocalizations`. They were missing from the binary until then — see the defect note under Phase 8 | `VERIFIED_BUILD` | Keep English (U.S.) as the primary App Store metadata localization for the unfinished release; verify the final archive advertises all seven app languages, then add each storefront localization only after its marketing copy and screenshots are reviewed |
 | Business model | Paid once, everything included, no IAP or gacha; Joe approved US$3.99 and App Store Connect now uses that price with the United States as the base storefront. Apple supplies equivalent prices in other storefronts | `OWNER_CONFIRMED` and `VERIFIED_ACCOUNT` on 2026-08-09 | Recheck the live schedule before submission; do not add manual regional overrides without approval |
 | Accounts/login | No account or login found | `VERIFIED_REPO` | Verify final archive; then reviewer credentials are not applicable |
 | Ads/IAP | No ads or in-app purchases found | `VERIFIED_REPO` | Verify dependencies and final archive |
@@ -106,18 +106,18 @@ The following table tells the operator what can be prefilled, what must be rever
 | Local data | Player-entered name and career save remain in local SQLite; the user can reset/delete them | `VERIFIED_REPO` | Explain accurately in privacy policy |
 | Encryption | Config says the app does not use non-exempt encryption | `VERIFIED_REPO` | Inspect archive and all SDKs before answering export compliance |
 | Game Center | No entitlement or integration found | `VERIFIED_REPO` | Verify archive; otherwise do not configure it |
-| Notifications/permissions | No push, camera, location, contacts, microphone, tracking, or other purpose strings found | `VERIFIED_REPO` | Verify archive's entitlements and Info.plist |
+| Notifications/permissions | The built Release app now carries **no** permission or tracking purpose strings at all. It previously shipped `NSMicrophoneUsageDescription` — injected by the `expo-audio` config plugin's default, not by anything the game does, since the game only plays audio and never records. Removed on 2026-08-17 by passing `{"microphonePermission": false}` to the plugin in `app.json` | `VERIFIED_BUILD` | Reassert on the final archive. This row was `VERIFIED_REPO` while the binary disagreed — check the built Info.plist, not the source |
 | Fictional content | Players, clubs, and leagues are fictional/procedurally generated | `VERIFIED_REPO` | Check final screenshots and copy use only fictional data |
 | App icon | Source and compiled device icons contain only fully opaque pixels; the generated 1024px App Store icon has no alpha channel and the local Release build passed Xcode validation | `VERIFIED_BUILD` for current local Release | Revalidate the final signed archive |
 | Privacy URL | The HFM-specific privacy page is live over public HTTPS and saved in App Store Connect | `VERIFIED_ACCOUNT` | Verify the final policy still matches the signed archive |
-| In-app privacy area | Privacy & Support is accessible from title Settings and in-career Settings, with local-data wording, version/build, support, and license notice; the current panel has no action that opens the live privacy policy | `VERIFIED_REPO` with a `BLOCKED` release action | Add the exact live web-policy action, then retest it online and offline before submission |
+| In-app privacy area | Privacy & Support carries a **Read privacy policy** action that opens the exact submitted URL. Verified on a Release build in the simulator on 2026-08-17: the tap opened Safari on the live policy and returned to the app. `PRIVACY_POLICY_URL` in `src/release/support.ts` is the single source, and `src/ui/__tests__/privacy-support.test.ts` fails if it drifts from the App Store Connect value | `VERIFIED_BUILD` | Repeat on the final archive, including an offline tap |
 | Support URL/contact | The HFM-specific support page is live over public HTTPS and saved in App Store Connect; the in-game Email Support action uses the published support address | `VERIFIED_ACCOUNT` and `VERIFIED_REPO` | Verify the inbox is monitored before submission |
 | Copyright/legal owner | Version 1.0 uses `2026 Otaku Games`, following the verified Liquid Calendar account convention and Joe's instruction to apply reusable account facts to HFM | `OWNER_CONFIRMED` | Reconfirm the rights-owner wording before submission if ownership changes |
 | Age rating | App Store Connect calculated and saved 9+ from no online/social/advertising/gambling features, infrequent mild fear, infrequent mild cartoon/fantasy violence, and all other content descriptors at none. Current regional results include Brazil 10 and Korea All | `VERIFIED_ACCOUNT` on 2026-08-09 | Recheck only if final content adds or materially increases a rated descriptor |
 | Accessibility | Reduced Motion is saved as an unpublished draft for iPhone and iPad. No VoiceOver, Voice Control, Larger Text, contrast, color, captions, or audio-description claim was made | `VERIFIED_ACCOUNT` on 2026-08-09 | Run common-task QA on the final iPhone and iPad build; publish only supported claims after a live version exists |
 | Content rights | Joe confirmed `awards-theme.m4a` is free for commercial use, but final asset evidence and the superhero-homage IP review are not complete | `BLOCKED` | Finish the rights ledger, retain commercial-use evidence, resolve or approve the homage designs through qualified review, inventory the final archive, then Joe approves the declaration |
 | Screenshots | Existing July captures are stale and include removed behavior; no iPad set exists | `BLOCKED` | Fresh final-build captures and Joe approval |
-| Release archive | A fresh unsigned iPhone+iPad Release simulator app builds and launches with embedded JS; it is not uploadable | `BLOCKED` | Fresh signed `.xcarchive` from the approved final release commit, Organizer validation, and device install |
+| Release archive | The full archive → export → validate path was proved on 2026-08-17 from unfrozen `main`: Apple returned **VERIFY SUCCEEDED with no errors** for a distribution-signed IPA. That dry-run archive was deleted; no build has been uploaded | `VERIFIED_BUILD` for the path, `BLOCKED` for the submission archive | Fresh signed `.xcarchive` from the approved final release commit, revalidated, plus device install |
 
 Durable repository anchors for these facts include `app.json`, `package.json`, `docs/01-vision.md`, `docs/08-ui-ux.md`, `docs/09-tech-stack.md`, and `README.md`. The local `ios/HeroFootballManager/Info.plist` and `ios/HeroFootballManager/PrivacyInfo.xcprivacy` are useful **today-only generated snapshots**, but the entire `ios/` directory is ignored and absent from a clean clone. They must never be cited as durable release configuration. Regenerated native files and the final archive control the submitted native answers.
 
@@ -126,9 +126,15 @@ Durable repository anchors for these facts include `app.json`, `package.json`, `
 The signed-in account was inspected read-only. No contract was accepted and no
 record, declaration, upload, or account value was changed.
 
-- No Hero Football Manager app record currently appears in App Store Connect.
+> **Superseded in part on 2026-08-17.** Two statements below were wrong or have
+> since changed; the corrections are in "Live account state, August 17, 2026"
+> immediately after this list. Read that section first.
+
+- ~~No Hero Football Manager app record currently appears in App Store Connect.~~
+  **Wrong as of 2026-08-17:** the record exists, Apple ID `6799600157`.
 - Free Apps and Paid Apps agreements show **Active**, with displayed terms
-  ending August 11, 2026. Recheck for a renewal before submission.
+  ending August 11, ~~2026~~ **2027**. Recheck for a renewal before submission.
+  The 2026 reading was a misread year and caused a false expiry worry.
 - The configured bank account, all listed tax forms, DSA compliance, and the
   listed Canadian compliance entry show **Active**.
 - Liquid Calendar supplies verified clues: copyright wording `2026 Otaku
@@ -142,6 +148,39 @@ record, declaration, upload, or account value was changed.
 
 Private account, address, tax, bank, phone, and review-contact values remain in
 App Store Connect and must not be copied into this repository or runbook.
+
+### Live account state, August 17, 2026
+
+Read live from the signed-in account. This supersedes the August 5 list above
+wherever the two disagree.
+
+- **App record exists.** Apple ID `6799600157`, bundle ID
+  `com.tanglefast.herofootballmanager`, SKU `com.tanglefast.hero-football-manager`,
+  primary language English (U.S.), status `1.0.0 Prepare for Submission`.
+- **Agreements are not near expiry.** Free Apps and Paid Apps both run to
+  **August 11, 2027**, Active. Banking Active, all three tax forms Active, DSA
+  Active, Part XX of the Income Tax Act Active.
+- **Saved metadata:** name, subtitle `Build a Superpowered Club`, categories
+  Games / Sports / Simulation, keywords, promotional text, description, review
+  notes, review contact, copyright `2026 Otaku Games`.
+- **Age rating** calculated: 9+ in 172 regions, 12+ Vietnam and Brazil, ALL Korea.
+- **Pricing and availability:** US base storefront, 173 of 175 territories
+  available, tax category App Store software, Apple silicon Mac **off**, Apple
+  Vision Pro **off**, Public distribution, **Apple School Manager education
+  discount off** (turned off 2026-08-17 on the owner's instruction).
+- **Version set to `1.0.0`** on 2026-08-17, so it matches the binary's
+  `CFBundleShortVersionString`. It previously read `1.0`.
+- **App Review Information** complete, **Sign-in required: No**, release method
+  **Manually release this version**.
+- **App Privacy published** 2026-08-17 as **Data Not Collected**. Evidence: no
+  analytics, ads, tracking, attribution, or crash SDKs among 20 runtime
+  dependencies; no `fetch`/`XMLHttpRequest`/`WebSocket`/`sendBeacon` in `src/` or
+  `App.tsx`; and all nine privacy manifests in the built Release app report
+  `NSPrivacyTracking` false with zero collected data types and zero tracking
+  domains. The only entries are required-reason APIs — UserDefaults `CA92.1`,
+  file timestamp `C617.1`, system boot time `35F9.1`.
+- **Still open:** screenshots (0 uploaded), Content Rights (never set up), and
+  the build.
 
 ## Hard stops before submission work continues
 
@@ -173,12 +212,12 @@ This is the separate implementation backlog Joe requested. It lists product/buil
 
 | ID | Change to make | Why it is required | Likely files/area | Done when |
 |---|---|---|---|---|
-| APPSTORE-P0-01 | Add an easily accessible **Privacy Policy** action inside the app, preferably in Settings, opening the exact public HTTPS policy used in App Store Connect. Include a graceful offline/error state. | Apple requires the policy URL in metadata and an easily accessible link in the app. The current Privacy & Support area has truthful local-data copy and an email-support action, but no final public privacy URL because an HFM-specific page is not live yet. | `src/ui/PrivacySupportPanel.tsx`, its caller/props, public URL config, focused tests | A clean Release/TestFlight install opens the correct public policy from Settings on iPhone and supported iPad layouts; VoiceOver identifies it as a link/button; a broken/offline open fails clearly |
+| APPSTORE-P0-01 | Add an easily accessible **Privacy Policy** action inside the app, preferably in Settings, opening the exact public HTTPS policy used in App Store Connect. Include a graceful offline/error state. | Apple requires the policy URL in metadata and an easily accessible link in the app. The current Privacy & Support area has truthful local-data copy and an email-support action, but no final public privacy URL because an HFM-specific page is not live yet. | `src/ui/PrivacySupportPanel.tsx`, its caller/props, public URL config, focused tests | **Closed 2026-08-17.** A Release build in the simulator opens `https://tanglefast23.github.io/hero-football-manager-legal/privacy.html` from Settings and returns to the app. Copy ships in all seven languages; the handler surfaces `app.privacyPolicyCouldNotOpen` on failure. Still to do on the final archive: the offline tap and the iPad layouts |
 | APPSTORE-P0-02 | Remove the obsolete hire-screen path or replace its explicitly temporary portrait with final art. | App Review requires a complete build with no placeholder content. | App navigation plus the hire-screen source/art path | **Closed on current `main` on 2026-08-06:** the dead `HirePitchScreen` and its placeholder art were removed. Reopen only if a player-reachable replacement introduces unfinished art |
 | APPSTORE-P0-03 | Make a deliberate **device/orientation contract**. Either (A) fully support iPad and correct/test portrait, both landscapes, resizing, and multitasking, or (B) change the binary to iPhone-only before archiving. | Current config says portrait plus tablet support, while the generated native iPad target advertises all orientations and multitasking. Apple will review what the binary advertises. | `app.json`, Expo/native generation config, iOS target settings, layout hooks/screens | Final archive and processed build advertise only behavior the game passes; if universal, every common task passes the iPad matrix and 13-inch screenshots exist |
 | APPSTORE-P0-04 | Guarantee that production archives cannot enter any `EXPO_PUBLIC_*` QA/harness route. Add a release-build assertion or equivalent build-time verification, and archive with all QA flags unset. | Several QA routes are controlled by public environment flags and are not all guarded by `__DEV__`. A wrong archive can launch review reels/harness UI. | `App.tsx` build-mode routing, release environment/build scripts, archive verification | **Closed in source on 2026-08-06:** native Release builds ignore QA roots and `release:check` rejects set QA flags. Recheck the final archive and prove it launches the normal game |
 | APPSTORE-P0-05 | Maintain complete rights coverage for the shipped asset set. Joe has confirmed the current visual and supplied-audio assets for commercial/public App Store use; replace/remove any later asset that lacks coverage. | The final content-rights declaration must match the exact archive, including anything added after this review. | `assets/audio/`, current programmatic visual/icon sources, awakening/voice mappings, asset manifest/notices | **Closed for the current asset set on 2026-08-06.** Re-run the final archive inventory; the ledger covers every shipped asset and Joe approves the rights declaration |
-| APPSTORE-P0-06 | Produce a fresh signed release archive from the approved commit using current Apple tooling, with the unique build number persisted in `expo.ios.buildNumber` and JS/assets embedded. | The only local Release app is stale; there is no current `.xcarchive`/`.ipa`. A debug app that depends on Metro cannot be submitted, and an ignored native build number can silently revert on regeneration. | `app.json`, iOS/Xcode/Expo build configuration, and release scripts | Regeneration preserves the chosen build number; Organizer validation passes; archive identity/privacy report are recorded; clean physical-device install launches and plays offline without Metro |
+| APPSTORE-P0-06 | **Path proved 2026-08-17 — Apple returned VERIFY SUCCEEDED. The archive itself is still owed from the frozen commit.** Produce a fresh signed release archive from the approved commit using current Apple tooling, with the unique build number persisted in `expo.ios.buildNumber` and JS/assets embedded. | The only local Release app is stale; there is no current `.xcarchive`/`.ipa`. A debug app that depends on Metro cannot be submitted, and an ignored native build number can silently revert on regeneration. | `app.json`, iOS/Xcode/Expo build configuration, and release scripts | Regeneration preserves the chosen build number; Organizer validation passes; archive identity/privacy report are recorded; clean physical-device install launches and plays offline without Metro |
 
 ### P1 — Changes conditional on QA or a release decision
 
@@ -465,6 +504,68 @@ After creation:
 ### Phase 8 — Build, archive, validate, and upload
 
 This phase leaves the website and uses local Xcode or Transporter. A browser-controlling LLM must not pretend it uploaded a build when no archive exists.
+
+#### Two defects `expo prebuild` reintroduces every time
+
+`ios/` is generated and gitignored. Regenerating it silently drops settings that
+live only in the generated project, and neither failure is visible in the repo.
+Both were found on 2026-08-17 and both must be rechecked after **every**
+regeneration.
+
+1. **No development team.** A bare archive fails with `Signing for
+   "HeroFootballManager" requires a development team`. Nothing in `app.json`
+   supplies it. Pass it on the command line:
+   `DEVELOPMENT_TEAM=647S42DUW3 CODE_SIGN_STYLE=Automatic`.
+2. **Missing `CFBundleLocalizations`.** Before 2026-08-17 the built app carried
+   no `CFBundleLocalizations` key and zero `.lproj` folders, so the binary
+   advertised English only and the product page would have listed one language —
+   even though `app.json` had all seven locales the whole time. `ios/` had been
+   generated in July, before that key was added, and was never regenerated.
+   **Assert against the built app, never against `app.json`.**
+
+#### Proven archive, export, and validate path
+
+Run end to end on 2026-08-17; Apple returned **VERIFY SUCCEEDED with no errors**.
+Credentials live in `~/.claude/secrets.env` — `source` it and reference `$ASC_*`;
+never inline a key id, issuer id, or `.p8` path.
+
+```
+source ~/.claude/secrets.env
+xcodebuild -workspace ios/HeroFootballManager.xcworkspace \
+  -scheme HeroFootballManager -configuration Release \
+  -destination 'generic/platform=iOS' \
+  -archivePath ios/archive/HeroFootballManager.xcarchive \
+  -allowProvisioningUpdates \
+  -authenticationKeyPath "$ASC_PRIVATE_KEY_PATH" \
+  -authenticationKeyID "$ASC_KEY_ID" \
+  -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+  DEVELOPMENT_TEAM=647S42DUW3 CODE_SIGN_STYLE=Automatic archive
+```
+
+Export with an `ExportOptions.plist` using `method: app-store-connect`,
+`teamID: 647S42DUW3`, `signingStyle: automatic`, and the same three
+authentication flags. Then validate **without uploading**:
+
+```
+xcrun altool --validate-app -f <ipa> -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+```
+
+This is a genuine server-side check and is the cheapest way to surface a
+rejection before the binary gate. It complements Organizer's **Validate App**;
+it does not replace the owner's approval to upload.
+
+Two results that look like failure and are not:
+
+- The **archive** signs with `Apple Development`; the **export** re-signs with
+  `Apple Distribution`. Judge the IPA, not the archive: `codesign -dvvv` should
+  report `Apple Distribution: Joseph Anh Hai Vu (647S42DUW3)`, and the embedded
+  profile should be `iOS Team Store Provisioning Profile` with **no**
+  `ProvisionedDevices` key.
+- `security find-identity` shows **no** distribution certificate. Xcode fetches
+  the account's existing *Distribution Managed* certificate at export time
+  without persisting it. The 2026-08-17 dry run created no new certificate and
+  spent no certificate slot. If exports ever fail on the certificate cap, count
+  them at developer.apple.com before generating another.
 
 1. Confirm the approved release commit and clean intended source scope.
 2. Use **Xcode 26 or later with the iOS 26 SDK or later**, rechecking Apple's current requirement that day. Record the installed Expo/React Native, Xcode, and SDK versions.
@@ -827,25 +928,25 @@ The LLM should recover everything possible first. Joe still must personally prov
 The operator should finish with this non-sensitive checklist:
 
 - [ ] Requirements rechecked on execution date
-- [ ] Every accessible Apple team/provider inventoried; correct team and existing records verified
+- [x] Correct team and existing record verified — team `647S42DUW3`, Apple ID `6799600157` (2026-08-17)
 - [ ] Prior Liquid Calendar/other app records inspected before interview
-- [ ] Agreements/tax/banking/DSA ready for paid distribution
-- [ ] Final name, bundle ID, SKU, language, and ownership approved
-- [ ] Privacy/support pages live; privacy policy linked inside app
+- [x] Agreements/tax/banking/DSA ready — all Active, agreements run to 2027-08-11 (2026-08-17)
+- [x] Final name, bundle ID, SKU, language, and ownership approved — record created and verified
+- [x] Privacy/support pages live (both HTTP 200); privacy policy linked inside app and verified on a Release build (2026-08-17)
 - [ ] Placeholder content resolved
 - [x] Asset rights ledger complete for the current asset set; rerun the archive inventory after content freeze
 - [ ] iPhone/iPad/Mac/Vision support decisions reflected in binary and availability
 - [ ] Unique `expo.ios.buildNumber` persisted in source and verified as `CFBundleVersion`
 - [ ] Export classification approved before archive; embedded Info.plist value verified
-- [ ] Fresh release archive built with currently accepted Xcode/iOS SDK
+- [ ] Fresh release archive from the frozen commit — path proved on Xcode 26.6 / iOS 26.5 SDK and validated by Apple on 2026-08-17, but that dry-run archive was deleted
 - [ ] Full tests, archive validation, offline/reviewer-path/device QA recorded
 - [ ] Privacy report, SDK manifests, entitlements, permissions, encryption inspected
 - [ ] Build uploaded, processed, and identity reverified
 - [ ] Current iPhone screenshots approved; iPad set approved if applicable
 - [ ] Metadata and tags approved and within limits
 - [ ] Age rating, rights, privacy, encryption, accessibility, and territory answers approved
-- [ ] Price, tax category, storefronts, release method, and defaults approved
-- [ ] Review contact/notes and selected build verified
+- [x] Price, tax category, storefronts, release method, and defaults approved — Mac and Vision Pro off, education discount off, manual release (2026-08-17)
+- [ ] Review contact/notes verified (contact complete, sign-in not required); selected build still pending upload
 - [ ] Redacted draft readback approved
 - [ ] Submission status confirmed after authorized submit
 - [ ] Review monitored and any response approved
