@@ -249,7 +249,11 @@ import {
   developerModeAvailable as developerModeAvailableForSurface,
   qaRootRoutesEnabled,
 } from './src/ui/release-surface';
-import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
+import {
+  PRIVACY_POLICY_URL,
+  supportEmailUrl,
+  SUPPORT_EMAIL,
+} from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { copyOrEnglish } from './src/application/copy-fallback';
 import { setStoreCopy, useM1Store } from './src/application/store';
@@ -865,6 +869,14 @@ function GameApp() {
       setSettingsSaveError(
         copyRef.current('app.mailCouldNotOpen', { email: SUPPORT_EMAIL }),
       );
+    });
+  }, []);
+  const openPrivacyPolicy = useCallback(() => {
+    setSettingsSaveError(null);
+    // Offline, or no browser to hand it to: say so in the panel rather than
+    // failing silently, because Apple reviews this link from a real device.
+    void Linking.openURL(PRIVACY_POLICY_URL).catch(() => {
+      setSettingsSaveError(copyRef.current('app.privacyPolicyCouldNotOpen'));
     });
   }, []);
   const saveAutoSubs = useCallback(
@@ -2745,6 +2757,7 @@ function GameApp() {
         onToggleColorSafeKits={toggleColorSafeKits}
         onToggleCutInMode={toggleCutInMode}
         onEmailSupport={emailSupport}
+        onOpenPrivacyPolicy={openPrivacyPolicy}
         supportError={settingsSaveError}
         accessibilityCopy={assistantFiction(
           content.assistantGuide,
@@ -4138,6 +4151,7 @@ function GameApp() {
                 onToggleCutInMode={toggleCutInMode}
                 onRetry3x={retryThreeTimesSpeed}
                 onEmailSupport={emailSupport}
+        onOpenPrivacyPolicy={openPrivacyPolicy}
                 onToggleDeveloperMode={
                   developerModeAvailable ? toggleDeveloperMode : undefined
                 }

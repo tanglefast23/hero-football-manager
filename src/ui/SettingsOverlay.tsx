@@ -161,6 +161,7 @@ export interface SettingsOverlayProps {
   difficultyLabel?: 'COZY' | 'CHAIRMAN';
   saveError?: string | null;
   onEmailSupport: () => void;
+  onOpenPrivacyPolicy: () => void;
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
@@ -242,6 +243,7 @@ export function SettingsOverlay({
   difficultyLabel,
   saveError,
   onEmailSupport,
+  onOpenPrivacyPolicy,
   onVolumeChange,
   onToggleReduceMotion,
   onToggleHudSide,
@@ -316,6 +318,7 @@ export function SettingsOverlay({
             <PrivacySupportPanel
               onBack={() => onPrivacySupportOpenChange(false)}
               onEmailSupport={onEmailSupport}
+              onOpenPrivacyPolicy={onOpenPrivacyPolicy}
               supportError={saveError}
             />
           ) : glossaryOpen ? (

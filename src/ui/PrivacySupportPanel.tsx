@@ -13,6 +13,7 @@ void silkscreenLicenseAsset;
 export interface PrivacySupportPanelProps {
   onBack: () => void;
   onEmailSupport: () => void;
+  onOpenPrivacyPolicy: () => void;
   supportError?: string | null;
 }
 
@@ -20,6 +21,7 @@ export interface PrivacySupportPanelProps {
 export function PrivacySupportPanel({
   onBack,
   onEmailSupport,
+  onOpenPrivacyPolicy,
   supportError,
 }: PrivacySupportPanelProps) {
   const t = useCopy();
@@ -63,6 +65,16 @@ export function PrivacySupportPanel({
           <Text className="mt-3 text-base leading-6 text-ink/70">
             {t('privacySupport.yourPreferencesPlayerAnd')}
           </Text>
+          {/* Apple requires the submitted policy URL to be reachable from
+              inside the app, not only from the store listing. */}
+          <View className="mt-4">
+            <ActionButton
+              label={t('privacySupport.readPrivacyPolicy')}
+              accessibilityLabel={t('privacySupport.a11y.readPrivacyPolicy')}
+              onPress={onOpenPrivacyPolicy}
+              variant="paper"
+            />
+          </View>
         </PaperPanel>
 
         <PaperPanel
