@@ -121,7 +121,9 @@ function careerAt(
 function emit(label: string, state: GameState): void {
   const path = `${OUT_DIR}/${label}.json`;
   writeFileSync(path, serializeGameState(state), 'utf8');
-  const club = state.clubs.find((candidate) => candidate.id === state.userClubId);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
   // eslint-disable-next-line no-console
   console.log(
     `${label}: season ${state.season} week ${state.week} phase ${state.phase} ` +
@@ -133,7 +135,11 @@ function emit(label: string, state: GameState): void {
 it('writes store media saves', () => {
   emit(
     'save-opening',
-    careerAt('opening', (state) => state.phase === 'manage' && state.week >= 2, 1),
+    careerAt(
+      'opening',
+      (state) => state.phase === 'manage' && state.week >= 2,
+      1,
+    ),
   );
 
   emit(
@@ -149,7 +155,8 @@ it('writes store media saves', () => {
     'save-developed',
     careerAt(
       'developed',
-      (state) => state.phase === 'manage' && state.season === 4 && state.week >= 12,
+      (state) =>
+        state.phase === 'manage' && state.season === 4 && state.week >= 12,
       5,
     ),
   );

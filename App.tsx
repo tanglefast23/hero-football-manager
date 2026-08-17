@@ -4151,7 +4151,7 @@ function GameApp() {
                 onToggleCutInMode={toggleCutInMode}
                 onRetry3x={retryThreeTimesSpeed}
                 onEmailSupport={emailSupport}
-        onOpenPrivacyPolicy={openPrivacyPolicy}
+                onOpenPrivacyPolicy={openPrivacyPolicy}
                 onToggleDeveloperMode={
                   developerModeAvailable ? toggleDeveloperMode : undefined
                 }

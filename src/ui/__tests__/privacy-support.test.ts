@@ -78,7 +78,9 @@ describe('Privacy and support release surface', () => {
     // reviewer taps this offline and has to see why nothing happened.
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
     expect(app).toContainSource('Linking.openURL(PRIVACY_POLICY_URL)');
-    expect(app).toContainSource("copyRef.current('app.privacyPolicyCouldNotOpen')");
+    expect(app).toContainSource(
+      "copyRef.current('app.privacyPolicyCouldNotOpen')",
+    );
   });
 
   test('ships the privacy-link copy in every supported language', () => {

@@ -1,6 +1,6 @@
 # Asset rights ledger
 
-Last reviewed: 2026-08-06  
+Last reviewed: 2026-08-17  
 Release scope: Hero Football Manager 1.0 for iPhone and iPad
 
 This ledger records evidence; it does not create rights that do not already
@@ -35,6 +35,7 @@ for this game and that no third-party visual assets were used.
 | Season-boundary arcade theme | `assets/audio/music/awards-theme.m4a`, a 16-bar loop cut from the owner-supplied `8-bit-arcade-mode-158814.webm`; Joe confirmed the source is free for commercial use | Cleared by owner confirmation (2026-08-09); retain the source/license evidence outside the repository |
 | Rival-introduction hip-hop theme | `assets/audio/music/rival-intro-theme.m4a`, a 37.16-second loop cut from the owner-supplied `Hip_Hop__BPM155.webm` | Cleared by owner confirmation (2026-08-08) |
 | Rival-introduction laughs | `assets/audio/sfx/rival-laugh-*.m4a`, one normalized derivative of each of the five owner-supplied laugh WAV files | Cleared by owner confirmation (2026-08-08) |
+| Cues added after the 2026-08-09 review | `speech-gospel.m4a`, `speech-thunder.m4a`, `awards-celebration.m4a`, `ball-flight-whoosh.m4a`, `coach-voice.m4a`, `fireworks.m4a`, `drill-complete-heavy.wav`, `facility-start-work.wav`, `goal-net-hit.wav`, `midseason-footsteps-loop.wav`, `shot-scorch.wav`, and the re-cut `negative.m4a`. All twelve ship in the Release binary and **none is reproducible from the checked-in synthesis scripts** — they appear only in `scripts/audio/levels.json`, so they are supplied recordings despite five carrying a `.wav` extension | Cleared by owner confirmation (2026-08-17) |
 
 ## Third-party software asset
 
@@ -42,6 +43,36 @@ for this game and that no third-party visual assets were used.
 |---|---|---|
 | Silkscreen font | `node_modules/@expo-google-fonts/silkscreen/LICENSE_FONT`: Copyright 2001 The Silkscreen Project Authors; SIL Open Font License 1.1. Package wrapper is MIT. Commercial embedding is permitted when the copyright and license travel with each copy. | License compatible; retain the notice and verify it is present in the final distribution/support materials |
 | HFM Silkscreen (shipped face) | Derivative of the above: `assets/fonts/HFMSilkscreen_{400Regular,700Bold}.ttf`, built by `npm run build:fonts`. OFL 1.1 permits modification and renaming — the copyright line declares **no Reserved Font Name**. `assets/fonts/OFL.txt` ships beside the TTFs, name IDs 13/14 carry the licence, and name ID 0 retains the original copyright plus the derivation notice. | License compatible; `assets/fonts/OFL.txt` must be present in the archive alongside the TTFs |
+
+## Inventory performed 2026-08-17
+
+Run against the built Release app, not the source tree.
+
+- **90 audio files** ship, matching `npm run audio:levels:check`.
+- **7 images** ship; the rest of the art is drawn programmatically, as recorded
+  above.
+- **Fonts:** `HFMSilkscreen_400Regular.ttf`, `HFMSilkscreen_700Bold.ttf`, and
+  `OFL.txt` beside them — so the OFL notice obligation is met **in the binary**,
+  not merely in the repository.
+
+Twelve supplied cues had entered the build since the previous review and were
+cleared on 2026-08-17. Repeat this check after content freeze:
+
+```
+# assets added or changed since the ledger was last reviewed
+git log --since=<last-review-date> --name-status --diff-filter=AM \
+  --pretty=format: -- assets/ | sort -u
+
+# is a given cue synthesized, or supplied?
+grep -rls "<basename>" scripts/audio/
+```
+
+A synthesized cue appears in a **generator** (`gen-sfx.mjs`, `gen-music.mjs`,
+`gen-menu-music.mjs`, `catalog.mjs`). A hit in `levels.json` alone proves
+nothing — that file lists every asset, generated or supplied. Validate the check
+against a known-generated cue such as `crowd-jeer` or `kick-pass` before
+trusting a negative result. **Do not read `.wav` as "procedural"**: five of the
+twelve supplied cues carry that extension.
 
 ## Before final archive
 
