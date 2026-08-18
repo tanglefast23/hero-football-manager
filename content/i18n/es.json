@@ -4054,6 +4054,7 @@
     "matchScreen.speechConfirm": "Darla",
     "matchScreen.speechCancel": "Guardarla",
     "matchScreen.bannerMotivationalSpeech": "CHARLA",
+    "matchScreen.tacklePop": "¡ENTRADA!",
     "bert.guide.coach-speech.page1.body1": "Jefe, tu entrenador también puede trabajar consigo mismo. Dale los puntos de entrenamiento de la semana y preparará su charla de vestuario.",
     "bert.guide.coach-speech.page2.body1": "Gástalos todos y guardará una charla. Dale el visto bueno en el descanso y los chicos saldrán volando en la segunda parte.",
     "coachSpeech.bankedTally": "GUARDADAS · {count}",

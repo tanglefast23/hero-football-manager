@@ -4054,6 +4054,7 @@
     "matchScreen.speechConfirm": "Halten",
     "matchScreen.speechCancel": "Aufheben",
     "matchScreen.bannerMotivationalSpeech": "ANSPRACHE",
+    "matchScreen.tacklePop": "TACKLING!",
     "bert.guide.coach-speech.page1.body1": "Chef, dein Cheftrainer kann auch an sich selbst arbeiten. Gib ihm die Trainingspunkte der Woche, dann feilt er an seiner Kabinenansprache.",
     "bert.guide.coach-speech.page2.body1": "Gib alles aus, dann hat er eine Ansprache auf Lager. Ein Nicken in der Halbzeit und die Jungs fliegen in die zweite Hälfte.",
     "coachSpeech.bankedTally": "VORRAT · {count}",
