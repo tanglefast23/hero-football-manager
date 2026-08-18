@@ -1,5 +1,5 @@
 import { attemptShot, shotFlightTick } from '../engine';
-import { GOAL_CENTER_X } from '../geometry';
+import { GOAL_CENTER_X, GOAL_W, shotOnTarget } from '../geometry';
 import { createMatch, runMatch } from '../match';
 import { performSubstitution } from '../substitutions';
 import { ROVERS, UNITED } from '../teams';
@@ -78,5 +78,26 @@ describe('shooting and goals', () => {
       vsWeak += runMatch(seed, ROVERS, weakGk).score[0];
     }
     expect(vsWeak).toBeGreaterThan(vsNormal);
+  });
+});
+
+describe('shotOnTarget', () => {
+  it('counts a shot aimed at either post as on target', () => {
+    expect(shotOnTarget(GOAL_CENTER_X)).toBe(true);
+    expect(shotOnTarget(GOAL_CENTER_X - GOAL_W / 2)).toBe(true);
+    expect(shotOnTarget(GOAL_CENTER_X + GOAL_W / 2)).toBe(true);
+  });
+
+  it('counts one unit outside either post as off target', () => {
+    expect(shotOnTarget(GOAL_CENTER_X - GOAL_W / 2 - 1)).toBe(false);
+    expect(shotOnTarget(GOAL_CENTER_X + GOAL_W / 2 + 1)).toBe(false);
+  });
+
+  it('agrees with the inline rule it replaced, across the pitch', () => {
+    for (let targetX = -2000; targetX <= 9000; targetX += 37) {
+      expect(shotOnTarget(targetX)).toBe(
+        Math.abs(targetX - GOAL_CENTER_X) <= GOAL_W / 2,
+      );
+    }
   });
 });

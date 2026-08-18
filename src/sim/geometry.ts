@@ -10,6 +10,17 @@ export const PITCH_H = 10500;
 export const GOAL_W = 1400;
 export const GOAL_CENTER_X = PITCH_W / 2;
 
+/**
+ * Whether a shot's stamped aim is inside the posts. A pure read of launch
+ * state: `targetX` never changes during the flight, so this is answerable the
+ * moment the ball leaves the boot — ticks before SAVE, GOAL or MISS exists.
+ * The engine, GK Zone windows and the renderer all grade a shot through here,
+ * so the three cannot drift apart. It draws no RNG and emits nothing.
+ */
+export function shotOnTarget(targetX: number): boolean {
+  return Math.abs(targetX - GOAL_CENTER_X) <= GOAL_W / 2;
+}
+
 export function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
