@@ -25,6 +25,14 @@ describe('direction-aware match sprites', () => {
     expect(keeperReadyFrameFacingBall(500, 500, 'ready0')).toBe('ready0');
   });
 
+  it('turns the up-screen carrier around even though his ball is at his boots', () => {
+    // Ball 8px below the player: at his feet, which the plain rule reads as
+    // "below me, so face the camera".
+    expect(runFrameFacingBall(500, 508, 'run0')).toBe('run0');
+    expect(runFrameFacingBall(500, 508, 'run0', true)).toBe('back0');
+    expect(runFrameFacingBall(500, 508, 'run1', true)).toBe('back1');
+  });
+
   it('keeps the authored silhouette and stride while removing face details', () => {
     const front = sheetData.sprites['r:f00:run0'];
     const back = deriveBackFacingFrame(front);

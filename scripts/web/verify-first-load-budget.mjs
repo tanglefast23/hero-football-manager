@@ -349,8 +349,26 @@ const DIST = path.resolve('dist');
 // rounding: 830_497 -> 830_897, and CI has not reported its own gzip figure
 // for this tree because raw failed first. Per the convention here, if CI
 // reports lower than either, ratchet down to CI's figure.
-const RAW_BUDGET = 3_408_012;
-const GZIP_BUDGET = 830_897;
+// 2026-08-18, the scout cue, the hidden slips and the turned carrier. Three
+// small edits, all in files the startup graph already pulls in: an optional
+// `pressSfx` on `SmallAction` plus one `pressSfx="positive"` in
+// `MarketScreen`, a `scoutOut` guard that hides the mission-slip picker while
+// a scout is in the field, and a `carryingUpScreen` argument threaded from
+// `MatchScreen` into `runFrameFacingBall`. No new module, no new asset, no new
+// catalog string.
+//
+// Measured by CI, not estimated and not measured locally: +2_083 raw
+// (3_408_012 -> 3_410_095) and +578 gzip (830_897 -> 831_475). This is the
+// first entry here that takes BOTH figures straight from a CI run, because CI
+// reported gzip alongside raw this time instead of failing on raw first.
+//
+// Larger than the diff looks — roughly 30 lines of code, where the entries
+// above spent about 1 KB for comparable work. Unexplained, and said so rather
+// than dressed up: nothing was measured locally, since a worktree resolves
+// node_modules up-tree and cannot reproduce CI's tree. Per the convention
+// here, if a later CI run reports lower, ratchet down to that figure.
+const RAW_BUDGET = 3_410_095;
+const GZIP_BUDGET = 831_475;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
