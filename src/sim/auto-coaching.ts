@@ -153,6 +153,22 @@ function automaticSubstitutionChoiceAtCondition(
   )
     return null;
   const first = team * 11;
+  // Allocation-free pre-scan with the exact candidate predicates below: most
+  // ticks no fielder is at or under the threshold, so the map/filter/sort
+  // never needs to run. Skips only the path that would have returned null.
+  let anyCandidate = false;
+  for (let index = first; index < first + 11; index += 1) {
+    const player = state.players[index];
+    if (
+      player.def.role !== 'GK' &&
+      player.outReason !== 'redcard' &&
+      player.condition <= conditionThreshold
+    ) {
+      anyCandidate = true;
+      break;
+    }
+  }
+  if (!anyCandidate) return null;
   const candidates = state.players
     .map((player, index) => ({ player, index }))
     .filter(

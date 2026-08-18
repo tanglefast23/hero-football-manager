@@ -314,6 +314,28 @@ describe('worklet Atlas continuity retargeting', () => {
     expect(source).toContainSource('scheduleOnUI(worklet, ...args);');
   });
 
+  test('the RSXform mapper reads pose from the visualPositions tail, never re-running the pose math', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src', 'render', 'worklet-atlas-frame.ts'),
+      'utf8',
+    );
+    const mapperBody = source.slice(
+      source.indexOf('const transforms = useRSXformBuffer('),
+      source.indexOf('const publish = useCallback('),
+    );
+
+    // Exactly one live call site: inside visualPositions, which also writes
+    // the [rotation, usesActionCell] tail the mapper consumes. A second call
+    // in the mapper would run the pose smoothsteps twice per player per frame.
+    expect(mapperBody).not.toContainSource('actionPoseWorklet(');
+    expect(mapperBody).toContainSource('POSE_TAIL_OFFSET + packedOffset');
+    expect(source.split('actionPoseWorklet(').length - 1).toBe(2); // 1 def + 1 call
+    expect(source).toContainSource('new Float32Array(PLAYER_COUNT * 4)');
+    expect(source).toContainSource(
+      'const POSE_TAIL_OFFSET = PLAYER_COUNT * 2;',
+    );
+  });
+
   test('routes action and overlay time through the retargeted visual clock', () => {
     const atlas = readFileSync(
       join(process.cwd(), 'src', 'render', 'worklet-atlas-frame.ts'),
@@ -340,7 +362,7 @@ describe('worklet Atlas continuity retargeting', () => {
       'now + (reduceMotion ? 0 : FULLTIME_HOLD_MS)',
     );
     expect(screen).toContainSource(
-      "snap || pauseAfterPublish || freezeAtStrike || s.phase === 'fulltime'",
+      "snap || pauseAfterPublish || s.phase === 'fulltime'",
     );
     expect(screen).toContainSource(
       '} else if (now >= fulltimeDeadlineRef.current) {',

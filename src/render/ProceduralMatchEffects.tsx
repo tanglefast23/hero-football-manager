@@ -45,7 +45,29 @@ const AGE_STEPS: readonly number[] = Array.from(
 
 type BucketedPaths = readonly Readonly<Record<MatchVfxColorRole, SkPath>>[];
 
+// Shared empty buckets for the (most common) ticks with no live emitter.
+// Built lazily on first use, never at import time — module load must stay
+// Skia-free for headless imports. Nothing ever mutates a detached path, so
+// one frozen set can back every empty tick, and the stable identities also
+// keep the 20 <Path> props unchanged across those ticks.
+let emptyBucketedPaths: BucketedPaths | null = null;
+
 function buildPaths(props: ProceduralMatchEffectsProps): BucketedPaths {
+  const active = activeMatchVfxEmitters(props.emitters, props.visualTick);
+  if (active.length === 0) {
+    emptyBucketedPaths ??= Object.freeze(
+      AGE_STEPS.map(() =>
+        Object.freeze({
+          ink: Skia.PathBuilder.Make().detach(),
+          cream: Skia.PathBuilder.Make().detach(),
+          grass: Skia.PathBuilder.Make().detach(),
+          blue: Skia.PathBuilder.Make().detach(),
+          gold: Skia.PathBuilder.Make().detach(),
+        }),
+      ),
+    );
+    return emptyBucketedPaths;
+  }
   // One builder set per age step: same batching as before within a step, and a
   // step is the unit the fade moves on.
   const buckets = AGE_STEPS.map(() => ({
@@ -56,10 +78,7 @@ function buildPaths(props: ProceduralMatchEffectsProps): BucketedPaths {
     gold: Skia.PathBuilder.Make(),
   }));
   const pixel = props.scale * props.playerDrawScale;
-  for (const emitter of activeMatchVfxEmitters(
-    props.emitters,
-    props.visualTick,
-  )) {
+  for (const emitter of active) {
     const geometry = sampleMatchVfxGeometry(
       emitter,
       matchVfxAgeMs(props.visualTick, emitter),

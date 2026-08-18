@@ -1,6 +1,51 @@
+import deGlossary from '../../content/i18n/glossary/de.json';
+import esGlossary from '../../content/i18n/glossary/es.json';
+import frGlossary from '../../content/i18n/glossary/fr.json';
+import idGlossary from '../../content/i18n/glossary/id.json';
+import ptBrGlossary from '../../content/i18n/glossary/pt-BR.json';
+import viGlossary from '../../content/i18n/glossary/vi.json';
 import { localeMeta, type Locale } from './locales';
 import { voiceOf } from './voice';
-import { loadGlossary } from './load-catalogs';
+
+/**
+ * The coined terms a locale must use, and the forms it may use them in.
+ *
+ * Bundled rather than read from disk, so one loader serves both readers below
+ * and they can never disagree about what the approved forms are: the width
+ * rule needs it to stop demanding a term shorter than the glossary allows, and
+ * the gate needs it to check the translations.
+ *
+ * It lives HERE, next to its only caller, rather than in `load-catalogs.ts`.
+ * There it sat behind the `src/i18n` barrel, which App.tsx imports, so all six
+ * glossary files were parsed before the title painted for the sake of a gate
+ * that only ever runs in CI — confirmed by grepping the built `index-*.js` for
+ * a Portuguese glossary form, "Loja do Clube". Nothing in the app calls
+ * `copyBudget`, so nothing in the app now pulls these in.
+ *
+ * English has no glossary: it is the source the patterns are written against.
+ */
+export interface GlossaryTerm {
+  readonly english: string;
+  readonly englishPattern: string;
+  readonly allowedForms: readonly string[];
+}
+
+export interface Glossary {
+  readonly terms: readonly GlossaryTerm[];
+}
+
+const GLOSSARIES: Partial<Record<Locale, Glossary>> = {
+  es: esGlossary as Glossary,
+  'pt-BR': ptBrGlossary as Glossary,
+  fr: frGlossary as Glossary,
+  de: deGlossary as Glossary,
+  id: idGlossary as Glossary,
+  vi: viGlossary as Glossary,
+};
+
+export function loadGlossary(locale: Locale): Glossary {
+  return GLOSSARIES[locale] ?? { terms: [] };
+}
 
 /**
  * How much longer than its English source a translation may run.

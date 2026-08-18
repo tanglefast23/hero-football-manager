@@ -386,30 +386,47 @@ const DIST = path.resolve('dist');
 // are recorded together because that is what actually happened, not split
 // into five invented attributions. Per the convention here, if a later CI run
 // reports lower, ratchet down to that figure.
+// 2026-08-18, the SHOT! call beside the shot power number. `ShotPowerPop`
+// now draws two texts instead of one — a localised word and the number — so
+// it gained a second set of paths, a pair of x offsets and a second entrance,
+// plus `shotPowerCellPx` in `shot-power-pop.ts`, one `!` row in the pixel
+// face, and the `matchScreen.shotPop` string. Only `en.json` is in the
+// startup graph, so the other six locales cost nothing here.
 //
-// Gzip re-ratcheted 2026-08-18 for the formation role labels, +9 bytes
-// (831_611 -> 831_620). Nine bytes is small enough to look like a rounding
-// error, so the attribution matters more than the number.
+// Measured by CI, not locally: 3_410_624 raw and 831_622 gzip, on a tree that
+// already carried all five merges the entry above settles. Against that
+// entry's figures the pop itself is +30 raw and +11 gzip — small because the
+// second text reuses `buildLocalPaths` and the 3x5 face rather than adding a
+// module. Both numbers are CI's own, not local + offset: a worktree resolves
+// node_modules up-tree and cannot reproduce CI's tree. Per the convention
+// here, if a later CI run reports lower, ratchet down to that figure.
 //
-// RAW DID NOT MOVE AT ALL. CI measured this branch at 3_410_594 raw, which is
-// the mark above to the byte, and a local export of `origin/main` and of this
-// branch both read 3_409_492 raw. The feature adds nothing to the first load
-// because it lives behind LazyMatchScreen: FormationRoleLabels is imported by
-// MatchScreen, which is not in `firstLoadFiles`.
+// 2026-08-18, the live-match efficiency pass. No new module, no new asset, no
+// new catalog string — the bytes are the guards the perf fixes added to files
+// already in the startup graph: the empty-emitter fast path and its lazy
+// shared paths in `ProceduralMatchEffects`, the `[rotation, usesActionCell]`
+// pose tail written and read in `worklet-atlas-frame`, the `railLayout` /
+// `swapOpen` view-model gates and the `IncapacityCountdowns` mount gate in
+// `MatchScreen`, the render-time web strip in `HeroChargeMeter`, the `memo`
+// wrapper on `MatchTickerLine`, and the substitution pre-scan plus the shot
+// early-return in the sim. Bytes spent at load to stop per-tick and per-frame
+// churn for the whole match — the trade this ledger exists to make visible.
 //
-// So the nine gzip bytes are not feature code — identical raw content cannot
-// hold any. They are compression noise: the three first-load chunk names carry
-// content hashes, this branch's differ from main's, and hash strings that
-// differ compress differently. The same comparison locally read 831_354 on
-// main against 831_358 here, a four-byte spread with byte-identical raw.
+// Measured by CI, both figures, on a merge tree already carrying all of the
+// entry above: +184 raw (3_410_624 -> 3_410_808) and +42 gzip
+// (831_622 -> 831_664). Both numbers are CI's own, not local + offset. Per
+// the convention here, if a later CI run reports lower, ratchet down to that
+// figure.
 //
-// Raw is deliberately NOT moved. It sits exactly at its mark and never
-// breached; raising a budget nothing has hit is loosening for free.
-//
-// Markers checked before moving the number, as every entry above did: CI
-// reported `qaBodyMarkers: []` and `skiaBodyMarkers: []` on the failing run.
-const RAW_BUDGET = 3_410_594;
-const GZIP_BUDGET = 831_620;
+// 2026-08-18, the formation role labels. DEF/MID/FWD plates under the
+// controlled team's outfield after a formation change. This branch earlier
+// re-ratcheted gzip by nine bytes (831_611 -> 831_620) against a pre-SHOT!
+// mark. That raise is superseded: the labels live behind LazyMatchScreen, so
+// none of the feature reaches the first load. The nine gzip bytes were
+// content-hash compression noise, not feature code. Main's later marks
+// already cover them. No new raise.
+const RAW_BUDGET = 3_410_808;
+const GZIP_BUDGET = 831_664;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

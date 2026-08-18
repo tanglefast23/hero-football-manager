@@ -27,6 +27,35 @@ const REST_SCALE = 1;
 const RISE_PX = 6;
 
 /**
+ * How long the word waits for the number. The two texts are one beat, not one
+ * line: "SHOT!" lands first and the figure snaps in under it a moment later.
+ * Only the number's ENTRANCE is delayed — both fade out together, so the pop
+ * still clears the pitch inside SHOT_POWER_POP_MS.
+ */
+export const SHOT_POWER_NUMBER_LEAD_MS = 120;
+
+/**
+ * Cell size in source pixels for the number, by power. Same idea as the pass
+ * counter: the figure grows with what it is reporting, so a screamer reads as
+ * bigger and not only as a different colour. Clamped at both ends against the
+ * range play reaches (about 5 to 141) — an uncapped cell would put a two-digit
+ * number across the whole penalty area.
+ */
+const BASE_CELL_PX = 2.6;
+const MAX_CELL_PX = 4.6;
+const CELL_FLOOR_POWER = 30;
+const CELL_PEAK_POWER = 110;
+
+export function shotPowerCellPx(power: number): number {
+  'worklet';
+  if (!Number.isFinite(power)) return BASE_CELL_PX;
+  const span =
+    (power - CELL_FLOOR_POWER) / (CELL_PEAK_POWER - CELL_FLOOR_POWER);
+  const progress = Math.min(1, Math.max(0, span));
+  return BASE_CELL_PX + (MAX_CELL_PX - BASE_CELL_PX) * progress;
+}
+
+/**
  * Colour bands, set against the range `power` actually occupies in play — about
  * 5 to 141 — and not the 1..999 clamp the sim allows. Measured: SHO 50 shoots
  * around 51, SHO 150 around 83, SHO 300 around 103. So 90+ really is the band
