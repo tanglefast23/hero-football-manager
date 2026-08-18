@@ -33,7 +33,13 @@ import { isRivalHeroIntroHeroId } from '../game/rival-hero-intro';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
-import { PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
+import {
+  PITCH_H,
+  TICK_MS,
+  HALF_TICKS,
+  dist2,
+  shotOnTarget,
+} from '../sim/geometry';
 import type {
   MatchEvent,
   MatchInput,
@@ -123,6 +129,27 @@ import {
   syncBackgroundPauseReason,
   type AutomaticMatchPauseReason,
 } from './match-pause';
+import {
+  MATCH_TIME_WARP_ZOOM,
+  matchTimeWarpExpired,
+  matchTimeWarpScale,
+} from './match-time-warp';
+import {
+  ShotPowerPop,
+  type ShotPowerPopSubject,
+} from './ShotPowerPop';
+import { SHOT_POWER_POP_MS, shotPowerBand } from './shot-power-pop';
+import {
+  PassComboPop,
+  type PassComboPopSubject,
+} from './PassComboPop';
+import {
+  PASS_COMBO_FLOOR,
+  PASS_COMBO_IDLE,
+  PASS_COMBO_POP_MS,
+  passComboAfter,
+  type PassComboChain,
+} from './pass-combo';
 import {
   appendNewestFour,
   hasPowerJuiceExtras,
@@ -709,6 +736,38 @@ export function MatchScreen({
   const shotTierRef = useRef<ShotTier>(0);
   const shotDangerAtLaunchRef = useRef<number | null>(null);
   const shotInFlightRef = useRef(false);
+  // Age of the tier-2 shot time warp in ms, or null when play runs at its
+  // ordinary rate. Accumulated from the frame gap rather than stamped as a
+  // wall-clock start: a pause, a half-time speech or an app backgrounding must
+  // not burn the warp down while the pitch is not moving. See match-time-warp.ts.
+  const timeWarpElapsedRef = useRef<number | null>(null);
+  /** The live warp's rate multiplier, or 1. Stable, so callbacks can hold it. */
+  const timeWarpScaleNow = useCallback(() => {
+    const elapsed = timeWarpElapsedRef.current;
+    return elapsed === null ? 1 : matchTimeWarpScale(elapsed);
+  }, []);
+  // The power number over the shooter's head. React state because the colour
+  // band and the glyph both change only once per shot; the animation itself
+  // rides `shotPowerPopLife` on the UI thread. Parked at the end of its window
+  // so a fresh mount draws nothing, the same trick `goalShakeElapsed` uses.
+  const [shotPowerPop, setShotPowerPop] = useState<ShotPowerPopSubject | null>(
+    null,
+  );
+  const shotPowerPopLife = useSharedValue(SHOT_POWER_POP_MS);
+  // The live pass chain, and the counter drawn over its latest receiver. The
+  // chain is a ref because only the pop it produces is rendered; parked life,
+  // same trick as the shot number above.
+  const passComboChainRef = useRef<PassComboChain>(PASS_COMBO_IDLE);
+  /** Slot the ball in flight is aimed at, or null when no pass is airborne. */
+  const passInFlightRef = useRef<number | null>(null);
+  const [passComboPop, setPassComboPop] = useState<PassComboPopSubject | null>(
+    null,
+  );
+  const passComboLife = useSharedValue(PASS_COMBO_POP_MS);
+  // Which number popped most recently. Both can be alive at once — a pass
+  // lands, then its receiver shoots inside the counter's 620ms — and the newer
+  // one has to win, so the order is recency and not a fixed nesting.
+  const [newestPop, setNewestPop] = useState<'shot' | 'combo'>('shot');
   const puffRef = useRef<{
     x: number;
     y: number;
@@ -1029,7 +1088,7 @@ export function MatchScreen({
   const setPausedBoth = (value: boolean) => {
     pausedRef.current = value;
     if (value) pauseAtlasFrame();
-    else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
+    else resumeAtlasFrame(matchPlaybackRate(speedRef.current) * timeWarpScaleNow());
     setPaused(value);
   };
 
@@ -1089,11 +1148,11 @@ export function MatchScreen({
       );
       pausedRef.current = shouldPause;
       if (shouldPause) pauseAtlasFrame();
-      else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
+      else resumeAtlasFrame(matchPlaybackRate(speedRef.current) * timeWarpScaleNow());
       setPaused(shouldPause);
       performanceResumeAtRef.current = performance.now() + 1000;
     },
-    [pauseAtlasFrame, resumeAtlasFrame],
+    [pauseAtlasFrame, resumeAtlasFrame, timeWarpScaleNow],
   );
 
   const finishGraphicsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -1328,23 +1387,51 @@ export function MatchScreen({
     // Reduce Motion opts out of every part of it — no camera move, flash,
     // lines, or body flash.
 
+    const resetCamera = () => {
+      const camera = cameraRef.current;
+      if (camera.zoom === 1 && camera.x === 0 && camera.y === 0) return;
+      camera.x = 0;
+      camera.y = 0;
+      camera.zoom = 1;
+      cameraX.value = 0;
+      cameraY.value = 0;
+      cameraZoom.value = 1;
+    };
+
+    /**
+     * Whether a live power activation is actually MOVING the camera right now.
+     * Not "is juice live": startJuice fires on every POWER_FIRED, and most
+     * powers carry no camera beat at all, so juice held the camera hostage for
+     * its whole 560ms while writing an identity transform. That is exactly the
+     * window a hero's own shot flies through.
+     */
+    const juiceOwnsCamera = (now: number): boolean => {
+      const active = juiceRef.current;
+      if (active === null) return false;
+      const elapsed = now - active.startedAt;
+      return (
+        (active.juice.punchIn && elapsed < POWER_JUICE_PUNCH_MS) ||
+        (active.juice.shake && elapsed < POWER_JUICE_SHAKE_MS)
+      );
+    };
+
+    // Tear the shot time warp down. The camera only goes back to neutral when
+    // no power activation owns it — an activation that started mid-flight is
+    // still driving it, and must keep its own frame.
+    const endTimeWarp = (now: number) => {
+      if (timeWarpElapsedRef.current === null) return;
+      timeWarpElapsedRef.current = null;
+      if (!juiceOwnsCamera(now)) resetCamera();
+    };
+
     const resetJuice = () => {
       juiceRef.current = null;
       speedLineSlot.value = -1;
       speedLineLife.value = 0;
       activationFlash.value = 0;
-      if (
-        cameraRef.current.zoom !== 1 ||
-        cameraRef.current.x !== 0 ||
-        cameraRef.current.y !== 0
-      ) {
-        cameraRef.current.x = 0;
-        cameraRef.current.y = 0;
-        cameraRef.current.zoom = 1;
-        cameraX.value = 0;
-        cameraY.value = 0;
-        cameraZoom.value = 1;
-      }
+      // A juice that ends mid-flight must not flash the camera back to 1x for
+      // a frame: the warp reclaims it on the very next advance anyway.
+      if (timeWarpElapsedRef.current === null) resetCamera();
       if (heroTintStepRef.current !== 'none') {
         heroTintStepRef.current = 'none';
         setHeroTint(null);
@@ -1449,6 +1536,43 @@ export function MatchScreen({
       }
     };
 
+    // Camera for the shot time warp: punched in on the BALL, retargeted every
+    // frame so a slowed flight cannot leave the zoomed window. A live power
+    // activation outranks it — that camera is already following its hero.
+    const advanceTimeWarpCamera = (now: number) => {
+      if (timeWarpElapsedRef.current === null) return;
+      if (juiceOwnsCamera(now)) return;
+      const {
+        pitchWidth: viewWidth,
+        pitchH: viewHeight,
+        devicePixelRatio: dpr,
+        scale: pitchScale,
+      } = layoutRef.current;
+      const ball = nextRef.current!.ball;
+      const camera = matchCameraOffset(
+        ball.x * pitchScale,
+        ball.y * pitchScale,
+        viewWidth,
+        viewHeight,
+        MATCH_TIME_WARP_ZOOM,
+        ZERO_SHAKE,
+        dpr,
+      );
+      const previousCamera = cameraRef.current;
+      if (
+        camera.translateX === previousCamera.x &&
+        camera.translateY === previousCamera.y &&
+        camera.zoom === previousCamera.zoom
+      )
+        return;
+      previousCamera.x = camera.translateX;
+      previousCamera.y = camera.translateY;
+      previousCamera.zoom = camera.zoom;
+      cameraX.value = camera.translateX;
+      cameraY.value = camera.translateY;
+      cameraZoom.value = camera.zoom;
+    };
+
     const loop = (now: number) => {
       const s = stateRef.current!;
       if (pausedRef.current && s.phase !== 'fulltime') {
@@ -1473,6 +1597,12 @@ export function MatchScreen({
         return;
       }
       const wallGap = now - last;
+      // Age the warp on the same gap the accumulator uses, and only on frames
+      // that actually advance play — the paused branch above returns first.
+      if (timeWarpElapsedRef.current !== null) {
+        timeWarpElapsedRef.current += wallGap;
+        if (matchTimeWarpExpired(timeWarpElapsedRef.current)) endTimeWarp(now);
+      }
       if (speedRef.current >= 2 && now >= performanceResumeAtRef.current) {
         const pacing = recordFrameGap(performanceMonitorRef.current, wallGap);
         if (pacing !== null) {
@@ -1495,7 +1625,7 @@ export function MatchScreen({
               setPerformanceNotice(true);
               if (speedRef.current === 3) {
                 speedRef.current = 2;
-                resumeAtlasFrame(matchPlaybackRate(2));
+                resumeAtlasFrame(matchPlaybackRate(2) * timeWarpScaleNow());
                 setSpeed(2);
               }
             }
@@ -1505,11 +1635,16 @@ export function MatchScreen({
         resetFramePacingMonitor(performanceMonitorRef.current);
         performanceBadWindowsRef.current = 0;
       }
+      // The shot time warp scales wall-clock time before it reaches the
+      // accumulator, so the hit-stop is simply "no ticks this frame" and
+      // bullet time is "fewer ticks per frame". The sim itself is untouched.
+      const timeWarpScale = timeWarpScaleNow();
+      const playbackRate = matchPlaybackRate(speedRef.current) * timeWarpScale;
       // Ledger item 7 — capped catch-up: never simulate more than
       // MAX_CATCHUP_TICKS in one frame, however long the JS thread stalled.
       //
       acc = Math.min(
-        acc + (now - last) * matchPlaybackRate(speedRef.current),
+        acc + (now - last) * playbackRate,
         TICK_MS * MAX_CATCHUP_TICKS,
       );
       last = now;
@@ -1523,6 +1658,9 @@ export function MatchScreen({
       let advanced = false;
       let pauseAfterPublish = false;
       let showcaseFroze = false;
+      // Publish the strike frame snapped, so the Atlas holds it instead of
+      // interpolating on through a freeze that has already started.
+      let freezeAtStrike = false;
 
       // No pausedRef check needed here: the early return above already ran,
       // and the flag cannot flip mid-invocation on a single-threaded runtime.
@@ -1697,6 +1835,53 @@ export function MatchScreen({
           // removing it, which the worklet handles itself.
           scorchingShot.value =
             shotTierRef.current === 2 && !reducedEffectsRef.current ? 1 : 0;
+          // The power number, for every shot ON TARGET — a grade the sim takes
+          // off `targetX` alone, stamped at launch, so it is answerable ticks
+          // before SAVE/GOAL/MISS exists. Reduce Motion and adaptive reduction
+          // both KEEP it: it is information, and it costs two static Paths.
+          // The anchor is stamped, never followed. A goal and a miss each
+          // restart the kickoff on the tick they resolve, so a number still
+          // reading its shooter's slot would jump to the halfway line mid-pop.
+          const shotBall = s.ball.kind === 'shot' ? s.ball : null;
+          if (shotBall !== null && shotOnTarget(shotBall.targetX)) {
+            // `ball.by` is the CREDITED player, not the body that struck it —
+            // a Decoy clone's shot is attributed to the real forward, who may
+            // be standing elsewhere. The SHOT event emitted by this same tick
+            // carries the striker on `actor`, so prefer that for the anchor.
+            let strikerSlot = shotBall.by;
+            for (const emitted of s.events.slice(tickEventsBefore)) {
+              if (emitted.kind !== 'SHOT') continue;
+              strikerSlot = emitted.actor ?? emitted.by;
+            }
+            const shooter =
+              nextRef.current!.players[strikerSlot] ??
+              nextRef.current!.players[shotBall.by];
+            setShotPowerPop({
+              power: shotBall.power,
+              band: shotPowerBand(shotBall.power),
+              x: shooter.x,
+              y: shooter.y,
+            });
+            setNewestPop('shot');
+            shotPowerPopLife.value = 0;
+            shotPowerPopLife.value = withTiming(SHOT_POWER_POP_MS, {
+              duration: SHOT_POWER_POP_MS,
+              easing: ReanimatedEasing.linear,
+            });
+          }
+          // Hit-stop and bullet time, on the same tier-2 gate as the flame.
+          // Reduce Motion opts out entirely, and so does adaptive reduction —
+          // a device already dropping frames must not be handed a time warp.
+          if (
+            shotTierRef.current === 2 &&
+            !suppressCosmeticEffects &&
+            !reduceMotion &&
+            !reducedEffectsRef.current &&
+            timeWarpElapsedRef.current === null
+          ) {
+            timeWarpElapsedRef.current = 0;
+            freezeAtStrike = true;
+          }
         } else if (!ballIsShot && shotInFlightRef.current) {
           // One exit for every ending — goal, save, miss, restart, half time.
           // The flame and the crackle both stop here, off this one flag.
@@ -1706,10 +1891,80 @@ export function MatchScreen({
           // point a short flight has already landed. Clearing here would leave
           // them reading 0 and drawing nothing.
           scorchingShot.value = 0;
+          // Goal, save, miss, restart, half time — the warp releases wherever
+          // the shot ends, off the same single exit the flame uses.
+          endTimeWarp(now);
         }
         shotInFlightRef.current = ballIsShot;
 
+        // Pass chain, counted at the CATCH and never at the kick. PASS is
+        // emitted the moment the ball leaves the boot, and the flight runs
+        // several ticks — a launch-time counter would stand on empty grass and
+        // often expire before the ball ever arrived.
+        //
+        // Both the breaks and the extension live here rather than in the event
+        // drain below, so they apply in TICK order. One frame can catch several
+        // ticks up, and a break from an earlier tick must not undo a chain that
+        // legitimately continued after it.
+        for (const emitted of s.events.slice(tickEventsBefore)) {
+          if (
+            (emitted.kind === 'PASS' && !emitted.ok) ||
+            (emitted.kind === 'TACKLE' && emitted.won) ||
+            emitted.kind === 'SAVE' ||
+            emitted.kind === 'MISS' ||
+            emitted.kind === 'GOAL' ||
+            emitted.kind === 'HALF_TIME' ||
+            emitted.kind === 'KICKOFF'
+          )
+            passComboChainRef.current = passComboAfter(
+              passComboChainRef.current,
+              { kind: 'break' },
+            );
+        }
+        if (s.ball.kind === 'pass') {
+          // Re-stamped every tick on purpose: a Gust redirect rewrites `to`
+          // mid-flight, and the receiver that matters is the last one.
+          passInFlightRef.current = s.ball.to;
+        } else if (passInFlightRef.current !== null) {
+          const intended = passInFlightRef.current;
+          passInFlightRef.current = null;
+          // Held by the man it was aimed at is the only completion. A loose
+          // arrival, an interception, or a receiver knocked out between kick
+          // and catch all land somewhere else, and all end the run.
+          const holder = s.ball.kind === 'held' ? s.ball.by : -1;
+          const team =
+            holder === intended ? playerAt(s, holder)?.team : undefined;
+          passComboChainRef.current = passComboAfter(
+            passComboChainRef.current,
+            team === undefined
+              ? { kind: 'break' }
+              : { kind: 'completed-pass', team },
+          );
+          const chain = passComboChainRef.current;
+          if (team !== undefined && chain.count >= PASS_COMBO_FLOOR) {
+            const receiver = nextRef.current!.players[holder];
+            setPassComboPop({
+              count: chain.count,
+              x: receiver.x,
+              y: receiver.y,
+            });
+            setNewestPop('combo');
+            passComboLife.value = 0;
+            passComboLife.value = withTiming(PASS_COMBO_POP_MS, {
+              duration: PASS_COMBO_POP_MS,
+              easing: ReanimatedEasing.linear,
+            });
+          }
+        }
+
         acc -= TICK_MS;
+        // Stop catching up on the tick that struck the shot. Without this a
+        // frame holding several ticks would fly the ball on before the freeze
+        // could bite, and the hit-stop would land late.
+        if (freezeAtStrike) {
+          acc = 0;
+          break;
+        }
       }
 
       const newEvents = s.events.slice(eventsBefore);
@@ -2344,6 +2599,7 @@ export function MatchScreen({
       // Every frame, not every tick: the beat sheet runs on wall clock so its
       // brief camera and tint effects stay smooth at every selected match speed.
       advanceJuice(now);
+      advanceTimeWarpCamera(now);
       if (
         advanced &&
         firstMatchTutorial &&
@@ -2427,9 +2683,9 @@ export function MatchScreen({
         publishAtlasFrame(
           nextRef.current!,
           s.tick,
-          matchPlaybackRate(speedRef.current),
+          playbackRate,
           actionRef.current,
-          snap || pauseAfterPublish || s.phase === 'fulltime',
+          snap || pauseAfterPublish || freezeAtStrike || s.phase === 'fulltime',
         );
         setFrame(nextRef.current!);
         bannerRef.current = bannerRef.current.filter(
@@ -2473,6 +2729,7 @@ export function MatchScreen({
       sub.remove();
       // Never leave an off-centre camera behind for the next loop (this effect
       // restarts when Reduce Motion is toggled mid-match).
+      timeWarpElapsedRef.current = null;
       resetJuice();
     };
   }, [
@@ -2730,6 +2987,45 @@ export function MatchScreen({
         ]
       : [],
   );
+
+  // The two pitch numbers, ordered newest-last so the fresher pop draws over
+  // the older one when both are still alive. Keys keep each node's identity
+  // across the swap, so a reorder does not remount it and rebuild its SkPath.
+  const matchNumberPops = useMemo(() => {
+    const shot = (
+      <ShotPowerPop
+        key="shot-power"
+        subject={shotPowerPop}
+        life={shotPowerPopLife}
+        scale={scale}
+        playerDrawScale={playerSpriteScale.drawScale}
+        devicePixelRatio={devicePixelRatio}
+        reduceMotion={reduceMotion}
+      />
+    );
+    const combo = (
+      <PassComboPop
+        key="pass-combo"
+        subject={passComboPop}
+        life={passComboLife}
+        scale={scale}
+        playerDrawScale={playerSpriteScale.drawScale}
+        devicePixelRatio={devicePixelRatio}
+        reduceMotion={reduceMotion}
+      />
+    );
+    return newestPop === 'shot' ? [combo, shot] : [shot, combo];
+  }, [
+    devicePixelRatio,
+    newestPop,
+    passComboLife,
+    passComboPop,
+    playerSpriteScale.drawScale,
+    reduceMotion,
+    scale,
+    shotPowerPop,
+    shotPowerPopLife,
+  ]);
 
   // Seconds-until-back numbers over stricken players. Measured over 10 seeded
   // matches: at most two at once, longest hold 15s, and something to draw on
@@ -3247,7 +3543,8 @@ export function MatchScreen({
     resetFramePacingMonitor(performanceMonitorRef.current);
     performanceBadWindowsRef.current = 0;
     performanceResumeAtRef.current = performance.now() + 1000;
-    if (!pausedRef.current) resumeAtlasFrame(matchPlaybackRate(allowed));
+    if (!pausedRef.current)
+      resumeAtlasFrame(matchPlaybackRate(allowed) * timeWarpScaleNow());
     setSpeed(allowed);
   };
   const toggleUserPause = () => {
@@ -3785,6 +4082,11 @@ export function MatchScreen({
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
                   />
+                  {/* Last of all: these numbers clear the countdown plate and
+                    the Fire Torch tongues both, and the newest of the two
+                    clears the other. Keyed, so reordering moves the nodes
+                    instead of remounting them and rebuilding their paths. */}
+                  {matchNumberPops}
                 </Group>
                 {/* White-out for the speed powers, over the camera so a punched-in
                   frame flashes evenly. Peaks well short of a full white screen

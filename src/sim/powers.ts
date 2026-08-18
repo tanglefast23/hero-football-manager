@@ -4,6 +4,7 @@ import {
   moveToward,
   GOAL_CENTER_X,
   GOAL_W,
+  shotOnTarget,
   PITCH_H,
   PITCH_W,
 } from './geometry';
@@ -358,7 +359,7 @@ function enemyOnTargetShot(state: MatchState, idx: number): boolean {
     ball.kind === 'shot' &&
     requirePlayerAt(state, ball.by).team !== keeper.team &&
     !ball.keeperChecked &&
-    Math.abs(ball.targetX - GOAL_CENTER_X) <= GOAL_W / 2
+    shotOnTarget(ball.targetX)
   );
 }
 

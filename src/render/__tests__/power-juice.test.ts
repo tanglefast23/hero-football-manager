@@ -215,11 +215,29 @@ describe('renderer juice wiring', () => {
   it('keeps activation visuals out of the frame accumulator', () => {
     const source = matchSource();
 
+    // The accumulator is scaled by exactly one thing: the shot time warp,
+    // which is a named render-clock effect with its own module and tests. A
+    // power ACTIVATION still gets none of it — the 2026-07 dilation was pulled
+    // out and must stay out.
+    expect(source).toContainSource('acc + (now - last) * playbackRate');
     expect(source).toContainSource(
-      'acc + (now - last) * matchPlaybackRate(speedRef.current)',
+      'const playbackRate = matchPlaybackRate(speedRef.current) * timeWarpScale;',
     );
     expect(source).not.toContainSource('powerJuiceDilation');
     expect(source).not.toContainSource('dilationRef');
+    // advanceJuice may write the camera and the flash; never the clock.
+    // Assert both markers exist first: a renamed one would otherwise slice an
+    // empty string and pass this vacuously.
+    expect(source).toContainSource('const advanceJuice = (now: number) => {');
+    expect(source).toContainSource(
+      'const advanceTimeWarpCamera = (now: number) => {',
+    );
+    expect(
+      source.slice(
+        source.indexOf('const advanceJuice = (now: number) => {'),
+        source.indexOf('const advanceTimeWarpCamera = (now: number) => {'),
+      ),
+    ).not.toContain('acc');
     // The sim still sees the same fixed-step tick(s) in the same order.
     expect(source).toMatchSource(
       /if \(!heldForPowerReview && !heldForMatchVfxReview\) \{\s*tick\(s\);/,

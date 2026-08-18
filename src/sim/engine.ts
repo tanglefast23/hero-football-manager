@@ -11,6 +11,7 @@ import {
   moveToward,
   GOAL_CENTER_X,
   GOAL_W,
+  shotOnTarget,
   HALF_TICKS,
   PITCH_W,
   PITCH_H,
@@ -2257,7 +2258,7 @@ export function shotFlightTick(state: MatchState): void {
   const gy = goalYFor(shooter.team);
   const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
   const gkIdx = defendingTeam === 0 ? 0 : 11;
-  const onTarget = Math.abs(b.targetX - GOAL_CENTER_X) <= GOAL_W / 2;
+  const onTarget = shotOnTarget(b.targetX);
   const keeper = state.players[gkIdx];
   const reachedKeeperPlane =
     gy === 0 ? b.pos.y <= keeper.pos.y : b.pos.y >= keeper.pos.y;
