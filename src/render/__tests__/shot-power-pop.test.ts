@@ -2,6 +2,7 @@ import {
   SHOT_POWER_BAND_COLORS,
   SHOT_POWER_POP_MS,
   shotPowerBand,
+  shotPowerCellPx,
   shotPowerPopOpacity,
   shotPowerPopRise,
   shotPowerPopScale,
@@ -40,6 +41,16 @@ describe('shot power pop', () => {
     expect(shotPowerBand(90)).toBe(2);
     expect(shotPowerBand(141)).toBe(2);
     expect(SHOT_POWER_BAND_COLORS).toHaveLength(3);
+  });
+
+  it('grows the number with the power, and stops growing', () => {
+    expect(shotPowerCellPx(30)).toBeLessThan(shotPowerCellPx(70));
+    expect(shotPowerCellPx(70)).toBeLessThan(shotPowerCellPx(110));
+    // Clamped at both ends: a tap-in never shrinks away, a screamer never
+    // covers the penalty area.
+    expect(shotPowerCellPx(5)).toBe(shotPowerCellPx(30));
+    expect(shotPowerCellPx(141)).toBe(shotPowerCellPx(110));
+    expect(shotPowerCellPx(Number.NaN)).toBeGreaterThan(0);
   });
 
   it('never returns a value out of range, for any age it can be handed', () => {
