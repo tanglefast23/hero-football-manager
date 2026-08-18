@@ -181,6 +181,8 @@ import {
   goalBannerPresentation,
   type MatchBannerSubject,
 } from './match-banners';
+import { MatchTickerLine } from './MatchTickerLine';
+import { tickerLane } from './match-ticker';
 import { CupTitleCard } from './CupTitleCard';
 import { cupTitleCard, type CupRoundLabel } from './cup-title-card';
 import { PowerEffectScene, type PowerEffectPoint } from './PowerEffectScene';
@@ -317,12 +319,12 @@ const SNAP_DIST2 = (2 * MAX_SPEED_PER_TICK) ** 2;
 // away with the Zone countdown at m1.27. Every caller left is a banner.
 const FLASH_TICKS = 30;
 
-// Goal impact shake (render-only). The whole screen takes one short knock, and
-// the scorer banner takes a harder one on top of it — it is a child of the
-// root, so the two amplitudes add and the card visibly jolts more than the
-// pitch behind it. Same decaying curve as the Super Strength camera shake.
+// Goal impact shake (render-only). The whole screen takes one short knock,
+// on the same decaying curve as the Super Strength camera shake. The scorer's
+// line used to take a second, harder knock on top of it — that was a jolt for
+// a card, and the event lines have no card any more. Jolting type that is
+// mid-crossing reads as dropped frames, so only the screen shakes now.
 const GOAL_SHAKE_MS = 380;
-const GOAL_CARD_EXTRA_SHAKE_PT = 2.5;
 
 // Ball-flight presentation (render-only) — lifted kicks show a curved history;
 // shots also retain the dust puff kicked up at the strike.
@@ -372,13 +374,57 @@ type MatchBanner = {
   id: string;
   text: string;
   untilTick: number;
-  tone: 'gold' | 'red' | 'blue' | 'green';
-  /** A footnote to the banner above it — currently the power behind a goal. */
+  tone: 'gold' | 'red' | 'blue';
+  /** Which ticker row it runs on. Stamped by the push helpers below. */
+  lane: number;
+  /** Crossing length, in sim ticks. Stamped at creation and never re-derived:
+   * `setHud` copies the banner list every published tick, so a life computed
+   * from the live tick would restart the crossing ten times a second. */
+  lifeTicks: number;
+  /** Wall-clock crossing length, overriding `lifeTicks`. Full time only. */
+  durationMs?: number;
+  /** A footnote to the line above it — currently the power behind a goal. */
   size?: 'small';
   /** Set for the three coaching controls so a tap and the sim's confirming
-   * event share one tile instead of stacking two identical banners. */
+   * event share one line instead of stacking two identical ones. */
   subject?: MatchBannerSubject;
 };
+
+/** What a caller supplies; the helpers below stamp the rest. */
+type NewMatchBanner = Omit<MatchBanner, 'lane' | 'lifeTicks'> & {
+  lifeTicks?: number;
+};
+
+/**
+ * Appends an event line and stamps the ticker row it runs on.
+ *
+ * Module scope on purpose: the RAF loop below would otherwise close over a
+ * component-scope helper and could hold a stale one. `lane` being required on
+ * `MatchBanner` is what makes these the only way in — any site still calling
+ * `appendNewestFour` on the banner list fails to compile.
+ */
+function pushMatchBanner(
+  banners: readonly MatchBanner[],
+  banner: NewMatchBanner,
+): MatchBanner[] {
+  return appendNewestFour(banners, {
+    lifeTicks: FLASH_TICKS,
+    ...banner,
+    lane: tickerLane(banners, undefined),
+  });
+}
+
+/** The same, for the three coaching controls that replace their own line. */
+function pushSubjectedMatchBanner(
+  banners: readonly MatchBanner[],
+  banner: NewMatchBanner & { subject: MatchBannerSubject },
+): MatchBanner[] {
+  return appendBannerNewestFour(banners, {
+    lifeTicks: FLASH_TICKS,
+    ...banner,
+    lane: tickerLane(banners, banner.subject),
+  });
+}
 
 type PowerCutInEntry = {
   id: string;
@@ -623,17 +669,6 @@ export function MatchScreen({
     devicePixelRatio,
   );
   const pitchH = PITCH_H * scale;
-  // The desktop body centres rail + pitch as one group, so the pitch no longer
-  // begins at a fixed offset from the rail: banners have to follow its real
-  // left edge or they float in the dead space beside the touchline.
-  const desktopPitchLeft = railLayout
-    ? MATCH_RAIL_GUTTER * 2 +
-      MATCH_RAIL_WIDTH +
-      Math.max(
-        0,
-        (width - MATCH_RAIL_GUTTER * 3 - MATCH_RAIL_WIDTH - pitchWidth) / 2,
-      )
-    : 0;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
   const homeKitColor = teamKitColor(0, colorSafeKits);
@@ -708,16 +743,6 @@ export function MatchScreen({
       goalShakeElapsed.value,
       GOAL_SHAKE_MS,
       MATCH_SHAKE_AMPLITUDE_PT,
-    );
-    return {
-      transform: [{ translateX: offset.x }, { translateY: offset.y }],
-    };
-  });
-  const goalCardShakeStyle = useAnimatedStyle(() => {
-    const offset = matchShakeOffset(
-      goalShakeElapsed.value,
-      GOAL_SHAKE_MS,
-      GOAL_CARD_EXTRA_SHAKE_PT,
     );
     return {
       transform: [{ translateX: offset.x }, { translateY: offset.y }],
@@ -2077,20 +2102,6 @@ export function MatchScreen({
             };
           }
         }
-        // A won slide is the defensive equivalent of a goal moment: rare
-        // (~5 a match, measured over 20 seeded matches) and always decisive.
-        // Won STANDING challenges are ~23 a match and would bury the stack.
-        if (e.kind === 'TACKLE' && e.won && e.style === 'slide') {
-          const tackler = playerAt(s, e.by);
-          if (tackler !== undefined) {
-            bannerRef.current = appendNewestFour(bannerRef.current, {
-              id: `tackle:${e.t}:${e.by}`,
-              text: t('matchScreen.bannerTackle', { player: tackler.def.name }),
-              untilTick: e.t + FLASH_TICKS,
-              tone: 'green',
-            });
-          }
-        }
         if (e.kind === 'TACKLE' && e.contact) {
           const challenger = eventAfter.players[e.by];
           const target = eventAfter.players[e.on];
@@ -2175,7 +2186,7 @@ export function MatchScreen({
             e.team,
             controlledTeam,
           );
-          bannerRef.current = appendNewestFour(bannerRef.current, {
+          bannerRef.current = pushMatchBanner(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
             // The icon below is a pictogram, not a word: it stays in the
             // source and only the sentence beside it comes from the catalog.
@@ -2192,7 +2203,7 @@ export function MatchScreen({
           // and leave this one orphaned, which is rare enough to live with.
           if (scoringPower !== undefined) {
             const power = powerCutInPresentation(scoringPower, t);
-            bannerRef.current = appendNewestFour(bannerRef.current, {
+            bannerRef.current = pushMatchBanner(bannerRef.current, {
               id: `goal-power:${e.t}:${e.by}`,
               text: `${power.glyph} ${power.name}`,
               untilTick: e.t + FLASH_TICKS,
@@ -2342,7 +2353,7 @@ export function MatchScreen({
               }),
             );
           } else {
-            bannerRef.current = appendNewestFour(bannerRef.current, {
+            bannerRef.current = pushMatchBanner(bannerRef.current, {
               id: `power:${e.t}:${e.player}:${e.power}`,
               text:
                 `⚡ ${powerCutInPresentation(e.power, t).name}` +
@@ -2439,7 +2450,7 @@ export function MatchScreen({
           }
         }
         if (e.kind === 'HALF_TIME') {
-          bannerRef.current = appendNewestFour(bannerRef.current, {
+          bannerRef.current = pushMatchBanner(bannerRef.current, {
             id: `half:${e.t}`,
             text: t('matchScreen.bannerHalfTime'),
             untilTick: e.t + FLASH_TICKS,
@@ -2449,15 +2460,19 @@ export function MatchScreen({
         if (e.kind === 'FULL_TIME') {
           // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
           // holds and this banner stays up for the whole end-of-match hold.
-          bannerRef.current = appendNewestFour(bannerRef.current, {
+          // That hold is `FULLTIME_HOLD_MS` of wall clock and does not scale
+          // with match speed, so the crossing is given the hold directly
+          // rather than a tick life that would finish in 500ms at ×3.
+          bannerRef.current = pushMatchBanner(bannerRef.current, {
             id: `full:${e.t}`,
             text: t('matchScreen.bannerFullTime'),
             untilTick: e.t + FLASH_TICKS,
+            durationMs: FULLTIME_HOLD_MS,
             tone: 'blue',
           });
         }
         if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = appendBannerNewestFour(bannerRef.current, {
+          bannerRef.current = pushSubjectedMatchBanner(bannerRef.current, {
             id: `formation:${e.t}`,
             text: `${e.formation} · ${t(`formation.${e.formation}.blurb`).toUpperCase()}`,
             untilTick: e.t + FLASH_TICKS,
@@ -2466,7 +2481,7 @@ export function MatchScreen({
           });
         }
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = appendBannerNewestFour(bannerRef.current, {
+          bannerRef.current = pushSubjectedMatchBanner(bannerRef.current, {
             id: `mentality:${e.t}`,
             text: `${t('matchScreen.playstyle')} · ${mentalityLabel(e.mentality, t)}`,
             untilTick: e.t + FLASH_TICKS,
@@ -2475,21 +2490,12 @@ export function MatchScreen({
           });
         }
         if (e.kind === 'ENERGY_USE_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = appendBannerNewestFour(bannerRef.current, {
+          bannerRef.current = pushSubjectedMatchBanner(bannerRef.current, {
             id: `energy:${e.t}`,
             text: `${t('matchScreen.energyUse')} · ${energyUseLabel(e.energyUse, t)}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
             subject: 'energy',
-          });
-        }
-        if (e.kind === 'SUBSTITUTION' && e.team === controlledTeam) {
-          const incoming = s.players[e.player].def.name;
-          bannerRef.current = appendNewestFour(bannerRef.current, {
-            id: `sub:${e.t}:${e.player}`,
-            text: t('matchScreen.bannerSubstitution', { player: incoming }),
-            untilTick: e.t + FLASH_TICKS,
-            tone: 'blue',
           });
         }
         if (!reduceMotion && e.kind === 'SLIDE_STARTED') {
@@ -2587,10 +2593,11 @@ export function MatchScreen({
         if (e.kind === 'POWER_READY') {
           const firstName = s.players[e.player].def.name.split(' ')[0];
           if (s.players[e.player].team !== controlledTeam) {
-            bannerRef.current = appendNewestFour(bannerRef.current, {
+            bannerRef.current = pushMatchBanner(bannerRef.current, {
               id: `rival-zone:${e.t}:${e.player}`,
               text: `⚠ ${t('matchScreen.bannerRivalZone', { player: firstName })}`,
               untilTick: e.t + RIVAL_ZONE_BANNER_TICKS,
+              lifeTicks: RIVAL_ZONE_BANNER_TICKS,
               tone: 'red',
             });
           }
@@ -3511,7 +3518,7 @@ export function MatchScreen({
       releaseSpeechPause();
       return;
     }
-    bannerRef.current = appendNewestFour(bannerRef.current, {
+    bannerRef.current = pushMatchBanner(bannerRef.current, {
       id: `speech:${match.tick}`,
       text: t('matchScreen.bannerMotivationalSpeech'),
       untilTick: match.tick + FLASH_TICKS,
@@ -3557,7 +3564,7 @@ export function MatchScreen({
     text: string,
     subject: MatchBannerSubject,
   ) => {
-    bannerRef.current = appendBannerNewestFour(bannerRef.current, {
+    bannerRef.current = pushSubjectedMatchBanner(bannerRef.current, {
       id,
       text,
       untilTick: match.tick + FLASH_TICKS,
@@ -4101,6 +4108,35 @@ export function MatchScreen({
                 />
               </RecoverableSkiaCanvas>
             )}
+            {hud.banners.length > 0 ? (
+              <View pointerEvents="none" style={styles.bannerStack}>
+                {hud.banners.map((banner) => (
+                  // Keyed by subject, not id: the optimistic coaching line and
+                  // the sim's confirmation of the same control carry different
+                  // ids, and keying by id would remount the row a tick after
+                  // every tap and snap the line back to the left touchline.
+                  <MatchTickerLine
+                    key={banner.subject ?? banner.id}
+                    text={banner.text}
+                    tone={banner.tone}
+                    small={banner.size === 'small'}
+                    lane={banner.lane}
+                    pitchWidth={pitchWidth}
+                    lifeTicks={banner.lifeTicks}
+                    durationMs={banner.durationMs}
+                    speed={speed}
+                    // The whistle leaves `paused` true if the manager paused
+                    // just before it, and the RAF loop runs on regardless
+                    // (`paused && phase !== 'fulltime'`). A pause-gated
+                    // crossing would hold the full-time line off-screen for
+                    // the entire end-of-match hold.
+                    paused={paused && match.phase !== 'fulltime'}
+                    reduceMotion={reduceMotion}
+                    reducedEffects={reducedEffects}
+                  />
+                ))}
+              </View>
+            ) : null}
             {carrier ? (
               <View
                 pointerEvents="none"
@@ -4180,35 +4216,6 @@ export function MatchScreen({
           </View>
         </View>
       </View>
-      {hud.banners.length > 0 ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.bannerStack,
-            // Only `left` was being moved for the rail, so the stack still
-            // reached the window's right edge and banners ran off the pitch.
-            railLayout
-              ? { left: desktopPitchLeft, right: undefined, width: pitchWidth }
-              : null,
-            goalCardShakeStyle,
-          ]}
-        >
-          {hud.banners.map((banner) => (
-            <Text
-              key={banner.id}
-              style={[
-                styles.banner,
-                banner.tone === 'red' ? styles.bannerThreat : null,
-                banner.tone === 'blue' ? styles.bannerAction : null,
-                banner.tone === 'green' ? styles.bannerTackle : null,
-                banner.size === 'small' ? styles.bannerSmall : null,
-              ]}
-            >
-              {banner.text}
-            </Text>
-          ))}
-        </Animated.View>
-      ) : null}
       {performanceNotice ? (
         <Pressable
           accessibilityRole="button"
