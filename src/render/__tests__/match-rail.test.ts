@@ -166,12 +166,19 @@ describe('desktop match control rail', () => {
 
     expect(styleSource()).toContainSource("justifyContent: 'center'");
     expect(styleSource()).not.toContainSource('desktopPitchPane: { flex: 1');
-    // The banner stack follows the pitch's real left edge AND its width: moving
-    // only `left` left the stack anchored to the window's right edge, so match
-    // banners ran off the pitch and across the whole desktop window.
-    expect(matchSource()).toContainSource(
-      '{ left: desktopPitchLeft, right: undefined, width: pitchWidth }',
-    );
+    // The event ticker no longer needs a desktop offset at all: it is an
+    // absolute child of the pitch frame, beside the carrier card, so it
+    // inherits the pitch's box on every layout. It used to be a child of the
+    // root that had to be re-pointed at the pitch's left edge and width, and
+    // when only `left` moved it ran off across the whole desktop window.
+    const source = matchSource();
+    const pitchFrame = source.indexOf('<View style={pitchFrameStyle}>');
+    const tickerStack = source.indexOf('styles.bannerStack');
+    const carrierCard = source.indexOf('styles.carrierCard');
+    expect(pitchFrame).toBeGreaterThan(-1);
+    expect(tickerStack).toBeGreaterThan(pitchFrame);
+    expect(tickerStack).toBeLessThan(carrierCard);
+    expect(source).not.toContainSource('desktopPitchLeft');
 
     const railRight = pitchLeftEdge(width, pitchWidth) - MATCH_RAIL_GUTTER;
     const railLeft = railRight - MATCH_RAIL_WIDTH;
