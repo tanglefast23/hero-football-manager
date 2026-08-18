@@ -76,9 +76,7 @@ export function shotPowerPopOpacity(elapsedMs: number): number {
   if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return 0;
   if (elapsedMs >= SHOT_POWER_POP_MS) return 0;
   if (elapsedMs < FADE_START_MS) return 1;
-  return (
-    1 - (elapsedMs - FADE_START_MS) / (SHOT_POWER_POP_MS - FADE_START_MS)
-  );
+  return 1 - (elapsedMs - FADE_START_MS) / (SHOT_POWER_POP_MS - FADE_START_MS);
 }
 
 /** Source-pixel rise at a given age. Nothing moves until the fade starts. */
