@@ -5,7 +5,7 @@
   "dependencies": {
     "@shopify/react-native-skia": "2.6.2",
     "expo": "~57.0.14",
-    "expo-asset": "~57.0.11",
+    "expo-asset": "~57.0.12",
     "expo-audio": "~57.0.3",
     "expo-font": "~57.0.1",
     "expo-haptics": "~57.0.1",

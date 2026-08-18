@@ -60,6 +60,7 @@ import {
 import {
   createCareerRepository,
   createDeveloperSaveRepository,
+  availableFormationIds,
   createPreferencesRepository,
   createReplayRepository,
   DEFAULT_APP_PREFERENCES,
@@ -72,6 +73,7 @@ import {
   replaceFormationPreset,
   requestPersistentStorage,
   resetCareerDatabase,
+  setFormationPreset,
   type AppPreferences,
   type DeveloperManualSaveSlot,
   type DeveloperSaveRepository,
@@ -127,6 +129,7 @@ import {
 } from './src/render/rival-hero-voice';
 import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
 import { assertRuntimeGoldenReplay } from './src/sim/runtime-golden';
+import type { FormationId } from './src/sim/tactics';
 import type { MatchState } from './src/sim/types';
 import {
   BertBriefingWalkOn,
@@ -554,6 +557,14 @@ function GameApp() {
   useEffect(() => {
     if (store.screen !== 'season-end') setExpiredContractReached(false);
   }, [store.screen]);
+  // Matchday's formation picker offers exactly what Settings offers: the proven
+  // base shapes plus anything a hired coach has taught this career.
+  const matchdayFormationOptions = availableFormationIds(
+    preferences,
+    store.career?.market === undefined
+      ? []
+      : careerCoachUnlockedFormationIds(store.career.market),
+  );
   const careerTeaches = store.career === null || assistantTeaches(store.career);
   const squadSortHintVisible =
     careerTeaches &&
@@ -907,6 +918,20 @@ function GameApp() {
         replaceFormationPreset(
           preferencesRef.current,
           slot,
+          market === undefined ? [] : careerCoachUnlockedFormationIds(market),
+        ),
+      );
+    },
+    [savePreferences],
+  );
+  const selectFormationPreset = useCallback(
+    (formation: FormationId) => {
+      const market = useM1Store.getState().career?.market;
+      savePreferences(
+        setFormationPreset(
+          preferencesRef.current,
+          0,
+          formation,
           market === undefined ? [] : careerCoachUnlockedFormationIds(market),
         ),
       );
@@ -2984,7 +3009,8 @@ function GameApp() {
             )
           }
           onWatchMatch={store.watchMatch}
-          onCycleFormation={() => cycleFormationPreset(0)}
+          formationOptions={matchdayFormationOptions}
+          onSelectFormation={selectFormationPreset}
           onQuickResult={() =>
             store.quickResult({
               initialFormation: preferencesRef.current.formationPresets[0],

@@ -87,6 +87,7 @@ import {
   WorkletBallFlame,
   WorkletBallShadow,
   WorkletMatchOverlays,
+  WorkletPossessionRing,
   WorkletSlideTackleEffects,
   WorkletSpeedLines,
 } from './WorkletMatchOverlays';
@@ -3557,6 +3558,15 @@ export function MatchScreen({
                     scale={scale}
                     reduceMotion={reduceMotion}
                   />
+                  {/* Under the Atlas on purpose: the carrier marker lies on
+                    the grass at his feet, so his sprite draws over it. */}
+                  <WorkletPossessionRing
+                    visualPositions={workletVisualPositions}
+                    carrier={workletCarrier}
+                    scale={scale}
+                    spriteScale={scale * playerSpriteScale.drawScale}
+                    hiddenPlayer={-1}
+                  />
                   <Atlas
                     image={atlas.image as SkImage}
                     sprites={sprites}
@@ -3627,7 +3637,6 @@ export function MatchScreen({
                     visibility={workletVisibility}
                     statuses={workletStatuses}
                     zoneFractions={workletZoneFractions}
-                    carrier={workletCarrier}
                     visualTick={workletVisualTick}
                     controlledTeam={controlledTeam}
                     heroPlayers={rivalHeroPlayers}
