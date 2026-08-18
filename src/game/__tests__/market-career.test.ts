@@ -64,7 +64,7 @@ describe('career market integration', () => {
     }
   });
 
-  test('waives only an unaffordable first scouting mission', () => {
+  test('waives only the first LOCAL mission, and only for a club that can afford nothing', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(20260805)),
       week: 15,
@@ -75,7 +75,17 @@ describe('career market integration', () => {
         club.id === initial.userClubId ? { ...club, cash: 0 } : club,
       ),
     };
-    const started = startCareerScoutMission(broke, broke.market!, 'EUROPE', {
+    // A broke club reaching past the nearest region pays nothing and gets
+    // nothing: the favour covers the local trip only, so the old rule that
+    // rewarded picking the dearest slip is gone.
+    expect(() =>
+      startCareerScoutMission(broke, broke.market!, 'EUROPE', {
+        kind: 'POSITION',
+        role: 'FWD',
+      }),
+    ).toThrow('not affordable');
+
+    const started = startCareerScoutMission(broke, broke.market!, 'LOCAL', {
       kind: 'POSITION',
       role: 'FWD',
     });
@@ -104,8 +114,9 @@ describe('career market integration', () => {
     };
     const resolved = resolveCareerScoutClock(dueState, started.market);
     expect(resolved.activeScoutMissionFeeWaived).toBeUndefined();
+    // One favour per career: the second local trip is charged like any other.
     expect(() =>
-      startCareerScoutMission(dueState, resolved, 'EUROPE', {
+      startCareerScoutMission(dueState, resolved, 'LOCAL', {
         kind: 'POSITION',
         role: 'FWD',
       }),

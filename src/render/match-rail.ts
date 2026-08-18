@@ -19,7 +19,7 @@ export const MATCH_RAIL_GUTTER = 16;
 export const MATCH_RAIL_TOP_INSET = 24;
 
 /** How many tired starters the rail's substitution card lists. */
-export const RAIL_TIRED_ROWS = 3;
+export const RAIL_TIRED_ROWS = 2;
 
 /** Hero License field cap — the rail never shows more power tiles than this. */
 export const RAIL_HERO_TILE_CAP = 4;

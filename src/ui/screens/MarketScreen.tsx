@@ -1037,6 +1037,14 @@ function ScoutingDesk({
                     <Text className="mt-2 text-sm leading-5 text-ink/60">
                       {choice.detail}
                     </Text>
+                    {/* The waiver only fires when the club can afford nothing
+                        on the board, so say why the price vanished rather than
+                        leaving FREE to look arbitrary beside four priced slips. */}
+                    {choice.feeWaived === true ? (
+                      <Text className="mt-2 text-sm font-bold leading-5 text-pitch-ink">
+                        {t('market.scoutFavorLocal')}
+                      </Text>
+                    ) : null}
                     <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
                       <Text className="font-mono text-sm uppercase text-ink/50">
                         {choice.durationLabel}

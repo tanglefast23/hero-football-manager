@@ -33,6 +33,7 @@ const shootout = penaltyShootoutViewModel({
   round: 4,
   clubTeam: team('halcyra', 'HALCYRA HEROES'),
   opponentTeam: team('storm', 'STORM UNITED'),
+  clubIsHome: true,
   winner: 'club',
 });
 

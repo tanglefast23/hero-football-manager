@@ -53,9 +53,8 @@ describe('desktop match control rail', () => {
     expect(mostTiredFirst(field).map((player) => player.id)).toEqual([
       'st',
       'lb',
-      'rb',
     ]);
-    expect(RAIL_TIRED_ROWS).toBe(3);
+    expect(RAIL_TIRED_ROWS).toBe(2);
   });
 
   it('keeps equally tired players in their field order', () => {
@@ -69,7 +68,6 @@ describe('desktop match control rail', () => {
     expect(mostTiredFirst(field).map((player) => player.id)).toEqual([
       'a',
       'b',
-      'c',
     ]);
   });
 

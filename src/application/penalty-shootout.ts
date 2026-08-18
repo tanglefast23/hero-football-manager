@@ -21,6 +21,8 @@ export interface PenaltyShootoutArgs {
   clubTeam: TeamDef;
   opponentTeam: TeamDef;
   winner: 'club' | 'opponent';
+  /** True when the manager's club was the home side in this fixture. */
+  clubIsHome: boolean;
 }
 
 interface KickTemplate {
@@ -123,6 +125,7 @@ export function penaltyShootoutViewModel(
     fixtureId: args.fixtureId,
     clubName: args.clubTeam.name,
     opponentName: args.opponentTeam.name,
+    clubIsHome: args.clubIsHome,
     winner: args.winner,
     kicks,
     finalClubScore: clubScore,

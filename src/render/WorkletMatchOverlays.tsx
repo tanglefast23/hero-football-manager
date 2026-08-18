@@ -75,7 +75,7 @@ const ENCORE_BOLT_COLOR = '#edb54a';
 const POSSESSION_RING_COLOR = '#ffe14d';
 const POSSESSION_RING_WIDTH = 3;
 /** Sprite centre -> the middle of the boots, in source pixels. */
-const POSSESSION_RING_DROP_PX = 13;
+export const POSSESSION_RING_DROP_PX = 13;
 /** Ellipse radii in source pixels. Flat, so it reads as ground, not a halo. */
 const POSSESSION_RING_RX_PX = 11;
 const POSSESSION_RING_RY_PX = 4.5;
@@ -428,6 +428,56 @@ export function WorkletBallShadow({
   const opacity = useDerivedValue(() => ballShadowOpacity(ballHeight.value));
 
   return <Path path={shadow} color="#26512f" opacity={opacity} />;
+}
+
+/** Ball x-ray ring colour — the ball's own white, so it reads as the ball. */
+const BALL_XRAY_COLOR = '#ffffff';
+/** Ring radius as a multiple of the ball's drawn radius. */
+const BALL_XRAY_RADIUS_SCALE = 1.7;
+
+/**
+ * Dotted halo drawn on top of the Atlas while a player's body is between the
+ * camera and the ball. Paired with the ball sprite's own drop to 70% alpha, it
+ * reads as seeing the ball THROUGH him instead of the ball floating on his back.
+ *
+ * The halo is deliberately wider than the ball: at a ~12dp diameter, dashes
+ * traced on the ball's own edge collapse into a fuzzy line.
+ */
+export function WorkletBallXray({
+  ballDrawPosition,
+  ballRadius,
+  visible,
+}: {
+  ballDrawPosition: SharedValue<Float32Array>;
+  ballRadius: number;
+  visible: boolean;
+}) {
+  const radius = ballRadius * BALL_XRAY_RADIUS_SCALE;
+  const ring = usePathValue((builder: SkPathBuilder) => {
+    'worklet';
+    const cx = ballDrawPosition.value[0];
+    const cy = ballDrawPosition.value[1];
+    builder.addOval({
+      x: cx - radius,
+      y: cy - radius,
+      width: radius * 2,
+      height: radius * 2,
+    });
+  });
+  if (!visible) return null;
+
+  return (
+    <Path
+      path={ring}
+      color={BALL_XRAY_COLOR}
+      style="stroke"
+      strokeWidth={2}
+      opacity={0.85}
+      antiAlias={false}
+    >
+      <DashPathEffect intervals={[3, 3]} phase={0} />
+    </Path>
+  );
 }
 
 /**

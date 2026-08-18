@@ -263,6 +263,23 @@ describe('player-facing acceptance audit regressions', () => {
     expect(liveMatch).toContainSource('onFormationChange?.(formation);');
   });
 
+  test('offers every owned formation live, not just the three presets', () => {
+    // A coach-taught fourth shape used to reach the pitch only by evicting one
+    // of the three preset slots, because the live rail read the slots. It now
+    // reads the same list the matchday picker offers, while slot 0 keeps
+    // deciding the shape the match opens on.
+    const app = source('App.tsx');
+    const liveMatch = source('src/render/MatchScreen.tsx');
+
+    expect(app).toContainSource('formationOptions={matchdayFormationOptions}');
+    expect(app).toContainSource(
+      'formationPresets={preferences.formationPresets}',
+    );
+    expect(liveMatch).toContainSource(
+      'matchPoliciesForControlledTeam(controlledTeam, livePresets[0]),',
+    );
+  });
+
   test('never reorders the live formation chips under the manager', () => {
     // Remembering the pick moves it to slot 0 for the NEXT match. Read live,
     // that swapped the tapped chip's label with the first one's, so the white
@@ -272,12 +289,19 @@ describe('player-facing acceptance audit regressions', () => {
     expect(liveMatch).toContainSource(
       'const presetsRef = useRef(formationPresets);',
     );
-    expect(liveMatch).toContainSource('formations={livePresets}');
     expect(liveMatch).toContainSource(
-      'nextFormation(displayedFormation, livePresets)',
+      'const optionsRef = useRef<readonly FormationId[]>(',
     );
-    // The live prop may only be read to seed the frozen copy.
-    expect(liveMatch.match(/formationPresets/g)).toHaveLength(3);
+    expect(liveMatch).toContainSource('formations={liveFormationOptions}');
+    expect(liveMatch).toContainSource(
+      'nextFormation(displayedFormation, liveFormationOptions),',
+    );
+    // Both live props may only be read to seed the frozen copies: the
+    // destructure, the type, and the seed itself. `formationPresets` gets a
+    // fourth read as the fallback when no option list is passed;
+    // `formationOptions` gets two more because its seed rejects an empty list.
+    expect(liveMatch.match(/formationPresets/g)).toHaveLength(4);
+    expect(liveMatch.match(/formationOptions/g)).toHaveLength(5);
   });
 
   test('keeps the match-day docket free of redundant live-coaching and auto-context blocks', () => {

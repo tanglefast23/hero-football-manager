@@ -17,6 +17,7 @@ import {
   renewalContractAsk,
   renewalFamePercent,
   resolveScoutMission,
+  scoutMissionFeeWaived,
   sellingTransferQuote,
   startContractNegotiation,
   startScoutMission,
@@ -309,7 +310,11 @@ export function startCareerScoutMission(
     ),
   });
   const club = userClub(state);
-  const feeWaived = club.cash < mission.cost && market.nextMissionNumber === 1;
+  const feeWaived = scoutMissionFeeWaived(
+    region,
+    club.cash,
+    market.nextMissionNumber === 1,
+  );
   if (club.cash < mission.cost && !feeWaived) {
     throw new Error('the scouting mission is not affordable');
   }

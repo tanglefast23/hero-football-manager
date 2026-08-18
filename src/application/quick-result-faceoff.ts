@@ -94,6 +94,8 @@ export function quickResultFaceOffViewModel(
     clubTeam: TeamDef;
     opponentTeam: TeamDef;
     outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
+    /** True when the manager's club was the home side in this fixture. */
+    clubIsHome: boolean;
   },
   t: CopyFn = englishCopy(),
 ): QuickResultFaceOffViewModel | null {
@@ -111,6 +113,7 @@ export function quickResultFaceOffViewModel(
 
   return {
     sides,
+    clubIsHome: args.clubIsHome,
     strike: faceOffStrike(args.outcomeLabel),
     accessibilityLabel: t('matchScreen.a11y.faceOff', {
       player: sides[0].playerName,

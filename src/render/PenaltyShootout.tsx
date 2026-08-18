@@ -24,9 +24,14 @@ import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { playerLookId } from './sprites/player-look';
+import { matchKitPaletteOverride } from './team-kit-ui';
 
-export const PENALTY_KICK_MS = 720;
-export const PENALTY_OUTCOME_MS = 420;
+// Half the original pace (720 / 420). Every kick shares a shooter, a keeper and
+// a ball at the same three points on screen, so the eye has nothing to track
+// between them: at the old speed the sequence read as one blur rather than as
+// five separate penalties. The ball flight scales with OUTCOME_MS on its own.
+export const PENALTY_KICK_MS = 1_440;
+export const PENALTY_OUTCOME_MS = 840;
 export const PENALTY_FINAL_HOLD_MS = 1_200;
 export const PENALTY_REDUCED_MOTION_MS = 1_800;
 
@@ -42,6 +47,8 @@ const NOMINAL_BALL_SCALE = 3;
 export interface PenaltyShootoutProps {
   readonly shootout: PenaltyShootoutViewModel;
   readonly reduceMotion: boolean;
+  /** The manager's kit setting, so these shirts match the ones on the pitch. */
+  readonly colorSafeKits?: boolean;
   readonly onDone: () => void;
 }
 
@@ -49,6 +56,7 @@ export interface PenaltyShootoutProps {
 export function PenaltyShootout({
   shootout,
   reduceMotion,
+  colorSafeKits = true,
   onDone,
 }: PenaltyShootoutProps) {
   const t = useCopy();
@@ -70,6 +78,8 @@ export function PenaltyShootout({
   const startedAt = useSharedValue(-1);
   const outcomeCode = useSharedValue(1);
   const direction = useSharedValue(1);
+  /** +1 while the club shoots (left end), -1 while the opponent does (right). */
+  const shootingEnd = useSharedValue(1);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -79,6 +89,8 @@ export function PenaltyShootout({
     };
 
     if (reduceMotion) {
+      const last = shootout.kicks.at(-1);
+      shootingEnd.value = last?.shootingSide === 'opponent' ? -1 : 1;
       setActiveIndex(Math.max(0, shootout.kicks.length - 1));
       setRevealedCount(shootout.kicks.length);
       schedule(finishOnce, PENALTY_REDUCED_MOTION_MS);
@@ -97,6 +109,7 @@ export function PenaltyShootout({
       elapsedMs.value = 0;
       outcomeCode.value = kick.outcome === 'score' ? 1 : 0;
       direction.value = index % 2 === 0 ? 1 : -1;
+      shootingEnd.value = kick.shootingSide === 'club' ? 1 : -1;
       playForEvent({
         t: 0,
         kind: 'SHOT',
@@ -132,6 +145,7 @@ export function PenaltyShootout({
     finishOnce,
     outcomeCode,
     reduceMotion,
+    shootingEnd,
     shootout,
     startedAt,
   ]);
@@ -148,27 +162,44 @@ export function PenaltyShootout({
 
   const kick =
     shootout.kicks[activeIndex] ?? shootout.kicks[shootout.kicks.length - 1]!;
-  const shooterVisualId = visualId(kick.shooter);
-  const goalkeeperVisualId = visualId(kick.goalkeeper);
-  const visualIds = useMemo(
-    () => [
+  // The keeper always faces a shooter from the other club, so he takes the
+  // opposite kit — never the same shirt as the man on the spot.
+  const shooterIsHome = (side: 'club' | 'opponent') =>
+    side === 'club' ? shootout.clubIsHome : !shootout.clubIsHome;
+  const shooterVisualId = visualId(
+    kick.shooter,
+    shooterIsHome(kick.shootingSide),
+  );
+  const goalkeeperVisualId = visualId(
+    kick.goalkeeper,
+    !shooterIsHome(kick.shootingSide),
+  );
+  const visualIds = useMemo(() => {
+    const isHome = (side: 'club' | 'opponent') =>
+      side === 'club' ? shootout.clubIsHome : !shootout.clubIsHome;
+    return [
       ...new Set(
         shootout.kicks.flatMap((item) => [
-          visualId(item.shooter),
-          visualId(item.goalkeeper),
+          visualId(item.shooter, isHome(item.shootingSide)),
+          visualId(item.goalkeeper, !isHome(item.shootingSide)),
         ]),
       ),
-    ],
-    [shootout.kicks],
-  );
+    ];
+  }, [shootout.clubIsHome, shootout.kicks]);
   const atlas = useMemo(() => {
     try {
-      return buildSpriteAtlas(Skia, visualIds);
+      // Same palette override the pitch used, so a match played in amber does
+      // not finish in red. Away is always the atlas blue and needs no override.
+      return buildSpriteAtlas(
+        Skia,
+        visualIds,
+        matchKitPaletteOverride(colorSafeKits),
+      );
     } catch (error) {
       console.warn('PenaltyShootout: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [visualIds]);
+  }, [colorSafeKits, visualIds]);
   const playerScale = snapSpriteScale(
     1,
     NOMINAL_PLAYER_SCALE,
@@ -183,13 +214,19 @@ export function PenaltyShootout({
   const goalHeight = Math.min(height * 0.16, 104);
   const goalX = width * 0.5;
   const goalY = height * 0.34;
-  const shooterX = width * 0.27;
+  // Two run-up spots, mirrored about the goal: the club always steps up from
+  // the left and the opponent from the right. With one shared spot the only
+  // thing that changed between kicks was the name caption, so a shootout read
+  // as one team taking every penalty.
+  const clubShooterX = width * 0.27;
+  const opponentShooterX = width * 0.73;
   const shooterY = height * 0.65;
   const geometry = useSharedValue({
     goalX,
     goalY,
     goalWidth,
-    shooterX,
+    clubShooterX,
+    opponentShooterX,
     shooterY,
     playerScale,
     ballScale,
@@ -199,19 +236,21 @@ export function PenaltyShootout({
       goalX,
       goalY,
       goalWidth,
-      shooterX,
+      clubShooterX,
+      opponentShooterX,
       shooterY,
       playerScale,
       ballScale,
     };
   }, [
     ballScale,
+    clubShooterX,
     geometry,
     goalWidth,
     goalX,
     goalY,
+    opponentShooterX,
     playerScale,
-    shooterX,
     shooterY,
   ]);
 
@@ -232,20 +271,25 @@ export function PenaltyShootout({
     const t = Math.max(0, Math.min(1, elapsedMs.value / PENALTY_OUTCOME_MS));
     const eased = t * t * (3 - 2 * t);
     const dir = direction.value;
+    // +1 shoots left-to-right, -1 right-to-left. Everything the shooter does
+    // mirrors on it: where he stands, which boot the ball sits by, and which
+    // way his run-up carries him.
+    const end = shootingEnd.value;
+    const shooterX = end === 1 ? g.clubShooterX : g.opponentShooterX;
     const halfPlayerW = 12 * g.playerScale;
     const halfPlayerH = 15 * g.playerScale;
     const halfBall = 3 * g.ballScale;
-    const ballStartX = g.shooterX + halfPlayerW * 0.65;
+    const ballStartX = shooterX + end * halfPlayerW * 0.65;
     const ballStartY = g.shooterY + halfPlayerH * 0.75;
     const ballTargetX = g.goalX + dir * g.goalWidth * 0.22;
     const ballTargetY = g.goalY + 12;
 
     if (index === 0) {
-      const lunge = Math.sin(Math.min(t, 0.5) * Math.PI * 2) * 10;
+      const lunge = Math.sin(Math.min(t, 0.5) * Math.PI * 2) * 10 * end;
       transform.set(
         g.playerScale,
         0,
-        g.shooterX + lunge - halfPlayerW,
+        shooterX + lunge - halfPlayerW,
         g.shooterY - halfPlayerH,
       );
       return;
@@ -401,8 +445,23 @@ export function PenaltyShootout({
   );
 }
 
-function visualId(side: PenaltyShootoutViewModel['kicks'][number]['shooter']) {
-  return `r:${playerLookId(side.playerId, side.role, side.lookId)}`;
+/**
+ * Sprite identity for one side of a kick, in the kit that side actually wore.
+ *
+ * `r` and `u` are the two kit palettes in the shared atlas — home red and away
+ * blue — and they are the whole of the game's jersey colour: the pitch itself
+ * picks between the same two in `visualIdForMatchPlayer`, and `primaryColor` in
+ * clubs.json never reaches a sprite. So "the real kit" means the home/away side
+ * this club took in this fixture, which `clubIsHome` carries over from the
+ * store. The prefix used to be a hardcoded `r`, so the shooter and the keeper
+ * facing him wore the same red shirt and every kick looked like one team
+ * taking all of them.
+ */
+function visualId(
+  side: PenaltyShootoutViewModel['kicks'][number]['shooter'],
+  isHomeSide: boolean,
+) {
+  return `${isHomeSide ? 'r' : 'u'}:${playerLookId(side.playerId, side.role, side.lookId)}`;
 }
 
 function ScoreSide({

@@ -298,6 +298,8 @@ export interface MatchDayBannerViewModel {
 export interface QuickResultFaceOffViewModel {
   /** [club, opponent]. The club is index 0 and is always drawn on the left. */
   sides: readonly [FaceOffSideViewModel, FaceOffSideViewModel];
+  /** Which kit each side wore. See `PenaltyShootoutViewModel.clubIsHome`. */
+  clubIsHome: boolean;
   /** Who strikes the ball: 'club', 'opponent', or 'bounce' for a draw. */
   strike: FaceOffStrike;
   /** The whole scene as one spoken sentence, minus the "Tap to skip." suffix. */
@@ -323,6 +325,12 @@ export interface PenaltyShootoutViewModel {
   fixtureId: string;
   clubName: string;
   opponentName: string;
+  /**
+   * Which kit each side wore in the match that just ended. The sprite atlas
+   * ships exactly two kit palettes, home red and away blue, so this is the
+   * whole of "the real jersey colour" the pitch had.
+   */
+  clubIsHome: boolean;
   winner: 'club' | 'opponent';
   kicks: readonly PenaltyKickViewModel[];
   finalClubScore: number;
@@ -361,6 +369,12 @@ export interface MatchResultViewModel {
    * consolation is hung on.
    */
   cupExit: boolean;
+  /**
+   * A cup tie settled on penalties, in the same home/away order as the score
+   * above. Absent for every match decided inside 90 minutes.
+   */
+  shootoutHomeScore?: number;
+  shootoutAwayScore?: number;
 }
 
 /**

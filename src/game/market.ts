@@ -157,6 +157,37 @@ export function scoutMissionCost(
   return regionCost + focusCost;
 }
 
+/**
+ * The cheapest slip the board can ever offer: the nearest region, a profile
+ * brief, and no named position. A club below this can afford nothing at all,
+ * which is the one condition that opens the scout's opening favour.
+ */
+export function cheapestScoutMissionCost(): number {
+  return scoutMissionCost('LOCAL', {
+    kind: 'PROFILE',
+    prospectType: 'IMMEDIATE_STARTER',
+  });
+}
+
+/**
+ * Whether the scout covers this slip himself.
+ *
+ * One favour per career, and only when the club is too poor for ANY slip on the
+ * board — then the nearest trip is on him. The rule used to waive whichever slip
+ * the manager could not afford, which paid the manager for reaching past his
+ * means: a solvent club paid $2,000 for the cheapest local look while a club
+ * $1 short of South America got a $5,000 trip free.
+ */
+export function scoutMissionFeeWaived(
+  region: ScoutRegion,
+  cash: number,
+  isFirstMission: boolean,
+): boolean {
+  return (
+    region === 'LOCAL' && isFirstMission && cash < cheapestScoutMissionCost()
+  );
+}
+
 export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
   assertUint32(setup.careerSeed, 'scouting career seed');
   assertNonEmptyString(setup.missionId, 'scouting mission ID');

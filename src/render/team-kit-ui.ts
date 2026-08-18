@@ -11,6 +11,29 @@ export const HOME_KIT_COLOR = '#d94f52';
 export const HOME_KIT_COLOR_SAFE = '#edb54a';
 export const AWAY_KIT_COLOR = '#5a8fd6';
 
+/**
+ * Sprite palette override for the home kit when color-safe kits are on.
+ *
+ * This is the ONLY way a jersey palette varies at run time: away is always the
+ * atlas blue, and home is either the authored red or this amber. It lived
+ * privately in MatchScreen, so the shootout and the Quick Result face-off built
+ * their sprites without it and showed red shirts for a match played in amber.
+ * `colorSafeKits` defaults to ON, so that was the common case, not the rare one.
+ */
+export const COLOR_SAFE_HOME_KIT = {
+  o: '#6a4326',
+  r: '#ba7517',
+  R: '#edb54a',
+  E: '#f7d894',
+} as const;
+
+/** The palette override a screen must pass to `buildSpriteAtlas` to match the pitch. */
+export function matchKitPaletteOverride(
+  colorSafeKits: boolean,
+): Readonly<Record<string, string>> | undefined {
+  return colorSafeKits ? COLOR_SAFE_HOME_KIT : undefined;
+}
+
 export function teamKitColor(team: 0 | 1, colorSafeKits: boolean): string {
   if (team === 1) return AWAY_KIT_COLOR;
   return colorSafeKits ? HOME_KIT_COLOR_SAFE : HOME_KIT_COLOR;

@@ -1846,6 +1846,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
                 round: fixture.round,
                 clubTeam,
                 opponentTeam,
+                clubIsHome: userIsHome,
                 winner:
                   postMatch.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
               },
@@ -1858,6 +1859,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
               {
                 clubTeam,
                 opponentTeam,
+                clubIsHome: userIsHome,
                 outcomeLabel: postMatch.result.outcomeLabel,
               },
               t,
@@ -1870,7 +1872,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             : destination;
       set({
         career: next,
-        postMatch,
+        postMatch: withShootoutScore(postMatch, shootout, userIsHome),
         postMatchOverlay: null,
         weekReview: null,
         // Settling this match rolled the calendar on. If the week it rolled
@@ -2022,6 +2024,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
               round: fixture.round,
               clubTeam,
               opponentTeam,
+              clubIsHome: watchedMatch.userIsFixtureHome,
               winner:
                 postMatch.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
             },
@@ -2030,7 +2033,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         : null;
       set({
         career: next,
-        postMatch,
+        postMatch: withShootoutScore(
+          postMatch,
+          shootout,
+          watchedMatch.userIsFixtureHome,
+        ),
         postMatchOverlay: null,
         weekReview: null,
         // See the Quick Result path: a settled match can land the club in
@@ -3652,6 +3659,34 @@ function resumeScreen(career: GameState): M1Screen {
  * every one of those weeks arrived in silence. That is most of a season: on a
  * full fixture list, match weeks are usually reached from other match weeks.
  */
+/**
+ * Stamps a settled shootout's score onto the full-time report.
+ *
+ * The report prints the 90-minute scoreline, which for a tie is 1-1 whoever
+ * went through — the screen said "WE WON!" over a draw and never named the
+ * penalties. The shootout view model counts in club/opponent terms and the
+ * report in home/away, so the caller's own home flag does the mapping.
+ */
+function withShootoutScore(
+  postMatch: PostMatchViewModel,
+  shootout: PenaltyShootoutViewModel | null,
+  userIsHome: boolean,
+): PostMatchViewModel {
+  if (shootout === null) return postMatch;
+  return {
+    ...postMatch,
+    result: {
+      ...postMatch.result,
+      shootoutHomeScore: userIsHome
+        ? shootout.finalClubScore
+        : shootout.finalOpponentScore,
+      shootoutAwayScore: userIsHome
+        ? shootout.finalOpponentScore
+        : shootout.finalClubScore,
+    },
+  };
+}
+
 function matchDayBannerOnArrival(
   before: GameState,
   next: GameState,
