@@ -5,13 +5,12 @@ import {
   LOCALES,
   contentStrings,
   loadCatalog,
-  loadGlossary,
   localeMeta,
 } from '../index';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
 import { scannedFiles, sourceFiles } from '../hardcoded-prose';
 import { faceForKey } from '../voice';
-import { budgetClass, copyBudget } from '../copy-budget';
+import { budgetClass, copyBudget, loadGlossary } from '../copy-budget';
 import { advanceEm } from '../advance';
 import {
   COLUMN_MIN_GUTTER,
