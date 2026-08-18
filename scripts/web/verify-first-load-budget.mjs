@@ -367,8 +367,21 @@ const DIST = path.resolve('dist');
 // than dressed up: nothing was measured locally, since a worktree resolves
 // node_modules up-tree and cannot reproduce CI's tree. Per the convention
 // here, if a later CI run reports lower, ratchet down to that figure.
-const RAW_BUDGET = 3_410_095;
-const GZIP_BUDGET = 831_475;
+// 2026-08-18, the tackle card. A two-line plate — the tackler's last name over
+// the word "Tackle!" — pops under the boots on every won challenge. One new
+// component (`TacklePop`), one new function in the pitch alphabet
+// (`stackedGlyph`), and the wiring in `MatchScreen` that fires it. It costs
+// first-load bytes because `MatchScreen` is already in the startup graph, as
+// the entry above records; the card reuses `PassComboPop`'s curves and
+// `pixel-glyphs`' alphabet rather than bringing its own.
+//
+// Measured by CI, not estimated: +533 raw (3_410_095 -> 3_410_628) and +158
+// gzip (831_475 -> 831_633). Local export cannot reproduce CI's tree, for the
+// worktree/node_modules reason the entry above gives. The Prettier pass in the
+// same branch is formatter output only and moves no code. Per the convention
+// here, if a later CI run reports lower, ratchet down to that figure.
+const RAW_BUDGET = 3_410_628;
+const GZIP_BUDGET = 831_633;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
