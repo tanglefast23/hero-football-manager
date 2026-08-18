@@ -29,6 +29,8 @@ import { HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
 const PLAYER_COUNT = RENDER_PLAYER_COUNT;
 const ATLAS_SLOT_COUNT = PLAYER_COUNT + 1;
 const BALL_SLOT = PLAYER_COUNT;
+/** Where the [rotation, usesActionCell] pose tail starts in `visualPositions`. */
+const POSE_TAIL_OFFSET = PLAYER_COUNT * 2;
 export const WORKLET_ACTION_STRIDE = 8;
 export const WORKLET_ACTION_SLIDE = 1;
 export const WORKLET_ACTION_STAGGER = 4;
@@ -498,8 +500,14 @@ export function useWorkletAtlasFrame(
   // Widen the typed-array backing buffer to ArrayBufferLike. TypeScript 6
   // otherwise infers `new Float32Array(...)` as ArrayBuffer-backed only, which
   // is narrower than the SharedValue contract consumed by Skia/Reanimated.
+  //
+  // Layout: head [x, y] × PLAYER_COUNT (stride 2 — every overlay consumer
+  // indexes `player * 2` and stays untouched), then a pose tail
+  // [rotation, usesActionCell] × PLAYER_COUNT starting at POSE_TAIL_OFFSET.
+  // The RSXform mapper reads the tail instead of re-running actionPoseWorklet
+  // a second time per player per frame.
   const visualPositions = useDerivedValue<Float32Array>(() => {
-    const output = new Float32Array(PLAYER_COUNT * 2);
+    const output = new Float32Array(PLAYER_COUNT * 4);
     const t = progress.value;
     const prev = previousPositions.value;
     const next = nextPositions.value;
@@ -548,6 +556,9 @@ export function useWorkletAtlasFrame(
       }
       output[packedOffset] = centerX;
       output[packedOffset + 1] = centerY;
+      const poseOffset = POSE_TAIL_OFFSET + packedOffset;
+      output[poseOffset] = pose.rotation;
+      output[poseOffset + 1] = pose.active && kind === ACTION_SLIDE ? 1 : 0;
     }
     return output;
   });
@@ -666,11 +677,13 @@ export function useWorkletAtlasFrame(
         return;
       }
 
-      const presentationTick = Math.max(0, visualTick.value);
-      const pose = actionPoseWorklet(actionData.value, index, presentationTick);
-      const actionOffset = index * ACTION_STRIDE;
-      const usesActionCell =
-        pose.active && actionData.value[actionOffset] === ACTION_SLIDE;
+      // Pose comes from the tail `visualPositions` wrote this frame — the pose
+      // math already ran there, and rotation depends only on actionData and
+      // visualTick, both deps of that derived value, so the tail is never
+      // stale when this mapper runs.
+      const poseOffset = POSE_TAIL_OFFSET + packedOffset;
+      const poseRotation = visualPositions.value[poseOffset];
+      const usesActionCell = visualPositions.value[poseOffset + 1] === 1;
       const sourceWidth = usesActionCell ? actionCell.width : playerCell.width;
       const sourceHeight = usesActionCell
         ? actionCell.height
@@ -686,8 +699,8 @@ export function useWorkletAtlasFrame(
           : zoneFractions.value[index] > 0
             ? zoneReadyPlayerScale(scale * playerDrawScale, devicePixelRatio)
             : scale * playerDrawScale;
-      const scos = Math.cos(pose.rotation) * playerScale;
-      const ssin = Math.sin(pose.rotation) * playerScale;
+      const scos = Math.cos(poseRotation) * playerScale;
+      const ssin = Math.sin(poseRotation) * playerScale;
       xf.set(
         scos,
         ssin,

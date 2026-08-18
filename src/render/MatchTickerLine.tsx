@@ -14,7 +14,7 @@
  * life, because a ticker that started under a sheet would only be seen running
  * off at the far side.
  */
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Text, View, type StyleProp, type TextStyle } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -56,7 +56,10 @@ export interface MatchTickerLineProps {
   readonly reducedEffects: boolean;
 }
 
-export function MatchTickerLine({
+// memo: every prop is a primitive and stable for a line's life, but the parent
+// re-renders per sim tick — the shallow compare skips re-reconciling the ~12
+// stacked <Text> copies (outline ring + extrude + shadow) per live lane.
+export const MatchTickerLine = memo(function MatchTickerLine({
   text,
   tone,
   small = false,
@@ -163,4 +166,4 @@ export function MatchTickerLine({
       </View>
     </Animated.View>
   );
-}
+});

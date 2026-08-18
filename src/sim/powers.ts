@@ -744,11 +744,13 @@ export function powerTick(
       // window. Previously auto waited for a shot while watched play spent its
       // limited Zones on build-ups that could fizzle, making tapping worse even
       // though its save bonus was stronger.
-      const entryContext = zoneEntryContext(state, idx);
+      // zoneEntryContext last: for PORTAL_PASS/GRAVITY_WELL it is a full
+      // pitch search, and the cheap gauge gates skip it (pure, no RNG) on
+      // every tick a hero is still charging.
       if (
         p.zonesOpened < zoneLimit(p) &&
         p.gauge >= zoneThreshold &&
-        entryContext
+        zoneEntryContext(state, idx)
       ) {
         p.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
         p.zonesOpened++;
