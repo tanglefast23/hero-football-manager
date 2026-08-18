@@ -3485,24 +3485,32 @@ export function MatchScreen({
   );
   // A substitute enters at their startingCondition (src/sim/substitutions.ts),
   // so the board shows that as their energy rather than assuming a full bar.
-  const substitutionBoardBench = bench.map((player) => ({
-    id: player.id,
-    name: player.name,
-    role: player.role,
-    condition: player.startingCondition ?? 100,
-    ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
-  }));
-  const substitutionBoardField = onFieldIndices.map((index) => {
-    const player = match.players[index];
-    return {
-      index,
-      name: player.def.name,
-      role: player.def.role,
-      condition: player.condition,
-      sentOff: player.outReason === 'redcard',
-      ...(player.def.lookId === undefined ? {} : { lookId: player.def.lookId }),
-    };
-  });
+  // Built only while the board is open: it pauses the match, so view-models
+  // rebuilt on live ticks while it is closed are never the ones rendered.
+  const substitutionBoardBench = !swapOpen
+    ? []
+    : bench.map((player) => ({
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        condition: player.startingCondition ?? 100,
+        ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+      }));
+  const substitutionBoardField = !swapOpen
+    ? []
+    : onFieldIndices.map((index) => {
+        const player = match.players[index];
+        return {
+          index,
+          name: player.def.name,
+          role: player.def.role,
+          condition: player.condition,
+          sentOff: player.outReason === 'redcard',
+          ...(player.def.lookId === undefined
+            ? {}
+            : { lookId: player.def.lookId }),
+        };
+      });
   const { average: teamEnergy, tiredCount } = summarizeTeamEnergy(
     activeOnFieldIndices.map((index) => match.players[index].condition),
   );
@@ -3797,47 +3805,54 @@ export function MatchScreen({
   };
   // Desktop rail view-model. Everything here reads the JS-side match state the
   // RAF loop already re-renders each tick, so heat and the Zone countdown are
-  // live without touching the Reanimated worklet frame.
-  const railTiredPlayers: MatchRailTiredPlayer[] = mostTiredFirst(
-    activeOnFieldIndices.map((index) => ({
-      id: match.players[index].def.id,
-      name: match.players[index].def.name,
-      role: match.players[index].def.role,
-      condition: match.players[index].condition,
-    })),
-  );
-  const controlledRailHeroTiles: MatchRailHeroTile[] = activeOnFieldIndices
-    .flatMap((index) => {
-      const player = match.players[index];
-      const power = player.def.power;
-      if (!power) return [];
-      const presentation = powerCutInPresentation(power, t);
-      return [
-        {
-          id: player.def.id,
-          name: player.def.name,
-          powerName: presentation.name,
-          powerGlyph: presentation.glyph,
-          powerColor: presentation.color,
-          heat: heatFraction(player.gauge),
-          status: railHeroStatus(player.powerState),
-          rival: false,
-        },
-      ];
-    })
-    .slice(0, RAIL_HERO_TILE_CAP);
+  // live without touching the Reanimated worklet frame. Built only when the
+  // rail layout renders — phones rebuilt all of it (sort included) every tick
+  // for a rail that never mounts.
+  const railTiredPlayers: MatchRailTiredPlayer[] = !railLayout
+    ? []
+    : mostTiredFirst(
+        activeOnFieldIndices.map((index) => ({
+          id: match.players[index].def.id,
+          name: match.players[index].def.name,
+          role: match.players[index].def.role,
+          condition: match.players[index].condition,
+        })),
+      );
+  const controlledRailHeroTiles: MatchRailHeroTile[] = !railLayout
+    ? []
+    : activeOnFieldIndices
+        .flatMap((index) => {
+          const player = match.players[index];
+          const power = player.def.power;
+          if (!power) return [];
+          const presentation = powerCutInPresentation(power, t);
+          return [
+            {
+              id: player.def.id,
+              name: player.def.name,
+              powerName: presentation.name,
+              powerGlyph: presentation.glyph,
+              powerColor: presentation.color,
+              heat: heatFraction(player.gauge),
+              status: railHeroStatus(player.powerState),
+              rival: false,
+            },
+          ];
+        })
+        .slice(0, RAIL_HERO_TILE_CAP);
   const rivalTeamOffset = controlledTeam === 0 ? 11 : 0;
-  const rivalHeadlineIndex = Array.from(
-    { length: 11 },
-    (_, slot) => rivalTeamOffset + slot,
-  ).find((index) => {
-    const player = match.players[index];
-    return (
-      player.outReason !== 'redcard' &&
-      player.def.power !== undefined &&
-      isRivalHeroIntroHeroId(player.def.id)
-    );
-  });
+  const rivalHeadlineIndex = !railLayout
+    ? undefined
+    : Array.from({ length: 11 }, (_, slot) => rivalTeamOffset + slot).find(
+        (index) => {
+          const player = match.players[index];
+          return (
+            player.outReason !== 'redcard' &&
+            player.def.power !== undefined &&
+            isRivalHeroIntroHeroId(player.def.id)
+          );
+        },
+      );
   const rivalRailHeroTiles: MatchRailHeroTile[] =
     rivalHeadlineIndex === undefined
       ? []
@@ -4250,13 +4265,18 @@ export function MatchScreen({
                   {/* Last inside the camera: a Fire Torch victim's flame tongues
                     rise well above his head, exactly where this plate sits, so
                     drawing the number earlier hid it for its whole short life. */}
-                  <IncapacityCountdowns
-                    countdowns={countdowns}
-                    positions={frame.players}
-                    scale={scale}
-                    playerDrawScale={playerSpriteScale.drawScale}
-                    devicePixelRatio={devicePixelRatio}
-                  />
+                  {/* Gated here: the component rebuilds its two native paths
+                    per tick (its memo deps are fresh every tick), so an empty
+                    tick — most of the match — must not mount it at all. */}
+                  {countdowns.length === 0 ? null : (
+                    <IncapacityCountdowns
+                      countdowns={countdowns}
+                      positions={frame.players}
+                      scale={scale}
+                      playerDrawScale={playerSpriteScale.drawScale}
+                      devicePixelRatio={devicePixelRatio}
+                    />
+                  )}
                   {/* Last of all: these numbers clear the countdown plate and
                     the Fire Torch tongues both, and the newest of the two
                     clears the other. Keyed, so reordering moves the nodes

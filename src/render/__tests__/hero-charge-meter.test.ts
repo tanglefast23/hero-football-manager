@@ -178,9 +178,18 @@ describe('possession-card hero charge meter', () => {
   it('stops the rainbow loop for reduced motion', () => {
     const source = meterSource();
 
-    expect(source).toContain('if (!ready || reduceMotion)');
+    expect(source).toContain('if (!ready || reduceMotion || stepOnRender)');
     expect(source).toContain('animation.stop()');
     // A pixel strip slides at a constant rate; easing would read as a pulse.
     expect(source).toContain('Easing.linear');
+  });
+
+  it('never runs the Animated loop on web, where the native driver is JS', () => {
+    const source = meterSource();
+
+    // The web strip advances at render time (per sim tick) instead of via a
+    // continuous Animated.loop that would tick the JS thread every frame.
+    expect(source).toContain("Platform.OS === 'web'");
+    expect(source).toContain('stepOnRender && ready && !reduceMotion');
   });
 });

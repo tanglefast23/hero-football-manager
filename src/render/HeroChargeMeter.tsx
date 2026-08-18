@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { useCopy } from '../i18n';
 import {
   CHARGE_BAND_WIDTH,
@@ -34,9 +34,16 @@ export function HeroChargeMeter({
   const t = useCopy();
   const slide = useRef(new Animated.Value(0)).current;
   const ready = meter.state === 'ready';
+  // On web the "native" driver runs on the JS thread, and a Zone never expires
+  // (m1.27), so the loop would tick the JS thread every display frame for as
+  // long as a ready hero carries the ball. The web strip advances at render
+  // time instead: the meter re-renders every sim tick anyway, so the slide
+  // steps at tick rate with no timer at all. Native keeps the true off-thread
+  // loop.
+  const stepOnRender = Platform.OS === 'web';
 
   useEffect(() => {
-    if (!ready || reduceMotion) {
+    if (!ready || reduceMotion || stepOnRender) {
       slide.setValue(0);
       return;
     }
@@ -50,14 +57,18 @@ export function HeroChargeMeter({
     );
     animation.start();
     return () => animation.stop();
-  }, [ready, reduceMotion, slide]);
+  }, [ready, reduceMotion, slide, stepOnRender]);
 
   // Travelling from one cycle behind to zero moves the colours rightwards while
   // the strip still covers the track at both ends of the loop.
-  const travel = slide.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-CHARGE_RAINBOW_CYCLE_WIDTH, 0],
-  });
+  const travel =
+    stepOnRender && ready && !reduceMotion
+      ? -CHARGE_RAINBOW_CYCLE_WIDTH *
+        (1 - (Date.now() % CHARGE_RAINBOW_CYCLE_MS) / CHARGE_RAINBOW_CYCLE_MS)
+      : slide.interpolate({
+          inputRange: [0, 1],
+          outputRange: [-CHARGE_RAINBOW_CYCLE_WIDTH, 0],
+        });
 
   return (
     <View
