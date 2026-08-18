@@ -367,6 +367,25 @@ const DIST = path.resolve('dist');
 // than dressed up: nothing was measured locally, since a worktree resolves
 // node_modules up-tree and cannot reproduce CI's tree. Per the convention
 // here, if a later CI run reports lower, ratchet down to that figure.
+// 2026-08-18, five merges that were never weighed. This entry is not one
+// feature's spend; it is the arrears of a gate that stopped running. CI's
+// `typecheck + fast tests` job runs `npm run format:check` FIRST, and eight
+// files had drifted from Prettier, so the job died at step one and this check
+// never executed. Five feature merges landed on main behind that failure:
+// f5d0058d the banked-power hero look, e8784659 the hit-stop and the two match
+// numbers, 1933b056 the pass combo cue, faace1e1 the substitution walks, and
+// cc328004 the goal ticker. Between them they spent 499 raw and 136 gzip.
+//
+// Measured by CI, both figures, on the run that first got past format:check:
+// +499 raw (3_410_095 -> 3_410_594) and +136 gzip (831_475 -> 831_611).
+//
+// 0.015% for five features is cheap, and the markers below both came back
+// empty, so nothing was dragged into the first load by accident — this is
+// drift, not a mistake. What it cost was the visibility: had the gate been
+// running, each of those five would have written its own line here. The five
+// are recorded together because that is what actually happened, not split
+// into five invented attributions. Per the convention here, if a later CI run
+// reports lower, ratchet down to that figure.
 // 2026-08-18, the SHOT! call beside the shot power number. `ShotPowerPop`
 // now draws two texts instead of one — a localised word and the number — so
 // it gained a second set of paths, a pair of x offsets and a second entrance,
@@ -374,11 +393,13 @@ const DIST = path.resolve('dist');
 // face, and the `matchScreen.shotPop` string. Only `en.json` is in the
 // startup graph, so the other six locales cost nothing here.
 //
-// Measured by CI, not locally: +529 raw (3_410_095 -> 3_410_624) and +147
-// gzip (831_475 -> 831_622). Both figures are CI's own reported numbers from
-// the failing run, not local + offset — a worktree resolves node_modules
-// up-tree and cannot reproduce CI's tree. Per the convention here, if a later
-// CI run reports lower, ratchet down to that figure.
+// Measured by CI, not locally: 3_410_624 raw and 831_622 gzip, on a tree that
+// already carried all five merges the entry above settles. Against that
+// entry's figures the pop itself is +30 raw and +11 gzip — small because the
+// second text reuses `buildLocalPaths` and the 3x5 face rather than adding a
+// module. Both numbers are CI's own, not local + offset: a worktree resolves
+// node_modules up-tree and cannot reproduce CI's tree. Per the convention
+// here, if a later CI run reports lower, ratchet down to that figure.
 const RAW_BUDGET = 3_410_624;
 const GZIP_BUDGET = 831_622;
 const QA_BODY_MARKERS = [
