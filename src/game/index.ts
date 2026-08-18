@@ -16,7 +16,13 @@ export * from './club-business-types';
 export * from './event-clock';
 export * from './facilities';
 export * from './fan-growth';
-export * from './headless';
+// `headless.ts` is deliberately NOT re-exported, for the same reason
+// `glyph-coverage.ts` is left out of the i18n barrel: it is a CI/test tool, not
+// game code. It runs a whole career in a loop, no app screen calls it, and
+// every test that wants it already imports `./headless` directly. Re-exported,
+// it rode this barrel into the shipped web first-load bundle — confirmed by
+// grepping the built `index-*.js` for its own error string, "headless full
+// career exceeded".
 export * from './lineup';
 export * from './loyalty';
 export * from './player-requests';
