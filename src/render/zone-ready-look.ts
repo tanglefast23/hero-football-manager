@@ -38,8 +38,7 @@ export function zoneReadyTint(
   playbackRate = 1,
 ): string {
   if (reduceMotion) return ZONE_READY_TINT_STEADY;
-  const period =
-    ZONE_READY_FLASH_TICKS * Math.max(1, Math.round(playbackRate));
+  const period = ZONE_READY_FLASH_TICKS * Math.max(1, Math.round(playbackRate));
   const phase = ((tick % period) + period) % period;
   return phase < period / 2 ? ZONE_READY_TINT_HOT : ZONE_READY_TINT_COOL;
 }

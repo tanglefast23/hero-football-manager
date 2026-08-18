@@ -28,10 +28,18 @@ const change = (
 
 describe('formation role label window', () => {
   it('opens on the controlled team change and points at that team of eleven', () => {
-    const home = applyRoleLabelEvent(CLOSED_ROLE_LABEL_WINDOW, change(100, 0), 0);
+    const home = applyRoleLabelEvent(
+      CLOSED_ROLE_LABEL_WINDOW,
+      change(100, 0),
+      0,
+    );
     expect(home.openTick).toBe(100);
     expect(home.firstSlot).toBe(1);
-    const away = applyRoleLabelEvent(CLOSED_ROLE_LABEL_WINDOW, change(100, 1), 1);
+    const away = applyRoleLabelEvent(
+      CLOSED_ROLE_LABEL_WINDOW,
+      change(100, 1),
+      1,
+    );
     expect(away.firstSlot).toBe(12);
   });
 
@@ -42,7 +50,11 @@ describe('formation role label window', () => {
   });
 
   it('holds for exactly ROLE_LABEL_TICKS and not one tick more', () => {
-    const open = applyRoleLabelEvent(CLOSED_ROLE_LABEL_WINDOW, change(100, 0), 0);
+    const open = applyRoleLabelEvent(
+      CLOSED_ROLE_LABEL_WINDOW,
+      change(100, 0),
+      0,
+    );
     expect(roleLabelsVisible(open, 100)).toBe(true);
     expect(roleLabelsVisible(open, 100 + ROLE_LABEL_TICKS - 1)).toBe(true);
     expect(roleLabelsVisible(open, 100 + ROLE_LABEL_TICKS)).toBe(false);
@@ -52,10 +64,20 @@ describe('formation role label window', () => {
   it.each(['GOAL', 'MISS', 'HALF_TIME', 'FULL_TIME'] as const)(
     'closes early on %s',
     (kind) => {
-      const open = applyRoleLabelEvent(CLOSED_ROLE_LABEL_WINDOW, change(100, 0), 0);
+      const open = applyRoleLabelEvent(
+        CLOSED_ROLE_LABEL_WINDOW,
+        change(100, 0),
+        0,
+      );
       const closed = applyRoleLabelEvent(
         open,
-        { t: 110, kind, by: 3, team: 0, scoredById: 'x' } as unknown as MatchEvent,
+        {
+          t: 110,
+          kind,
+          by: 3,
+          team: 0,
+          scoredById: 'x',
+        } as unknown as MatchEvent,
         0,
       );
       expect(roleLabelsVisible(closed, 111)).toBe(false);
@@ -63,10 +85,20 @@ describe('formation role label window', () => {
   );
 
   it('is untouched by an unrelated event', () => {
-    const open = applyRoleLabelEvent(CLOSED_ROLE_LABEL_WINDOW, change(100, 0), 0);
+    const open = applyRoleLabelEvent(
+      CLOSED_ROLE_LABEL_WINDOW,
+      change(100, 0),
+      0,
+    );
     const after = applyRoleLabelEvent(
       open,
-      { t: 110, kind: 'PASS', from: 1, to: 2, ok: true } as unknown as MatchEvent,
+      {
+        t: 110,
+        kind: 'PASS',
+        from: 1,
+        to: 2,
+        ok: true,
+      } as unknown as MatchEvent,
       0,
     );
     expect(after).toBe(open);
@@ -74,7 +106,11 @@ describe('formation role label window', () => {
   });
 
   it('restarts rather than extends on a second change', () => {
-    const first = applyRoleLabelEvent(CLOSED_ROLE_LABEL_WINDOW, change(100, 0, '4-3-3'), 0);
+    const first = applyRoleLabelEvent(
+      CLOSED_ROLE_LABEL_WINDOW,
+      change(100, 0, '4-3-3'),
+      0,
+    );
     const second = applyRoleLabelEvent(first, change(120, 0, '3-4-3'), 0);
     expect(second.openTick).toBe(120);
     expect(second.packedRoles).toBe(packRoles('3-4-3'));

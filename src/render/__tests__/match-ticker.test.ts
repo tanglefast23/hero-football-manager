@@ -30,9 +30,9 @@ describe('outline offsets', () => {
 
   it('keeps a four-sided ring for reduced-effects devices, never an empty one', () => {
     expect(OUTLINE_OFFSETS_CHEAP).toHaveLength(4);
-    expect(
-      OUTLINE_OFFSETS_CHEAP.every((o) => o.x === 0 || o.y === 0),
-    ).toBe(true);
+    expect(OUTLINE_OFFSETS_CHEAP.every((o) => o.x === 0 || o.y === 0)).toBe(
+      true,
+    );
   });
 });
 

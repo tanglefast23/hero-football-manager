@@ -1,4 +1,8 @@
-import { Path, usePathValue, type SkPathBuilder } from '@shopify/react-native-skia';
+import {
+  Path,
+  usePathValue,
+  type SkPathBuilder,
+} from '@shopify/react-native-skia';
 import type { SharedValue } from 'react-native-reanimated';
 import {
   LABELLED_SLOT_COUNT,

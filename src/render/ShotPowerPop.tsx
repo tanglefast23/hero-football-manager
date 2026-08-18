@@ -1,9 +1,6 @@
 import { Group, Path, Skia, type SkPath } from '@shopify/react-native-skia';
 import { useMemo } from 'react';
-import {
-  useDerivedValue,
-  type SharedValue,
-} from 'react-native-reanimated';
+import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { countdownGlyph } from './incapacity-countdown';
 import { snapDevicePixels } from './pixel-grid';
 import {
