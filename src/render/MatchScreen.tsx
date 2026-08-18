@@ -135,15 +135,9 @@ import {
   matchTimeWarpExpired,
   matchTimeWarpScale,
 } from './match-time-warp';
-import {
-  ShotPowerPop,
-  type ShotPowerPopSubject,
-} from './ShotPowerPop';
+import { ShotPowerPop, type ShotPowerPopSubject } from './ShotPowerPop';
 import { SHOT_POWER_POP_MS, shotPowerBand } from './shot-power-pop';
-import {
-  PassComboPop,
-  type PassComboPopSubject,
-} from './PassComboPop';
+import { PassComboPop, type PassComboPopSubject } from './PassComboPop';
 import {
   PASS_COMBO_FLOOR,
   PASS_COMBO_IDLE,
@@ -151,11 +145,7 @@ import {
   passComboAfter,
   type PassComboChain,
 } from './pass-combo';
-import {
-  TacklePop,
-  TACKLE_POP_MS,
-  type TacklePopSubject,
-} from './TacklePop';
+import { TacklePop, TACKLE_POP_MS, type TacklePopSubject } from './TacklePop';
 import {
   appendNewestFour,
   hasPowerJuiceExtras,
@@ -1147,7 +1137,10 @@ export function MatchScreen({
   const setPausedBoth = (value: boolean) => {
     pausedRef.current = value;
     if (value) pauseAtlasFrame();
-    else resumeAtlasFrame(matchPlaybackRate(speedRef.current) * timeWarpScaleNow());
+    else
+      resumeAtlasFrame(
+        matchPlaybackRate(speedRef.current) * timeWarpScaleNow(),
+      );
     setPaused(value);
   };
 
@@ -1207,7 +1200,10 @@ export function MatchScreen({
       );
       pausedRef.current = shouldPause;
       if (shouldPause) pauseAtlasFrame();
-      else resumeAtlasFrame(matchPlaybackRate(speedRef.current) * timeWarpScaleNow());
+      else
+        resumeAtlasFrame(
+          matchPlaybackRate(speedRef.current) * timeWarpScaleNow(),
+        );
       setPaused(shouldPause);
       performanceResumeAtRef.current = performance.now() + 1000;
     },
@@ -3210,9 +3206,7 @@ export function MatchScreen({
         reduceMotion={reduceMotion}
       />
     );
-    return newestPop === 'shot'
-      ? [combo, shot, tackle]
-      : [shot, combo, tackle];
+    return newestPop === 'shot' ? [combo, shot, tackle] : [shot, combo, tackle];
   }, [
     devicePixelRatio,
     newestPop,

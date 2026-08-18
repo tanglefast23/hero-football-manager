@@ -148,7 +148,11 @@ export function MatchTickerLine({
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
             numberOfLines={1}
-            style={[fill, styles.bannerOutline, { left: offset.x, top: offset.y }]}
+            style={[
+              fill,
+              styles.bannerOutline,
+              { left: offset.x, top: offset.y },
+            ]}
           >
             {text}
           </Text>
