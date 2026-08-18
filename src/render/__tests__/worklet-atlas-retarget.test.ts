@@ -340,7 +340,7 @@ describe('worklet Atlas continuity retargeting', () => {
       'now + (reduceMotion ? 0 : FULLTIME_HOLD_MS)',
     );
     expect(screen).toContainSource(
-      "snap || pauseAfterPublish || freezeAtStrike || s.phase === 'fulltime'",
+      "snap || pauseAfterPublish || s.phase === 'fulltime'",
     );
     expect(screen).toContainSource(
       '} else if (now >= fulltimeDeadlineRef.current) {',

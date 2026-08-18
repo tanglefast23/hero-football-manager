@@ -131,11 +131,6 @@ import {
   type AutomaticMatchPauseReason,
 } from './match-pause';
 import {
-  MATCH_TIME_WARP_ZOOM,
-  matchTimeWarpExpired,
-  matchTimeWarpScale,
-} from './match-time-warp';
-import {
   ShotPowerPop,
   type ShotPowerPopSubject,
 } from './ShotPowerPop';
@@ -751,16 +746,6 @@ export function MatchScreen({
   const shotTierRef = useRef<ShotTier>(0);
   const shotDangerAtLaunchRef = useRef<number | null>(null);
   const shotInFlightRef = useRef(false);
-  // Age of the tier-2 shot time warp in ms, or null when play runs at its
-  // ordinary rate. Accumulated from the frame gap rather than stamped as a
-  // wall-clock start: a pause, a half-time speech or an app backgrounding must
-  // not burn the warp down while the pitch is not moving. See match-time-warp.ts.
-  const timeWarpElapsedRef = useRef<number | null>(null);
-  /** The live warp's rate multiplier, or 1. Stable, so callbacks can hold it. */
-  const timeWarpScaleNow = useCallback(() => {
-    const elapsed = timeWarpElapsedRef.current;
-    return elapsed === null ? 1 : matchTimeWarpScale(elapsed);
-  }, []);
   // The power number over the shooter's head. React state because the colour
   // band and the glyph both change only once per shot; the animation itself
   // rides `shotPowerPopLife` on the UI thread. Parked at the end of its window
@@ -1112,7 +1097,7 @@ export function MatchScreen({
   const setPausedBoth = (value: boolean) => {
     pausedRef.current = value;
     if (value) pauseAtlasFrame();
-    else resumeAtlasFrame(matchPlaybackRate(speedRef.current) * timeWarpScaleNow());
+    else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
     setPaused(value);
   };
 
@@ -1172,11 +1157,11 @@ export function MatchScreen({
       );
       pausedRef.current = shouldPause;
       if (shouldPause) pauseAtlasFrame();
-      else resumeAtlasFrame(matchPlaybackRate(speedRef.current) * timeWarpScaleNow());
+      else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
       setPaused(shouldPause);
       performanceResumeAtRef.current = performance.now() + 1000;
     },
-    [pauseAtlasFrame, resumeAtlasFrame, timeWarpScaleNow],
+    [pauseAtlasFrame, resumeAtlasFrame],
   );
 
   const finishGraphicsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -1512,40 +1497,12 @@ export function MatchScreen({
       cameraZoom.value = 1;
     };
 
-    /**
-     * Whether a live power activation is actually MOVING the camera right now.
-     * Not "is juice live": startJuice fires on every POWER_FIRED, and most
-     * powers carry no camera beat at all, so juice held the camera hostage for
-     * its whole 560ms while writing an identity transform. That is exactly the
-     * window a hero's own shot flies through.
-     */
-    const juiceOwnsCamera = (now: number): boolean => {
-      const active = juiceRef.current;
-      if (active === null) return false;
-      const elapsed = now - active.startedAt;
-      return (
-        (active.juice.punchIn && elapsed < POWER_JUICE_PUNCH_MS) ||
-        (active.juice.shake && elapsed < POWER_JUICE_SHAKE_MS)
-      );
-    };
-
-    // Tear the shot time warp down. The camera only goes back to neutral when
-    // no power activation owns it — an activation that started mid-flight is
-    // still driving it, and must keep its own frame.
-    const endTimeWarp = (now: number) => {
-      if (timeWarpElapsedRef.current === null) return;
-      timeWarpElapsedRef.current = null;
-      if (!juiceOwnsCamera(now)) resetCamera();
-    };
-
     const resetJuice = () => {
       juiceRef.current = null;
       speedLineSlot.value = -1;
       speedLineLife.value = 0;
       activationFlash.value = 0;
-      // A juice that ends mid-flight must not flash the camera back to 1x for
-      // a frame: the warp reclaims it on the very next advance anyway.
-      if (timeWarpElapsedRef.current === null) resetCamera();
+      resetCamera();
       if (heroTintStepRef.current !== 'none') {
         heroTintStepRef.current = 'none';
         setHeroTint(null);
@@ -1650,43 +1607,6 @@ export function MatchScreen({
       }
     };
 
-    // Camera for the shot time warp: punched in on the BALL, retargeted every
-    // frame so a slowed flight cannot leave the zoomed window. A live power
-    // activation outranks it — that camera is already following its hero.
-    const advanceTimeWarpCamera = (now: number) => {
-      if (timeWarpElapsedRef.current === null) return;
-      if (juiceOwnsCamera(now)) return;
-      const {
-        pitchWidth: viewWidth,
-        pitchH: viewHeight,
-        devicePixelRatio: dpr,
-        scale: pitchScale,
-      } = layoutRef.current;
-      const ball = nextRef.current!.ball;
-      const camera = matchCameraOffset(
-        ball.x * pitchScale,
-        ball.y * pitchScale,
-        viewWidth,
-        viewHeight,
-        MATCH_TIME_WARP_ZOOM,
-        ZERO_SHAKE,
-        dpr,
-      );
-      const previousCamera = cameraRef.current;
-      if (
-        camera.translateX === previousCamera.x &&
-        camera.translateY === previousCamera.y &&
-        camera.zoom === previousCamera.zoom
-      )
-        return;
-      previousCamera.x = camera.translateX;
-      previousCamera.y = camera.translateY;
-      previousCamera.zoom = camera.zoom;
-      cameraX.value = camera.translateX;
-      cameraY.value = camera.translateY;
-      cameraZoom.value = camera.zoom;
-    };
-
     const loop = (now: number) => {
       const s = stateRef.current!;
       if (pausedRef.current && s.phase !== 'fulltime') {
@@ -1711,12 +1631,6 @@ export function MatchScreen({
         return;
       }
       const wallGap = now - last;
-      // Age the warp on the same gap the accumulator uses, and only on frames
-      // that actually advance play — the paused branch above returns first.
-      if (timeWarpElapsedRef.current !== null) {
-        timeWarpElapsedRef.current += wallGap;
-        if (matchTimeWarpExpired(timeWarpElapsedRef.current)) endTimeWarp(now);
-      }
       if (speedRef.current >= 2 && now >= performanceResumeAtRef.current) {
         const pacing = recordFrameGap(performanceMonitorRef.current, wallGap);
         if (pacing !== null) {
@@ -1739,7 +1653,7 @@ export function MatchScreen({
               setPerformanceNotice(true);
               if (speedRef.current === 3) {
                 speedRef.current = 2;
-                resumeAtlasFrame(matchPlaybackRate(2) * timeWarpScaleNow());
+                resumeAtlasFrame(matchPlaybackRate(2));
                 setSpeed(2);
               }
             }
@@ -1749,16 +1663,11 @@ export function MatchScreen({
         resetFramePacingMonitor(performanceMonitorRef.current);
         performanceBadWindowsRef.current = 0;
       }
-      // The shot time warp scales wall-clock time before it reaches the
-      // accumulator, so the hit-stop is simply "no ticks this frame" and
-      // bullet time is "fewer ticks per frame". The sim itself is untouched.
-      const timeWarpScale = timeWarpScaleNow();
-      const playbackRate = matchPlaybackRate(speedRef.current) * timeWarpScale;
       // Ledger item 7 — capped catch-up: never simulate more than
       // MAX_CATCHUP_TICKS in one frame, however long the JS thread stalled.
       //
       acc = Math.min(
-        acc + (now - last) * playbackRate,
+        acc + (now - last) * matchPlaybackRate(speedRef.current),
         TICK_MS * MAX_CATCHUP_TICKS,
       );
       last = now;
@@ -1772,9 +1681,6 @@ export function MatchScreen({
       let advanced = false;
       let pauseAfterPublish = false;
       let showcaseFroze = false;
-      // Publish the strike frame snapped, so the Atlas holds it instead of
-      // interpolating on through a freeze that has already started.
-      let freezeAtStrike = false;
 
       // No pausedRef check needed here: the early return above already ran,
       // and the flag cannot flip mid-invocation on a single-threaded runtime.
@@ -1983,19 +1889,6 @@ export function MatchScreen({
               easing: ReanimatedEasing.linear,
             });
           }
-          // Hit-stop and bullet time, on the same tier-2 gate as the flame.
-          // Reduce Motion opts out entirely, and so does adaptive reduction —
-          // a device already dropping frames must not be handed a time warp.
-          if (
-            shotTierRef.current === 2 &&
-            !suppressCosmeticEffects &&
-            !reduceMotion &&
-            !reducedEffectsRef.current &&
-            timeWarpElapsedRef.current === null
-          ) {
-            timeWarpElapsedRef.current = 0;
-            freezeAtStrike = true;
-          }
         } else if (!ballIsShot && shotInFlightRef.current) {
           // One exit for every ending — goal, save, miss, restart, half time.
           // The flame and the crackle both stop here, off this one flag.
@@ -2005,9 +1898,6 @@ export function MatchScreen({
           // point a short flight has already landed. Clearing here would leave
           // them reading 0 and drawing nothing.
           scorchingShot.value = 0;
-          // Goal, save, miss, restart, half time — the warp releases wherever
-          // the shot ends, off the same single exit the flame uses.
-          endTimeWarp(now);
         }
         shotInFlightRef.current = ballIsShot;
 
@@ -2073,13 +1963,6 @@ export function MatchScreen({
         }
 
         acc -= TICK_MS;
-        // Stop catching up on the tick that struck the shot. Without this a
-        // frame holding several ticks would fly the ball on before the freeze
-        // could bite, and the hit-stop would land late.
-        if (freezeAtStrike) {
-          acc = 0;
-          break;
-        }
       }
 
       const newEvents = s.events.slice(eventsBefore);
@@ -2719,7 +2602,6 @@ export function MatchScreen({
       // Every frame, not every tick: the beat sheet runs on wall clock so its
       // brief camera and tint effects stay smooth at every selected match speed.
       advanceJuice(now);
-      advanceTimeWarpCamera(now);
       if (
         advanced &&
         firstMatchTutorial &&
@@ -2828,9 +2710,9 @@ export function MatchScreen({
         publishAtlasFrame(
           nextRef.current!,
           s.tick,
-          playbackRate,
+          matchPlaybackRate(speedRef.current),
           actionRef.current,
-          snap || pauseAfterPublish || freezeAtStrike || s.phase === 'fulltime',
+          snap || pauseAfterPublish || s.phase === 'fulltime',
         );
         setFrame(nextRef.current!);
         bannerRef.current = bannerRef.current.filter(
@@ -2874,7 +2756,6 @@ export function MatchScreen({
       sub.remove();
       // Never leave an off-centre camera behind for the next loop (this effect
       // restarts when Reduce Motion is toggled mid-match).
-      timeWarpElapsedRef.current = null;
       resetJuice();
     };
   }, [
@@ -3694,8 +3575,7 @@ export function MatchScreen({
     resetFramePacingMonitor(performanceMonitorRef.current);
     performanceBadWindowsRef.current = 0;
     performanceResumeAtRef.current = performance.now() + 1000;
-    if (!pausedRef.current)
-      resumeAtlasFrame(matchPlaybackRate(allowed) * timeWarpScaleNow());
+    if (!pausedRef.current) resumeAtlasFrame(matchPlaybackRate(allowed));
     setSpeed(allowed);
   };
   const toggleUserPause = () => {
