@@ -273,6 +273,7 @@ import {
   type MatchAudioProfile,
   initAudio,
   playBallFlightWhoosh,
+  playPassCombo,
   playForEvent,
   playShotTierAudio,
   startFireAmbience,
@@ -1949,6 +1950,7 @@ export function MatchScreen({
               y: receiver.y,
             });
             setNewestPop('combo');
+            playPassCombo(chain.count);
             passComboLife.value = 0;
             passComboLife.value = withTiming(PASS_COMBO_POP_MS, {
               duration: PASS_COMBO_POP_MS,

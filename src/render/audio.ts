@@ -30,6 +30,7 @@ export type SfxKey =
   | 'kick-pass'
   | 'kick-shot'
   | 'ball-flight-whoosh'
+  | 'pass-combo'
   | 'tackle-thud'
   | 'grunt'
   | 'body-fall'
@@ -73,6 +74,7 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'halftime-whistle': require('../../assets/audio/sfx/halftime-whistle.wav'),
   'fulltime-whistle': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'kick-pass': require('../../assets/audio/sfx/kick-pass.wav'),
+  'pass-combo': require('../../assets/audio/sfx/pass-combo.m4a'),
   'kick-shot': require('../../assets/audio/sfx/kick-shot.m4a'),
   'ball-flight-whoosh': require('../../assets/audio/sfx/ball-flight-whoosh.m4a'),
   'tackle-thud': require('../../assets/audio/sfx/tackle-thud.m4a'),
@@ -587,6 +589,40 @@ export function playForEvent(e: MatchEvent): void {
 export function playBallFlightWhoosh(): void {
   if (!ready || masterVolume === 0) return;
   playSfxKey('ball-flight-whoosh', false);
+}
+
+/**
+ * The pass-combo counter's pop. Render-owned rather than in `filesForEvent`,
+ * for the same reason the counter itself is: PASS is emitted when the ball
+ * leaves the boot, and this fires at the CATCH several ticks later. There is
+ * no sim event for an arrival and none should be invented for a sound.
+ *
+ * Pitched up with the run, so a long chain climbs instead of repeating. The
+ * ceiling is the same shot-tier trick in reverse, and it stops at x8 because
+ * past that the sample starts to read as a chirp rather than a reward.
+ */
+const PASS_COMBO_RATE_PER_STEP = 0.06;
+const PASS_COMBO_MAX_RATE = 1.42;
+
+export function passComboPlaybackRate(count: number): number {
+  if (!Number.isFinite(count)) return 1;
+  const steps = Math.max(0, Math.floor(count) - 2);
+  return Math.min(PASS_COMBO_MAX_RATE, 1 + steps * PASS_COMBO_RATE_PER_STEP);
+}
+
+export function playPassCombo(count: number): void {
+  if (!ready || masterVolume === 0) return;
+  const player = sfxPlayers.get('pass-combo');
+  if (player) {
+    try {
+      (
+        player as unknown as { setPlaybackRate?: (rate: number) => void }
+      ).setPlaybackRate?.(passComboPlaybackRate(count));
+    } catch (error) {
+      warnOnce('pass combo pitch adjust failed', error);
+    }
+  }
+  playSfxKey('pass-combo', false);
 }
 
 /** How far `kick-shot` is bent down at each shot tier. */
