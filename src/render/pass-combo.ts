@@ -109,8 +109,7 @@ export const PASS_COMBO_IDLE: PassComboChain = Object.freeze({
  * MatchScreen, and the counting is the part worth testing here.
  */
 export type PassComboInput =
-  | { kind: 'completed-pass'; team: 0 | 1 }
-  | { kind: 'break' };
+  { kind: 'completed-pass'; team: 0 | 1 } | { kind: 'break' };
 
 export function passComboAfter(
   chain: PassComboChain,

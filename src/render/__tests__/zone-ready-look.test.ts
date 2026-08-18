@@ -45,9 +45,9 @@ describe('zoneReadyTint flash pace', () => {
     const hot = zoneReadyTint(0, false, 3);
 
     expect(zoneReadyTint(ZONE_READY_FLASH_TICKS / 2, false, 3)).toBe(hot);
-    expect(
-      zoneReadyTint((ZONE_READY_FLASH_TICKS * 3) / 2, false, 3),
-    ).not.toBe(hot);
+    expect(zoneReadyTint((ZONE_READY_FLASH_TICKS * 3) / 2, false, 3)).not.toBe(
+      hot,
+    );
     expect(zoneReadyTint(ZONE_READY_FLASH_TICKS * 3, false, 3)).toBe(hot);
   });
 });
