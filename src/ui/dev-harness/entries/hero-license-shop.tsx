@@ -4,6 +4,7 @@ import { matchDayViewModel } from '../../../application/view-models';
 import { activeCareerMatchday } from '../../../game/career';
 import type { GameState } from '../../../game/types';
 import { FixtureMatchDayScreen } from '../../screens/FixtureMatchDayScreen';
+import { COACHING_FORMATION_IDS } from '../../../sim/tactics';
 import { devHarnessCareer } from '../career';
 import type { DevHarnessEntry } from '../registry';
 
@@ -96,7 +97,8 @@ export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
       onSwapStartingPlayer={() => {}}
       onWatchMatch={() => {}}
       onQuickResult={() => {}}
-      onCycleFormation={() => {}}
+      formationOptions={COACHING_FORMATION_IDS}
+      onSelectFormation={() => {}}
       onOpenSettings={() => {}}
     />
   );

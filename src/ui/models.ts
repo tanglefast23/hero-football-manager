@@ -8,6 +8,7 @@ import type {
 import type { PotentialGrade } from '../game/archetype-caps';
 import type { RivalHeroIntroHeroId } from '../game/rival-hero-intro';
 import type { AwardCategoryId, LedgerLineReveal } from '../game/types';
+import type { FormationId } from '../sim/tactics';
 import type { PowerId, Role } from '../sim/types';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
@@ -254,6 +255,9 @@ export interface HeroLicenseOfferViewModel {
 
 export interface MatchDayViewModel {
   fixture: FixtureViewModel;
+  /** Raw id, for the picker's diagram and blurb. Never shown as text. */
+  formation: FormationId;
+  /** `formation` with en-dashes, which is the shape as it is displayed. */
   formationLabel: string;
   selectedTacticId: string;
   tactics: readonly TacticViewModel[];

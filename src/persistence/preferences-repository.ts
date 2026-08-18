@@ -583,15 +583,39 @@ export function replaceFormationPreset(
   const current = preferences.formationPresets[slot];
   let index = available.indexOf(current);
   index = (index + 1) % available.length;
-  const next = available[index];
+  return setFormationPreset(
+    preferences,
+    slot,
+    available[index],
+    coachUnlockedFormationIds,
+  );
+}
+
+/**
+ * Puts a NAMED formation in a slot — what the matchday picker asks for, where
+ * the manager reads "All-out attack" and taps it, rather than cycling blind.
+ * Same slot bookkeeping as the cycle above: taking a shape that already sits
+ * in another slot swaps the two, so the three live-match choices stay distinct
+ * and the manager never loses one by picking another.
+ */
+export function setFormationPreset(
+  preferences: AppPreferences,
+  slot: number,
+  formation: FormationId,
+  coachUnlockedFormationIds: readonly string[] = [],
+): AppPreferences {
+  if (!Number.isInteger(slot) || slot < 0 || slot > 2) return preferences;
+  const available = availableFormationIds(
+    preferences,
+    coachUnlockedFormationIds,
+  );
+  if (!available.includes(formation)) return preferences;
+  const current = preferences.formationPresets[slot];
   const formationPresets: [FormationId, FormationId, FormationId] = [
     ...preferences.formationPresets,
   ];
-  const occupiedSlot = formationPresets.indexOf(next);
-  formationPresets[slot] = next;
-  // When every available base formation already occupies one of the three
-  // slots, tapping still reorders the live-match cycle instead of doing
-  // nothing. A newly taught fourth shape simply replaces the selected slot.
+  const occupiedSlot = formationPresets.indexOf(formation);
+  formationPresets[slot] = formation;
   if (occupiedSlot >= 0 && occupiedSlot !== slot)
     formationPresets[occupiedSlot] = current;
   return { ...preferences, formationPresets };

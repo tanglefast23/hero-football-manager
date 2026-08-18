@@ -15,6 +15,8 @@ import {
 import { SettingsButton } from '../SettingsOverlay';
 import type { LineupPlayerViewModel, MatchDayViewModel } from '../models';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
+import { FormationPickerModal } from '../components/FormationPickerModal';
+import type { FormationId } from '../../sim/tactics';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -43,7 +45,9 @@ export interface FixtureMatchDayScreenProps {
   onSwapStartingPlayer: (starterId: string, replacementId: string) => void;
   onWatchMatch: () => void;
   onQuickResult: () => void;
-  onCycleFormation: () => void;
+  /** Shapes this club may pick, in the same order Settings lists them. */
+  formationOptions: readonly FormationId[];
+  onSelectFormation: (formation: FormationId) => void;
   watchDisabled?: boolean;
   quickResultDisabled?: boolean;
   onOpenSettings: () => void;
@@ -272,7 +276,8 @@ export function FixtureMatchDayScreen({
   onSwapStartingPlayer,
   onWatchMatch,
   onQuickResult,
-  onCycleFormation,
+  formationOptions,
+  onSelectFormation,
   watchDisabled = false,
   quickResultDisabled = false,
   onOpenSettings,
@@ -286,6 +291,7 @@ export function FixtureMatchDayScreen({
     null,
   );
   const [hoveredStarterId, setHoveredStarterId] = useState<string | null>(null);
+  const [formationPickerOpen, setFormationPickerOpen] = useState(false);
   const selectedStarter = viewModel.lineup.find(
     (player) => player.id === selectedStarterId,
   );
@@ -427,10 +433,11 @@ export function FixtureMatchDayScreen({
         right={
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('matchScreen.a11y.formation', {
+            accessibilityLabel={t('matchRail.a11y.formation', {
               formation: viewModel.formationLabel,
+              blurb: t(`formation.${viewModel.formation}.blurb`),
             })}
-            onPress={onCycleFormation}
+            onPress={() => setFormationPickerOpen(true)}
           >
             <StatusChip label={`${viewModel.formationLabel}  ▸`} />
           </Pressable>
@@ -914,6 +921,16 @@ export function FixtureMatchDayScreen({
           </View>
         </View>
       </View>
+
+      <FormationPickerModal
+        options={formationPickerOpen ? formationOptions : null}
+        selected={viewModel.formation}
+        onSelect={(formation) => {
+          setFormationPickerOpen(false);
+          onSelectFormation(formation);
+        }}
+        onDismiss={() => setFormationPickerOpen(false)}
+      />
     </SafeAreaView>
   );
 }

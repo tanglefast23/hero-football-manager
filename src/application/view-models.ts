@@ -4158,6 +4158,7 @@ export function matchDayViewModel(
           })
         : undefined,
     ),
+    formation,
     formationLabel: formation.replaceAll('-', '–'),
     selectedTacticId: 'balanced',
     tactics: [

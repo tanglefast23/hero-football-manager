@@ -326,8 +326,31 @@ const DIST = path.resolve('dist');
 // reported figure rather than banked slack. Gzip keeps the same +400 rounding
 // as the entry above: 829_935 -> 830_335. Per the convention here, if CI
 // reports lower than either, ratchet down to CI's figure.
-const RAW_BUDGET = 3_405_060;
-const GZIP_BUDGET = 830_335;
+//
+// 2026-08-18, the match-day formation picker. The Team Sheet chip cycled
+// blind, so the manager saw 3-4-3 and never learned it was all-out attack. It
+// now opens `FormationPickerModal`: every coachable shape with its diagram,
+// its number and its name. All copy is existing catalog keys, so this is the
+// component and nothing else — `FixtureMatchDayScreen` is already in the
+// startup graph, and so is every part the modal draws (`FormationDiagram`,
+// `ActionButton`, `PixelText`, `CrossPlatformModal`).
+//
+// Measured, not estimated: +2_887 raw local (3_404_023 -> 3_406_910) and +562
+// gzip (829_935 -> 830_497). NOT lazily loaded, deliberately: 562 gzip bytes
+// is what a player actually downloads for it, and a chunk fetched on the tap
+// that opens the modal would buy that back at the price of a round trip under
+// a blank sheet, on the one screen the manager visits before every match.
+//
+// Raw takes CI's own reported 3_408_012 rather than local + 1_037 (3_407_947).
+// The extra 65 bytes are the three Expo patch bumps in the same branch —
+// expo 57.0.14, expo-asset 57.0.12, expo-splash-screen 57.0.7 — which a local
+// export cannot see, because a worktree resolves node_modules up-tree from the
+// main checkout and that tree is still on 57.0.13. Gzip keeps the same +400
+// rounding: 830_497 -> 830_897, and CI has not reported its own gzip figure
+// for this tree because raw failed first. Per the convention here, if CI
+// reports lower than either, ratchet down to CI's figure.
+const RAW_BUDGET = 3_408_012;
+const GZIP_BUDGET = 830_897;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',

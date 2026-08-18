@@ -65,13 +65,20 @@ const DECOY_RING_COLOR = '#a3c8f0';
 export const ENCORE_MARKER_TICKS = 20;
 const ENCORE_BOLT_COLOR = '#edb54a';
 
-// Ball-carrier ring. `ringRadius` is sized from the sprite's WIDTH (24px cell),
-// so a circle at that radius clipped the top of taller hair on a 30px-tall
-// cell; 1.3x clears half the cell height at every draw scale. Bright yellow,
-// held lighter than the Zone's amber (#edb54a) so the two stay distinct.
+// Ball-carrier ring: a flat ellipse on the grass at the carrier's boots, drawn
+// UNDER the player Atlas so the sprite stands inside it. Sized in SOURCE
+// pixels of the 24x30 player cell (whose centre is row 15 and whose boots are
+// rows 26-29), then multiplied by the drawn sprite scale — so it tracks phone,
+// desktop and camera zoom exactly, which a fraction of the width-derived
+// `ringRadius` would not. Bright yellow, held lighter than the Zone's amber
+// (#edb54a) so the two stay distinct.
 const POSSESSION_RING_COLOR = '#ffe14d';
-const POSSESSION_RING_SCALE = 1.3;
 const POSSESSION_RING_WIDTH = 3;
+/** Sprite centre -> the middle of the boots, in source pixels. */
+const POSSESSION_RING_DROP_PX = 13;
+/** Ellipse radii in source pixels. Flat, so it reads as ground, not a halo. */
+const POSSESSION_RING_RX_PX = 11;
+const POSSESSION_RING_RY_PX = 4.5;
 
 export interface EncoreMarker {
   slot: number;
@@ -83,7 +90,6 @@ interface WorkletMatchOverlaysProps {
   visibility: SharedValue<Float32Array>;
   statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
-  carrier: SharedValue<number>;
   visualTick: SharedValue<number>;
   controlledTeam: 0 | 1;
   heroPlayers: readonly number[];
@@ -521,6 +527,51 @@ function BallFlameLayer({
   );
 }
 
+/**
+ * Who has the ball: a yellow ellipse on the pitch at the carrier's feet.
+ *
+ * Rendered by MatchScreen BEFORE the player Atlas, on purpose — the marker
+ * belongs on the grass, so the sprite must draw over it rather than be sliced
+ * by it. Keeping it in the overlay Fragment would put it back on top.
+ */
+export function WorkletPossessionRing({
+  visualPositions,
+  carrier,
+  scale,
+  spriteScale,
+  hiddenPlayer,
+}: {
+  visualPositions: SharedValue<Float32Array>;
+  carrier: SharedValue<number>;
+  scale: number;
+  /** Screen dp per sprite source pixel: pitch scale x snapped player draw scale. */
+  spriteScale: number;
+  hiddenPlayer: number;
+}) {
+  const path = usePathValue((builder) => {
+    'worklet';
+    const index = carrier.value;
+    if (index < 0 || index === hiddenPlayer) return;
+    const rx = POSSESSION_RING_RX_PX * spriteScale;
+    const ry = POSSESSION_RING_RY_PX * spriteScale;
+    const cx = visualPositions.value[index * 2] * scale;
+    const cy =
+      visualPositions.value[index * 2 + 1] * scale +
+      POSSESSION_RING_DROP_PX * spriteScale;
+    // A plain {x,y,width,height} is a valid SkRect on every backend, so the
+    // worklet allocates no Skia object on the UI thread.
+    builder.addOval({ x: cx - rx, y: cy - ry, width: rx * 2, height: ry * 2 });
+  });
+  return (
+    <Path
+      path={path}
+      color={POSSESSION_RING_COLOR}
+      style="stroke"
+      strokeWidth={POSSESSION_RING_WIDTH}
+    />
+  );
+}
+
 /** Gameplay overlays share the Atlas worklet's interpolated player centers. */
 export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
   const {
@@ -528,7 +579,6 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     visibility,
     statuses,
     zoneFractions,
-    carrier,
     visualTick,
     controlledTeam,
     heroPlayers,
@@ -539,17 +589,6 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     reduceMotion,
     hiddenPlayer,
   } = props;
-
-  const possession = usePathValue((builder) => {
-    'worklet';
-    const index = carrier.value;
-    if (index < 0 || index === hiddenPlayer) return;
-    builder.addCircle(
-      visualPositions.value[index * 2] * scale,
-      visualPositions.value[index * 2 + 1] * scale,
-      ringRadius * POSSESSION_RING_SCALE,
-    );
-  });
 
   return (
     <Fragment>
@@ -583,12 +622,6 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           hiddenPlayer={hiddenPlayer}
         />
       ))}
-      <Path
-        path={possession}
-        color={POSSESSION_RING_COLOR}
-        style="stroke"
-        strokeWidth={POSSESSION_RING_WIDTH}
-      />
       {DECOY_SLOTS.map((slot) => (
         <WorkletDecoyRing
           key={slot}

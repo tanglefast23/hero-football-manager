@@ -4,6 +4,7 @@ import {
   DEFAULT_APP_PREFERENCES,
   replaceFormationPreset,
   rememberInitialFormation,
+  setFormationPreset,
   type AppPreferences,
 } from '../preferences-repository';
 import { FakePersistenceDatabase } from './fake-database';
@@ -226,6 +227,28 @@ describe('app preferences repository', () => {
     const next = replaceFormationPreset(DEFAULT_APP_PREFERENCES, 0);
     expect(next.formationPresets).toEqual(['5-3-2', '3-4-3', '4-4-2']);
     expect(new Set(next.formationPresets).size).toBe(3);
+  });
+
+  it('picks a named formation, swapping whatever slot already held it', () => {
+    // DEFAULT is ['4-4-2', '3-4-3', '5-3-2']; picking 5-3-2 for slot 0 must
+    // hand 4-4-2 to slot 2 rather than duplicate a shape (the schema refuses
+    // duplicates, and the manager would silently lose a live-match choice).
+    const next = setFormationPreset(DEFAULT_APP_PREFERENCES, 0, '5-3-2');
+    expect(next.formationPresets).toEqual(['5-3-2', '3-4-3', '4-4-2']);
+    expect(new Set(next.formationPresets).size).toBe(3);
+  });
+
+  it('refuses a formation no coach has taught, and a slot off the board', () => {
+    expect(setFormationPreset(DEFAULT_APP_PREFERENCES, 0, '4-3-3')).toBe(
+      DEFAULT_APP_PREFERENCES,
+    );
+    expect(
+      setFormationPreset(DEFAULT_APP_PREFERENCES, 0, '4-3-3', ['4-3-3'])
+        .formationPresets[0],
+    ).toBe('4-3-3');
+    expect(setFormationPreset(DEFAULT_APP_PREFERENCES, 3, '5-3-2')).toBe(
+      DEFAULT_APP_PREFERENCES,
+    );
   });
 
   it('remembers the last live formation as the next opening shape', () => {
