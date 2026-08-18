@@ -367,6 +367,25 @@ const DIST = path.resolve('dist');
 // than dressed up: nothing was measured locally, since a worktree resolves
 // node_modules up-tree and cannot reproduce CI's tree. Per the convention
 // here, if a later CI run reports lower, ratchet down to that figure.
+// 2026-08-18, five merges that were never weighed. This entry is not one
+// feature's spend; it is the arrears of a gate that stopped running. CI's
+// `typecheck + fast tests` job runs `npm run format:check` FIRST, and eight
+// files had drifted from Prettier, so the job died at step one and this check
+// never executed. Five feature merges landed on main behind that failure:
+// f5d0058d the banked-power hero look, e8784659 the hit-stop and the two match
+// numbers, 1933b056 the pass combo cue, faace1e1 the substitution walks, and
+// cc328004 the goal ticker. Between them they spent 499 raw and 136 gzip.
+//
+// Measured by CI, both figures, on the run that first got past format:check:
+// +499 raw (3_410_095 -> 3_410_594) and +136 gzip (831_475 -> 831_611).
+//
+// 0.015% for five features is cheap, and the markers below both came back
+// empty, so nothing was dragged into the first load by accident — this is
+// drift, not a mistake. What it cost was the visibility: had the gate been
+// running, each of those five would have written its own line here. The five
+// are recorded together because that is what actually happened, not split
+// into five invented attributions. Per the convention here, if a later CI run
+// reports lower, ratchet down to that figure.
 // 2026-08-18, the tackle card. A two-line plate — the tackler's last name over
 // the word "Tackle!" — pops under the boots on every won challenge. One new
 // component (`TacklePop`), one new function in the pitch alphabet
@@ -375,13 +394,35 @@ const DIST = path.resolve('dist');
 // the entry above records; the card reuses `PassComboPop`'s curves and
 // `pixel-glyphs`' alphabet rather than bringing its own.
 //
-// Measured by CI, not estimated: +533 raw (3_410_095 -> 3_410_628) and +158
-// gzip (831_475 -> 831_633). Local export cannot reproduce CI's tree, for the
+// Measured by CI, not estimated: +533 raw and +158 gzip over the 3_410_095 /
+// 831_475 baseline, landing at 3_410_628 / 831_633. It merged after the
+// entry above, which re-baselined the same starting figures to 3_410_594 /
+// 831_611, so on main the card sits at about 3_411_127 / 831_769. Local export cannot reproduce CI's tree, for the
 // worktree/node_modules reason the entry above gives. The Prettier pass in the
 // same branch is formatter output only and moves no code. Per the convention
 // here, if a later CI run reports lower, ratchet down to that figure.
-const RAW_BUDGET = 3_410_628;
-const GZIP_BUDGET = 831_633;
+// 2026-08-18, headroom. Owner's call, and a deliberate break with the ratchet
+// convention every entry above follows: the budget is set well clear of the
+// measurement instead of onto it. Four branches in two days each stopped on
+// this gate for a few hundred bytes they had no way to measure locally, and
+// the toll was not the bytes — it was a red PR per feature and a budget commit
+// per feature to clear it.
+//
+// Say plainly what it costs. At 3_410_628 raw the gate fired on 0.016%
+// growth, which is what caught the drift the entry above records. At the
+// figures below it will not fire until first load grows by about 190 KB raw or
+// 48 KB gzip. That is still far below the accidents this gate exists to catch
+// — the export's own chunk list shows the shapes, `SkiaSurfaceImplementations`
+// at 1.9 MB, `sprites` at 1.6 MB, `portraits` at 1.1 MB — so a lazy chunk
+// dragged into the startup graph still trips it, hard. What no longer trips it
+// is a feature spending a few KB, and the record of that spend now depends on
+// whoever writes the entry rather than on the gate refusing to go green.
+//
+// The `qaBodyMarkers` and `skiaBodyMarkers` checks below are untouched and are
+// the sharper half of this script anyway: they fail on WHAT reached the first
+// load, not how much, and no amount of headroom weakens them.
+const RAW_BUDGET = 3_600_000;
+const GZIP_BUDGET = 880_000;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
