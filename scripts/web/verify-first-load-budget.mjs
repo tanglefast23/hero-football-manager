@@ -367,8 +367,27 @@ const DIST = path.resolve('dist');
 // than dressed up: nothing was measured locally, since a worktree resolves
 // node_modules up-tree and cannot reproduce CI's tree. Per the convention
 // here, if a later CI run reports lower, ratchet down to that figure.
-const RAW_BUDGET = 3_410_095;
-const GZIP_BUDGET = 831_475;
+// 2026-08-18, five merges that were never weighed. This entry is not one
+// feature's spend; it is the arrears of a gate that stopped running. CI's
+// `typecheck + fast tests` job runs `npm run format:check` FIRST, and eight
+// files had drifted from Prettier, so the job died at step one and this check
+// never executed. Five feature merges landed on main behind that failure:
+// f5d0058d the banked-power hero look, e8784659 the hit-stop and the two match
+// numbers, 1933b056 the pass combo cue, faace1e1 the substitution walks, and
+// cc328004 the goal ticker. Between them they spent 499 raw and 136 gzip.
+//
+// Measured by CI, both figures, on the run that first got past format:check:
+// +499 raw (3_410_095 -> 3_410_594) and +136 gzip (831_475 -> 831_611).
+//
+// 0.015% for five features is cheap, and the markers below both came back
+// empty, so nothing was dragged into the first load by accident — this is
+// drift, not a mistake. What it cost was the visibility: had the gate been
+// running, each of those five would have written its own line here. The five
+// are recorded together because that is what actually happened, not split
+// into five invented attributions. Per the convention here, if a later CI run
+// reports lower, ratchet down to that figure.
+const RAW_BUDGET = 3_410_594;
+const GZIP_BUDGET = 831_611;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
