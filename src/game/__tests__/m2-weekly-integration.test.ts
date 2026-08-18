@@ -490,10 +490,10 @@ describe('M2 weekly sidecars', () => {
     expect(
       settled.players.find((player) => player.id === benchId)?.morale,
     ).toBe(52);
-    // One D5 start costs 4 before the normal 10-point weekly recovery.
+    // One D5 start costs 2 before the normal 10-point weekly recovery.
     expect(
       settled.players.find((player) => player.id === starterId)?.condition,
-    ).toBe(86);
+    ).toBe(88);
     expect(
       settled.players.find((player) => player.id === benchId)?.condition,
     ).toBe(90);

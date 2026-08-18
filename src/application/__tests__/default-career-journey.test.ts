@@ -99,7 +99,7 @@ describe('default two-season career journey', () => {
       first.players.find(
         (player) => player.id === 'bramble-rovers-created-player',
       )?.attrs,
-    ).toMatchObject({ pac: 287, sta: 50 });
+    ).toMatchObject({ pac: 304, sta: 50 });
   });
 
   it('spends cash and TP safely through Season 2 Week 12', () => {

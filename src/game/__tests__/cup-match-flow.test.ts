@@ -145,7 +145,7 @@ describe('player-controlled Hero Cup match flow', () => {
     const cupFixture = cupMatchday!.fixture;
     expect(
       afterLeague.players.find((player) => player.id === starterId)?.condition,
-    ).toBe(46);
+    ).toBe(48);
     const fameBeforeCup =
       afterLeague.players.find((player) => player.id === starterId)!.fame ?? 0;
     const userIsHome = cupFixture.homeClubId === afterLeague.userClubId;
@@ -172,7 +172,7 @@ describe('player-controlled Hero Cup match flow', () => {
     expect(settled).toMatchObject({ week: PLAY_IN_WEEK + 1, phase: 'manage' });
     expect(
       settled.players.find((player) => player.id === starterId)?.condition,
-    ).toBe(52);
+    ).toBe(56);
     expect(
       resolvedRound.fixtures.every((fixture) => fixture.status === 'played'),
     ).toBe(true);

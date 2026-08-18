@@ -114,12 +114,12 @@ describe('weekly player wellbeing', () => {
       [5, 4, 3, 2, 1].map((division) =>
         matchConditionCost(division as 1 | 2 | 3 | 4 | 5),
       ),
-    ).toEqual([4, 6, 8, 12, 14]);
+    ).toEqual([2, 2, 4, 4, 6]);
     expect(
       [5, 4, 3, 2, 1].map((division) =>
         substituteMatchConditionCost(division as 1 | 2 | 3 | 4 | 5),
       ),
-    ).toEqual([2, 3, 4, 6, 7]);
+    ).toEqual([1, 1, 2, 2, 3]);
   });
 
   test('charges both clubs in D5: starters full, substitutes half, unused bench zero', () => {
@@ -156,10 +156,10 @@ describe('weekly player wellbeing', () => {
     for (const ids of [homeParticipants, awayParticipants]) {
       expect(
         next.players.find((player) => player.id === ids[0])?.condition,
-      ).toBe(96);
+      ).toBe(98);
       expect(
         next.players.find((player) => player.id === ids[11])?.condition,
-      ).toBe(98);
+      ).toBe(99);
       const clubId = next.players.find(
         (player) => player.id === ids[0],
       )!.clubId;
