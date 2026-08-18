@@ -386,8 +386,30 @@ const DIST = path.resolve('dist');
 // are recorded together because that is what actually happened, not split
 // into five invented attributions. Per the convention here, if a later CI run
 // reports lower, ratchet down to that figure.
+//
+// Gzip re-ratcheted 2026-08-18 for the formation role labels, +9 bytes
+// (831_611 -> 831_620). Nine bytes is small enough to look like a rounding
+// error, so the attribution matters more than the number.
+//
+// RAW DID NOT MOVE AT ALL. CI measured this branch at 3_410_594 raw, which is
+// the mark above to the byte, and a local export of `origin/main` and of this
+// branch both read 3_409_492 raw. The feature adds nothing to the first load
+// because it lives behind LazyMatchScreen: FormationRoleLabels is imported by
+// MatchScreen, which is not in `firstLoadFiles`.
+//
+// So the nine gzip bytes are not feature code — identical raw content cannot
+// hold any. They are compression noise: the three first-load chunk names carry
+// content hashes, this branch's differ from main's, and hash strings that
+// differ compress differently. The same comparison locally read 831_354 on
+// main against 831_358 here, a four-byte spread with byte-identical raw.
+//
+// Raw is deliberately NOT moved. It sits exactly at its mark and never
+// breached; raising a budget nothing has hit is loosening for free.
+//
+// Markers checked before moving the number, as every entry above did: CI
+// reported `qaBodyMarkers: []` and `skiaBodyMarkers: []` on the failing run.
 const RAW_BUDGET = 3_410_594;
-const GZIP_BUDGET = 831_611;
+const GZIP_BUDGET = 831_620;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
