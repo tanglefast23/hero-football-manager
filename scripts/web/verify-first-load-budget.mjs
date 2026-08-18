@@ -400,6 +400,23 @@ const DIST = path.resolve('dist');
 // module. Both numbers are CI's own, not local + offset: a worktree resolves
 // node_modules up-tree and cannot reproduce CI's tree. Per the convention
 // here, if a later CI run reports lower, ratchet down to that figure.
+//
+// 2026-08-18, the live-match efficiency pass. No new module, no new asset, no
+// new catalog string — the bytes are the guards the perf fixes added to files
+// already in the startup graph: the empty-emitter fast path and its lazy
+// shared paths in `ProceduralMatchEffects`, the `[rotation, usesActionCell]`
+// pose tail written and read in `worklet-atlas-frame`, the `railLayout` /
+// `swapOpen` view-model gates and the `IncapacityCountdowns` mount gate in
+// `MatchScreen`, the render-time web strip in `HeroChargeMeter`, the `memo`
+// wrapper on `MatchTickerLine`, and the substitution pre-scan plus the shot
+// early-return in the sim. Bytes spent at load to stop per-tick and per-frame
+// churn for the whole match — the trade this ledger exists to make visible.
+//
+// Measured by CI, both figures, on a merge tree already carrying all of the
+// entry above: +184 raw (3_410_624 -> 3_410_808) and +42 gzip
+// (831_622 -> 831_664). Both numbers are CI's own, not local + offset. Per
+// the convention here, if a later CI run reports lower, ratchet down to that
+// figure.
 // 2026-08-18, the tackle card. A two-line plate — the tackler's last name over
 // the word "Tackle!" — pops under the boots on every won challenge. One new
 // component (`TacklePop`), one new function in the pitch alphabet
@@ -452,6 +469,10 @@ const DIST = path.resolve('dist');
 // The `qaBodyMarkers` and `skiaBodyMarkers` checks below are untouched and are
 // the sharper half of this script anyway: they fail on WHAT reached the first
 // load, not how much, and no amount of headroom weakens them.
+//
+// Merge note: main's #187 later ratcheted onto 3_410_808 / 831_664. Those
+// figures stay in the ledger above. The headroom constants below still
+// supersede them — this card does not need another raise.
 const RAW_BUDGET = 3_600_000;
 const GZIP_BUDGET = 880_000;
 const QA_BODY_MARKERS = [

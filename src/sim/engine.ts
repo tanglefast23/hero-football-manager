@@ -1116,10 +1116,19 @@ export function keeperSaveProbability(
 }
 
 /** Approximate probability that a shot from `pos` scores under the current shot/save model. */
-function shotExpectedValue(state: MatchState, by: number, pos: Vec): number {
+function shotExpectedValue(
+  state: MatchState,
+  by: number,
+  pos: Vec,
+  corridorQuality?: number,
+): number {
   const shooter = requirePlayerAt(state, by);
   const goal = { x: GOAL_CENTER_X, y: goalYFor(shooter.team) };
   const distance = dist(pos, goal);
+  // distanceQuality below is exactly 0 from 5000 out, and every other factor
+  // is finite and non-negative, so the product is exactly +0 — return it
+  // before paying the pressure and corridor opponent scans.
+  if (distance >= 5000) return 0;
   const spread = shotSpreadAt(state, by, pos, distance, true);
   const onTargetProbability = Math.min(1, GOAL_W / 2 / spread);
   const shotStrength = shotStrengthAt(state, by, distance);
@@ -1136,7 +1145,7 @@ function shotExpectedValue(state: MatchState, by: number, pos: Vec): number {
     (1 - saveProbability) *
     distanceQuality *
     goalFacingQuality(pos, goal.y) *
-    shotCorridorQuality(state, by, pos)
+    (corridorQuality ?? shotCorridorQuality(state, by, pos))
   );
 }
 
@@ -1315,17 +1324,20 @@ export function attackingDecision(
     mentality === 'ATTACK' ? 1.08 : mentality === 'PROTECT' ? 0.86 : 1;
   const passBias =
     mentality === 'ATTACK' ? 0.94 : mentality === 'PROTECT' ? 1.14 : 1;
+  // Computed once here and threaded into shotExpectedValue: the same
+  // (state, carrier, pos) corridor used to be re-scanned inside that call.
+  const corridorQuality = shotCorridorQuality(state, carrierIdx, carrier.pos);
   const shot =
     (carrier.def.role === 'GK' || phaseRunPreventsShot(state, carrierIdx)
       ? 0
-      : shotExpectedValue(state, carrierIdx, carrier.pos)) * shotBias;
+      : shotExpectedValue(state, carrierIdx, carrier.pos, corridorQuality)) *
+    shotBias;
   const carry = carryExpectedValue(state, carrierIdx) * carryBias;
   const passOption = bestPassOption(state, carrierIdx);
   const pass = passOption === null ? -1 : passOption.value * passBias;
   const values = { shot, carry, pass };
   const gravityTarget = gravityPriorityTarget(state, carrierIdx);
   if (gravityTarget !== -1) return { kind: 'pass', to: gravityTarget, values };
-  const corridorQuality = shotCorridorQuality(state, carrierIdx, carrier.pos);
   const obviousShot =
     carrier.def.role !== 'GK' &&
     !phaseRunPreventsShot(state, carrierIdx) &&
