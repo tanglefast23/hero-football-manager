@@ -5,6 +5,7 @@ import {
   insultingOfferFloor,
   pitchCardAffinity,
   scoutMissionCost,
+  scoutMissionFeeWaived,
   sellingTransferQuote,
   type CoachCandidate,
   type ContractNegotiation,
@@ -782,7 +783,11 @@ function scoutingChoice(
     option.focus.kind === 'ELITE_PROSPECT' && progressionDivision > 2;
   const busy = source.activeScoutMission !== undefined;
   const affordable = source.cash >= cost;
-  const feeWaived = !affordable && source.firstScoutFavorAvailable === true;
+  const feeWaived = scoutMissionFeeWaived(
+    option.region,
+    source.cash,
+    source.firstScoutFavorAvailable === true,
+  );
   return {
     id: option.id,
     region: option.region,

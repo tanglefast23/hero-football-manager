@@ -32,6 +32,7 @@ describe('completeFaceOff', () => {
           { playerId: 'a', playerName: 'A', role: 'FWD', clubName: 'Rovers' },
           { playerId: 'b', playerName: 'B', role: 'MID', clubName: 'Town' },
         ],
+        clubIsHome: true,
         strike: 'club',
         accessibilityLabel: 'A, Rovers, against B, Town.',
       },

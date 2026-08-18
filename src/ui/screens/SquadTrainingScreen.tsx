@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import {
   Platform,
   ScrollView,
@@ -413,7 +413,39 @@ export function SquadTrainingScreen({
     undefined,
   );
   const scrollRef = useRef<ScrollView>(null);
+  const scrollViewportRef = useRef<View>(null);
+  const latestScrollOffsetRef = useRef(0);
   const drillShopRef = useRef<View>(null);
+  const attributesRef = useRef<View>(null);
+  /**
+   * Scrolls the list so `target` sits just below the viewport's top edge.
+   *
+   * `scrollTo` takes a CONTENT offset; `measureInWindow` reports a WINDOW
+   * position. Handing one straight to the other only lands when the list is
+   * already at the top, so a guide fired after any scrolling undershot by the
+   * offset already scrolled. Both measurements are in window coordinates here,
+   * which cancels the column nesting, and the tracked offset converts the
+   * result back into content space. Same rule the Club Finances screen uses.
+   */
+  const scrollGuideTargetIntoView = useCallback(
+    (target: RefObject<View | null>, margin = SQUAD_GUIDE_FRAME_TOP) => {
+      const viewport = scrollViewportRef.current;
+      const node = target.current;
+      if (viewport === null || node === null) return;
+      viewport.measureInWindow((_vx, viewportY) => {
+        node.measureInWindow((_tx, targetY) => {
+          scrollRef.current?.scrollTo({
+            y: Math.max(
+              0,
+              latestScrollOffsetRef.current + (targetY - viewportY) - margin,
+            ),
+            animated: true,
+          });
+        });
+      });
+    },
+    [],
+  );
   const setSquadSort = useCallback(
     (key: SquadSortKey) => {
       // A sort is a statement about the whole register, so it drops the current
@@ -534,21 +566,38 @@ export function SquadTrainingScreen({
     let secondFrame: number | null = null;
     const firstFrame = requestAnimationFrame(() => {
       secondFrame = requestAnimationFrame(() => {
-        if (target === 'drill-shop') {
-          drillShopRef.current?.measureInWindow((_x, y) => {
-            scrollRef.current?.scrollTo({
-              y: Math.max(0, y - SQUAD_GUIDE_FRAME_TOP),
-              animated: true,
-            });
-          });
-        }
+        if (target === 'drill-shop') scrollGuideTargetIntoView(drillShopRef);
       });
     });
     return () => {
       cancelAnimationFrame(firstFrame);
       if (secondFrame !== null) cancelAnimationFrame(secondFrame);
     };
-  }, [managerTipGuideRequest]);
+  }, [managerTipGuideRequest, scrollGuideTargetIntoView]);
+
+  // Quick Train lesson, second beat: the manager has tapped a healthy player
+  // and the cue now points at the attribute grid, which sits below the fold on
+  // a phone. Telling him to scroll and then not scrolling is the lesson failing
+  // at its own instruction, so the screen goes there for him. Same two-frame
+  // measure as the drill-shop tip above: the guide's reserved space has to lay
+  // out before the panel's window position means anything.
+  const quickTrainScrollTargetId =
+    guideQuickTrain && selectedPlayer?.injuryWeeks === 0
+      ? selectedPlayer.id
+      : null;
+  useEffect(() => {
+    if (quickTrainScrollTargetId === null) return;
+    let secondFrame: number | null = null;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        scrollGuideTargetIntoView(attributesRef);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) cancelAnimationFrame(secondFrame);
+    };
+  }, [quickTrainScrollTargetId, scrollGuideTargetIntoView]);
 
   const layoutMode = useLayoutMode();
 
@@ -611,6 +660,7 @@ export function SquadTrainingScreen({
                 guideQuickTrain={
                   guideQuickTrain && selectedPlayer.injuryWeeks === 0
                 }
+                attributesRef={attributesRef}
               />
             ),
           },
@@ -651,7 +701,7 @@ export function SquadTrainingScreen({
   ];
 
   return (
-    <View className="flex-1">
+    <View ref={scrollViewportRef} collapsable={false} className="flex-1">
       <ScrollView
         ref={scrollRef}
         className="flex-1"
@@ -659,6 +709,10 @@ export function SquadTrainingScreen({
           { padding: 16, paddingBottom: 28 },
           desktopContent,
         ]}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          latestScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+        }}
         onScrollBeginDrag={() => {
           dismissPlayerGuide();
           dismissConditionCue();
@@ -1416,6 +1470,8 @@ interface PlayerFileSectionProps {
   onTrainAttribute?: (pathId: string) => void;
   /** Week-6 lesson: point at the grid and explain that the boxes are buttons. */
   guideQuickTrain?: boolean;
+  /** Lets the screen scroll the attribute grid into view for that lesson. */
+  attributesRef?: RefObject<View | null>;
 }
 
 function PlayerFileSection({
@@ -1424,6 +1480,7 @@ function PlayerFileSection({
   statOptions,
   onTrainAttribute,
   guideQuickTrain = false,
+  attributesRef,
 }: PlayerFileSectionProps) {
   const t = useCopy();
   return (
@@ -1712,6 +1769,8 @@ function PlayerFileSection({
         </View>
       </View>
       <View
+        ref={attributesRef}
+        collapsable={false}
         className={
           guideQuickTrain
             ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-3'

@@ -120,6 +120,17 @@ export function PostMatchLedgerScreen({
               {result.awayScore}
             </Text>
           </View>
+          {/* A cup tie settled on penalties printed its 90-minute scoreline
+              and nothing else, so the screen said "We Won!" over a 1-1. */}
+          {result.shootoutHomeScore !== undefined &&
+          result.shootoutAwayScore !== undefined ? (
+            <PixelText className="mt-3 text-base uppercase text-blue-dark">
+              {t('postMatchLedger.penalties', {
+                home: result.shootoutHomeScore,
+                away: result.shootoutAwayScore,
+              })}
+            </PixelText>
+          ) : null}
           {result.winner === null ? (
             <PixelText className="mt-3 text-base uppercase text-ink/70">
               {t('postMatchLedger.draw')}

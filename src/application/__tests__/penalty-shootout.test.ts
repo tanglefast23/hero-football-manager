@@ -57,6 +57,7 @@ function args(
     careerSeed: 101,
     matchSeed: 202,
     round: 1,
+    clubIsHome: true,
     clubTeam: club,
     opponentTeam: opponent,
     winner: 'club',

@@ -74,7 +74,7 @@ function baseSource(): MarketViewModelSource {
 }
 
 describe('marketViewModel', () => {
-  it('offers one unaffordable first scouting trip for free, then blocks later trips', () => {
+  it('covers only the first LOCAL trip for a club that can afford nothing', () => {
     const first = marketViewModel({
       ...baseSource(),
       cash: 0,
@@ -91,6 +91,13 @@ describe('marketViewModel', () => {
       feeWaived: true,
     });
     expect(first.scouting.choices[0].blockedReason).toBeUndefined();
+    // The far trip stays priced and blocked. The favour used to follow whatever
+    // the manager could not afford, which paid him for reaching furthest.
+    expect(first.scouting.choices[1]).toMatchObject({
+      available: false,
+      feeWaived: false,
+      blockedReason: 'Not enough money.',
+    });
     expect(later.scouting.choices[0]).toMatchObject({
       available: false,
       feeWaived: false,

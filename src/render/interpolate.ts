@@ -35,6 +35,58 @@ export interface PitchFrame {
   ballShooting: boolean; // the ball is a live shot (drives the shot trail); a pass/loose/held ball is false
 }
 
+// ---------------------------------------------------------------------------
+// Ball x-ray.
+//
+// The ball is the last slot in the batched Atlas, so it draws over every player
+// and nothing depth-sorts. That is right when the player is between the ball
+// and the far touchline, and wrong when he is between the ball and the camera:
+// a man running up-screen has his back to us and his body in front of the ball.
+// Rather than hide the ball — the one thing the manager is watching — the
+// renderer ghosts it and rings it, so it reads as seen THROUGH the player.
+// ---------------------------------------------------------------------------
+
+/** Player sprite half-width, in source pixels (the 24x30 cell). */
+const SPRITE_HALF_WIDTH_PX = 12;
+/** How far the sprite reaches above its centre, in source pixels. */
+const SPRITE_REACH_ABOVE_CENTRE_PX = 15;
+
+/**
+ * True when some player's body sits between the camera and the ball.
+ *
+ * "Nearer the camera" is `player.y > ball.y`: screen y grows toward the viewer,
+ * so a player below the ball is in front of it. The carrier never trips this —
+ * a held ball shares his exact position, and the render-only nudge that drops
+ * it to his boots moves it further down, not up.
+ *
+ * Distances are in pitch units. One sprite source pixel is `playerDrawScale`
+ * pitch units, because screen dp is `pitchUnits * scale` and a sprite's dp is
+ * `sourcePx * scale * playerDrawScale`.
+ *
+ * `ballLiftPitchUnits` is how far the arc has raised the ball above its own
+ * shadow, in the same units — `ballVisualOffset(height, scale) / scale`. Without
+ * it a lofted pass is ghosted the moment anyone stands in front of its shadow,
+ * even though the sprite is drawn clear above that player's head.
+ */
+export function ballIsBehindAPlayer(
+  frame: PitchFrame,
+  playerDrawScale: number,
+  ballLiftPitchUnits = 0,
+): boolean {
+  const halfWidth = SPRITE_HALF_WIDTH_PX * playerDrawScale;
+  const reach = SPRITE_REACH_ABOVE_CENTRE_PX * playerDrawScale;
+  const ballY = frame.ball.y - Math.max(0, ballLiftPitchUnits);
+  for (let i = 0; i < frame.players.length; i++) {
+    if (!frame.visible[i]) continue;
+    const player = frame.players[i];
+    const above = player.y - ballY;
+    if (above <= 0 || above >= reach) continue;
+    if (Math.abs(player.x - frame.ball.x) >= halfWidth) continue;
+    return true;
+  }
+  return false;
+}
+
 export function lerpVec(a: Vec, b: Vec, t: number): Vec {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
@@ -176,6 +228,7 @@ export function matchShakeOffset(
   durationMs: number,
   amplitude: number,
 ): MatchShakeOffset {
+  'worklet';
   if (elapsedMs < 0 || elapsedMs >= durationMs || durationMs <= 0)
     return { x: 0, y: 0 };
   const progress = elapsedMs / durationMs;

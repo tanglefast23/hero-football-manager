@@ -122,6 +122,7 @@ describe('quickResultFaceOffViewModel', () => {
       clubTeam: club,
       opponentTeam: opponent,
       outcomeLabel: 'WIN',
+      clubIsHome: true,
     });
     expect(model?.sides[0].clubName).toBe('rovers FC');
     expect(model?.sides[0].playerId).toBe('ours');
@@ -133,6 +134,7 @@ describe('quickResultFaceOffViewModel', () => {
       clubTeam: club,
       opponentTeam: opponent,
       outcomeLabel: 'DRAW',
+      clubIsHome: true,
     });
     expect(drawn?.strike).toBe('bounce');
   });
@@ -142,6 +144,7 @@ describe('quickResultFaceOffViewModel', () => {
       clubTeam: club,
       opponentTeam: opponent,
       outcomeLabel: 'LOSS',
+      clubIsHome: true,
     });
     expect(model?.accessibilityLabel).toContain('Player ours');
     expect(model?.accessibilityLabel).toContain('rovers FC');
@@ -157,6 +160,7 @@ describe('quickResultFaceOffViewModel', () => {
       clubTeam: withLook,
       opponentTeam: opponent,
       outcomeLabel: 'WIN',
+      clubIsHome: true,
     });
     expect(model?.sides[0].lookId).toBe('look-7');
     expect(model?.sides[1].lookId).toBeUndefined();
@@ -168,6 +172,7 @@ describe('quickResultFaceOffViewModel', () => {
         clubTeam: team('rovers', []),
         opponentTeam: opponent,
         outcomeLabel: 'WIN',
+        clubIsHome: true,
       }),
     ).toBeNull();
     expect(
@@ -175,6 +180,7 @@ describe('quickResultFaceOffViewModel', () => {
         clubTeam: club,
         opponentTeam: team('town', []),
         outcomeLabel: 'WIN',
+        clubIsHome: true,
       }),
     ).toBeNull();
   });

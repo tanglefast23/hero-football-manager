@@ -32,6 +32,7 @@ import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { playerLookId } from './sprites/player-look';
 import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
+import { matchKitPaletteOverride } from './team-kit-ui';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import { ClubCrest } from '../ui/components/ClubCrest';
 
@@ -104,6 +105,8 @@ const TURF_LINE = 'rgba(244, 241, 234, 0.28)';
 export interface QuickResultFaceOffProps {
   readonly faceOff: QuickResultFaceOffViewModel;
   readonly reduceMotion: boolean;
+  /** The manager's kit setting, so these shirts match the ones on the pitch. */
+  readonly colorSafeKits?: boolean;
   /** Called exactly once, on the hold's expiry or a tap. */
   readonly onDone: () => void;
 }
@@ -111,6 +114,7 @@ export interface QuickResultFaceOffProps {
 export function QuickResultFaceOff({
   faceOff,
   reduceMotion,
+  colorSafeKits = true,
   onDone,
 }: QuickResultFaceOffProps) {
   const t = useCopy();
@@ -163,27 +167,39 @@ export function QuickResultFaceOff({
     };
   }, [entrance, faceOff.strike, finishOnce, reduceMotion]);
 
+  // `r` and `u` are the two kit palettes in the shared atlas — home red and away
+  // blue — and the club takes whichever it wore in this fixture. Both sides used
+  // to ask for `r`, so the card put the club and its opponent in identical
+  // red shirts.
   const [club, opponent] = faceOff.sides;
+  const clubKit = faceOff.clubIsHome ? 'r' : 'u';
+  const opponentKit = faceOff.clubIsHome ? 'u' : 'r';
   const clubVisualId = useMemo(
-    () => `r:${playerLookId(club.playerId, club.role, club.lookId)}`,
-    [club.playerId, club.role, club.lookId],
+    () => `${clubKit}:${playerLookId(club.playerId, club.role, club.lookId)}`,
+    [clubKit, club.playerId, club.role, club.lookId],
   );
   const opponentVisualId = useMemo(
     () =>
-      `r:${playerLookId(opponent.playerId, opponent.role, opponent.lookId)}`,
-    [opponent.playerId, opponent.role, opponent.lookId],
+      `${opponentKit}:${playerLookId(opponent.playerId, opponent.role, opponent.lookId)}`,
+    [opponentKit, opponent.playerId, opponent.role, opponent.lookId],
   );
 
   // An atlas failure degrades to the fallback and STILL shows the scene — the
   // skip path belongs to a missing view model, not to missing art.
   const atlas = useMemo(() => {
     try {
-      return buildSpriteAtlas(Skia, [clubVisualId, opponentVisualId]);
+      // Same palette override the pitch used, so the home shirt on this card is
+      // the shirt the manager just watched.
+      return buildSpriteAtlas(
+        Skia,
+        [clubVisualId, opponentVisualId],
+        matchKitPaletteOverride(colorSafeKits),
+      );
     } catch (error) {
       console.warn('QuickResultFaceOff: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [clubVisualId, opponentVisualId]);
+  }, [clubVisualId, colorSafeKits, opponentVisualId]);
 
   const playerScale = snapSpriteScale(
     1,

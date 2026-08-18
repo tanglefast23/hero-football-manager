@@ -53,7 +53,7 @@ interface WorkletAtlasOptions {
   /** Device pixels per dp, used to land sprite translates on whole texels. */
   devicePixelRatio: number;
   ballFootForwardFraction: number;
-  ballFootDownPx: number;
+  ballFootDropSourcePx: number;
   ballFootDeadzonePx: number;
 }
 
@@ -76,6 +76,8 @@ export interface WorkletAtlasController {
   visualPositions: SharedValue<Float32Array>;
   visibility: SharedValue<Float32Array>;
   ballGroundPosition: SharedValue<Float32Array>;
+  /** Centre of the ball as DRAWN, in dp — ground position + hold nudge + arc. */
+  ballDrawPosition: SharedValue<Float32Array>;
   ballHeight: SharedValue<number>;
   statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
@@ -455,7 +457,7 @@ export function useWorkletAtlasFrame(
     ballDrawScale,
     devicePixelRatio,
     ballFootForwardFraction,
-    ballFootDownPx,
+    ballFootDropSourcePx,
     ballFootDeadzonePx,
   } = options;
 
@@ -568,6 +570,50 @@ export function useWorkletAtlasFrame(
       (nextBallHeight.value - previousBallHeight.value) * progress.value,
   );
 
+  /**
+   * Held-ball nudge from the carrier's centre to his boots, in dp.
+   *
+   * Computed once per frame here rather than inside the transform mapper, so
+   * the ball sprite and anything drawn on top of it (the x-ray ring) agree on
+   * where the ball actually is. A loose, airborne or caught ball reads (0, 0).
+   */
+  const heldBallFootOffset = useDerivedValue<Float32Array>(() => {
+    const heldBy = carrier.value;
+    if (heldBy < 0 || ballHeight.value >= 1) return Float32Array.from([0, 0]);
+    const prev = previousPositions.value;
+    const next = nextPositions.value;
+    const playerOffset = heldBy * 2;
+    const dx = next[playerOffset] - prev[playerOffset];
+    const dy = next[playerOffset + 1] - prev[playerOffset + 1];
+    const magnitude = Math.sqrt(dx * dx + dy * dy);
+    let ux = 0;
+    let uy = heldBy < 11 || heldBy === HOME_DECOY_INDEX ? -1 : 1;
+    if (magnitude * scale >= ballFootDeadzonePx && magnitude > 0) {
+      ux = dx / magnitude;
+      uy = dy / magnitude;
+    }
+    const playerHalfWidth = (playerCell.width * scale * playerDrawScale) / 2;
+    return Float32Array.from([
+      ux * playerHalfWidth * ballFootForwardFraction,
+      // The drop is in sprite SOURCE pixels, scaled like the possession ring
+      // it lands in. It used to be a flat 3dp, barely a pixel and a half of
+      // sprite: the ball rode at the carrier's waist, and running up-screen
+      // the forward nudge lifted it onto his chest.
+      uy * playerHalfWidth * ballFootForwardFraction +
+        ballFootDropSourcePx * scale * playerDrawScale,
+    ]);
+  });
+
+  /** Centre of the ball as DRAWN, in dp: ground position + hold nudge + arc. */
+  const ballDrawPosition = useDerivedValue<Float32Array>(() =>
+    Float32Array.from([
+      ballGroundPosition.value[0] * scale + heldBallFootOffset.value[0],
+      ballGroundPosition.value[1] * scale +
+        heldBallFootOffset.value[1] -
+        ballVisualOffset(ballHeight.value, scale),
+    ]),
+  );
+
   const transforms = useRSXformBuffer(
     ATLAS_SLOT_COUNT,
     (xf: SkRSXform, index: number) => {
@@ -599,26 +645,8 @@ export function useWorkletAtlasFrame(
             1,
             Math.round(scale * ballDrawScale * heightScale * devicePixelRatio),
           ) / devicePixelRatio;
-        let offsetX = 0;
-        let offsetY = 0;
-        const heldBy = carrier.value;
-        if (heldBy >= 0 && height < 1) {
-          const playerOffset = heldBy * 2;
-          const dx = next[playerOffset] - prev[playerOffset];
-          const dy = next[playerOffset + 1] - prev[playerOffset + 1];
-          const magnitude = Math.sqrt(dx * dx + dy * dy);
-          let ux = 0;
-          let uy = heldBy < 11 || heldBy === HOME_DECOY_INDEX ? -1 : 1;
-          if (magnitude * scale >= ballFootDeadzonePx && magnitude > 0) {
-            ux = dx / magnitude;
-            uy = dy / magnitude;
-          }
-          const playerHalfWidth =
-            (playerCell.width * scale * playerDrawScale) / 2;
-          offsetX = ux * playerHalfWidth * ballFootForwardFraction;
-          offsetY =
-            uy * playerHalfWidth * ballFootForwardFraction + ballFootDownPx;
-        }
+        const offsetX = heldBallFootOffset.value[0];
+        const offsetY = heldBallFootOffset.value[1];
         xf.set(
           ballScale,
           0,
@@ -744,6 +772,7 @@ export function useWorkletAtlasFrame(
     visualPositions,
     visibility: nextVisibility,
     ballGroundPosition,
+    ballDrawPosition,
     ballHeight,
     statuses,
     zoneFractions,

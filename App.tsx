@@ -2894,6 +2894,11 @@ function GameApp() {
         away={store.watchedMatch.away}
         controlledTeam={store.watchedMatch.controlledTeam}
         formationPresets={preferences.formationPresets}
+        // Slot 0 above still opens the match; this offers every shape the
+        // manager owns, so a coach-taught formation is switchable live instead
+        // of only pre-match. Without it a fourth shape could only reach the
+        // pitch by evicting one of the three presets.
+        formationOptions={matchdayFormationOptions}
         reduceMotion={reduceMotion}
         hudSide={preferences.hudSide}
         cutInMode={preferences.cutInMode}
@@ -3025,6 +3030,7 @@ function GameApp() {
       <PenaltyShootout
         shootout={store.shootout}
         reduceMotion={reduceMotion}
+        colorSafeKits={preferences.colorSafeKits}
         onDone={store.completeShootout}
       />
     );
@@ -3033,6 +3039,7 @@ function GameApp() {
       <QuickResultFaceOff
         faceOff={store.faceOff}
         reduceMotion={reduceMotion}
+        colorSafeKits={preferences.colorSafeKits}
         onDone={store.completeFaceOff}
       />
     );
@@ -3506,17 +3513,28 @@ function GameApp() {
               const building = finances.facilities.buildings.find(
                 (candidate) => candidate.id === buildingId,
               );
+              // Short of cash is no longer a dead button — the manager can tap
+              // it and the sheet answers with the gap. The confirm stays
+              // disabled, so the popup informs without offering a purchase the
+              // club cannot make.
+              const shortfall = building?.upgradeShortfall ?? 0;
               requestConfirmation({
                 title: t('confirm.facilityUpgrade.title', {
                   facility: building?.name ?? t('confirm.fallback.facility'),
                 }),
-                detail: t('confirm.facilityUpgrade.detail', {
-                  cost:
-                    building?.upgradeCost === undefined
-                      ? t('confirm.fallback.shownAmount')
-                      : formatCurrency(t, building.upgradeCost),
-                }),
+                detail:
+                  shortfall > 0
+                    ? t('clubFinances.needMoreAmount', {
+                        amount: formatCurrency(t, shortfall),
+                      })
+                    : t('confirm.facilityUpgrade.detail', {
+                        cost:
+                          building?.upgradeCost === undefined
+                            ? t('confirm.fallback.shownAmount')
+                            : formatCurrency(t, building.upgradeCost),
+                      }),
                 confirmLabel: t('confirm.facilityUpgrade.confirm'),
+                confirmDisabled: shortfall > 0,
                 onConfirm: () => upgradeClubFacilityWithFeedback(buildingId),
               });
             }}

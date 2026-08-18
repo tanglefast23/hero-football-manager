@@ -14,10 +14,34 @@ describe('penalty shootout screen contract', () => {
     );
 
   it('keeps each kick readable without turning the sequence into a long cutscene', () => {
-    expect(constant('PENALTY_KICK_MS')).toBeGreaterThanOrEqual(650);
-    expect(constant('PENALTY_KICK_MS')).toBeLessThanOrEqual(800);
+    // Halved from 720 in 2026-08: every kick reuses the same three sprites at
+    // the same three points, so the old pace read as one blur of penalties.
+    expect(constant('PENALTY_KICK_MS')).toBeGreaterThanOrEqual(1300);
+    expect(constant('PENALTY_KICK_MS')).toBeLessThanOrEqual(1600);
     expect(constant('PENALTY_OUTCOME_MS')).toBeLessThan(
       constant('PENALTY_KICK_MS'),
+    );
+  });
+
+  it('dresses each side in its own kit and shoots from its own end', () => {
+    // Both prefixes were a hardcoded `r`, so the shooter and the keeper facing
+    // him wore the same red shirt through the whole shootout.
+    expect(screen).toContainSource(
+      "`${isHomeSide ? 'r' : 'u'}:${playerLookId(",
+    );
+    // The keeper takes the opposite kit, so he can never share the shooter's
+    // shirt, and the club wears whatever it wore on the pitch.
+    expect(screen).toContainSource(
+      'visualId(item.goalkeeper, !isHome(item.shootingSide))',
+    );
+    expect(screen).toContainSource(
+      "side === 'club' ? shootout.clubIsHome : !shootout.clubIsHome",
+    );
+    expect(screen).toContainSource(
+      "shootingEnd.value = kick.shootingSide === 'club' ? 1 : -1;",
+    );
+    expect(screen).toContainSource(
+      'const shooterX = end === 1 ? g.clubShooterX : g.opponentShooterX;',
     );
   });
 
@@ -46,7 +70,10 @@ describe('penalty shootout screen contract', () => {
   });
 
   it('batches the two players and ball through the pixel-sampled Atlas', () => {
-    expect(screen).toContainSource('buildSpriteAtlas(Skia, visualIds)');
+    // The palette override carries the pitch's kit setting onto this screen:
+    // color-safe kits default to ON, so a match played in amber used to finish
+    // in red here.
+    expect(screen).toContainSource('matchKitPaletteOverride(colorSafeKits)');
     expect(screen).toContainSource('buildFallbackAtlas(Skia, FALLBACK_SPRITE)');
     expect(screen).toContainSource('<Atlas');
     expect(screen).toContainSource('sampling={PIXEL_ART_SAMPLING}');

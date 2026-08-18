@@ -9,6 +9,7 @@ const shootout: PenaltyShootoutViewModel = {
   fixtureId: 'cup-1',
   clubName: 'Rovers',
   opponentName: 'Town',
+  clubIsHome: true,
   winner: 'club',
   kicks: [],
   finalClubScore: 4,

@@ -18,8 +18,9 @@ import {
   type SkRect,
   type SkRSXform,
 } from '@shopify/react-native-skia';
-import {
+import Animated, {
   Easing as ReanimatedEasing,
+  useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withSequence,
@@ -59,6 +60,7 @@ import {
   visualIdForMatchPlayer,
 } from './sprites/slot-key';
 import {
+  ballIsBehindAPlayer,
   MATCH_SHAKE_AMPLITUDE_PT,
   matchCameraOffset,
   matchPitchLayout,
@@ -84,8 +86,10 @@ import {
 import {
   ENCORE_MARKER_TICKS,
   type EncoreMarker,
+  POSSESSION_RING_DROP_PX,
   WorkletBallFlame,
   WorkletBallShadow,
+  WorkletBallXray,
   WorkletMatchOverlays,
   WorkletPossessionRing,
   WorkletSlideTackleEffects,
@@ -228,7 +232,7 @@ import {
 import { mentalityLabel } from './match-mentality-ui';
 import { chargeMeter } from './hero-charge-meter';
 import { HeroChargeMeter } from './HeroChargeMeter';
-import { teamKitColor } from './team-kit-ui';
+import { matchKitPaletteOverride, teamKitColor } from './team-kit-ui';
 import {
   CARRIER_CARD_CONTENT_WIDTH,
   CARRIER_CARD_DESKTOP_CONTENT_WIDTH,
@@ -285,6 +289,13 @@ const SNAP_DIST2 = (2 * MAX_SPEED_PER_TICK) ** 2;
 // away with the Zone countdown at m1.27. Every caller left is a banner.
 const FLASH_TICKS = 30;
 
+// Goal impact shake (render-only). The whole screen takes one short knock, and
+// the scorer banner takes a harder one on top of it — it is a child of the
+// root, so the two amplitudes add and the card visibly jolts more than the
+// pitch behind it. Same decaying curve as the Super Strength camera shake.
+const GOAL_SHAKE_MS = 380;
+const GOAL_CARD_EXTRA_SHAKE_PT = 2.5;
+
 // Ball-flight presentation (render-only) — lifted kicks show a curved history;
 // shots also retain the dust puff kicked up at the strike.
 const BALL_FLIGHT_TRAIL_LEN = 12; // longer arc history makes lifted kicks read at a glance
@@ -315,7 +326,11 @@ const PLAYER_CELL_W = 24;
 // frame.players, or any sim state. Reuses PLAYER_CELL_W above for "half the
 // player sprite's drawn width."
 const BALL_FOOT_FORWARD_FRACTION = 0.35; // of the player sprite's drawn half-width
-const BALL_FOOT_DOWN_PX = 3; // feet sit toward the sprite's bottom half, not its center
+// Sprite centre -> the boots, in sprite SOURCE pixels. Shared with the carrier
+// ring so a dribbled ball sits inside the ring rather than above it. A caught
+// ball is exempt: the keeper holds it at chest height, so `height < 1` in the
+// transform buffer keeps it on his centre.
+const BALL_FOOT_DROP_SOURCE_PX = POSSESSION_RING_DROP_PX;
 const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this reads as "stationary"
 
 // Side of the plain white square drawn when the sprite pack fails to build
@@ -325,13 +340,6 @@ const FALLBACK_SPRITE = 24;
 // Rival readiness remains visible counterplay. Controlled-team powers activate
 // automatically and announce themselves only when they actually fire.
 const RIVAL_ZONE_BANNER_TICKS = 20;
-const COLOR_SAFE_HOME_KIT = {
-  o: '#6a4326',
-  r: '#ba7517',
-  R: '#edb54a',
-  E: '#f7d894',
-} as const;
-
 type MatchBanner = {
   id: string;
   text: string;
@@ -439,6 +447,7 @@ export function MatchScreen({
   away = UNITED,
   controlledTeam = 0,
   formationPresets = DEFAULT_FORMATION_PRESETS,
+  formationOptions,
   reduceMotion = false,
   hudSide = 'left',
   cutInMode = 'full',
@@ -470,6 +479,15 @@ export function MatchScreen({
   away?: TeamDef;
   controlledTeam?: 0 | 1;
   formationPresets?: readonly [FormationId, FormationId, FormationId];
+  /**
+   * Every shape the manager may switch to live. Slot 0 of the presets above
+   * still decides the shape the match OPENS on; this list only decides what
+   * the coaching controls offer once it is running. They are separate on
+   * purpose: the matchday picker writes the opening shape into slot 0, while a
+   * coach unlock widens the live choice without touching it. Defaults to the
+   * three presets, which is what every caller got before the list existed.
+   */
+  formationOptions?: readonly FormationId[];
   reduceMotion?: boolean;
   hudSide?: HudSide;
   cutInMode?: 'full' | 'banner';
@@ -615,6 +633,14 @@ export function MatchScreen({
   // the first and the white border never appeared to leave 4-4-2.
   const presetsRef = useRef(formationPresets);
   const livePresets = presetsRef.current;
+  // Frozen for the same reason, and never empty: an empty list would leave the
+  // rail with no chip to tap and `nextFormation` with nothing to cycle to.
+  const optionsRef = useRef<readonly FormationId[]>(
+    formationOptions === undefined || formationOptions.length === 0
+      ? formationPresets
+      : formationOptions,
+  );
+  const liveFormationOptions = optionsRef.current;
   // Ledger item 1 — lazy init: never `useRef(createMatch(...))`, whose
   // argument expression would run (creating and discarding a fresh match)
   // on every render. Guard-then-assign only ever creates one match per mount.
@@ -646,6 +672,29 @@ export function MatchScreen({
   const trailRef = useRef<Array<{ x: number; y: number }>>([]);
   const bannerRef = useRef<MatchBanner[]>([]);
   const scoreFlashUntilRef = useRef<number>(0);
+  // Elapsed ms into the goal shake. Parked at the duration, which the shake
+  // curve reads as "finished" and returns a zero offset for.
+  const goalShakeElapsed = useSharedValue(GOAL_SHAKE_MS);
+  const goalShakeStyle = useAnimatedStyle(() => {
+    const offset = matchShakeOffset(
+      goalShakeElapsed.value,
+      GOAL_SHAKE_MS,
+      MATCH_SHAKE_AMPLITUDE_PT,
+    );
+    return {
+      transform: [{ translateX: offset.x }, { translateY: offset.y }],
+    };
+  });
+  const goalCardShakeStyle = useAnimatedStyle(() => {
+    const offset = matchShakeOffset(
+      goalShakeElapsed.value,
+      GOAL_SHAKE_MS,
+      GOAL_CARD_EXTRA_SHAKE_PT,
+    );
+    return {
+      transform: [{ translateX: offset.x }, { translateY: offset.y }],
+    };
+  });
   // Ball-flight presentation — recent positions while a shot or lifted pass
   // flies. The old puff remains for ordinary shots and Decoy Pop only; graded
   // shots now use the shared procedural match-VFX layer.
@@ -898,7 +947,7 @@ export function MatchScreen({
         ...buildSpriteAtlas(
           Skia,
           matchVisualIds,
-          colorSafeKits ? COLOR_SAFE_HOME_KIT : undefined,
+          matchKitPaletteOverride(colorSafeKits),
         ),
         fallbackMode: false,
       };
@@ -949,6 +998,7 @@ export function MatchScreen({
     visualPositions: workletVisualPositions,
     visibility: workletVisibility,
     ballGroundPosition: workletBallGroundPosition,
+    ballDrawPosition: workletBallDrawPosition,
     ballHeight: workletBallHeight,
     statuses: workletStatuses,
     zoneFractions: workletZoneFractions,
@@ -968,7 +1018,7 @@ export function MatchScreen({
     ballDrawScale: ballSpriteScale.drawScale,
     devicePixelRatio,
     ballFootForwardFraction: BALL_FOOT_FORWARD_FRACTION,
-    ballFootDownPx: BALL_FOOT_DOWN_PX,
+    ballFootDropSourcePx: BALL_FOOT_DROP_SOURCE_PX,
     ballFootDeadzonePx: BALL_FOOT_DEADZONE_PX,
   });
 
@@ -1895,6 +1945,13 @@ export function MatchScreen({
             });
           }
           scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
+          if (!suppressCosmeticEffects) {
+            goalShakeElapsed.value = 0;
+            goalShakeElapsed.value = withTiming(GOAL_SHAKE_MS, {
+              duration: GOAL_SHAKE_MS,
+              easing: ReanimatedEasing.linear,
+            });
+          }
         }
         if (e.kind === 'POWER_FIRED') {
           const firingPlayer = s.players[e.player];
@@ -2524,6 +2581,18 @@ export function MatchScreen({
   // Ledger item 4 — tints carry status ONLY. A normal player gets white (a
   // no-op multiply) so the sprite's own kit/skin/hair colors survive instead
   // of being flattened to a solid team-color block.
+  // Ball x-ray — true while a player's body sits between the camera and the
+  // ball. Recomputed per tick, which is where `frame` changes; the ball moves
+  // per FRAME on the UI thread, but a body only covers or uncovers it on the
+  // scale of ticks, so a tick-granular flag is honest here.
+  const ballOccluded =
+    !suppressCosmeticEffects &&
+    ballIsBehindAPlayer(
+      frame,
+      playerSpriteScale.drawScale,
+      ballVisualOffset(frame.ballHeight, scale) / scale,
+    );
+
   const colors: SkColor[] = useMemo(() => {
     const tints = frame.statuses.map((st, i) => {
       const player = playerAt(match, i);
@@ -2580,9 +2649,20 @@ export function MatchScreen({
             i >= BASE_PLAYER_COUNT ? 'rgba(185,235,255,0.78)' : '#ffffff',
           );
     });
-    tints.push(skColor('#ffffff')); // ball — no tint
+    // Ball — no tint, except the x-ray ghost that lets the body behind it show
+    // through. `modulate` multiplies, so the alpha here scales the sprite's own.
+    tints.push(skColor(ballOccluded ? 'rgba(255,255,255,0.7)' : '#ffffff'));
     return tints;
-  }, [frame, heroTint, hud.tick, atlas, colorSafeKits, match, reduceMotion]);
+  }, [
+    frame,
+    heroTint,
+    hud.tick,
+    atlas,
+    ballOccluded,
+    colorSafeKits,
+    match,
+    reduceMotion,
+  ]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));
   const stoppage =
@@ -3307,7 +3387,13 @@ export function MatchScreen({
   )} · ${minute}'${stoppage ? '+' : ''}${paused ? ` · ${t('matchScreen.paused')}` : ''}`;
 
   return (
-    <View style={[styles.root, highContrast ? styles.rootHighContrast : null]}>
+    <Animated.View
+      style={[
+        styles.root,
+        highContrast ? styles.rootHighContrast : null,
+        goalShakeStyle,
+      ]}
+    >
       {/* Desktop replaces this bar with the rail scoreboard card. */}
       {railLayout || presentationOnly ? null : (
         <Pressable
@@ -3390,7 +3476,7 @@ export function MatchScreen({
             onSelectSpeed={applySpeed}
             onTogglePause={toggleUserPause}
             onOpenSettings={onOpenSettings}
-            formations={livePresets}
+            formations={liveFormationOptions}
             formation={displayedFormation}
             onSelectFormation={selectFormation}
             mentality={displayedMentality}
@@ -3574,6 +3660,15 @@ export function MatchScreen({
                     colors={colors}
                     colorBlendMode="modulate"
                     sampling={PIXEL_ART_SAMPLING}
+                  />
+                  {/* On top of the Atlas on purpose: the ring has to sit over
+                    the body that is hiding the ball. */}
+                  <WorkletBallXray
+                    ballDrawPosition={workletBallDrawPosition}
+                    ballRadius={
+                      (ballCell.width * scale * ballSpriteScale.drawScale) / 2
+                    }
+                    visible={ballOccluded}
                   />
                   <WorkletSlideTackleEffects
                     layer="dust"
@@ -3761,7 +3856,7 @@ export function MatchScreen({
         </View>
       </View>
       {hud.banners.length > 0 ? (
-        <View
+        <Animated.View
           pointerEvents="none"
           style={[
             styles.bannerStack,
@@ -3770,6 +3865,7 @@ export function MatchScreen({
             railLayout
               ? { left: desktopPitchLeft, right: undefined, width: pitchWidth }
               : null,
+            goalCardShakeStyle,
           ]}
         >
           {hud.banners.map((banner) => (
@@ -3786,7 +3882,7 @@ export function MatchScreen({
               {banner.text}
             </Text>
           ))}
-        </View>
+        </Animated.View>
       ) : null}
       {performanceNotice ? (
         <Pressable
@@ -3839,7 +3935,9 @@ export function MatchScreen({
                 coachingDisabled ? styles.coachButtonDisabled : null,
               ]}
               onPress={() => {
-                selectFormation(nextFormation(displayedFormation, livePresets));
+                selectFormation(
+                  nextFormation(displayedFormation, liveFormationOptions),
+                );
               }}
             >
               <FormationDiagram
@@ -4180,6 +4278,6 @@ export function MatchScreen({
           </View>
         </View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }

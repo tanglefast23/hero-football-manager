@@ -264,6 +264,8 @@ export function ClubFinancesScreen({
   const facilityPlacementTargetRef = useRef<View>(null);
   const facilityPlacementFocusRef = useRef<View>(null);
   const facilityPlacementScrollFrameRef = useRef<number | null>(null);
+  const facilityDetailRef = useRef<View>(null);
+  const facilityDetailScrollFrameRef = useRef<number | null>(null);
   const latestScrollOffsetRef = useRef(0);
   const [selectedBuildType, setSelectedBuildType] =
     useState<FacilityTypeViewModel | null>(null);
@@ -703,6 +705,42 @@ export function ClubFinancesScreen({
     });
   }, [guidedFirstFacility, reduceMotion]);
 
+  /**
+   * Tapping a placed building opens its card below the grid — on a phone that
+   * card lands off-screen, so the tap looked like it did nothing. Two frames,
+   * not one: the card only mounts on the render that the tap causes, so its ref
+   * is still null when the first frame runs.
+   */
+  const revealFacilityDetail = useCallback(() => {
+    // The opening lesson drives the viewport itself; do not fight it.
+    if (guidedFirstFacility) return;
+    if (facilityDetailScrollFrameRef.current !== null) {
+      cancelAnimationFrame(facilityDetailScrollFrameRef.current);
+    }
+    facilityDetailScrollFrameRef.current = requestAnimationFrame(() => {
+      facilityDetailScrollFrameRef.current = requestAnimationFrame(() => {
+        facilityDetailScrollFrameRef.current = null;
+        scrollToTarget(
+          scrollRef,
+          scrollViewportRef,
+          facilityDetailRef,
+          latestScrollOffsetRef.current,
+          12,
+          !reduceMotion,
+        );
+      });
+    });
+  }, [guidedFirstFacility, reduceMotion]);
+
+  useEffect(
+    () => () => {
+      if (facilityDetailScrollFrameRef.current !== null) {
+        cancelAnimationFrame(facilityDetailScrollFrameRef.current);
+      }
+    },
+    [],
+  );
+
   const loanSection: FlowSection[] =
     viewModel.loan === undefined
       ? []
@@ -896,6 +934,8 @@ export function ClubFinancesScreen({
           setSelectedBuildType={setSelectedBuildType}
           selectedBuildingId={selectedBuildingId}
           setSelectedBuildingId={setSelectedBuildingId}
+          facilityDetailRef={facilityDetailRef}
+          revealFacilityDetail={revealFacilityDetail}
           relocatingBuildingId={relocatingBuildingId}
           setRelocatingBuildingId={setRelocatingBuildingId}
           previewCell={previewCell}
@@ -2269,6 +2309,9 @@ interface GroundsSectionProps {
   setSelectedBuildType: Dispatch<SetStateAction<FacilityTypeViewModel | null>>;
   selectedBuildingId: string | null;
   setSelectedBuildingId: Dispatch<SetStateAction<string | null>>;
+  /** The selected building's card, so a tap on the grid can scroll to it. */
+  facilityDetailRef: RefObject<View | null>;
+  revealFacilityDetail: () => void;
   relocatingBuildingId: string | null;
   setRelocatingBuildingId: Dispatch<SetStateAction<string | null>>;
   previewCell: { x: number; y: number } | null;
@@ -2308,6 +2351,8 @@ function GroundsSection({
   setSelectedBuildType,
   selectedBuildingId,
   setSelectedBuildingId,
+  facilityDetailRef,
+  revealFacilityDetail,
   relocatingBuildingId,
   setRelocatingBuildingId,
   previewCell,
@@ -2336,6 +2381,17 @@ function GroundsSection({
 }: GroundsSectionProps) {
   const t = useCopy();
   const facilities = viewModel.facilities;
+  // Everything `canUpgrade` asks for EXCEPT the money. Being short of cash no
+  // longer greys the button out: the label keeps naming the real price, and the
+  // tap answers with how much more the club needs. A greyed "Need $4,825" told
+  // the manager the number but read as a dead control, and it named a different
+  // figure from the Move button beside it.
+  const upgradeOfferable =
+    selectedBuilding !== undefined &&
+    selectedBuilding.status === 'operational' &&
+    selectedBuilding.upgradeCost !== undefined &&
+    selectedBuilding.upgradeBlockedReason === undefined &&
+    facilities.activeProject === undefined;
   return (
     <View
       ref={groundsRef}
@@ -2647,6 +2703,7 @@ function GroundsSection({
                     onPress={() => {
                       setSelectedBuildingId(building.id);
                       setSelectedBuildType(null);
+                      revealFacilityDetail();
                     }}
                     style={{
                       position: 'absolute',
@@ -2815,7 +2872,11 @@ function GroundsSection({
         ) : null}
 
         {selectedBuilding ? (
-          <View className="mt-3 border-2 border-ink bg-white p-3">
+          <View
+            ref={facilityDetailRef}
+            collapsable={false}
+            className="mt-3 border-2 border-ink bg-white p-3"
+          >
             <View className="flex-row items-start justify-between gap-3">
               <View className="border-2 border-ink bg-paper p-1">
                 <FacilitySprite
@@ -2966,49 +3027,28 @@ function GroundsSection({
                           })
                         : selectedBuilding.upgradeBlockedReason !== undefined
                           ? selectedBuilding.upgradeBlockedReason
-                          : selectedBuilding.canUpgrade
-                            ? t('clubFinances.a11y.upgradeForCost', {
-                                name: selectedBuilding.name,
-                                amount: formatCurrency(
-                                  t,
-                                  selectedBuilding.upgradeCost,
-                                ),
-                              })
-                            : t('clubFinances.a11y.cannotUpgradeNeedMore', {
-                                name: selectedBuilding.name,
-                                amount: formatCurrency(
-                                  t,
-                                  selectedBuilding.upgradeShortfall,
-                                ),
-                              })
+                          : t('clubFinances.a11y.upgradeForCost', {
+                              name: selectedBuilding.name,
+                              amount: formatCurrency(
+                                t,
+                                selectedBuilding.upgradeCost,
+                              ),
+                            })
                 }
-                accessibilityState={{
-                  disabled:
-                    !selectedBuilding.canUpgrade ||
-                    selectedBuilding.status !== 'operational' ||
-                    viewModel.facilities.activeProject !== undefined,
-                }}
-                disabled={
-                  !selectedBuilding.canUpgrade ||
-                  selectedBuilding.status !== 'operational' ||
-                  viewModel.facilities.activeProject !== undefined
-                }
+                accessibilityState={{ disabled: !upgradeOfferable }}
+                disabled={!upgradeOfferable}
                 onPress={() => onUpgradeFacility?.(selectedBuilding.id)}
                 className={
-                  !selectedBuilding.canUpgrade ||
-                  selectedBuilding.status !== 'operational' ||
-                  viewModel.facilities.activeProject !== undefined
-                    ? 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
-                    : 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue px-2'
+                  upgradeOfferable
+                    ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue px-2'
+                    : 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
                 }
               >
                 <PixelText
                   className={
-                    !selectedBuilding.canUpgrade ||
-                    selectedBuilding.status !== 'operational' ||
-                    viewModel.facilities.activeProject !== undefined
-                      ? 'text-center text-sm uppercase text-ink/35'
-                      : 'text-center text-sm uppercase text-white'
+                    upgradeOfferable
+                      ? 'text-center text-sm uppercase text-white'
+                      : 'text-center text-sm uppercase text-ink/35'
                   }
                 >
                   {selectedBuilding.status !== 'operational'
@@ -3025,19 +3065,12 @@ function GroundsSection({
                           })
                         : selectedBuilding.upgradeCost === undefined
                           ? t('clubFinances.maxLevel')
-                          : selectedBuilding.canUpgrade
-                            ? t('clubFinances.upgradeCost', {
-                                amount: formatCurrency(
-                                  t,
-                                  selectedBuilding.upgradeCost,
-                                ),
-                              })
-                            : t('clubFinances.needAmount', {
-                                amount: formatCurrency(
-                                  t,
-                                  selectedBuilding.upgradeShortfall,
-                                ),
-                              })}
+                          : t('clubFinances.upgradeCost', {
+                              amount: formatCurrency(
+                                t,
+                                selectedBuilding.upgradeCost,
+                              ),
+                            })}
                 </PixelText>
               </Pressable>
             </View>
