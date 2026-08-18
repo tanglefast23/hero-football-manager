@@ -38,6 +38,7 @@ import type {
   MatchEvent,
   MatchInput,
   MatchState,
+  PlayerDef,
   PowerId,
   TeamDef,
 } from '../sim/types';
@@ -147,6 +148,19 @@ import {
 import { releaseMenuThemeToMatch, yieldMenuThemeToMatch } from './menu-audio';
 import { PowerTitleTakeover } from './PowerTitleTakeover';
 import { IncapacityCountdowns } from './IncapacityCountdowns';
+import { SubstitutionWalkers } from './SubstitutionWalkers';
+import {
+  WALKER_SLOTS,
+  WALKER_STRIDE,
+  distanceBetween,
+  hiddenSlots,
+  packWalks,
+  walkDurationTicks,
+  walkEndpoints,
+  walkIsActive,
+  walkRunFrame,
+  type SubstitutionWalk,
+} from './substitution-walk';
 import { incapacityCountdowns } from './incapacity-countdown';
 import {
   appendBannerNewestFour,
@@ -906,6 +920,15 @@ export function MatchScreen({
     { translateY: cameraY.value },
     { scale: cameraZoom.value },
   ]);
+  // ---- Substitution walk -------------------------------------------------
+  // The sim swap is instant; these two bodies act it out afterwards. The list
+  // is a ref because it is written from the RAF loop, and the packed copy is
+  // what the UI thread reads — a worklet cannot see a ref. Written on start and
+  // end only, never per frame.
+  const substitutionWalksRef = useRef<SubstitutionWalk[]>([]);
+  const substitutionWalkers = useSharedValue<Float32Array>(
+    () => new Float32Array(WALKER_SLOTS * WALKER_STRIDE),
+  );
   const activationFlash = useSharedValue(0);
   const speedLineSlot = useSharedValue(-1);
   const speedLineLife = useSharedValue(0);
@@ -1321,6 +1344,96 @@ export function MatchScreen({
       syncBackgroundPauseReason(automaticPauseReasonsRef.current, appIsActive);
       syncPauseReasons();
     });
+
+    // Every player either side started the match with, bench included. A
+    // substitution DESTROYS the outgoing PlayerDef — performSubstitution
+    // overwrites the slot and splices the replacement off the bench — so the
+    // frozen team definitions are the only place his name and look survive.
+    const playerDefById = new Map<string, PlayerDef>();
+    for (const team of [home, away]) {
+      for (const def of team.players) playerDefById.set(def.id, def);
+      for (const def of team.bench ?? []) playerDefById.set(def.id, def);
+    }
+
+    /**
+     * Starts the pair of cosmetic walks for one substitution.
+     *
+     * `startTick` is the tick about to be PUBLISHED, never `e.t`: the loop runs
+     * up to MAX_CATCHUP_TICKS ticks and only then reads the batch, so an event
+     * can already be four ticks old and a short walk would open half spent.
+     *
+     * The substitute's own position stands in for the swap spot. He inherited
+     * it from the man he replaced and has had at most those few ticks to leave
+     * it, and starting the pair from one shared point is what makes the two
+     * bodies read as a handover.
+     */
+    const startSubstitutionWalk = (s: MatchState, e: MatchEvent) => {
+      if (suppressCosmeticEffects || e.kind !== 'SUBSTITUTION') return;
+      const incoming = s.players[e.player];
+      const outgoing = playerDefById.get(e.outPlayerId);
+      if (incoming === undefined || outgoing === undefined) {
+        // A look we cannot resolve is a missing decoration, not a reason to
+        // take the match screen down.
+        console.warn(
+          'MatchScreen: no team definition for the substituted player',
+          e.outPlayerId,
+        );
+        return;
+      }
+      const startTick = s.tick;
+      const live = substitutionWalksRef.current;
+      const pairIndex = live.filter(
+        (walk) => walk.startTick === startTick && walk.direction === 'off',
+      ).length;
+      const from = { ...incoming.pos };
+      const { exit, entry } = walkEndpoints(from, pairIndex);
+      const started: SubstitutionWalk[] = [
+        {
+          id: `sub:${startTick}:${e.player}:off`,
+          slot: e.player,
+          direction: 'off',
+          visualId: visualIdForMatchPlayer(
+            e.player,
+            outgoing.id,
+            outgoing.role,
+            outgoing.lookId,
+          ),
+          name: outgoing.name,
+          from,
+          to: exit,
+          startTick,
+          durationTicks: walkDurationTicks(
+            distanceBetween(from, exit),
+            outgoing.attrs.pac,
+          ),
+        },
+      ];
+      // A substitute who is already on the ball skips his walk-on entirely:
+      // hiding him would leave the ball and its possession ring on bare grass.
+      if (!(s.ball.kind === 'held' && s.ball.by === e.player)) {
+        started.push({
+          id: `sub:${startTick}:${e.player}:on`,
+          slot: e.player,
+          direction: 'on',
+          visualId: visualIdForMatchPlayer(
+            e.player,
+            incoming.def.id,
+            incoming.def.role,
+            incoming.def.lookId,
+          ),
+          name: incoming.def.name,
+          from: entry,
+          to: from,
+          startTick,
+          durationTicks: walkDurationTicks(
+            distanceBetween(entry, from),
+            incoming.def.attrs.pac,
+          ),
+        });
+      }
+      substitutionWalksRef.current = [...live, ...started].slice(-WALKER_SLOTS);
+      substitutionWalkers.value = packWalks(substitutionWalksRef.current);
+    };
 
     // ---- Activation juice ------------------------------------------------
     // Beat sheet and timings live in power-cut-in.ts; this is only the wiring.
@@ -2227,14 +2340,19 @@ export function MatchScreen({
             subject: 'energy',
           });
         }
-        if (e.kind === 'SUBSTITUTION' && e.team === controlledTeam) {
-          const incoming = s.players[e.player].def.name;
-          bannerRef.current = appendNewestFour(bannerRef.current, {
-            id: `sub:${e.t}:${e.player}`,
-            text: t('matchScreen.bannerSubstitution', { player: incoming }),
-            untilTick: e.t + FLASH_TICKS,
-            tone: 'blue',
-          });
+        if (e.kind === 'SUBSTITUTION') {
+          if (e.team === controlledTeam) {
+            const incoming = s.players[e.player].def.name;
+            bannerRef.current = appendNewestFour(bannerRef.current, {
+              id: `sub:${e.t}:${e.player}`,
+              text: t('matchScreen.bannerSubstitution', { player: incoming }),
+              untilTick: e.t + FLASH_TICKS,
+              tone: 'blue',
+            });
+          }
+          // Deliberately OUTSIDE the banner's team filter: the opponent's subs
+          // and every automatic one walk on and off too.
+          startSubstitutionWalk(s, e);
         }
         if (!reduceMotion && e.kind === 'SLIDE_STARTED') {
           // A decoy clone can slide, and this batch is read after up to
@@ -2420,6 +2538,31 @@ export function MatchScreen({
             powerEffectDescriptor(effect.power).durationMs;
           return elapsed <= end;
         });
+        if (substitutionWalksRef.current.length > 0) {
+          // One list, two views. The DRAW list is every live walk; the HIDE
+          // list is the incoming walks alone, because the pair share a slot but
+          // not a clock — a quicker substitute arrives while his predecessor is
+          // still leaving, and a hide tied to that ghost would keep the man who
+          // is actually playing invisible under the ball.
+          const carrier = s.ball.kind === 'held' ? s.ball.by : -1;
+          const live = substitutionWalksRef.current.filter(
+            (walk) =>
+              walkIsActive(walk, s.tick) &&
+              // Checked every tick, not just at the swap: the ball can reach
+              // him mid-walk, and the moment it does he has to be on his own
+              // sprite again.
+              !(walk.direction === 'on' && walk.slot === carrier),
+          );
+          if (live.length !== substitutionWalksRef.current.length) {
+            substitutionWalksRef.current = live;
+            substitutionWalkers.value = packWalks(live);
+          }
+          // Unhide and prune land on this one published frame, so no frame ever
+          // draws the substitute twice or loses him altogether.
+          for (const slot of hiddenSlots(live, s.tick))
+            nextRef.current!.visible[slot] = false;
+        }
+
         // Publish one immutable tick pair. Reanimated interpolates it and
         // updates all 25 Atlas transforms on the UI thread; React only receives
         // the discrete state used by HUD, chips, and event overlays.
@@ -2953,6 +3096,12 @@ export function MatchScreen({
   // every frame would be a fresh cache key.
   const powerActorColors: SkColor[] = powerEffectActors.map((actor) =>
     Skia.Color(`rgba(255,255,255,${actor.opacity})`),
+  );
+
+  // The draw list: every live walk, both directions. Read straight off the ref
+  // the RAF loop just pruned, so it agrees with the frame published this tick.
+  const drawnSubstitutionWalks = substitutionWalksRef.current.filter((walk) =>
+    walkIsActive(walk, hud.tick),
   );
 
   const teamOffset = controlledTeam === 0 ? 0 : 11;
@@ -3727,6 +3876,23 @@ export function MatchScreen({
                       sampling={PIXEL_ART_SAMPLING}
                     />
                   ) : null}
+                  {/* The substitution pair: one body walking off at the nearest
+                    touchline, one walking on to take the place, each under its
+                    own last name. Inside the camera Group like everything else
+                    on the grass, so a punch-in carries them with it. */}
+                  <SubstitutionWalkers
+                    walkers={drawnSubstitutionWalks}
+                    packed={substitutionWalkers}
+                    visualPositions={workletVisualPositions}
+                    visualTick={workletVisualTick}
+                    atlasImage={atlas.image as SkImage}
+                    rectFor={spriteRects}
+                    runFrame={walkRunFrame(hud.tick, TICK_MS)}
+                    playerCell={playerCell}
+                    scale={scale}
+                    playerDrawScale={playerSpriteScale.drawScale}
+                    devicePixelRatio={devicePixelRatio}
+                  />
                   <WorkletMatchOverlays
                     visualPositions={workletVisualPositions}
                     visibility={workletVisibility}

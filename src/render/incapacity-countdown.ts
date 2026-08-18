@@ -8,6 +8,12 @@
  * imported under the test runner.
  */
 import { RENDER_PLAYER_COUNT, playerAt } from '../sim/entities';
+import {
+  GLYPH_HEIGHT,
+  GLYPH_WIDTH,
+  pixelGlyph,
+  type PixelGlyph,
+} from './pixel-glyphs';
 import { TICK_MS } from '../sim/geometry';
 import type { MatchState, SimPlayer } from '../sim/types';
 
@@ -57,52 +63,19 @@ export function incapacityCountdowns(state: MatchState): IncapacityCountdown[] {
   return found;
 }
 
-/** 3x5 pixel digits, row-major, one character per pixel. */
-const DIGIT_ROWS: readonly string[] = [
-  '111101101101111', // 0
-  '010010010010010', // 1
-  '111001111100111', // 2
-  '111001111001111', // 3
-  '101101111001001', // 4
-  '111100111001111', // 5
-  '111100111101111', // 6
-  '111001001001001', // 7
-  '111101111101111', // 8
-  '111101111001111', // 9
-];
+/**
+ * The digits themselves now live in `pixel-glyphs.ts`, shared with the
+ * substitution nameplate. This module keeps the countdown's own vocabulary —
+ * `countdownGlyph` and the two cell constants — so every existing caller and
+ * its test are untouched by that move.
+ */
+export const COUNTDOWN_DIGIT_WIDTH = GLYPH_WIDTH;
+export const COUNTDOWN_DIGIT_HEIGHT = GLYPH_HEIGHT;
 
-export const COUNTDOWN_DIGIT_WIDTH = 3;
-export const COUNTDOWN_DIGIT_HEIGHT = 5;
-/** Blank column between digits, so "12" does not read as one blob. */
-const DIGIT_GAP = 1;
-
-export interface CountdownGlyph {
-  /** Lit cells, origin at the glyph's top-left. */
-  pixels: readonly { x: number; y: number }[];
-  width: number;
-  height: number;
-}
+export type CountdownGlyph = PixelGlyph;
 
 /** Lays `seconds` out as pixel cells. Non-positive values draw nothing. */
 export function countdownGlyph(seconds: number): CountdownGlyph {
   if (seconds <= 0) return { pixels: [], width: 0, height: 0 };
-  const digits = [...String(Math.floor(seconds))];
-  const pixels: { x: number; y: number }[] = [];
-  digits.forEach((digit, index) => {
-    const rows = DIGIT_ROWS[Number(digit)];
-    const left = index * (COUNTDOWN_DIGIT_WIDTH + DIGIT_GAP);
-    for (let cell = 0; cell < rows.length; cell += 1) {
-      if (rows[cell] !== '1') continue;
-      pixels.push({
-        x: left + (cell % COUNTDOWN_DIGIT_WIDTH),
-        y: Math.floor(cell / COUNTDOWN_DIGIT_WIDTH),
-      });
-    }
-  });
-  return {
-    pixels,
-    width:
-      digits.length * COUNTDOWN_DIGIT_WIDTH + (digits.length - 1) * DIGIT_GAP,
-    height: COUNTDOWN_DIGIT_HEIGHT,
-  };
+  return pixelGlyph(String(Math.floor(seconds)));
 }
