@@ -61,6 +61,7 @@ export {
   DEFAULT_APP_PREFERENCES,
   rememberInitialFormation,
   replaceFormationPreset,
+  setFormationPreset,
   SQUAD_SORT_KEYS,
   type AppPreferences,
   type CutInMode,

@@ -251,10 +251,12 @@ describe('player-facing acceptance audit regressions', () => {
     const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
     const liveMatch = source('src/render/MatchScreen.tsx');
 
-    expect(matchDay).toContainSource('onCycleFormation: () => void;');
-    expect(app).toContainSource(
-      'onCycleFormation={() => cycleFormationPreset(0)}',
+    // The chip opens a named picker now instead of cycling blind, so the
+    // guarantee is the same and the wiring is `onSelectFormation`.
+    expect(matchDay).toContainSource(
+      'onSelectFormation: (formation: FormationId) => void;',
     );
+    expect(app).toContainSource('onSelectFormation={selectFormationPreset}');
     expect(app).toContainSource(
       'initialFormation: preferencesRef.current.formationPresets[0]',
     );
