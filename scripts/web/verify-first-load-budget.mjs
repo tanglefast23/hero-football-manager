@@ -367,8 +367,20 @@ const DIST = path.resolve('dist');
 // than dressed up: nothing was measured locally, since a worktree resolves
 // node_modules up-tree and cannot reproduce CI's tree. Per the convention
 // here, if a later CI run reports lower, ratchet down to that figure.
-const RAW_BUDGET = 3_410_095;
-const GZIP_BUDGET = 831_475;
+// 2026-08-18, the SHOT! call beside the shot power number. `ShotPowerPop`
+// now draws two texts instead of one — a localised word and the number — so
+// it gained a second set of paths, a pair of x offsets and a second entrance,
+// plus `shotPowerCellPx` in `shot-power-pop.ts`, one `!` row in the pixel
+// face, and the `matchScreen.shotPop` string. Only `en.json` is in the
+// startup graph, so the other six locales cost nothing here.
+//
+// Measured by CI, not locally: +529 raw (3_410_095 -> 3_410_624) and +147
+// gzip (831_475 -> 831_622). Both figures are CI's own reported numbers from
+// the failing run, not local + offset — a worktree resolves node_modules
+// up-tree and cannot reproduce CI's tree. Per the convention here, if a later
+// CI run reports lower, ratchet down to that figure.
+const RAW_BUDGET = 3_410_624;
+const GZIP_BUDGET = 831_622;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
