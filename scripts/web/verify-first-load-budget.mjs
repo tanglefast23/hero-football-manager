@@ -389,18 +389,35 @@ const DIST = path.resolve('dist');
 // 2026-08-18, the tackle card. A two-line plate — the tackler's last name over
 // the word "Tackle!" — pops under the boots on every won challenge. One new
 // component (`TacklePop`), one new function in the pitch alphabet
-// (`stackedGlyph`), and the wiring in `MatchScreen` that fires it. It costs
-// first-load bytes because `MatchScreen` is already in the startup graph, as
-// the entry above records; the card reuses `PassComboPop`'s curves and
-// `pixel-glyphs`' alphabet rather than bringing its own.
+// (`stackedGlyph`), and the wiring in `MatchScreen` that fires it.
 //
-// Measured by CI, not estimated: +533 raw and +158 gzip over the 3_410_095 /
-// 831_475 baseline, landing at 3_410_628 / 831_633. It merged after the
-// entry above, which re-baselined the same starting figures to 3_410_594 /
-// 831_611, so on main the card sits at about 3_411_127 / 831_769. Local export cannot reproduce CI's tree, for the
-// worktree/node_modules reason the entry above gives. The Prettier pass in the
-// same branch is formatter output only and moves no code. Per the convention
-// here, if a later CI run reports lower, ratchet down to that figure.
+// CI measured +533 raw and +158 gzip over the 3_410_095 / 831_475 baseline.
+// The first attribution written here was WRONG, and the correction is worth
+// more than the number: it said the card costs first-load bytes "because
+// MatchScreen is already in the startup graph". MatchScreen is NOT in the
+// startup graph, and has not been since 0f3057f7 (PR #173, 2026-08-17) added
+// `LazyMatchScreen.web.tsx`. That claim was true when an earlier entry above
+// wrote it, and was copied forward after it stopped being true.
+//
+// Checked against the built bundle rather than reasoned about. Probes unique
+// to each module, counted in `index-*.js` against the lazy
+// `SkiaSurfaceImplementations-*.js`:
+//
+//   'impact-core'      (MatchScreen only)    index 0, skia 1
+//   '#ffaeae'          (TacklePop only)      index 0, skia 1
+//   '001001001101111'  (pixel-glyphs only)   index 0, skia 1
+//   'matchScreen.tacklePop'                  index 1, skia 1
+//
+// So none of this branch's COMPONENT code reaches the first load. What reaches
+// it is the English catalog key and its value, about 40 bytes; the six other
+// locales ship as their own chunks. The rest of the raw difference is baseline
+// drift between runs, and is recorded as unattributed rather than assigned to
+// the card to make the number add up.
+//
+// For whoever writes the next entry: grep the built `index-*.js` for a string
+// unique to your change before naming a cause. A literal that appears only in
+// your file settles in one command what an import chain read by eye keeps
+// getting wrong.
 // 2026-08-18, headroom. Owner's call, and a deliberate break with the ratchet
 // convention every entry above follows: the budget is set well clear of the
 // measurement instead of onto it. Four branches in two days each stopped on
