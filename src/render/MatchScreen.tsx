@@ -3133,6 +3133,7 @@ export function MatchScreen({
       : [],
   );
 
+  const shotPopWord = t('matchScreen.shotPop');
   // The two pitch numbers, ordered newest-last so the fresher pop draws over
   // the older one when both are still alive. Keys keep each node's identity
   // across the swap, so a reorder does not remount it and rebuild its SkPath.
@@ -3141,6 +3142,7 @@ export function MatchScreen({
       <ShotPowerPop
         key="shot-power"
         subject={shotPowerPop}
+        word={shotPopWord}
         life={shotPowerPopLife}
         scale={scale}
         playerDrawScale={playerSpriteScale.drawScale}
@@ -3168,6 +3170,7 @@ export function MatchScreen({
     playerSpriteScale.drawScale,
     reduceMotion,
     scale,
+    shotPopWord,
     shotPowerPop,
     shotPowerPopLife,
   ]);
