@@ -78,6 +78,7 @@ import {
 } from './animation';
 import { tacklePoses } from './tackle-poses';
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
+import { zoneReadyTint } from './zone-ready-look';
 import {
   matchPlaybackRate,
   nextMatchSpeed,
@@ -2628,6 +2629,13 @@ export function MatchScreen({
       if ((player.actionLockedUntilTick ?? 0) > hud.tick)
         return skColor('#d94f52');
       if (st === 'ignited') return skColor('#ff6a00'); // flame orange (matches Fire Torch FX)
+      // Power banked and waiting for its opportunity: a red-shifted body that
+      // flashes, on top of the 10% growth the atlas transform applies. Read
+      // from zoneFraction rather than the status, and ranked above 'out' and
+      // the slide/recovery statuses, so being tackled cannot cancel a look
+      // that is still true — the power is still loaded.
+      if (frame.zoneFraction[i] > 0)
+        return skColor(zoneReadyTint(hud.tick, reduceMotion, speed));
       if (st === 'out') return skColor('#6b6675'); // bible grey-dark
       if (st === 'windup') {
         return skColor(
@@ -2635,7 +2643,7 @@ export function MatchScreen({
         );
       }
       if (st === 'active') return skColor('#edb54a'); // hero gold
-      // 'ok' | 'zone' — zone is telegraphed by the glow ring, not a body tint.
+      // 'ok' | 'zone' — a banked power is tinted above, by zoneFraction.
       // In fallback mode there are no kit pixels to preserve, so tint the
       // white placeholder rects with bible team colors (red / blue) instead.
       return atlas.fallbackMode
@@ -2662,6 +2670,7 @@ export function MatchScreen({
     colorSafeKits,
     match,
     reduceMotion,
+    speed,
   ]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));

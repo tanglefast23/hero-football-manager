@@ -51,7 +51,6 @@ import { snapDevicePixels } from './pixel-grid';
 
 const STATUS_ACTIVE = 2;
 const STATUS_IGNITED = 4;
-const STATUS_ZONE = 5;
 
 // A reserved Decoy slot is "visible" exactly while its live clone exists, so its
 // visibility flag doubles as the "draw the hologram ring" signal.
@@ -649,7 +648,6 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
             key={playerIndex}
             playerIndex={playerIndex}
             visualPositions={visualPositions}
-            statuses={statuses}
             zoneFractions={zoneFractions}
             visualTick={visualTick}
             controlledTeam={controlledTeam}
@@ -813,7 +811,6 @@ function WorkletDecoyRing({
 function WorkletZoneIndicator({
   playerIndex,
   visualPositions,
-  statuses,
   zoneFractions,
   visualTick,
   controlledTeam,
@@ -823,7 +820,6 @@ function WorkletZoneIndicator({
 }: {
   playerIndex: number;
   visualPositions: SharedValue<Float32Array>;
-  statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
   visualTick: SharedValue<number>;
   controlledTeam: 0 | 1;
@@ -833,9 +829,12 @@ function WorkletZoneIndicator({
 }) {
   const playerTeam = playerIndex < 11 ? 0 : 1;
   const isControlled = playerTeam === controlledTeam;
+  // zoneFraction, not the status: 'sliding', 'recovering' and 'out' all outrank
+  // 'zone' in the status enum, and none of them spends the banked power. The
+  // ring used to blink out for the length of every slide tackle.
   const ring = usePathValue((builder) => {
     'worklet';
-    if (statuses.value[playerIndex] !== STATUS_ZONE) return;
+    if (zoneFractions.value[playerIndex] <= 0) return;
     builder.addCircle(
       visualPositions.value[playerIndex * 2] * scale,
       visualPositions.value[playerIndex * 2 + 1] * scale,
@@ -843,7 +842,7 @@ function WorkletZoneIndicator({
     );
   });
   const opacity = useDerivedValue(() => {
-    if (statuses.value[playerIndex] !== STATUS_ZONE) return 0;
+    if (zoneFractions.value[playerIndex] <= 0) return 0;
     const presentationTick = Math.max(0, visualTick.value);
     const pulse =
       reduceMotion || Math.floor(presentationTick) % 20 < 10 ? 1 : 0.55;
