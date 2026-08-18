@@ -14,18 +14,16 @@ describe('substitution walk wiring', () => {
   const screen = source('src/render/MatchScreen.tsx');
 
   it('starts the walk for every team, not just the managed one', () => {
-    // The banner is deliberately the manager's own subs only. Tying the walk to
-    // the same condition would leave every opponent and automatic substitution
-    // teleporting.
+    // Tying the walk to the managed team would leave every opponent and every
+    // automatic substitution teleporting. This branch used to hold a
+    // manager-only event line behind a `controlledTeam` filter, and the guard
+    // was that the walk sat outside it; the substitution line is gone, so the
+    // branch must now carry no team filter at all.
     const branch = screen.slice(
       screen.indexOf("if (e.kind === 'SUBSTITUTION')"),
       screen.indexOf('startSubstitutionWalk(s, e);'),
     );
-    expect(branch).toContain('e.team === controlledTeam');
-    const afterFilterCloses = branch.lastIndexOf('}');
-    expect(branch.indexOf('e.team === controlledTeam')).toBeLessThan(
-      afterFilterCloses,
-    );
+    expect(branch).not.toContain('controlledTeam');
     expect(screen).toContain('startSubstitutionWalk(s, e);');
   });
 

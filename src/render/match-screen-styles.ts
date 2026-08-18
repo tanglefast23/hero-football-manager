@@ -7,6 +7,13 @@ import {
   MATCH_RAIL_WIDTH,
 } from './match-rail';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
+import {
+  OUTLINE_PX,
+  SHADOW_DROP_PX,
+  TICKER_LANE_HEIGHT,
+  TICKER_LANES,
+  TICKER_TOP_INSET,
+} from './match-ticker';
 
 // Possession-card geometry. The charge meter's rainbow strip is built from real
 // pixel bands, so it needs the card's content width rather than a percentage.
@@ -115,55 +122,48 @@ const makeStyles = (faces: LocaleFaces) =>
       borderRadius: 4,
     },
     ctrlText: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 16 },
+    // The event ticker's band. An absolute child of the pitch frame, so it
+    // sits under the scorebar on a phone and on the top touchline on desktop
+    // without either layout needing its own offset — and the clip makes the
+    // touchlines themselves the point where a line enters and leaves.
     bannerStack: {
       position: 'absolute',
       zIndex: 8,
-      top: '40%',
-      left: 18,
-      right: 18,
-      gap: 4,
-      // Banners size to their own text instead of filling the row. A stretched
-      // bar reads as a page element; a lozenge reads as an announcement.
-      alignItems: 'center',
+      top: TICKER_TOP_INSET,
+      left: 0,
+      right: 0,
+      height: TICKER_LANES * TICKER_LANE_HEIGHT + SHADOW_DROP_PX + OUTLINE_PX,
+      overflow: 'hidden',
     },
+    // One lane. Full width so the held (reduce-motion) line can centre inside
+    // it; the glyph stack within shrink-wraps, which is what lets a crossing
+    // line start genuinely off the left edge instead of half on screen.
+    tickerRow: { position: 'absolute', left: 0, right: 0 },
+    tickerRowHeld: { alignItems: 'center' },
+    tickerGlyphs: { alignSelf: 'flex-start' },
+    // Unplated announcement type. No background, no border, no padding and no
+    // maxWidth: the ring around the glyphs is what holds the line off the
+    // grass now, and any of those would clip it or wrap the longer locales.
     banner: {
-      textAlign: 'center',
       color: '#edb54a',
       fontFamily: faces.display,
       fontSize: 18,
-      backgroundColor: '#241f2edd',
-      borderWidth: 2,
-      borderColor: '#edb54a',
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 4,
-      maxWidth: '100%',
-      overflow: 'hidden',
     },
-    bannerThreat: {
-      color: '#f4f1ea',
-      borderColor: '#d94f52',
-      backgroundColor: '#3a1512ee',
-    },
-    bannerAction: {
-      color: '#f4f1ea',
-      borderColor: '#77a4d8',
-      backgroundColor: '#214566ee',
-    },
-    // Defensive moments get their own colour. Deliberately a mint/spring green,
-    // far from the two pitch greens (#3f8a4a base, #5cb85c mow bands), so the
-    // tile never sinks into the grass behind it.
-    bannerTackle: {
-      color: '#8effc4',
-      borderColor: '#5ef2a0',
-      backgroundColor: '#0d3a24ee',
-    },
-    // A footnote tile, not an announcement: it reads as belonging to the banner
-    // directly above it rather than competing with it.
-    bannerSmall: {
-      fontSize: 12,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
+    // Each tone keeps the accent its plate used to carry in its border.
+    bannerThreat: { color: '#d94f52' },
+    bannerAction: { color: '#77a4d8' },
+    // A footnote to the line above it, not an announcement of its own.
+    bannerSmall: { fontSize: 12 },
+    // The hard ink ring, drawn as eight offset copies under the fill.
+    bannerOutline: { position: 'absolute', color: '#241f2e' },
+    // The extruded copy under the ring: darker still, with a soft edge so the
+    // drop reads as depth rather than as a second outline.
+    bannerShadow: {
+      position: 'absolute',
+      color: '#16121f',
+      textShadowColor: 'rgba(0,0,0,0.45)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 3,
     },
     performanceNotice: {
       position: 'absolute',
