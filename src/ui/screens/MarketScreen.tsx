@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ComponentProps,
   type Dispatch,
   type ReactNode,
   type RefObject,
@@ -797,6 +798,9 @@ function ScoutingDesk({
     viewModel.scouting.choices.find(
       (choice) => choice.region === 'SOUTH_AMERICA',
     )?.id ?? viewModel.scouting.choices[1]?.id;
+  // The mission is live from dispatch until the report is opened, and both
+  // states block every slip in the view model with market.scoutBusy.
+  const scoutOut = status.kind === 'IN_PROGRESS' || status.kind === 'READY';
   const statusClass =
     status.kind === 'COMPLETED' || status.kind === 'READY'
       ? 'border-pitch-dark bg-pitch-light'
@@ -947,149 +951,157 @@ function ScoutingDesk({
           ))}
         </View>
       ) : null}
-      <View className="mt-5 gap-3">
-        <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">
-          {t('market.missionSlips')}
-        </Text>
-        {viewModel.scouting.choices.length === 0 ? (
-          <EmptyDocket
-            title={t('market.noMissionsOnOffer')}
-            detail={t('market.scoutingAssignmentsAreDrawn')}
-          />
-        ) : (
-          <>
-            <Text className="font-pixel text-sm uppercase text-ink/60">
-              {t('market.scoutChooseRegion')}
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {regionChoices.map((choice) => (
-                <SmallAction
-                  key={choice.region}
-                  label={choice.regionLabel}
-                  selected={selectedRegion === choice.region}
-                  onPress={() => setSelectedRegion(choice.region)}
-                />
-              ))}
-            </View>
-            <Text className="font-pixel text-sm uppercase text-ink/60">
-              {t('market.scoutChoosePosition')}
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {(['ANY', 'GK', 'DEF', 'MID', 'FWD'] as const).map((role) => (
-                <SmallAction
-                  key={role}
-                  label={role === 'ANY' ? t('market.positionAny') : role}
-                  selected={selectedRole === role}
-                  disabled={
-                    selectedProspect === 'RUMORED_HERO' ||
-                    selectedProspect === 'ELITE_PROSPECT'
-                  }
-                  onPress={() => setSelectedRole(role)}
-                />
-              ))}
-            </View>
-            <Text className="font-pixel text-sm uppercase text-ink/60">
-              {t('market.scoutChooseProspect')}
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {prospectChoices.map((choice) => (
-                <SmallAction
-                  key={choice.prospectType}
-                  label={choice.focusLabel}
-                  selected={selectedProspect === choice.prospectType}
-                  onPress={() => {
-                    setSelectedProspect(choice.prospectType);
-                    if (
-                      choice.prospectType === 'RUMORED_HERO' ||
-                      choice.prospectType === 'ELITE_PROSPECT'
-                    )
-                      setSelectedRole('ANY');
-                  }}
-                />
-              ))}
-            </View>
-            {selectedChoice === undefined
-              ? null
-              : [selectedChoice].map((choice, index) => (
-                  <View
-                    key={choice.id}
-                    className={
-                      choice.available
-                        ? 'border-2 border-b-4 border-ink bg-white p-3'
-                        : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'
+      {/* A scout in the field cannot be sent anywhere, so the whole slip
+          picker goes away while he is out and returns when he is free —
+          five rows of dead, blocked buttons taught the player nothing. */}
+      {scoutOut ? null : (
+        <View className="mt-5 gap-3">
+          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">
+            {t('market.missionSlips')}
+          </Text>
+          {viewModel.scouting.choices.length === 0 ? (
+            <EmptyDocket
+              title={t('market.noMissionsOnOffer')}
+              detail={t('market.scoutingAssignmentsAreDrawn')}
+            />
+          ) : (
+            <>
+              <Text className="font-pixel text-sm uppercase text-ink/60">
+                {t('market.scoutChooseRegion')}
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {regionChoices.map((choice) => (
+                  <SmallAction
+                    key={choice.region}
+                    label={choice.regionLabel}
+                    selected={selectedRegion === choice.region}
+                    onPress={() => setSelectedRegion(choice.region)}
+                  />
+                ))}
+              </View>
+              <Text className="font-pixel text-sm uppercase text-ink/60">
+                {t('market.scoutChoosePosition')}
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {(['ANY', 'GK', 'DEF', 'MID', 'FWD'] as const).map((role) => (
+                  <SmallAction
+                    key={role}
+                    label={role === 'ANY' ? t('market.positionAny') : role}
+                    selected={selectedRole === role}
+                    disabled={
+                      selectedProspect === 'RUMORED_HERO' ||
+                      selectedProspect === 'ELITE_PROSPECT'
                     }
-                  >
-                    <View className="flex-row items-start justify-between gap-3">
-                      <View className="flex-1">
-                        <PixelText className="text-base uppercase text-ink">
-                          {choice.regionLabel}
-                        </PixelText>
-                        <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                          {choice.focusLabel}
+                    onPress={() => setSelectedRole(role)}
+                  />
+                ))}
+              </View>
+              <Text className="font-pixel text-sm uppercase text-ink/60">
+                {t('market.scoutChooseProspect')}
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {prospectChoices.map((choice) => (
+                  <SmallAction
+                    key={choice.prospectType}
+                    label={choice.focusLabel}
+                    selected={selectedProspect === choice.prospectType}
+                    onPress={() => {
+                      setSelectedProspect(choice.prospectType);
+                      if (
+                        choice.prospectType === 'RUMORED_HERO' ||
+                        choice.prospectType === 'ELITE_PROSPECT'
+                      )
+                        setSelectedRole('ANY');
+                    }}
+                  />
+                ))}
+              </View>
+              {selectedChoice === undefined
+                ? null
+                : [selectedChoice].map((choice, index) => (
+                    <View
+                      key={choice.id}
+                      className={
+                        choice.available
+                          ? 'border-2 border-b-4 border-ink bg-white p-3'
+                          : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'
+                      }
+                    >
+                      <View className="flex-row items-start justify-between gap-3">
+                        <View className="flex-1">
+                          <PixelText className="text-base uppercase text-ink">
+                            {choice.regionLabel}
+                          </PixelText>
+                          <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
+                            {choice.focusLabel}
+                          </Text>
+                        </View>
+                        <Text className="font-mono text-base text-ink">
+                          {choice.feeWaived === true
+                            ? t('market.free')
+                            : formatCurrency(t, choice.cost)}
                         </Text>
                       </View>
-                      <Text className="font-mono text-base text-ink">
-                        {choice.feeWaived === true
-                          ? t('market.free')
-                          : formatCurrency(t, choice.cost)}
+                      <Text className="mt-2 text-sm leading-5 text-ink/60">
+                        {choice.detail}
                       </Text>
-                    </View>
-                    <Text className="mt-2 text-sm leading-5 text-ink/60">
-                      {choice.detail}
-                    </Text>
-                    {/* The waiver only fires when the club can afford nothing
+                      {/* The waiver only fires when the club can afford nothing
                         on the board, so say why the price vanished rather than
                         leaving FREE to look arbitrary beside four priced slips. */}
-                    {choice.feeWaived === true ? (
-                      <Text className="mt-2 text-sm font-bold leading-5 text-pitch-ink">
-                        {t('market.scoutFavorLocal')}
-                      </Text>
-                    ) : null}
-                    <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
-                      <Text className="font-mono text-sm uppercase text-ink/50">
-                        {choice.durationLabel}
-                      </Text>
-                      <GuidedAction
-                        enabled={guideFocus === 'scout-mission' && index === 0}
-                        detail={t('market.sendTheScout')}
-                        targetRef={
-                          choice.id === scrollDismissTargetId
-                            ? southAmericaScoutActionRef
-                            : undefined
-                        }
-                      >
-                        <SmallAction
-                          label={
-                            choice.feeWaived === true
-                              ? t('market.sendFreeScout')
-                              : t('market.sendScout')
+                      {choice.feeWaived === true ? (
+                        <Text className="mt-2 text-sm font-bold leading-5 text-pitch-ink">
+                          {t('market.scoutFavorLocal')}
+                        </Text>
+                      ) : null}
+                      <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
+                        <Text className="font-mono text-sm uppercase text-ink/50">
+                          {choice.durationLabel}
+                        </Text>
+                        <GuidedAction
+                          enabled={
+                            guideFocus === 'scout-mission' && index === 0
                           }
-                          accessibilityLabel={
-                            choice.feeWaived === true
-                              ? t('market.a11y.sendScoutFreeFirstTrip', {
-                                  region: choice.regionLabel,
-                                  focus: choice.focusLabel,
-                                })
-                              : t('market.a11y.sendScoutTo', {
-                                  region: choice.regionLabel,
-                                  focus: choice.focusLabel,
-                                })
+                          detail={t('market.sendTheScout')}
+                          targetRef={
+                            choice.id === scrollDismissTargetId
+                              ? southAmericaScoutActionRef
+                              : undefined
                           }
-                          disabled={!choice.available}
-                          onPress={() => onStartScoutMission(choice.id)}
-                        />
-                      </GuidedAction>
+                        >
+                          <SmallAction
+                            label={
+                              choice.feeWaived === true
+                                ? t('market.sendFreeScout')
+                                : t('market.sendScout')
+                            }
+                            accessibilityLabel={
+                              choice.feeWaived === true
+                                ? t('market.a11y.sendScoutFreeFirstTrip', {
+                                    region: choice.regionLabel,
+                                    focus: choice.focusLabel,
+                                  })
+                                : t('market.a11y.sendScoutTo', {
+                                    region: choice.regionLabel,
+                                    focus: choice.focusLabel,
+                                  })
+                            }
+                            disabled={!choice.available}
+                            pressSfx="positive"
+                            onPress={() => onStartScoutMission(choice.id)}
+                          />
+                        </GuidedAction>
+                      </View>
+                      {choice.blockedReason ? (
+                        <Text className="mt-2 text-right text-sm font-bold text-stamp">
+                          {choice.blockedReason}
+                        </Text>
+                      ) : null}
                     </View>
-                    {choice.blockedReason ? (
-                      <Text className="mt-2 text-right text-sm font-bold text-stamp">
-                        {choice.blockedReason}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))}
-          </>
-        )}
-      </View>
+                  ))}
+            </>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -2256,6 +2268,7 @@ function SmallAction({
   onPress,
   flashToken,
   reduceMotion = false,
+  pressSfx,
 }: {
   label: string;
   accessibilityLabel?: string;
@@ -2264,9 +2277,11 @@ function SmallAction({
   onPress: (event: GestureResponderEvent) => void;
   flashToken?: number;
   reduceMotion?: boolean;
+  pressSfx?: ComponentProps<typeof Pressable>['pressSfx'];
 }) {
   return (
     <Pressable
+      pressSfx={pressSfx}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled, selected }}

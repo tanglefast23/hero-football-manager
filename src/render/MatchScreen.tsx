@@ -2505,6 +2505,9 @@ export function MatchScreen({
         // authored, or playerLookId() would derive a different face and request a
         // sprite that was never included in the match Atlas.
         const visualPlayerId = clone?.sourcePlayerId ?? p.def.id;
+        // Team 0 attacks y=0, so its carrier is running up-screen with the
+        // ball at his boots. Only he is exempt from the face-the-ball rule.
+        const carryingUpScreen = i === frame.carrier && p.team === 0;
         const webbed = (p.webbedUntilTick ?? 0) > hud.tick;
         if (webbed) {
           // Web Trap roots the whole body. Hold the authored grey standing pose
@@ -2514,7 +2517,12 @@ export function MatchScreen({
               i,
               visualPlayerId,
               p.def.role,
-              runFrameFacingBall(frame.players[i].y, frame.ball.y, 'run0'),
+              runFrameFacingBall(
+                frame.players[i].y,
+                frame.ball.y,
+                'run0',
+                carryingUpScreen,
+              ),
               p.def.lookId,
             ),
           );
@@ -2535,7 +2543,12 @@ export function MatchScreen({
             i,
             visualPlayerId,
             p.def.role,
-            runFrameFacingBall(frame.players[i].y, frame.ball.y, 'run0'),
+            runFrameFacingBall(
+              frame.players[i].y,
+              frame.ball.y,
+              'run0',
+              carryingUpScreen,
+            ),
             p.def.lookId,
           );
         }
@@ -2563,6 +2576,7 @@ export function MatchScreen({
             frame.players[i].y,
             frame.ball.y,
             runFrameForDistance(frame.travel[i], frame.moved[i]),
+            carryingUpScreen,
           ),
           p.def.lookId,
         );
