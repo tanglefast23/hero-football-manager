@@ -287,9 +287,26 @@ function conditionedPaceSpeed128(state: MatchState, idx: number): number {
   return baseSpeed128 + Math.round(paceContribution128 * conditionScale);
 }
 
-function speedFor128(state: MatchState, idx: number): number {
+/**
+ * Authoritative 1/128-unit speed. Folds in condition (via
+ * `conditionedPaceSpeed128`), power effects (via `speedMultiplier`) and the
+ * pass-combo bonus.
+ *
+ * Energy use is NOT here: `movementTick` applies `energyMovementMultiplier` at
+ * its own call site and only to off-ball players, while a carrier gets
+ * `speedFor128 * CARRIER_SPEED_SCALE`. Putting the combo bonus here therefore
+ * reaches both, and energy still stacks on top for off-ball movers.
+ *
+ * Exported so tests can assert the exact integer — `speedFor` rounds a second
+ * time, which makes a `x 1.20` comparison flake by 1.
+ */
+export function speedFor128(state: MatchState, idx: number): number {
+  const p = requirePlayerAt(state, idx);
   return Math.round(
-    conditionedPaceSpeed128(state, idx) * speedMultiplier(state, idx),
+    (conditionedPaceSpeed128(state, idx) *
+      speedMultiplier(state, idx) *
+      (10000 + comboBonusD(p))) /
+      10000,
   );
 }
 

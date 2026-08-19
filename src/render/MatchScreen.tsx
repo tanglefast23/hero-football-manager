@@ -133,13 +133,7 @@ import {
 import { ShotPowerPop, type ShotPowerPopSubject } from './ShotPowerPop';
 import { SHOT_POWER_POP_MS, shotPowerBand } from './shot-power-pop';
 import { PassComboPop, type PassComboPopSubject } from './PassComboPop';
-import {
-  PASS_COMBO_FLOOR,
-  PASS_COMBO_IDLE,
-  PASS_COMBO_POP_MS,
-  passComboAfter,
-  type PassComboChain,
-} from './pass-combo';
+import { PASS_COMBO_FLOOR, PASS_COMBO_POP_MS } from './pass-combo';
 import { TacklePop, TACKLE_POP_MS, type TacklePopSubject } from './TacklePop';
 import {
   appendNewestFour,
@@ -780,12 +774,11 @@ export function MatchScreen({
     null,
   );
   const shotPowerPopLife = useSharedValue(SHOT_POWER_POP_MS);
-  // The live pass chain, and the counter drawn over its latest receiver. The
-  // chain is a ref because only the pop it produces is rendered; parked life,
-  // same trick as the shot number above.
-  const passComboChainRef = useRef<PassComboChain>(PASS_COMBO_IDLE);
-  /** Slot the ball in flight is aimed at, or null when no pass is airborne. */
-  const passInFlightRef = useRef<number | null>(null);
+  // The counter drawn over the latest receiver of a pass chain. The SIM owns
+  // the chain now (`state.passCombo`), because it feeds a speed bonus and so
+  // has to be replayable; this ref only remembers last tick's counts so the
+  // renderer can spot the tick one of them rose.
+  const passComboCountsRef = useRef<[number, number]>([0, 0]);
   const [passComboPop, setPassComboPop] = useState<PassComboPopSubject | null>(
     null,
   );
@@ -1938,59 +1931,35 @@ export function MatchScreen({
         }
         shotInFlightRef.current = ballIsShot;
 
-        // Pass chain, counted at the CATCH and never at the kick. PASS is
-        // emitted the moment the ball leaves the boot, and the flight runs
-        // several ticks — a launch-time counter would stand on empty grass and
-        // often expire before the ball ever arrived.
+        // Pass chain, owned by the sim. Read per tick rather than after the
+        // catch-up loop: one frame can advance several ticks, and a post-loop
+        // read would miss a chain that rose and broke inside the same frame.
         //
-        // Both the breaks and the extension live here rather than in the event
-        // drain below, so they apply in TICK order. One frame can catch several
-        // ticks up, and a break from an earlier tick must not undo a chain that
-        // legitimately continued after it.
-        for (const emitted of s.events.slice(tickEventsBefore)) {
-          if (
-            (emitted.kind === 'PASS' && !emitted.ok) ||
-            (emitted.kind === 'TACKLE' && emitted.won) ||
-            emitted.kind === 'SAVE' ||
-            emitted.kind === 'MISS' ||
-            emitted.kind === 'GOAL' ||
-            emitted.kind === 'HALF_TIME' ||
-            emitted.kind === 'KICKOFF'
-          )
-            passComboChainRef.current = passComboAfter(
-              passComboChainRef.current,
-              { kind: 'break' },
-            );
-        }
-        if (s.ball.kind === 'pass') {
-          // Re-stamped every tick on purpose: a Gust redirect rewrites `to`
-          // mid-flight, and the receiver that matters is the last one.
-          passInFlightRef.current = s.ball.to;
-        } else if (passInFlightRef.current !== null) {
-          const intended = passInFlightRef.current;
-          passInFlightRef.current = null;
-          // Held by the man it was aimed at is the only completion. A loose
-          // arrival, an interception, or a receiver knocked out between kick
-          // and catch all land somewhere else, and all end the run.
-          const holder = s.ball.kind === 'held' ? s.ball.by : -1;
-          const team =
-            holder === intended ? playerAt(s, holder)?.team : undefined;
-          passComboChainRef.current = passComboAfter(
-            passComboChainRef.current,
-            team === undefined
-              ? { kind: 'break' }
-              : { kind: 'completed-pass', team },
-          );
-          const chain = passComboChainRef.current;
-          if (team !== undefined && chain.count >= PASS_COMBO_FLOOR) {
-            const receiver = nextRef.current!.players[holder];
+        // Only one completion can happen per tick, so at most one side's count
+        // rises. That side owns the pop and the milestone cues.
+        const prevComboCounts = passComboCountsRef.current;
+        const nextComboCounts: [number, number] = [
+          s.passCombo[0].count,
+          s.passCombo[1].count,
+        ];
+        const comboRisenTeam =
+          nextComboCounts[0] > prevComboCounts[0]
+            ? 0
+            : nextComboCounts[1] > prevComboCounts[1]
+              ? 1
+              : null;
+        passComboCountsRef.current = nextComboCounts;
+        if (comboRisenTeam !== null) {
+          const comboCount = nextComboCounts[comboRisenTeam];
+          if (comboCount >= PASS_COMBO_FLOOR && s.ball.kind === 'held') {
+            const receiver = nextRef.current!.players[s.ball.by];
             setPassComboPop({
-              count: chain.count,
+              count: comboCount,
               x: receiver.x,
               y: receiver.y,
             });
             setNewestPop('combo');
-            playPassCombo(chain.count);
+            playPassCombo(comboCount);
             passComboLife.value = 0;
             passComboLife.value = withTiming(PASS_COMBO_POP_MS, {
               duration: PASS_COMBO_POP_MS,

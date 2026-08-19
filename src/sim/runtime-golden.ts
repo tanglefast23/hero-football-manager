@@ -23,18 +23,24 @@ import { ROVERS, UNITED } from './teams';
 // domains, career condition carryover, fixed-point PAC/STA movement), m1.29
 // (presser standoff ring; PAC-widened duel spacing), m1.25 (five named subs,
 // immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
-const EXPECTED_RUNTIME_GOLDEN = '53c44ee0';
+const EXPECTED_RUNTIME_GOLDEN = '039f1e16';
 
 // Seed 42 finishes 0-0, so neither this hash nor parity-replay's snapshot has
 // ever contained a GOAL payload — adding assistedById to that event moved
-// neither baseline, and the forcing reminder stayed silent. Seed 81 finishes
-// 3-2: five goals, three of them assisted and from both sides of the pitch, two
-// unassisted (which covers the omitted-field branch too). Kept as a second
-// baseline rather than folded into the first so a regression stays readable as
-// "the goalless one still passes, the scoring one moved".
-const EXPECTED_GOAL_GOLDEN = '78109294';
+// neither baseline, and the forcing reminder stayed silent. The scoring seed
+// finishes 1-4: five goals, three of them assisted and from both sides of the
+// pitch, two unassisted (which covers the omitted-field branch too). Kept as a
+// second baseline rather than folded into the first so a regression stays
+// readable as "the goalless one still passes, the scoring one moved".
+//
+// The seed itself is m2.5. It was 81 until the pass-combo speed bonus, which
+// moved that match to five assisted goals and zero unassisted — the hash would
+// have rebaselined quietly while the both-kinds contract below went red. Seed
+// 25 restores the same profile 81 used to have. Re-scan for a replacement
+// rather than weakening the assertion if a future change costs it again.
+const EXPECTED_GOAL_GOLDEN = '1044ff86';
 
-const GOAL_GOLDEN_SEED = 81;
+const GOAL_GOLDEN_SEED = 25;
 
 function goldenMatch(seed: number): ReturnType<typeof runMatch> {
   return runMatch(seed, ROVERS, UNITED, [], {

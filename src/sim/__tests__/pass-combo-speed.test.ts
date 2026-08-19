@@ -1,5 +1,11 @@
-import { launchPass, possessionTick, restartKickoff } from '../engine';
-import { createMatch } from '../match';
+import {
+  launchPass,
+  movementTick,
+  possessionTick,
+  restartKickoff,
+  speedFor128,
+} from '../engine';
+import { createMatch, runMatch } from '../match';
 import {
   PASS_COMBO_DECAY_TICKS,
   PASS_COMBO_TIER_D,
@@ -51,9 +57,16 @@ function spawnHomeClone(state: MatchState): void {
 function completePass(state: MatchState, from: number, to: number): void {
   state.ball = { kind: 'held', by: from };
   launchPass(state, from, to, false, true);
-  for (let i = 0; i < 60 && state.ball.kind === 'pass'; i += 1) {
+  // Read through a function: the assignment above narrows `state.ball` to
+  // 'held' for the rest of the block, and TS cannot see that launchPass and
+  // possessionTick replace it.
+  for (let i = 0; i < 60 && ballKind(state) === 'pass'; i += 1) {
     possessionTick(state);
   }
+}
+
+function ballKind(state: MatchState): MatchState['ball']['kind'] {
+  return state.ball.kind;
 }
 
 describe('pass combo bonus arithmetic', () => {
@@ -261,10 +274,10 @@ describe('pass combo chain membership', () => {
       speed: 250,
       gustRedirect: true,
     };
-    for (let i = 0; i < 60 && state.ball.kind === 'pass'; i += 1) {
+    for (let i = 0; i < 60 && ballKind(state) === 'pass'; i += 1) {
       possessionTick(state);
     }
-    expect(state.ball.kind).toBe('held');
+    expect(ballKind(state)).toBe('held');
     expect(state.passCombo[0].count).toBe(0);
   });
 
@@ -292,5 +305,67 @@ describe('pass combo chain membership', () => {
     expect(state.players[5].comboChainId).toBe(0);
     expect(comboBonusD(state.players[5])).toBe(0);
     expect(chainMembers(state, 0)).not.toContain(5);
+  });
+});
+
+describe('pass combo speed', () => {
+  it('multiplies a member speed by the tier and leaves everyone else alone', () => {
+    const state = freshMatch();
+    const baseline = speedFor128(state, 4);
+    const nonMemberBaseline = speedFor128(state, 10);
+    const opponentBaseline = speedFor128(state, 15);
+    const order = [4, 7, 5, 6, 8, 3, 2];
+    for (let i = 0; i + 1 < order.length; i += 1) {
+      extendPassCombo(state, 0, order[i], order[i + 1]);
+    }
+    expect(comboBonusD(state.players[4])).toBe(2000);
+    expect(speedFor128(state, 4)).toBe(Math.round((baseline * 12000) / 10000));
+    // A teammate who never touched the ball, and an opponent, are untouched.
+    expect(speedFor128(state, 10)).toBe(nonMemberBaseline);
+    expect(speedFor128(state, 15)).toBe(opponentBaseline);
+  });
+
+  it('fades the speed back to baseline over exactly 30 ticks', () => {
+    const state = freshMatch();
+    const baseline = speedFor128(state, 4);
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    expect(speedFor128(state, 4)).toBeGreaterThan(baseline);
+    for (let i = 0; i < PASS_COMBO_DECAY_TICKS; i += 1) decayPassCombo(state);
+    expect(speedFor128(state, 4)).toBe(baseline);
+  });
+
+  it('moves a member further in one tick than an identical non-member', () => {
+    // Assert the STEP, not the counter. Two matches from the same seed, one
+    // with a chain and one without: the member must cover more ground.
+    const withChain = freshMatch();
+    const without = freshMatch();
+    const order = [4, 7, 5, 6, 8, 3, 2];
+    for (let i = 0; i + 1 < order.length; i += 1) {
+      extendPassCombo(withChain, 0, order[i], order[i + 1]);
+    }
+    expect(comboBonusD(withChain.players[4])).toBe(2000);
+    const startA = { ...withChain.players[4].pos };
+    const startB = { ...without.players[4].pos };
+    expect(startA).toEqual(startB);
+    movementTick(withChain);
+    movementTick(without);
+    const movedA =
+      Math.abs(withChain.players[4].pos.x - startA.x) +
+      Math.abs(withChain.players[4].pos.y - startA.y);
+    const movedB =
+      Math.abs(without.players[4].pos.x - startB.x) +
+      Math.abs(without.players[4].pos.y - startB.y);
+    expect(movedB).toBeGreaterThan(0);
+    expect(movedA).toBeGreaterThan(movedB);
+  });
+
+  it('is deterministic across two identical runs', () => {
+    // runMatch(seed, home, away, inputs[], opts) — the 4th argument is the
+    // input log, NOT the options object.
+    const a = runMatch(12345, ROVERS, UNITED, [], POLICIES);
+    const b = runMatch(12345, ROVERS, UNITED, [], POLICIES);
+    expect(JSON.stringify(a.events)).toBe(JSON.stringify(b.events));
+    expect(a.score).toEqual(b.score);
   });
 });
