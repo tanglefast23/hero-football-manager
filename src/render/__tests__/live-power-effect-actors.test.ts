@@ -81,4 +81,16 @@ describe('live power effect actors', () => {
     expect(actors[0]).toMatchObject({ player: 4, at: { x: 10, y: 20 } });
     expect(actors.some((actor) => actor.at.y === 10)).toBe(false);
   });
+
+  it('emits the requested number of ghosts and defaults to six', () => {
+    // slice(1, 1 + ghosts): index 0 is the live body, so N ghosts needs N + 1
+    // stored points. A pass-combo member asks for 3; Super Speed keeps 6.
+    const points = Array.from({ length: 7 }, (_, i) => ({ x: i, y: i }));
+    expect(superSpeedAfterimageActors(4, points)).toHaveLength(6);
+    expect(superSpeedAfterimageActors(4, points, 3)).toHaveLength(3);
+    expect(superSpeedAfterimageActors(4, points, 3)[0].at).toEqual({
+      x: 1,
+      y: 1,
+    });
+  });
 });

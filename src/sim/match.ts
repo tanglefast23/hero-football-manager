@@ -1,3 +1,4 @@
+import { decayPassCombo } from './pass-combo';
 import { mulberry32 } from './rng';
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
@@ -57,7 +58,7 @@ import type {
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.4';
+export const ENGINE_VERSION = 'm2.5';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -159,6 +160,9 @@ function makePlayers(
       tackleRecoveryUntil: 0,
       tackleCooldownUntil: 0,
       cards: 0 as const,
+      comboTierD: 0,
+      comboTicks: 0,
+      comboChainId: 0,
     }));
   return [...mk(0, home), ...mk(1, away)];
 }
@@ -216,6 +220,10 @@ export function createMatch(
     ],
     substitutionsUsed: [0, 0],
     resolve: [100, 100],
+    passCombo: [
+      { count: 0, chainId: 1 },
+      { count: 0, chainId: 1 },
+    ],
     rng: mulberry32(seed),
     events: [],
     pendingInputs: [],
@@ -530,6 +538,11 @@ export function tick(state: MatchState): void {
   applyAutomaticCoaching(state, cancelPowerReferencesForSubstitution);
   powerTick(state, dueInputs);
   movementTick(state);
+  // After movement, before the arrival that may snap a new tier. A snap in
+  // possessionTick sets 30 ticks; movement on the NEXT tick then runs at the
+  // full tier before this decrement. Decaying first would mean the full tier
+  // never moved anybody.
+  decayPassCombo(state);
   possessionTick(state);
   tackleTick(state);
   shotFlightTick(state);

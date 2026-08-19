@@ -19,6 +19,12 @@ import {
 } from './geometry';
 import { emit } from './events';
 import {
+  breakPassCombo,
+  comboBonusD,
+  extendPassCombo,
+  resetPassComboForRestart,
+} from './pass-combo';
+import {
   conditionedRatingD64,
   contest,
   contestProbability,
@@ -281,9 +287,26 @@ function conditionedPaceSpeed128(state: MatchState, idx: number): number {
   return baseSpeed128 + Math.round(paceContribution128 * conditionScale);
 }
 
-function speedFor128(state: MatchState, idx: number): number {
+/**
+ * Authoritative 1/128-unit speed. Folds in condition (via
+ * `conditionedPaceSpeed128`), power effects (via `speedMultiplier`) and the
+ * pass-combo bonus.
+ *
+ * Energy use is NOT here: `movementTick` applies `energyMovementMultiplier` at
+ * its own call site and only to off-ball players, while a carrier gets
+ * `speedFor128 * CARRIER_SPEED_SCALE`. Putting the combo bonus here therefore
+ * reaches both, and energy still stacks on top for off-ball movers.
+ *
+ * Exported so tests can assert the exact integer — `speedFor` rounds a second
+ * time, which makes a `x 1.20` comparison flake by 1.
+ */
+export function speedFor128(state: MatchState, idx: number): number {
+  const p = requirePlayerAt(state, idx);
   return Math.round(
-    conditionedPaceSpeed128(state, idx) * speedMultiplier(state, idx),
+    (conditionedPaceSpeed128(state, idx) *
+      speedMultiplier(state, idx) *
+      (10000 + comboBonusD(p))) /
+      10000,
   );
 }
 
@@ -334,6 +357,10 @@ function drainSlideCondition(p: SimPlayer, energyUse: EnergyUse): void {
 }
 
 export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
+  // Play has stopped, so the pass-combo surge stops with it. This one call
+  // covers kickoff, goal, miss, half time and match start — all five route
+  // through here.
+  resetPassComboForRestart(state);
   clearRestartPowerState(state);
   state.ballHolderId = null;
   state.ballHolderTeam = null;
@@ -1495,6 +1522,7 @@ export function possessionTick(state: MatchState): void {
           : -1;
       if (shadowChallenger !== -1) consumeShadowMark(state, shadowChallenger);
       if (b.looseOnArrival) {
+        breakPassCombo(state);
         state.ball = {
           kind: 'loose',
           pos: { ...b.pos },
@@ -1521,6 +1549,7 @@ export function possessionTick(state: MatchState): void {
           b.decoyReceiverPlayerId !== undefined &&
           playerAt(state, targetIdx) === undefined
         ) {
+          breakPassCombo(state);
           state.ball = {
             kind: 'loose',
             pos: { ...b.pos },
@@ -1553,6 +1582,30 @@ export function possessionTick(state: MatchState): void {
           targetIdx,
           intercepted ? INTERCEPTION_GAUGE : PASS_RECEIVED_GAUGE,
         );
+        // A clean catch: the ball reached its intended man on the passing side.
+        // Every clause earns its place. `b.gustRedirect` is the subtle one —
+        // Gust marks the pass ok:false, so the launch hook has already broken
+        // the chain, but it leaves willSucceed true with b.to rewritten to a
+        // keeper. When that keeper is on the passer's own side, a plain
+        // same-team test would restart the chain that was just killed.
+        //
+        // The passer is checked BY IDENTITY, not by slot. A substitution or a
+        // Decoy respawn during the flight puts a different player at index
+        // `b.from`, and enrolling them would hand a +20% bonus and an x5 ghost
+        // trail to somebody who never touched the ball.
+        const passer = playerAt(state, b.from);
+        const receiverTeam = requirePlayerAt(state, targetIdx).team;
+        if (
+          !intercepted &&
+          b.gustRedirect !== true &&
+          passer !== undefined &&
+          passer.def.id === b.fromPlayerId &&
+          passer.team === receiverTeam
+        ) {
+          extendPassCombo(state, receiverTeam, b.from, targetIdx);
+        } else {
+          breakPassCombo(state);
+        }
         const outlet = requirePlayerAt(state, targetIdx).powerState;
         if (
           intercepted &&
@@ -1575,6 +1628,9 @@ export function possessionTick(state: MatchState): void {
           finishMomentPower(state, targetIdx);
         }
       } else {
+        // Intended man unavailable at arrival — knocked out mid-flight, or a
+        // Decoy/Gust identity check that did not match. Not a completion.
+        breakPassCombo(state);
         state.ball = {
           kind: 'loose',
           pos: { ...b.pos },
@@ -1763,11 +1819,16 @@ export function launchPass(
     to,
     ok: ok && gustRedirect === null,
   });
+  // A pass that will not arrive ends the run at the boot, not at the landing.
+  // Reusing the event's own expression keeps the chain and the emitted PASS
+  // from ever disagreeing about whether this one counted.
+  if (!(ok && gustRedirect === null)) breakPassCombo(state);
   state.ball = {
     kind: 'pass',
     pos: { ...passer.pos },
     from,
     to: passTo,
+    fromPlayerId: passer.def.id,
     willSucceed: gustRedirect !== null || ok,
     interceptor,
     z: 0,
@@ -1891,6 +1952,7 @@ function finishSlide(
     style: 'slide',
     contact,
   });
+  if (won) breakPassCombo(state);
   if (won) {
     state.ball = { kind: 'held', by: tacklerIdx };
     addGauge(state, tacklerIdx, TACKLE_WON_GAUGE);
@@ -2110,6 +2172,7 @@ function standingTackle(
       winProbability,
       roll,
     );
+  if (won) breakPassCombo(state);
   emit(state, {
     t: state.tick,
     kind: 'TACKLE',
@@ -2297,6 +2360,7 @@ export function shotFlightTick(state: MatchState): void {
           by: gkIdx,
           resolveLeft: state.resolve[defendingTeam],
         });
+        breakPassCombo(state);
         // The move is over. Today's keeper always catches, so the turnover
         // below would clear this anyway — it is here so that if a save ever
         // drops a live rebound, the goal that follows is nobody's assist.

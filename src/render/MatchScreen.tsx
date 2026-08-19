@@ -133,13 +133,7 @@ import {
 import { ShotPowerPop, type ShotPowerPopSubject } from './ShotPowerPop';
 import { SHOT_POWER_POP_MS, shotPowerBand } from './shot-power-pop';
 import { PassComboPop, type PassComboPopSubject } from './PassComboPop';
-import {
-  PASS_COMBO_FLOOR,
-  PASS_COMBO_IDLE,
-  PASS_COMBO_POP_MS,
-  passComboAfter,
-  type PassComboChain,
-} from './pass-combo';
+import { PASS_COMBO_FLOOR, PASS_COMBO_POP_MS } from './pass-combo';
 import { TacklePop, TACKLE_POP_MS, type TacklePopSubject } from './TacklePop';
 import {
   appendNewestFour,
@@ -286,6 +280,7 @@ import {
   initAudio,
   playBallFlightWhoosh,
   playPassCombo,
+  playPassComboMilestone,
   playForEvent,
   playShotTierAudio,
   startFireAmbience,
@@ -339,6 +334,33 @@ const GOAL_SHAKE_MS = 380;
 
 // Ball-flight presentation (render-only) — lifted kicks show a curved history;
 // shots also retain the dust puff kicked up at the strike.
+/**
+ * How many afterimage ghosts an entity draws this frame.
+ *
+ * 6 for a live Super Speed hero, 3 for a pass-combo member at x5 or above, 0
+ * for everyone else. An entity that is both takes 6 and gets ONE trail — the
+ * power outranks the combo because it is the bigger effect.
+ *
+ * The combo gate reads the TIER, not the live bonus and not the chain count.
+ * The bonus being non-zero would light the trail on x2; the count would kill it
+ * the instant the chain broke, while the member is still visibly fast. A tier
+ * of 1500 or 2000 can only have come from x5 or above, and it survives until
+ * the countdown reaches zero.
+ */
+const COMBO_TRAIL_MIN_TIER_D = 1500;
+function trailGhostsFor(entity: {
+  def: { power?: string };
+  powerState: { kind: string };
+  comboTierD: number;
+  comboTicks: number;
+}): number {
+  if (entity.def.power === 'SUPER_SPEED' && entity.powerState.kind === 'active')
+    return 6;
+  if (entity.comboTierD >= COMBO_TRAIL_MIN_TIER_D && entity.comboTicks > 0)
+    return 3;
+  return 0;
+}
+
 const BALL_FLIGHT_TRAIL_LEN = 12; // longer arc history makes lifted kicks read at a glance
 /** Drawn trail length per shot tier. Tier 0 keeps the length it always had. */
 const BALL_TRAIL_LEN_BY_TIER = [8, 10, 12] as const;
@@ -743,7 +765,12 @@ export function MatchScreen({
     nextRef.current = initial;
   }
 
-  const trailRef = useRef<Array<{ x: number; y: number }>>([]);
+  // One 7-point position history per entity. 24 not 22: a Decoy clone can be a
+  // pass-combo member. Seven points because slice(1, 1 + ghosts) needs
+  // ghosts + 1, and the Super Speed power still wants its full 6.
+  const trailRef = useRef<Array<Array<{ x: number; y: number }>>>(
+    Array.from({ length: RENDER_PLAYER_COUNT }, () => []),
+  );
   const bannerRef = useRef<MatchBanner[]>([]);
   const scoreFlashUntilRef = useRef<number>(0);
   // Elapsed ms into the goal shake. Parked at the duration, which the shake
@@ -780,12 +807,11 @@ export function MatchScreen({
     null,
   );
   const shotPowerPopLife = useSharedValue(SHOT_POWER_POP_MS);
-  // The live pass chain, and the counter drawn over its latest receiver. The
-  // chain is a ref because only the pop it produces is rendered; parked life,
-  // same trick as the shot number above.
-  const passComboChainRef = useRef<PassComboChain>(PASS_COMBO_IDLE);
-  /** Slot the ball in flight is aimed at, or null when no pass is airborne. */
-  const passInFlightRef = useRef<number | null>(null);
+  // The counter drawn over the latest receiver of a pass chain. The SIM owns
+  // the chain now (`state.passCombo`), because it feeds a speed bonus and so
+  // has to be replayable; this ref only remembers last tick's counts so the
+  // renderer can spot the tick one of them rose.
+  const passComboCountsRef = useRef<[number, number]>([0, 0]);
   const [passComboPop, setPassComboPop] = useState<PassComboPopSubject | null>(
     null,
   );
@@ -1846,15 +1872,20 @@ export function MatchScreen({
           }
         }
 
-        const speedster = s.players.find(
-          (p, i) =>
-            nextRef.current!.statuses[i] === 'active' &&
-            p.def.power === 'SUPER_SPEED',
-        );
-        trailRef.current =
-          !suppressCosmeticEffects && speedster
-            ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 7)
-            : [];
+        // A trail for a live Super Speed hero, and for any pass-combo member
+        // at x5 or above. Written per entity because the combo can light
+        // several at once.
+        for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
+          const entity = playerAt(s, i);
+          const ghosts =
+            entity === undefined || suppressCosmeticEffects
+              ? 0
+              : trailGhostsFor(entity);
+          trailRef.current[i] =
+            ghosts > 0 && entity !== undefined
+              ? [{ ...entity.pos }, ...trailRef.current[i]].slice(0, 7)
+              : [];
+        }
 
         // A longer curved trail makes lifted shots and keeper distributions
         // read as airborne; driven shots retain their existing speed streak.
@@ -1938,59 +1969,36 @@ export function MatchScreen({
         }
         shotInFlightRef.current = ballIsShot;
 
-        // Pass chain, counted at the CATCH and never at the kick. PASS is
-        // emitted the moment the ball leaves the boot, and the flight runs
-        // several ticks — a launch-time counter would stand on empty grass and
-        // often expire before the ball ever arrived.
+        // Pass chain, owned by the sim. Read per tick rather than after the
+        // catch-up loop: one frame can advance several ticks, and a post-loop
+        // read would miss a chain that rose and broke inside the same frame.
         //
-        // Both the breaks and the extension live here rather than in the event
-        // drain below, so they apply in TICK order. One frame can catch several
-        // ticks up, and a break from an earlier tick must not undo a chain that
-        // legitimately continued after it.
-        for (const emitted of s.events.slice(tickEventsBefore)) {
-          if (
-            (emitted.kind === 'PASS' && !emitted.ok) ||
-            (emitted.kind === 'TACKLE' && emitted.won) ||
-            emitted.kind === 'SAVE' ||
-            emitted.kind === 'MISS' ||
-            emitted.kind === 'GOAL' ||
-            emitted.kind === 'HALF_TIME' ||
-            emitted.kind === 'KICKOFF'
-          )
-            passComboChainRef.current = passComboAfter(
-              passComboChainRef.current,
-              { kind: 'break' },
-            );
-        }
-        if (s.ball.kind === 'pass') {
-          // Re-stamped every tick on purpose: a Gust redirect rewrites `to`
-          // mid-flight, and the receiver that matters is the last one.
-          passInFlightRef.current = s.ball.to;
-        } else if (passInFlightRef.current !== null) {
-          const intended = passInFlightRef.current;
-          passInFlightRef.current = null;
-          // Held by the man it was aimed at is the only completion. A loose
-          // arrival, an interception, or a receiver knocked out between kick
-          // and catch all land somewhere else, and all end the run.
-          const holder = s.ball.kind === 'held' ? s.ball.by : -1;
-          const team =
-            holder === intended ? playerAt(s, holder)?.team : undefined;
-          passComboChainRef.current = passComboAfter(
-            passComboChainRef.current,
-            team === undefined
-              ? { kind: 'break' }
-              : { kind: 'completed-pass', team },
-          );
-          const chain = passComboChainRef.current;
-          if (team !== undefined && chain.count >= PASS_COMBO_FLOOR) {
-            const receiver = nextRef.current!.players[holder];
+        // Only one completion can happen per tick, so at most one side's count
+        // rises. That side owns the pop and the milestone cues.
+        const prevComboCounts = passComboCountsRef.current;
+        const nextComboCounts: [number, number] = [
+          s.passCombo[0].count,
+          s.passCombo[1].count,
+        ];
+        const comboRisenTeam =
+          nextComboCounts[0] > prevComboCounts[0]
+            ? 0
+            : nextComboCounts[1] > prevComboCounts[1]
+              ? 1
+              : null;
+        passComboCountsRef.current = nextComboCounts;
+        if (comboRisenTeam !== null) {
+          const comboCount = nextComboCounts[comboRisenTeam];
+          if (comboCount >= PASS_COMBO_FLOOR && s.ball.kind === 'held') {
+            const receiver = nextRef.current!.players[s.ball.by];
             setPassComboPop({
-              count: chain.count,
+              count: comboCount,
               x: receiver.x,
               y: receiver.y,
             });
             setNewestPop('combo');
-            playPassCombo(chain.count);
+            playPassCombo(comboCount);
+            playPassComboMilestone(comboCount);
             passComboLife.value = 0;
             passComboLife.value = withTiming(PASS_COMBO_POP_MS, {
               duration: PASS_COMBO_POP_MS,
@@ -2712,7 +2720,10 @@ export function MatchScreen({
       // their pre-restart spot to the kickoff formation.
       if (snap) {
         prevRef.current = nextRef.current;
-        trailRef.current = [];
+        trailRef.current = Array.from(
+          { length: RENDER_PLAYER_COUNT },
+          () => [],
+        );
       }
 
       if (advanced) {
@@ -3317,10 +3328,6 @@ export function MatchScreen({
     encoreMarkers.push({ slot, grantTick });
   });
 
-  const activeSpeedster = match.players.findIndex(
-    (player) =>
-      player.def.power === 'SUPER_SPEED' && player.powerState.kind === 'active',
-  );
   const presentedPowerEffects = drawablePowerEffects;
   const powerEffectActors = [
     ...presentedPowerEffects.flatMap((effect) =>
@@ -3337,12 +3344,13 @@ export function MatchScreen({
         reduceMotion,
       }),
     ),
-    ...(activeSpeedster === -1
-      ? []
-      : superSpeedAfterimageActors(
-          activeSpeedster,
-          trailRef.current.map(screenPoint),
-        )),
+    ...trailRef.current.flatMap((points, entity) => {
+      const player = match.players[entity] ?? match.decoyClones[entity - 22];
+      const ghosts = player == null ? 0 : trailGhostsFor(player);
+      return ghosts === 0 || points.length < 2
+        ? []
+        : superSpeedAfterimageActors(entity, points.map(screenPoint), ghosts);
+    }),
   ];
   const powerActorSprites: SkRect[] = powerEffectActors.map((actor) =>
     spriteRects(playerSpriteKeys[actor.player]),
@@ -3963,16 +3971,26 @@ export function MatchScreen({
                       opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
                     />
                   ))}
-                  {trailRef.current.map((t, i) => (
-                    <Circle
-                      key={i}
-                      cx={t.x * scale}
-                      cy={t.y * scale}
-                      r={Math.max(1.5, 7 - i)}
-                      color="#ffffff"
-                      opacity={0.55 * (1 - i / trailRef.current.length)}
-                    />
-                  ))}
+                  {trailRef.current.flatMap((points, entity) => {
+                    const player =
+                      match.players[entity] ?? match.decoyClones[entity - 22];
+                    const ghosts = player == null ? 0 : trailGhostsFor(player);
+                    if (ghosts === 0) return [];
+                    // Skip index 0 exactly as the atlas actors do, or these
+                    // circles sit one frame ahead of the sprites they trail.
+                    return points
+                      .slice(1, 1 + ghosts)
+                      .map((t, i) => (
+                        <Circle
+                          key={`${entity}:${i}`}
+                          cx={t.x * scale}
+                          cy={t.y * scale}
+                          r={Math.max(1.5, 7 - i)}
+                          color="#ffffff"
+                          opacity={0.55 * (1 - i / ghosts)}
+                        />
+                      ));
+                  })}
                   {/* Fading arc history behind driven shots and every lifted kick.
                     A graded shot lengthens and recolours these same circles —
                     no extra draw call, and the trail starts meaning something. */}

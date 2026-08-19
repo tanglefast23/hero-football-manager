@@ -126,15 +126,24 @@ export function livePowerEffectActors(
   return [];
 }
 
+/**
+ * Ghost sprites behind a moving player. `ghosts` defaults to 6, the Super Speed
+ * power's own length; a pass-combo member at x5 gets 3.
+ *
+ * `trail` needs `ghosts + 1` stored points: index 0 is the live body position
+ * and only the tail becomes ghosts. Storing exactly as many points as ghosts
+ * would quietly emit one fewer than asked for.
+ */
 export function superSpeedAfterimageActors(
   player: number,
   trail: readonly LivePowerEffectPoint[],
+  ghosts = 6,
 ): LivePowerEffectActor[] {
-  return trail.slice(1, 7).map((at, index) => ({
+  return trail.slice(1, 1 + ghosts).map((at, index) => ({
     id: `super-speed:${player}:${index}`,
     player,
     at,
-    opacity: Math.max(0.12, 0.58 * (1 - index / 6)),
+    opacity: Math.max(0.12, 0.58 * (1 - index / ghosts)),
     scale: 1,
   }));
 }

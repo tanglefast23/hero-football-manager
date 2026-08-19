@@ -2,45 +2,21 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   PASS_COMBO_FLOOR,
-  PASS_COMBO_IDLE,
   PASS_COMBO_POP_MS,
-  passComboAfter,
   passComboCellPx,
   passComboGlyph,
   passComboOpacity,
   passComboRise,
   passComboScale,
-  type PassComboChain,
 } from '../pass-combo';
 
-const pass = (team: 0 | 1) => ({ kind: 'completed-pass' as const, team });
-const BREAK = { kind: 'break' as const };
-
-function chainOf(...teams: (0 | 1)[]): PassComboChain {
-  return teams.reduce(
-    (chain, team) => passComboAfter(chain, pass(team)),
-    PASS_COMBO_IDLE,
-  );
-}
-
-describe('pass combo chain', () => {
-  it('counts consecutive completed passes by one team', () => {
-    expect(chainOf(0).count).toBe(1);
-    expect(chainOf(0, 0, 0).count).toBe(3);
-  });
-
-  it('starts a new run when the other team completes a pass', () => {
-    expect(chainOf(0, 0, 1)).toEqual({ team: 1, count: 1 });
-  });
-
-  it('clears on any break, and a break while idle stays idle', () => {
-    expect(passComboAfter(chainOf(0, 0, 0), BREAK)).toEqual(PASS_COMBO_IDLE);
-    expect(passComboAfter(PASS_COMBO_IDLE, BREAK)).toEqual(PASS_COMBO_IDLE);
-  });
-
+describe('pass combo pop floor', () => {
   it('shows nothing until the floor, so ordinary passing is not wallpaper', () => {
-    expect(chainOf(0).count).toBeLessThan(PASS_COMBO_FLOOR);
-    expect(chainOf(0, 0).count).toBe(PASS_COMBO_FLOOR);
+    // The chain itself now lives in the sim (src/sim/pass-combo.ts) because it
+    // feeds a speed bonus and has to be replayable. What stayed here is the
+    // drawing, and the floor that decides when there is anything to draw.
+    expect(PASS_COMBO_FLOOR).toBe(2);
+    expect(passComboCellPx(PASS_COMBO_FLOOR)).toBeGreaterThan(0);
   });
 });
 
@@ -90,29 +66,27 @@ describe('pass combo wiring', () => {
       'utf8',
     );
 
-  it('counts a pass at the catch, never at the kick', () => {
-    // PASS is emitted the moment the ball leaves the boot and the flight runs
-    // several ticks. Counting on the event put the number on empty grass, and
-    // it often expired before the ball arrived. The ball state is the only
-    // honest signal that a pass was actually received.
+  it('reads the chain from sim state, never from the events', () => {
+    // The sim publishes state.passCombo[team].count. Counting PASS events here
+    // put the number on empty grass at launch time; counting ball-state
+    // transitions duplicated logic the sim now owns outright.
     const screen = source();
-    expect(screen).toContainSource("if (s.ball.kind === 'pass') {");
-    expect(screen).toContainSource(
-      "const holder = s.ball.kind === 'held' ? s.ball.by : -1;",
-    );
-    // The old launch-time read must not come back.
+    expect(screen).toContainSource('s.passCombo[0].count');
+    expect(screen).not.toContainSource('passComboAfter');
     expect(screen).not.toContainSource('eventAfter.players[e.to]');
   });
 
-  it('applies breaks in tick order, inside the catch-up loop', () => {
-    // One frame can catch several ticks up. A break drained afterwards would
-    // undo a chain that legitimately continued after it.
+  it('reads the count inside the catch-up loop, in tick order', () => {
+    // One frame can catch several ticks up. A read drained afterwards would
+    // miss a chain that rose and broke inside the same frame.
     const screen = source();
     const tickLoop = screen.slice(
       screen.indexOf('while (acc >= TICK_MS'),
       screen.indexOf('const newEvents = s.events.slice(eventsBefore);'),
     );
     expect(tickLoop.length).toBeGreaterThan(0);
-    expect(tickLoop).toContain('passComboAfter');
+    expect(tickLoop).toContain('s.passCombo[0].count');
+    expect(tickLoop).toContain('passComboCountsRef');
+    expect(tickLoop).not.toContain('passComboAfter');
   });
 });

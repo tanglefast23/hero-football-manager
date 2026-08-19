@@ -1,4 +1,5 @@
 import { emit } from './events';
+import { breakPassCombo } from './pass-combo';
 import {
   dist2,
   moveToward,
@@ -1149,6 +1150,8 @@ export function knockOut(
   const p = playerAt(state, idx);
   if (p === undefined) return;
   if (state.ball.kind === 'held' && state.ball.by === idx) {
+    // Losing the carrier ends the passing move, the same as a won tackle.
+    breakPassCombo(state);
     state.ball = {
       kind: 'loose',
       pos: { ...p.pos },
@@ -1453,6 +1456,9 @@ export function activatePower(
         );
         clearStrengthLock(state, idx, capturedTargetIdx);
         knockOut(state, capturedTargetIdx, state.tick + flattenTicks, 'ko');
+        // knockOut only ends the chain when the victim was the carrier. This
+        // hands the ball over regardless, so end it here too.
+        breakPassCombo(state);
         state.ball = { kind: 'held', by: idx };
         emit(state, {
           t: state.tick,
@@ -1628,6 +1634,11 @@ function spawnDecoyClone(
     tackleRecoveryUntil: 0,
     tackleCooldownUntil: 0,
     cards: 0,
+    // A clone is a first-class pass-combo member: it can be passed to and pass
+    // onward, and speedFor128 already accepts entity 22/23.
+    comboTierD: 0,
+    comboTicks: 0,
+    comboChainId: 0,
     ownerIdx,
     ownerPlayerId: owner.def.id,
     sourceIdx,
@@ -1654,6 +1665,8 @@ export function dismissDecoyClone(
   const cloneIndex = decoyIndexForTeam(team);
   const pos = { ...clone.pos };
   if (state.ball.kind === 'held' && state.ball.by === cloneIndex) {
+    // A clone popping mid-carry is a turnover like any other.
+    breakPassCombo(state);
     state.ball = { kind: 'loose', pos, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
   }
   state.decoyClones[team] = null;
@@ -2047,7 +2060,8 @@ function relevantTorchMarker(
   return relevantTorchMarkers(state, heroIdx, range, 1)[0] ?? -1;
 }
 
-function emitPowerTurnover(
+/** The single funnel every power steal routes through. Exported for tests. */
+export function emitPowerTurnover(
   state: MatchState,
   heroIdx: number,
   victimIdx: number,
@@ -2071,6 +2085,10 @@ function emitPowerTurnover(
     style: 'power',
     contact: false,
   });
+  // Every power turnover routes through here, so the pass chain ends here
+  // rather than at each caller. It emits a won TACKLE, and a won tackle ends
+  // the move whether a boot or a power did it.
+  breakPassCombo(state);
 }
 
 /** Web and Ice remain visible, interruptible placements after their wind-up.

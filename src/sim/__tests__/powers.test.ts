@@ -53,6 +53,7 @@ describe('hero gauge and firing', () => {
     received.ball = {
       kind: 'pass',
       from: 9,
+      fromPlayerId: received.players[9].def.id,
       to: SPEEDSTER,
       pos: { ...received.players[SPEEDSTER].pos },
       speed: 200,
@@ -68,6 +69,7 @@ describe('hero gauge and firing', () => {
     stolen.ball = {
       kind: 'pass',
       from: 14,
+      fromPlayerId: stolen.players[14].def.id,
       to: 15,
       pos: { ...stolen.players[SPEEDSTER].pos },
       speed: 200,

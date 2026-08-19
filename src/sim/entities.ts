@@ -49,7 +49,10 @@ export function activePlayerIndices(state: MatchState): number[] {
   return indices;
 }
 
-function activeTeamPlayerIndices(state: MatchState, team: 0 | 1): number[] {
+export function activeTeamPlayerIndices(
+  state: MatchState,
+  team: 0 | 1,
+): number[] {
   const first = team === 0 ? 0 : 11;
   const indices = Array.from({ length: 11 }, (_, slot) => first + slot);
   if (state.decoyClones[team] !== null) indices.push(decoyIndexForTeam(team));

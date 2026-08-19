@@ -7,8 +7,10 @@
  * MatchScreen cannot be imported under the test runner. The animation functions
  * run inside a worklet, so each carries the directive.
  *
- * Render ring only. It counts events the sim already emits and writes nothing
- * back, so no replay and no ENGINE_VERSION is involved.
+ * Render ring only, and drawing only. The CHAIN itself lives in the sim
+ * (`src/sim/pass-combo.ts`) because it feeds a speed bonus and therefore has to
+ * be replayable; this module just turns the count the sim publishes into
+ * pixels.
  */
 import {
   COUNTDOWN_DIGIT_HEIGHT,
@@ -87,37 +89,6 @@ export function passComboGlyph(count: number): CountdownGlyph {
     width: offset + digits.width,
     height: COUNTDOWN_DIGIT_HEIGHT,
   };
-}
-
-/**
- * The live chain. `team` is who is stringing it together, so a completed pass
- * by the other side starts a new run rather than extending the old one.
- */
-export interface PassComboChain {
-  readonly team: 0 | 1 | null;
-  readonly count: number;
-}
-
-export const PASS_COMBO_IDLE: PassComboChain = Object.freeze({
-  team: null,
-  count: 0,
-});
-
-/**
- * What the renderer feeds the chain. Deliberately narrower than `MatchEvent`:
- * the mapping from events to these two cases is the part worth reading in
- * MatchScreen, and the counting is the part worth testing here.
- */
-export type PassComboInput =
-  { kind: 'completed-pass'; team: 0 | 1 } | { kind: 'break' };
-
-export function passComboAfter(
-  chain: PassComboChain,
-  input: PassComboInput,
-): PassComboChain {
-  if (input.kind === 'break') return PASS_COMBO_IDLE;
-  if (chain.team !== input.team) return { team: input.team, count: 1 };
-  return { team: chain.team, count: chain.count + 1 };
 }
 
 function lerp(from: number, to: number, progress: number): number {

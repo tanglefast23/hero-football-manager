@@ -55,6 +55,11 @@ export function performSubstitution(
     tackleRecoveryUntil: 0,
     tackleCooldownUntil: state.tick,
     cards: 0,
+    // A substitute is a new object, so it starts outside every live chain by
+    // construction. There is deliberately no membership to clear.
+    comboTierD: 0,
+    comboTicks: 0,
+    comboChainId: 0,
   };
   state.substitutionsUsed[team] += 1;
   emit(state, {
