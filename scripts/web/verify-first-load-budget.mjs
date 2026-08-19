@@ -449,6 +449,14 @@ const DIST = path.resolve('dist');
 // unique to your change before naming a cause. A literal that appears only in
 // your file settles in one command what an import chain read by eye keeps
 // getting wrong.
+//
+// 2026-08-18, the formation role labels. DEF/MID/FWD plates under the
+// controlled team's outfield after a formation change. This branch earlier
+// re-ratcheted gzip by nine bytes (831_611 -> 831_620) against a pre-SHOT!
+// mark. That raise is superseded: the labels live behind LazyMatchScreen, so
+// none of the feature reaches the first load. The nine gzip bytes were
+// content-hash compression noise, not feature code. Main's later marks
+// already cover them. No new raise.
 // 2026-08-18, headroom. Owner's call, and a deliberate break with the ratchet
 // convention every entry above follows: the budget is set well clear of the
 // measurement instead of onto it. Four branches in two days each stopped on
@@ -470,9 +478,13 @@ const DIST = path.resolve('dist');
 // the sharper half of this script anyway: they fail on WHAT reached the first
 // load, not how much, and no amount of headroom weakens them.
 //
-// Merge note: main's #187 later ratcheted onto 3_410_808 / 831_664. Those
-// figures stay in the ledger above. The headroom constants below still
-// supersede them — this card does not need another raise.
+// Merge note, after merging main twice more. #186 (formation role labels) and
+// #187 ratcheted onto 3_410_808 / 831_664, and #188 then took ~16_047 raw /
+// ~4_714 gzip back OUT by keeping `headless.ts` and `copy-budget.ts` from
+// riding their barrels into the startup graph. Every one of those figures
+// stays in the ledger above, because the ledger is the record of what was
+// measured. The headroom constants below supersede all of them; #188's cut
+// only widens the gap.
 const RAW_BUDGET = 3_600_000;
 const GZIP_BUDGET = 880_000;
 const QA_BODY_MARKERS = [

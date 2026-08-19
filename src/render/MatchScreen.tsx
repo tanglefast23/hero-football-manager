@@ -165,6 +165,7 @@ import {
 } from './power-cut-in';
 import { releaseMenuThemeToMatch, yieldMenuThemeToMatch } from './menu-audio';
 import { PowerTitleTakeover } from './PowerTitleTakeover';
+import { FormationRoleLabels } from './FormationRoleLabels';
 import { IncapacityCountdowns } from './IncapacityCountdowns';
 import { SubstitutionWalkers } from './SubstitutionWalkers';
 import {
@@ -179,6 +180,11 @@ import {
   walkRunFrame,
   type SubstitutionWalk,
 } from './substitution-walk';
+import {
+  applyRoleLabelEvent,
+  CLOSED_ROLE_LABEL_WINDOW,
+  roleLabelsVisible,
+} from './formation-role-labels';
 import { incapacityCountdowns } from './incapacity-countdown';
 import {
   appendBannerNewestFour,
@@ -839,6 +845,12 @@ export function MatchScreen({
     scoreFlash: false,
     visualTick: 0,
   });
+  // The DEF/MID/FWD labels after a formation change. Held in a ref and read per
+  // render against `hud.tick`, the way the banner filter beside `setHud` works:
+  // nothing fires an event when the 3.5s simply elapses, so the expiry has to be
+  // a tick comparison. No hud field, because the per-tick `setHud` replaces the
+  // whole object rather than spreading it.
+  const roleLabelWindowRef = useRef(CLOSED_ROLE_LABEL_WINDOW);
   const [speed, setSpeed] = useState<MatchSpeed>(1);
   const [reducedEffects, setReducedEffects] = useState(false);
   const reducedEffectsRef = useRef(false);
@@ -2490,6 +2502,11 @@ export function MatchScreen({
             tone: 'blue',
           });
         }
+        roleLabelWindowRef.current = applyRoleLabelEvent(
+          roleLabelWindowRef.current,
+          e,
+          controlledTeam,
+        );
         if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = pushSubjectedMatchBanner(bannerRef.current, {
             id: `formation:${e.t}`,
@@ -4180,6 +4197,22 @@ export function MatchScreen({
                     scale={scale}
                     ringRadius={ringR}
                     hiddenPlayer={-1}
+                  />
+                  {/* Formation roles, under the feet rather than over the head:
+                    the plate clears the carrier's possession ring, and sits
+                    below anything the countdown and the flame tongues use. */}
+                  <FormationRoleLabels
+                    firstSlot={roleLabelWindowRef.current.firstSlot}
+                    packedRoles={roleLabelWindowRef.current.packedRoles}
+                    visible={roleLabelsVisible(
+                      roleLabelWindowRef.current,
+                      hud.tick,
+                    )}
+                    visualPositions={workletVisualPositions}
+                    visibility={workletVisibility}
+                    scale={scale}
+                    playerDrawScale={playerSpriteScale.drawScale}
+                    devicePixelRatio={devicePixelRatio}
                   />
                   {/* Last inside the camera: a Fire Torch victim's flame tongues
                     rise well above his head, exactly where this plate sits, so
