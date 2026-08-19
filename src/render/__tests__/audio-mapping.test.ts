@@ -30,6 +30,7 @@ describe('filesForEvent: event → SFX wiring', () => {
       'goal-fanfare',
       'goal-celebration',
       'goal-crowd',
+      'goal-confetti',
     ]);
     expect(
       filesForEvent({

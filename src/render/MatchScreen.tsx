@@ -104,6 +104,7 @@ import {
   WorkletSpeedLines,
 } from './WorkletMatchOverlays';
 import { ProceduralMatchEffects } from './ProceduralMatchEffects';
+import { GoalConfetti } from './GoalConfetti';
 import {
   appendMatchVfxEmitter,
   prepareMatchVfxEmitter,
@@ -807,6 +808,9 @@ export function MatchScreen({
     null,
   );
   const shotPowerPopLife = useSharedValue(SHOT_POWER_POP_MS);
+  // Bumped once per goal; the confetti layer restarts its burst on the change.
+  // Parked at 0, which that layer reads as "no goal yet" and draws nothing for.
+  const [goalConfettiBurst, setGoalConfettiBurst] = useState(0);
   // The counter drawn over the latest receiver of a pass chain. The SIM owns
   // the chain now (`state.passCombo`), because it feeds a speed bonus and so
   // has to be replayable; this ref only remembers last tick's counts so the
@@ -2252,6 +2256,7 @@ export function MatchScreen({
           }
           scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
           if (!suppressCosmeticEffects) {
+            setGoalConfettiBurst((burst) => burst + 1);
             goalShakeElapsed.value = 0;
             goalShakeElapsed.value = withTiming(GOAL_SHAKE_MS, {
               duration: GOAL_SHAKE_MS,
@@ -4768,6 +4773,13 @@ export function MatchScreen({
           </View>
         </View>
       ) : null}
+      {suppressCosmeticEffects ? null : (
+        <GoalConfetti
+          burstId={goalConfettiBurst}
+          width={width}
+          height={height}
+        />
+      )}
     </Animated.View>
   );
 }
