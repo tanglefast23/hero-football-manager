@@ -334,6 +334,33 @@ const GOAL_SHAKE_MS = 380;
 
 // Ball-flight presentation (render-only) — lifted kicks show a curved history;
 // shots also retain the dust puff kicked up at the strike.
+/**
+ * How many afterimage ghosts an entity draws this frame.
+ *
+ * 6 for a live Super Speed hero, 3 for a pass-combo member at x5 or above, 0
+ * for everyone else. An entity that is both takes 6 and gets ONE trail — the
+ * power outranks the combo because it is the bigger effect.
+ *
+ * The combo gate reads the TIER, not the live bonus and not the chain count.
+ * The bonus being non-zero would light the trail on x2; the count would kill it
+ * the instant the chain broke, while the member is still visibly fast. A tier
+ * of 1500 or 2000 can only have come from x5 or above, and it survives until
+ * the countdown reaches zero.
+ */
+const COMBO_TRAIL_MIN_TIER_D = 1500;
+function trailGhostsFor(entity: {
+  def: { power?: string };
+  powerState: { kind: string };
+  comboTierD: number;
+  comboTicks: number;
+}): number {
+  if (entity.def.power === 'SUPER_SPEED' && entity.powerState.kind === 'active')
+    return 6;
+  if (entity.comboTierD >= COMBO_TRAIL_MIN_TIER_D && entity.comboTicks > 0)
+    return 3;
+  return 0;
+}
+
 const BALL_FLIGHT_TRAIL_LEN = 12; // longer arc history makes lifted kicks read at a glance
 /** Drawn trail length per shot tier. Tier 0 keeps the length it always had. */
 const BALL_TRAIL_LEN_BY_TIER = [8, 10, 12] as const;
@@ -738,7 +765,12 @@ export function MatchScreen({
     nextRef.current = initial;
   }
 
-  const trailRef = useRef<Array<{ x: number; y: number }>>([]);
+  // One 7-point position history per entity. 24 not 22: a Decoy clone can be a
+  // pass-combo member. Seven points because slice(1, 1 + ghosts) needs
+  // ghosts + 1, and the Super Speed power still wants its full 6.
+  const trailRef = useRef<Array<Array<{ x: number; y: number }>>>(
+    Array.from({ length: RENDER_PLAYER_COUNT }, () => []),
+  );
   const bannerRef = useRef<MatchBanner[]>([]);
   const scoreFlashUntilRef = useRef<number>(0);
   // Elapsed ms into the goal shake. Parked at the duration, which the shake
@@ -1840,15 +1872,20 @@ export function MatchScreen({
           }
         }
 
-        const speedster = s.players.find(
-          (p, i) =>
-            nextRef.current!.statuses[i] === 'active' &&
-            p.def.power === 'SUPER_SPEED',
-        );
-        trailRef.current =
-          !suppressCosmeticEffects && speedster
-            ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 7)
-            : [];
+        // A trail for a live Super Speed hero, and for any pass-combo member
+        // at x5 or above. Written per entity because the combo can light
+        // several at once.
+        for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
+          const entity = playerAt(s, i);
+          const ghosts =
+            entity === undefined || suppressCosmeticEffects
+              ? 0
+              : trailGhostsFor(entity);
+          trailRef.current[i] =
+            ghosts > 0 && entity !== undefined
+              ? [{ ...entity.pos }, ...trailRef.current[i]].slice(0, 7)
+              : [];
+        }
 
         // A longer curved trail makes lifted shots and keeper distributions
         // read as airborne; driven shots retain their existing speed streak.
@@ -2683,7 +2720,10 @@ export function MatchScreen({
       // their pre-restart spot to the kickoff formation.
       if (snap) {
         prevRef.current = nextRef.current;
-        trailRef.current = [];
+        trailRef.current = Array.from(
+          { length: RENDER_PLAYER_COUNT },
+          () => [],
+        );
       }
 
       if (advanced) {
@@ -3288,10 +3328,6 @@ export function MatchScreen({
     encoreMarkers.push({ slot, grantTick });
   });
 
-  const activeSpeedster = match.players.findIndex(
-    (player) =>
-      player.def.power === 'SUPER_SPEED' && player.powerState.kind === 'active',
-  );
   const presentedPowerEffects = drawablePowerEffects;
   const powerEffectActors = [
     ...presentedPowerEffects.flatMap((effect) =>
@@ -3308,12 +3344,13 @@ export function MatchScreen({
         reduceMotion,
       }),
     ),
-    ...(activeSpeedster === -1
-      ? []
-      : superSpeedAfterimageActors(
-          activeSpeedster,
-          trailRef.current.map(screenPoint),
-        )),
+    ...trailRef.current.flatMap((points, entity) => {
+      const player = match.players[entity] ?? match.decoyClones[entity - 22];
+      const ghosts = player == null ? 0 : trailGhostsFor(player);
+      return ghosts === 0 || points.length < 2
+        ? []
+        : superSpeedAfterimageActors(entity, points.map(screenPoint), ghosts);
+    }),
   ];
   const powerActorSprites: SkRect[] = powerEffectActors.map((actor) =>
     spriteRects(playerSpriteKeys[actor.player]),
@@ -3934,16 +3971,26 @@ export function MatchScreen({
                       opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
                     />
                   ))}
-                  {trailRef.current.map((t, i) => (
-                    <Circle
-                      key={i}
-                      cx={t.x * scale}
-                      cy={t.y * scale}
-                      r={Math.max(1.5, 7 - i)}
-                      color="#ffffff"
-                      opacity={0.55 * (1 - i / trailRef.current.length)}
-                    />
-                  ))}
+                  {trailRef.current.flatMap((points, entity) => {
+                    const player =
+                      match.players[entity] ?? match.decoyClones[entity - 22];
+                    const ghosts = player == null ? 0 : trailGhostsFor(player);
+                    if (ghosts === 0) return [];
+                    // Skip index 0 exactly as the atlas actors do, or these
+                    // circles sit one frame ahead of the sprites they trail.
+                    return points
+                      .slice(1, 1 + ghosts)
+                      .map((t, i) => (
+                        <Circle
+                          key={`${entity}:${i}`}
+                          cx={t.x * scale}
+                          cy={t.y * scale}
+                          r={Math.max(1.5, 7 - i)}
+                          color="#ffffff"
+                          opacity={0.55 * (1 - i / ghosts)}
+                        />
+                      ));
+                  })}
                   {/* Fading arc history behind driven shots and every lifted kick.
                     A graded shot lengthens and recolours these same circles —
                     no extra draw call, and the trail starts meaning something. */}
