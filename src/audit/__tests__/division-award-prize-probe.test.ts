@@ -68,7 +68,7 @@ const LAUNCH_SCENARIO: MiniBalanceScenario = {
     weeklyFocusDrillIds: ['sprints'],
   },
   awakening: {
-    chancePercent: content.powers.awakening.postMatchChancePercent,
+    weeklyChanceStepPercent: content.powers.awakening.weeklyChanceStepPercent,
     minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
     seasonMatches: 18,
   },

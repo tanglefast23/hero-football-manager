@@ -131,7 +131,7 @@ Research reports (source material, written by research agents):
 | Buzz | Season 3 unlocks Buzz from wins, goals, and distinct hero power moments; it pays sponsor cash at Weeks 15 and 30, then resets |
 | Currencies | Money + Training Points (TP) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |
-| Superpower acquisition | Flat 10% post-match awakening check (3-match cooldown, wage stays locked until renewal) + rare expensive pre-powered signings; chance events never award powers *(corrected 2026-08-05 — this entry previously described the rejected risky-chance-event design)* |
+| Superpower acquisition | Post-match awakening check whose chance climbs 5 points a week until it is guaranteed, one hero per season (3-match cooldown, wage stays locked until renewal) + rare expensive pre-powered signings; chance events never award powers *(corrected 2026-08-05 — this entry previously described the rejected risky-chance-event design; the flat 10% roll became the weekly climb on 2026-08-19)* |
 | Hero field limit | "Hero License" slots: 2 on the pitch at start, up to 4 via club prestige; squad ownership uncapped |
 | Salaries | Weekly wages for everyone; raises at contract renewal; hero-rate renewals (×3–5) after awakening |
 | Players | Fictional, procedurally generated (no licensing risk); gentle aging with retirement and a legacy system |

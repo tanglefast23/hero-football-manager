@@ -9,14 +9,36 @@ import { powerIsCompatibleWithRole } from './power-catalog';
 import { hasActiveCareerContractPromise } from './contract-promises';
 import { careerHeroLimit } from './squad';
 import { isAvailableForSelection } from './lineup';
+import { leagueWeekForRound } from './schedule';
 
 interface PostMatchAwakeningTuning {
-  chancePercent: number;
-  /** The roll once this season already has a hero — deliberately far smaller. */
-  secondInSeasonChancePercent: number;
+  /**
+   * Percentage points the roll gains for every week of the season. See
+   * `awakeningChancePercent`.
+   */
+  weeklyChanceStepPercent: number;
   /** Heroes a season may earn. Season 1 gets one more: its opener is free. */
   maxPerSeason: number;
   minimumMatchesBetween: number;
+}
+
+/**
+ * The roll a match faces, from the week it is played in.
+ *
+ * The chance opens at one step on the season's first league week and adds a
+ * step every week after it, Cup and rest weeks included, until it reaches 100.
+ * A flat chance could miss for a whole year; this one cannot, so a season
+ * always ends with its hero and the wait itself is the tension. The climb
+ * restarts every season because it is measured from that season's own first
+ * league week.
+ */
+export function awakeningChancePercent(
+  weeklyChanceStepPercent: number,
+  season: number,
+  week: number,
+): number {
+  const weeksElapsed = Math.max(1, week - leagueWeekForRound(1, season) + 1);
+  return Math.min(100, weeklyChanceStepPercent * weeksElapsed);
 }
 
 /**
@@ -39,8 +61,9 @@ interface PostMatchAwakeningResult {
 /**
  * Resolves the single automatic awakening check after the user's match.
  * The first created player is guaranteed; later checks are deterministic from
- * the career seed + fixture ID and become eligible on the third match after
- * the previous awakening.
+ * the career seed + fixture ID, become eligible on the third match after the
+ * previous awakening, and roll against a chance that climbs each week of the
+ * season until it is certain.
  */
 export function resolvePostMatchAwakening(
   state: GameState,
@@ -113,13 +136,11 @@ export function resolvePostMatchAwakening(
     if (matchesSinceLastAwakening < tuning.minimumMatchesBetween) {
       return nextWithoutAwakening();
     }
-    // The second hero of a season rolls against a far smaller number than the
-    // first. Two in one year should read as a freak season, not as the shape
-    // every season has.
-    const chancePercent =
-      alreadyThisSeason === 0
-        ? tuning.chancePercent
-        : tuning.secondInSeasonChancePercent;
+    const chancePercent = awakeningChancePercent(
+      tuning.weeklyChanceStepPercent,
+      fixture.season,
+      fixture.week,
+    );
     if (
       deterministicPostMatchAwakeningRoll(
         state.careerSeed,
@@ -318,21 +339,12 @@ export function deterministicPostMatchAwakeningRoll(
 
 function validateTuning(tuning: PostMatchAwakeningTuning): void {
   if (
-    !Number.isInteger(tuning.chancePercent) ||
-    tuning.chancePercent < 0 ||
-    tuning.chancePercent > 100
+    !Number.isInteger(tuning.weeklyChanceStepPercent) ||
+    tuning.weeklyChanceStepPercent < 1 ||
+    tuning.weeklyChanceStepPercent > 100
   ) {
     throw new Error(
-      'post-match awakening chance must be an integer from 0 to 100',
-    );
-  }
-  if (
-    !Number.isInteger(tuning.secondInSeasonChancePercent) ||
-    tuning.secondInSeasonChancePercent < 0 ||
-    tuning.secondInSeasonChancePercent > tuning.chancePercent
-  ) {
-    throw new Error(
-      'second-in-season chance must be an integer from 0 to the first chance',
+      'weekly awakening chance step must be an integer from 1 to 100',
     );
   }
   if (!Number.isSafeInteger(tuning.maxPerSeason) || tuning.maxPerSeason < 1) {

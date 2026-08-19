@@ -31,7 +31,7 @@ const LAUNCH_SCENARIO: MiniBalanceScenario = {
     weeklyFocusDrillIds: ['sprints'],
   },
   awakening: {
-    chancePercent: content.powers.awakening.postMatchChancePercent,
+    weeklyChanceStepPercent: content.powers.awakening.weeklyChanceStepPercent,
     minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
     seasonMatches: 18,
   },
@@ -78,7 +78,7 @@ describe('M1 mini balance harness', () => {
     );
   });
 
-  test('models the shipped post-match chance without a hidden pity guarantee', () => {
+  test('models the weekly climb that guarantees a hero by the season end', () => {
     const metrics = runMiniBalanceHarness(LAUNCH_SCENARIO);
 
     expect(metrics.meanAwakeningMatch).toBeGreaterThanOrEqual(
@@ -87,11 +87,8 @@ describe('M1 mini balance harness', () => {
     expect(metrics.meanAwakeningMatch).toBeLessThanOrEqual(
       MINI_BALANCE_RAILS.maximumMeanAwakeningMatch,
     );
-    expect(metrics.awakeningByDeadlineRate).toBeGreaterThanOrEqual(
-      MINI_BALANCE_RAILS.minimumAwakeningBySeasonEndRate,
-    );
-    expect(metrics.awakeningByDeadlineRate).toBeLessThanOrEqual(
-      MINI_BALANCE_RAILS.maximumAwakeningBySeasonEndRate,
+    expect(metrics.awakeningByDeadlineRate).toBe(
+      MINI_BALANCE_RAILS.awakeningBySeasonEndRate,
     );
     expect(metrics.awakeningDeadlineMatch).toBe(18);
   });

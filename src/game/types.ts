@@ -275,8 +275,8 @@ interface CareerAwakeningState {
   matchesSinceLastAwakening: number;
   usedTriggerIds: string[];
   /**
-   * Heroes already awakened in `season`, which caps the year and dampens the
-   * roll after the first. Carries its own season rather than resetting on the
+   * Heroes already awakened in `season`, which caps the year. Carries its own
+   * season rather than resetting on the
    * boundary: nothing has to remember to clear it, and a count belonging to a
    * finished season simply stops matching. Absent on saves written before the
    * cap, where it reads as an untouched season.

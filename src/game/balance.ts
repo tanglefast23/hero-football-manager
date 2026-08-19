@@ -10,7 +10,11 @@ import {
   BASE_WEEKLY_TRAINING_POINTS,
   TRAINING_PITCH_TP_PER_LEVEL,
 } from './facilities';
-import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
+import {
+  awakeningChancePercent,
+  deterministicPostMatchAwakeningRoll,
+} from './post-match-awakening';
+import { leagueWeekForRound } from './schedule';
 import { buildTrainingGround } from './squad';
 import { isAvailableForSelection } from './lineup';
 import { trainPlayerInstantly } from './training';
@@ -35,8 +39,9 @@ const DEFAULT_AWAKENING_SEEDS = 2000;
  *   banks whether or not it has ever built anything, so both ends of the rail
  *   ride the constants rather than restating numbers that drift the moment
  *   either one moves.
- * - Post-match awakenings average roughly one per ten eligible matches after
- *   their three-match cooldown, without silently adding a pity guarantee.
+ * - Post-match awakenings land in the first half of the season on average and
+ *   are certain by its end: the roll climbs five points a week until it is
+ *   guaranteed, so no season can finish without its hero.
  */
 export const MINI_BALANCE_RAILS = Object.freeze({
   maximumSeasonOneBankruptcyRate: 0.02,
@@ -44,10 +49,10 @@ export const MINI_BALANCE_RAILS = Object.freeze({
     BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL * 0.9,
   maximumMeanAmbientTrainingPointsPerWeek:
     BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL,
-  minimumMeanAwakeningMatch: 10,
-  maximumMeanAwakeningMatch: 14,
-  minimumAwakeningBySeasonEndRate: 0.75,
-  maximumAwakeningBySeasonEndRate: 0.86,
+  minimumMeanAwakeningMatch: 4.5,
+  maximumMeanAwakeningMatch: 7,
+  /** The climb reaches 100 before the season does, so this rail is exact. */
+  awakeningBySeasonEndRate: 1,
 });
 
 interface MiniBalanceHarnessOptions {
@@ -64,7 +69,7 @@ export interface MiniBalanceScenario {
     readonly weeklyFocusDrillIds: readonly string[];
   };
   readonly awakening: {
-    readonly chancePercent: number;
+    readonly weeklyChanceStepPercent: number;
     readonly minimumMatchesBetween: number;
     readonly seasonMatches: number;
   };
@@ -124,7 +129,7 @@ export function runMiniBalanceHarness(
   for (let sample = 1; sample <= awakeningSeeds; sample += 1) {
     const result = simulatePostMatchAwakeningWindow(
       sample,
-      awakening.chancePercent,
+      awakening.weeklyChanceStepPercent,
       awakening.minimumMatchesBetween,
       awakening.seasonMatches,
     );
@@ -150,9 +155,15 @@ export function runMiniBalanceHarness(
   };
 }
 
+/**
+ * A standard season, so the rounds sit on the calendar the way the game plays
+ * them. Season 1 opens two weeks earlier and is not the year the rails measure.
+ */
+const BALANCE_AWAKENING_SEASON = 2;
+
 function simulatePostMatchAwakeningWindow(
   careerSeed: number,
-  chancePercent: number,
+  weeklyChanceStepPercent: number,
   minimumMatchesBetween: number,
   seasonMatches: number,
 ): { awakened: boolean; awakeningMatch?: number; attempts: number } {
@@ -162,6 +173,11 @@ function simulatePostMatchAwakeningWindow(
     matchesSinceLastAwakening += 1;
     if (matchesSinceLastAwakening < minimumMatchesBetween) continue;
     attempts += 1;
+    const chancePercent = awakeningChancePercent(
+      weeklyChanceStepPercent,
+      BALANCE_AWAKENING_SEASON,
+      leagueWeekForRound(match, BALANCE_AWAKENING_SEASON),
+    );
     if (
       deterministicPostMatchAwakeningRoll(
         careerSeed,

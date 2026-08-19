@@ -9,6 +9,7 @@ import {
   repairCareerLineupForInjuries,
 } from '../squad';
 import {
+  awakeningChancePercent,
   completePostMatchAwakening,
   deterministicPostMatchAwakeningRoll,
   resolvePostMatchAwakening,
@@ -23,8 +24,7 @@ const TRIGGERS = [
   'runaway-sprinkler',
 ] as const;
 const TUNING = {
-  chancePercent: 10,
-  secondInSeasonChancePercent: 2,
+  weeklyChanceStepPercent: 5,
   maxPerSeason: 1,
   minimumMatchesBetween: 3,
 } as const;
@@ -75,8 +75,7 @@ describe('automatic post-match awakenings', () => {
     let state = playedUserFixture(createCareer(createLaunchCareerSetup(23)));
     const fixtureId = userFixture(state).id;
     const forcedChance = {
-      chancePercent: 100,
-      secondInSeasonChancePercent: 100,
+      weeklyChanceStepPercent: 100,
       maxPerSeason: 99,
       minimumMatchesBetween: 3,
     } as const;
@@ -122,12 +121,21 @@ describe('automatic post-match awakenings', () => {
     expect(third.awakened).toBe(true);
   });
 
-  it('uses one stable ten-percent roll and always grants a power when it triggers', () => {
+  it('uses one stable roll and always grants a power when it triggers', () => {
     const base = createCareer(createLaunchCareerSetup(1));
     const fixtureId = userFixture(base).id;
+    // Round 1 sits on the season's first league week, so the climb is still at
+    // a single step there.
+    const openingChance = awakeningChancePercent(
+      TUNING.weeklyChanceStepPercent,
+      userFixture(base).season,
+      userFixture(base).week,
+    );
+    expect(openingChance).toBe(TUNING.weeklyChanceStepPercent);
     const seed = Array.from({ length: 1000 }, (_, index) => index + 1).find(
       (candidate) =>
-        deterministicPostMatchAwakeningRoll(candidate, fixtureId, 0, 100) < 10,
+        deterministicPostMatchAwakeningRoll(candidate, fixtureId, 0, 100) <
+        openingChance,
     );
     expect(seed).toBeDefined();
     const state = {
@@ -171,8 +179,7 @@ describe('automatic post-match awakenings', () => {
    */
   describe('the season cap', () => {
     const forced = {
-      chancePercent: 100,
-      secondInSeasonChancePercent: 100,
+      weeklyChanceStepPercent: 100,
       maxPerSeason: 1,
       minimumMatchesBetween: 0,
     } as const;
@@ -339,12 +346,12 @@ describe('automatic post-match awakenings', () => {
       }
     });
 
-    it('rolls the second hero against the smaller chance', () => {
+    it('gives season 1 second hero the same climbing roll as the first', () => {
       const base = playedUserFixture(createCareer(createLaunchCareerSetup(71)));
       const fixtureId = userFixture(base).id;
-      // Bracket this fixture's roll rather than hunting a seed that happens to
-      // land between the shipped 10 and 2: the first chance clears it, the
-      // second does not, which is the whole behaviour under test.
+      // Bracket this fixture's roll instead of hunting a seed: a step that
+      // clears it by one point is the whole chance, and the club already
+      // holding a hero must face exactly the same number.
       const roll = deterministicPostMatchAwakeningRoll(
         base.careerSeed,
         fixtureId,
@@ -352,8 +359,7 @@ describe('automatic post-match awakenings', () => {
         100,
       );
       const bracketed = {
-        chancePercent: roll + 1,
-        secondInSeasonChancePercent: roll,
+        weeklyChanceStepPercent: roll + 1,
         maxPerSeason: 1,
         minimumMatchesBetween: 0,
       } as const;
@@ -384,16 +390,51 @@ describe('automatic post-match awakenings', () => {
           TRIGGERS,
           bracketed,
         ).awakened,
-      ).toBe(false);
+      ).toBe(true);
     });
+  });
+
+  it('climbs five points a week from each season own opening week', () => {
+    const step = TUNING.weeklyChanceStepPercent;
+    // Season 1 opens two weeks early, so both years start at one step.
+    expect(awakeningChancePercent(step, 1, 3)).toBe(5);
+    expect(awakeningChancePercent(step, 2, 5)).toBe(5);
+    expect(awakeningChancePercent(step, 2, 6)).toBe(10);
+    expect(awakeningChancePercent(step, 2, 15)).toBe(55);
+    expect(awakeningChancePercent(step, 2, 24)).toBe(100);
+    // The climb never overshoots, and the season finale is always certain.
+    expect(awakeningChancePercent(step, 2, 30)).toBe(100);
+  });
+
+  it('cannot miss once the climb has reached certainty', () => {
+    const late = lateSeasonUserFixture(
+      createCareer(createLaunchCareerSetup(41)),
+    );
+    expect(
+      awakeningChancePercent(
+        TUNING.weeklyChanceStepPercent,
+        late.fixture.season,
+        late.fixture.week,
+      ),
+    ).toBe(100);
+
+    const result = resolvePostMatchAwakening(
+      late.state,
+      late.fixture.id,
+      userLineup(late.state),
+      POWERS,
+      TRIGGERS,
+      TUNING,
+    );
+
+    expect(result.awakened).toBe(true);
   });
 
   it('uses every trigger once before allowing randomized repeats', () => {
     let state = playedUserFixture(createCareer(createLaunchCareerSetup(31)));
     const fixtureId = userFixture(state).id;
     const forcedChance = {
-      chancePercent: 100,
-      secondInSeasonChancePercent: 100,
+      weeklyChanceStepPercent: 100,
       maxPerSeason: 99,
       minimumMatchesBetween: 0,
     } as const;
@@ -481,8 +522,7 @@ describe('automatic post-match awakenings', () => {
       POWERS,
       TRIGGERS,
       {
-        chancePercent: 100,
-        secondInSeasonChancePercent: 100,
+        weeklyChanceStepPercent: 100,
         maxPerSeason: 99,
         minimumMatchesBetween: 3,
       },
@@ -530,8 +570,7 @@ describe('automatic post-match awakenings', () => {
       POWERS,
       TRIGGERS,
       {
-        chancePercent: 100,
-        secondInSeasonChancePercent: 100,
+        weeklyChanceStepPercent: 100,
         maxPerSeason: 99,
         minimumMatchesBetween: 3,
       },
@@ -580,8 +619,7 @@ describe('automatic post-match awakenings', () => {
       POWERS,
       TRIGGERS,
       {
-        chancePercent: 100,
-        secondInSeasonChancePercent: 100,
+        weeklyChanceStepPercent: 100,
         maxPerSeason: 99,
         minimumMatchesBetween: 3,
       },
@@ -646,8 +684,7 @@ describe('automatic post-match awakenings', () => {
       LAUNCH_POWER_IDS,
       TRIGGERS,
       {
-        chancePercent: 100,
-        secondInSeasonChancePercent: 100,
+        weeklyChanceStepPercent: 100,
         maxPerSeason: 99,
         minimumMatchesBetween: 3,
       },
@@ -703,8 +740,7 @@ describe('automatic post-match awakenings', () => {
       ['RALLY_CRY'],
       TRIGGERS,
       {
-        chancePercent: 100,
-        secondInSeasonChancePercent: 100,
+        weeklyChanceStepPercent: 100,
         maxPerSeason: 99,
         minimumMatchesBetween: 3,
       },
@@ -740,5 +776,37 @@ function playedUserFixture(state: GameState): GameState {
           }
         : fixture,
     ),
+  };
+}
+
+/** The user's last league fixture, played, with the cooldown already served. */
+function lateSeasonUserFixture(state: GameState): {
+  state: GameState;
+  fixture: GameState['fixtures'][number];
+} {
+  const fixture = [...state.fixtures]
+    .filter(
+      (candidate) =>
+        candidate.homeClubId === state.userClubId ||
+        candidate.awayClubId === state.userClubId,
+    )
+    .sort((left, right) => left.week - right.week)
+    .at(-1)!;
+  return {
+    fixture,
+    state: {
+      ...state,
+      phase: 'manage',
+      awakening: { matchesSinceLastAwakening: 9, usedTriggerIds: [] },
+      fixtures: state.fixtures.map((candidate) =>
+        candidate.id === fixture.id
+          ? {
+              ...candidate,
+              status: 'played' as const,
+              score: { homeGoals: 1, awayGoals: 0 },
+            }
+          : candidate,
+      ),
+    },
   };
 }

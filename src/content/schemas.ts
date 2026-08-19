@@ -146,14 +146,13 @@ export const PowerCatalogSchema = z
   .strictObject({
     schemaVersion: ContentSchemaVersion,
     awakening: z.strictObject({
-      postMatchChancePercent: z.literal(10),
       /**
-       * The roll once the season already has one hero. Only season 1 can reach
-       * it, because that season's cap is raised for the free opening hero, and
-       * a second hero there is meant to be a surprise rather than the expected
-       * other half of the year.
+       * Percentage points the post-match roll gains for each week of the
+       * season. The chance opens at one step on the season's first league week
+       * and climbs until it reaches 100, so every season delivers its hero
+       * instead of leaving the club on a flat roll that may never land.
        */
-      secondInSeasonChancePercent: z.literal(2),
+      weeklyChanceStepPercent: z.literal(5),
       /** Heroes a season may earn. Season 1 gets one more: its opener is free. */
       maxPerSeason: z.literal(1),
       minimumMatchesBetween: z.literal(3),
