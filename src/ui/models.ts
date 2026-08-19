@@ -1232,6 +1232,11 @@ export interface ExpiredContractViewModel {
   currentWeeklyWage: number;
   quotedWeeklyWage: number;
   isHeroWageCliff: boolean;
+  /** Role-weighted rating, so renew-or-release is not decided on a wage alone. */
+  overall: number;
+  age: number;
+  /** The six outfield attributes plus REF, in register order, for the card. */
+  attributes: readonly StoryEventPlayerAttributeViewModel[];
   termOptions: readonly (1 | 2 | 3)[];
   /** Present only when age has cut the term below three seasons. */
   shortTermReason?: string;

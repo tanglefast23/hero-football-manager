@@ -261,6 +261,45 @@ describe('live power match showcase', () => {
   );
 
   /**
+   * The clip must show the POWER, not the hero doing his ordinary job.
+   *
+   * `arrangePowerMatchShowcase` re-runs every tick of the lead-in, and it used
+   * to clear the tackle cooldown each time. A defensive hero staged 100 units
+   * from the carrier therefore tackled him on every single tick: Super
+   * Strength opened with a dozen standing tackles piled on top of each other
+   * before the power ever fired. The staging now keeps the hero outside
+   * standing-tackle range and the cooldown survives the re-arrange.
+   */
+  it.each(LAUNCH_POWER_IDS)(
+    '%s never opens its clip with an ordinary tackle by the hero',
+    (power) => {
+      const match = createMatch(
+        powerMatchShowcaseSeed(power),
+        powerMatchShowcaseHome(power),
+        powerMatchShowcaseAway(),
+      );
+      const hero = initializePowerMatchShowcase(match, power);
+
+      for (
+        let frame = 0;
+        frame < CLIP_TICK_BUDGET && !powerMatchShowcaseSucceeded(match, power);
+        frame += 1
+      ) {
+        if (!advancePowerMatchShowcaseReady(match, power)) tick(match);
+      }
+
+      expect(
+        match.events.filter(
+          (event) =>
+            event.kind === 'TACKLE' &&
+            event.by === hero &&
+            event.style !== 'power',
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  /**
    * What the manager is handed once the pitch stops.
    *
    * The clip freezes the sim, so every question the screen still has to answer

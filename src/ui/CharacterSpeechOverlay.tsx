@@ -455,7 +455,10 @@ export function CharacterSpeechOverlay({
       }),
     ]);
     animation.start(({ finished }) => {
-      if (finished) onDone();
+      if (finished && !doneRef.current) {
+        doneRef.current = true;
+        onDone();
+      }
     });
     return () => animation.stop();
   }, [lean, offRight, onDone, phase, reduce, restLeft, travel, walkMs]);
@@ -477,7 +480,17 @@ export function CharacterSpeechOverlay({
       if (activePhase === 'arriving') moveToPhase('speaking');
       return;
     }
-    if (activePhase === 'leaving') return;
+    if (activePhase === 'leaving') {
+      // A tap during the walk-off ends it here. It used to do nothing, so a
+      // manager who had read the line still had to sit through the exit.
+      travel.setValue(offRight);
+      lean.setValue(0);
+      if (!doneRef.current) {
+        doneRef.current = true;
+        onDone();
+      }
+      return;
+    }
 
     const currentLineIndex = lineIndexRef.current;
     const currentLine = lines[currentLineIndex] ?? '';
@@ -524,6 +537,7 @@ export function CharacterSpeechOverlay({
     lines,
     markSpeechReady,
     moveToPhase,
+    offRight,
     onDone,
     pop,
     publishReveal,

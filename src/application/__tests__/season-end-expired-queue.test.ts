@@ -62,6 +62,23 @@ describe('season-end expired queue', () => {
     expect(view.canContinue).toBe(false);
   });
 
+  /**
+   * The card asks "renew at this wage?" and used to answer with the wage alone.
+   * A manager cannot price a player he is not shown.
+   */
+  it('carries the stats the renew-or-release decision needs', () => {
+    const { state, first } = seasonEndWithTwoExpired(9101);
+
+    const view = seasonEndViewModel(state, content, 1);
+    const player = state.players.find((each) => each.id === first)!;
+
+    expect(view.expiredContract?.overall).toBeGreaterThan(0);
+    expect(view.expiredContract?.age).toBe(player.age ?? 24);
+    expect(view.expiredContract?.attributes.map((a) => a.label)).toEqual(
+      Object.keys(player.attrs).map((key) => key.toUpperCase()),
+    );
+  });
+
   it('follows open renewal talks instead of pinning the first expired id', () => {
     // The queue must be able to move past its head: talks opened for the second
     // player keep him on screen, with the negotiation panel attached to him.

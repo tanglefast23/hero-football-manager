@@ -8,6 +8,8 @@ import {
 } from './match-rail';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
 import {
+  BANNER_BIG_FONT_PX,
+  BANNER_FONT_PX,
   OUTLINE_PX,
   SHADOW_DROP_PX,
   TICKER_LANE_HEIGHT,
@@ -144,16 +146,22 @@ const makeStyles = (faces: LocaleFaces) =>
     // Unplated announcement type. No background, no border, no padding and no
     // maxWidth: the ring around the glyphs is what holds the line off the
     // grass now, and any of those would clip it or wrap the longer locales.
+    // The goal line doubles this (bannerBigFontSize); everything else keeps it.
     banner: {
       color: '#edb54a',
       fontFamily: faces.display,
-      fontSize: 18,
+      fontSize: BANNER_FONT_PX,
     },
     // Each tone keeps the accent its plate used to carry in its border.
     bannerThreat: { color: '#d94f52' },
     bannerAction: { color: '#77a4d8' },
     // A footnote to the line above it, not an announcement of its own.
     bannerSmall: { fontSize: 12 },
+    // The goal line: double the announcement, because the scorer's name is the
+    // one line of the ticker a player is actually trying to read. Its box is
+    // taller than a lane, so it is given two (tickerLaneSpan). A long name is
+    // wider than a phone's pitch and sweeps through the frame as it crosses.
+    bannerBig: { fontSize: BANNER_BIG_FONT_PX },
     // The hard ink ring, drawn as eight offset copies under the fill.
     bannerOutline: { position: 'absolute', color: '#241f2e' },
     // The extruded copy under the ring: darker still, with a soft edge so the

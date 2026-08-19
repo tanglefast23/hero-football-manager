@@ -187,7 +187,7 @@ import {
   type MatchBannerSubject,
 } from './match-banners';
 import { MatchTickerLine } from './MatchTickerLine';
-import { tickerLane } from './match-ticker';
+import { goalTickerLifeTicks, tickerBandTop, tickerLane } from './match-ticker';
 import { CupTitleCard } from './CupTitleCard';
 import { cupTitleCard, type CupRoundLabel } from './cup-title-card';
 import { PowerEffectScene, type PowerEffectPoint } from './PowerEffectScene';
@@ -417,8 +417,9 @@ type MatchBanner = {
   lifeTicks: number;
   /** Wall-clock crossing length, overriding `lifeTicks`. Full time only. */
   durationMs?: number;
-  /** A footnote to the line above it — currently the power behind a goal. */
-  size?: 'small';
+  /** 'small' is a footnote to the line above it — the power behind a goal.
+   * 'big' is the goal line itself, drawn double size over two lanes. */
+  size?: 'small' | 'big';
   /** Set for the three coaching controls so a tap and the sim's confirming
    * event share one line instead of stacking two identical ones. */
   subject?: MatchBannerSubject;
@@ -444,7 +445,7 @@ function pushMatchBanner(
   return appendNewestFour(banners, {
     lifeTicks: FLASH_TICKS,
     ...banner,
-    lane: tickerLane(banners, undefined),
+    lane: tickerLane(banners, undefined, banner.size),
   });
 }
 
@@ -456,7 +457,7 @@ function pushSubjectedMatchBanner(
   return appendBannerNewestFour(banners, {
     lifeTicks: FLASH_TICKS,
     ...banner,
-    lane: tickerLane(banners, banner.subject),
+    lane: tickerLane(banners, banner.subject, banner.size),
   });
 }
 
@@ -2229,13 +2230,18 @@ export function MatchScreen({
             e.team,
             controlledTeam,
           );
+          // The scorer's line crosses slower than everything else, and more
+          // so the faster the match runs — see goalTickerLifeTicks.
+          const goalTicks = goalTickerLifeTicks(FLASH_TICKS, speedRef.current);
           bannerRef.current = pushMatchBanner(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
             // The icon below is a pictogram, not a word: it stays in the
             // source and only the sentence beside it comes from the catalog.
             text: `${presentation.icon} ${t('matchScreen.bannerGoal', { player: scorerName })}`,
-            untilTick: e.t + FLASH_TICKS,
+            untilTick: e.t + goalTicks,
+            lifeTicks: goalTicks,
             tone: presentation.tone,
+            size: 'big',
           });
           // A powered finish names the power on a smaller tile directly under
           // the goal banner. The name comes from the already-translated power
@@ -2249,7 +2255,8 @@ export function MatchScreen({
             bannerRef.current = pushMatchBanner(bannerRef.current, {
               id: `goal-power:${e.t}:${e.by}`,
               text: `${power.glyph} ${power.name}`,
-              untilTick: e.t + FLASH_TICKS,
+              untilTick: e.t + goalTicks,
+              lifeTicks: goalTicks,
               tone: presentation.tone,
               size: 'small',
             });
@@ -4272,7 +4279,12 @@ export function MatchScreen({
               </RecoverableSkiaCanvas>
             )}
             {hud.banners.length > 0 ? (
-              <View pointerEvents="none" style={styles.bannerStack}>
+              <View
+                pointerEvents="none"
+                // The band rides 5% of the pitch below the touchline, so the
+                // lines run over the grass rather than along the top edge.
+                style={[styles.bannerStack, { top: tickerBandTop(pitchH) }]}
+              >
                 {hud.banners.map((banner) => (
                   // Keyed by subject, not id: the optimistic coaching line and
                   // the sim's confirmation of the same control carry different
@@ -4282,7 +4294,7 @@ export function MatchScreen({
                     key={banner.subject ?? banner.id}
                     text={banner.text}
                     tone={banner.tone}
-                    small={banner.size === 'small'}
+                    size={banner.size}
                     lane={banner.lane}
                     pitchWidth={pitchWidth}
                     lifeTicks={banner.lifeTicks}

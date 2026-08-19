@@ -54,6 +54,10 @@ export const POWER_MATCH_SHOWCASE_SAFETY_FREEZE_MS = 14_000;
  * is the lowest one whose clip ends in that power's own promise landing, found
  * by exhaustive search and pinned by test. A sim change that moves any of them
  * fails that test rather than quietly shipping a demonstration of failure.
+ *
+ * Phase Run is the one exception, and it is deliberate: seed 13 does land, but
+ * only on the very last tick of the clip budget, after a ten-second wait for
+ * the power to fire. 15 fires at 3.1s and lands at 4.0s, so it keeps the pin.
  */
 const SHOWCASE_SEEDS: Readonly<Record<PowerId, number>> = {
   SUPER_SPEED: 5,
@@ -62,17 +66,17 @@ const SHOWCASE_SEEDS: Readonly<Record<PowerId, number>> = {
   FIRE_TORCH: 2,
   PHASE_RUN: 15,
   PORTAL_PASS: 1,
-  DECOY_DOUBLE: 26,
+  DECOY_DOUBLE: 8,
   FUTURE_SIGHT: 3,
   SUPER_STRENGTH: 1,
   WEB_TRAP: 1,
   ELASTIC_KEEPER: 1,
   RALLY_CRY: 1,
-  ICE_RINK: 2,
-  SHADOW_MARK: 69,
+  ICE_RINK: 1,
+  SHADOW_MARK: 1,
   GRAVITY_WELL: 1,
   GIANT_GK: 1,
-  GUST: 2,
+  GUST: 3,
 };
 
 export function powerMatchShowcaseSeed(power: PowerId): number {
@@ -234,13 +238,21 @@ export function powerMatchShowcaseAway(): TeamDef {
   };
 }
 
+/**
+ * Clears everything that would stop an authored actor playing their part.
+ *
+ * It deliberately leaves `tackleCooldownUntil` and `tackleRecoveryUntil`
+ * alone. `arrangePowerMatchShowcase` re-runs this every tick of the lead-in,
+ * and a cleared cooldown let the hero tackle the staged carrier again on the
+ * very next tick — Super Strength opened with a dozen standing tackles
+ * stacked on top of each other before the power itself ever fired. A fresh
+ * match starts both at 0, so nothing needs them reset here.
+ */
 function makeAvailable(match: MatchState, index: number): void {
   const player = match.players[index];
   player.outUntilTick = 0;
   player.outReason = undefined;
   player.slideTackle = undefined;
-  player.tackleRecoveryUntil = 0;
-  player.tackleCooldownUntil = 0;
   player.actionLockedUntilTick = undefined;
   player.actionLockSourceIdx = undefined;
   player.webbedUntilTick = undefined;
@@ -255,6 +267,18 @@ function place(match: MatchState, index: number, x: number, y: number): void {
 function holdBall(match: MatchState, index: number): void {
   match.ball = { kind: 'held', by: index };
 }
+
+/**
+ * How far a defensive-power hero is staged from the carrier they act on.
+ *
+ * Comfortably outside the engine's standing-tackle range (200), so the hero
+ * does not open the clip by simply tackling the man — Super Strength used to
+ * spend its lead-in doing exactly that, one tackle per tick. Still far inside
+ * these powers' own trigger ranges (1,900 and up), so the authored context
+ * that releases the banked power is unchanged, and the hero now covers the
+ * ground with the power rather than starting on top of the target.
+ */
+const DEFENSIVE_SHOWCASE_GAP = 700;
 
 /** Arrange the authored useful context once, before the review begins. */
 function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
@@ -311,7 +335,7 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       break;
     case 'FUTURE_SIGHT':
       place(match, hero, 2_200, 5_000);
-      place(match, 11, 2_300, 5_000);
+      place(match, 11, 2_200 + DEFENSIVE_SHOWCASE_GAP, 5_000);
       place(match, 12, 2_500, 4_800);
       holdBall(match, 11);
       match.players[11].actionLockedUntilTick =
@@ -320,13 +344,13 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
     case 'SUPER_STRENGTH':
     case 'ICE_RINK':
       place(match, hero, 2_200, 5_000);
-      place(match, 11, 2_300, 5_000);
+      place(match, 11, 2_200 + DEFENSIVE_SHOWCASE_GAP, 5_000);
       holdBall(match, 11);
       break;
     case 'SHADOW_MARK':
       place(match, hero, 2_200, 5_000);
       // Shadow correctly ignores goalkeepers, so stage a nearby outfielder.
-      place(match, 12, 2_300, 5_000);
+      place(match, 12, 2_200 + DEFENSIVE_SHOWCASE_GAP, 5_000);
       holdBall(match, 12);
       break;
     case 'WEB_TRAP':
@@ -380,7 +404,7 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       break;
     case 'GUST':
       place(match, hero, 2_200, 5_000);
-      place(match, 11, 2_300, 5_000);
+      place(match, 11, 2_200 + DEFENSIVE_SHOWCASE_GAP, 5_000);
       place(match, 12, 2_500, 4_800);
       holdBall(match, 11);
       match.players[11].actionLockedUntilTick =
