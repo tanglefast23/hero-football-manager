@@ -373,7 +373,7 @@ describe('deterministic scouting', () => {
       'ordinary-a',
       'ordinary-b',
     ]);
-    expect(mission.cost).toBe(3550);
+    expect(mission.cost).toBe(4450);
     expect(mission.dueWeek - mission.startWeek).toBeGreaterThanOrEqual(3);
   });
 });

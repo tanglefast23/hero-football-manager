@@ -128,12 +128,16 @@ export interface ScoutMissionResult {
   readonly reports: ScoutReport[];
 }
 
+// Travel costs 50% more than it used to everywhere except home: a trip abroad
+// should be a decision, not a default. LOCAL is deliberately untouched, because
+// it is the floor `cheapestScoutMissionCost` quotes and the scout's one free
+// favour is priced against it.
 const REGION_COST: Readonly<Record<ScoutRegion, number>> = {
   LOCAL: 1000,
-  EUROPE: 1800,
-  SOUTH_AMERICA: 2500,
-  AFRICA: 2200,
-  ASIA: 2000,
+  EUROPE: 2700,
+  SOUTH_AMERICA: 3750,
+  AFRICA: 3300,
+  ASIA: 3000,
 };
 
 export function scoutMissionCost(
@@ -146,7 +150,9 @@ export function scoutMissionCost(
     throw new Error(`unknown scouting region ${String(region)}`);
   const focusCost =
     focus.kind === 'RUMORED_HERO'
-      ? 2500
+      ? // 65% over the old 2500. A rumour pays off one time in four, so the
+        // brief has to cost like the marquee signing it is chasing.
+        4125
       : focus.kind === 'ELITE_PROSPECT'
         ? 1500
         : focus.kind === 'PROFILE'

@@ -155,7 +155,7 @@ describe('career market integration', () => {
       started.state.clubs.find((club) => club.id === initial.userClubId)?.cash,
     ).toBe(
       withOffice.clubs.find((club) => club.id === initial.userClubId)!.cash -
-        1800,
+        2700,
     );
     expect(waiting).toBe(started.market);
     expect(resolved.activeScoutMission).toBeUndefined();
@@ -166,7 +166,7 @@ describe('career market integration', () => {
     expect(started.state.cashTransactions?.at(-1)).toMatchObject({
       kind: 'scouting',
       label: 'Scouting mission · Europe',
-      amount: -1800,
+      amount: -2700,
       balanceAfter: started.state.clubs.find(
         (club) => club.id === initial.userClubId,
       )?.cash,
