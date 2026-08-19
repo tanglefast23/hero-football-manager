@@ -417,6 +417,14 @@ const DIST = path.resolve('dist');
 // (831_622 -> 831_664). Both numbers are CI's own, not local + offset. Per
 // the convention here, if a later CI run reports lower, ratchet down to that
 // figure.
+//
+// 2026-08-18, the formation role labels. DEF/MID/FWD plates under the
+// controlled team's outfield after a formation change. This branch earlier
+// re-ratcheted gzip by nine bytes (831_611 -> 831_620) against a pre-SHOT!
+// mark. That raise is superseded: the labels live behind LazyMatchScreen, so
+// none of the feature reaches the first load. The nine gzip bytes were
+// content-hash compression noise, not feature code. Main's later marks
+// already cover them. No new raise.
 const RAW_BUDGET = 3_410_808;
 const GZIP_BUDGET = 831_664;
 const QA_BODY_MARKERS = [
