@@ -33,6 +33,7 @@ describe('deterministic 2.5D ball flight', () => {
       kind: 'pass',
       pos: { ...m.players[target].pos },
       from: 1,
+      fromPlayerId: m.players[1].def.id,
       to: target,
       willSucceed: true,
       interceptor: -1,

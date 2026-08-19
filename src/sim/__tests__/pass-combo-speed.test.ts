@@ -267,6 +267,7 @@ describe('pass combo chain membership', () => {
       kind: 'pass',
       pos: { ...state.players[5].pos },
       from: 5,
+      fromPlayerId: state.players[5].def.id,
       to: 0,
       willSucceed: true,
       interceptor: -1,
@@ -324,6 +325,37 @@ describe('pass combo chain membership', () => {
     expect(state.passCombo[1].count).toBe(0);
     // In-play break, so the bonus keeps fading rather than snapping off.
     expect(comboBonusD(state.players[4])).toBe(200);
+  });
+
+  it('does not enrol a substitute who replaced the passer mid-flight', () => {
+    // `from` is a SLOT. A substitution during the flight puts a different
+    // player in it, and enrolling by index would hand a stranger the bonus and,
+    // at x5, a ghost trail. The passer is checked by stable id instead.
+    const spare = {
+      ...ROVERS.players[6],
+      id: 'r-sub-mid',
+      name: 'Late Arrival',
+      attrs: { ...ROVERS.players[6].attrs },
+    };
+    const state = createMatch(
+      7,
+      { ...ROVERS, bench: [spare] },
+      UNITED,
+      POLICIES,
+    );
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    state.ball = { kind: 'held', by: 5 };
+    launchPass(state, 5, 8, false, true);
+    expect(ballKind(state)).toBe('pass');
+    // Swap the passer out while the ball is still in the air.
+    expect(performSubstitution(state, 0, 5, 'r-sub-mid')).toBe(true);
+    for (let i = 0; i < 60 && ballKind(state) === 'pass'; i += 1) {
+      possessionTick(state);
+    }
+    expect(state.players[5].def.id).toBe('r-sub-mid');
+    expect(comboBonusD(state.players[5])).toBe(0);
+    expect(chainMembers(state, 0)).not.toContain(5);
   });
 
   it('gives a substitute no membership', () => {

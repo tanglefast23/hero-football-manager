@@ -170,6 +170,7 @@ describe('assist tracking', () => {
       kind: 'pass',
       pos: { x: 0, y: 0 },
       from: 7,
+      fromPlayerId: state.players[7].def.id,
       to: 9,
       willSucceed: true,
       interceptor: -1,

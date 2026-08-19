@@ -504,6 +504,15 @@ Four concrete changes, all of which the earlier drafts missed:
 Gate on `suppressCosmeticEffects` (which is `reduceMotion || reducedEffects`),
 not `reduceMotion` alone — that is what already governs the hero trail.
 
+### Portal Pass is deliberately neutral
+
+`portalPass` moves the ball to a teammate without going through `launchPass`.
+It neither counts as a completed pass nor breaks the chain: the count is
+preserved across the hop, and the receiver joins only when they complete their
+next pass. A portal is not a pass and not a turnover, so neither treatment fits,
+and preserving the count keeps the move alive — which is what it looks like on
+screen. (Raised by the Fable audit, 2026-08-19.)
+
 ## What does not change
 
 - **No new copy, in any language.** The pop draws "x4" from the existing 3×5

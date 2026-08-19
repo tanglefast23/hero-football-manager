@@ -168,6 +168,7 @@ describe('snapshotFrame', () => {
       kind: 'pass',
       pos: { x: 2000, y: 2000 },
       from: 1,
+      fromPlayerId: m.players[1].def.id,
       to: 2,
       willSucceed: true,
       interceptor: -1,

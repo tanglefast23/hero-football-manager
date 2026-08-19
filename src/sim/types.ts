@@ -229,6 +229,14 @@ export type BallState =
       kind: 'pass';
       pos: Vec;
       from: number;
+      /**
+       * Stable identity of the player who kicked it. `from` is a slot, and a
+       * substitution or a Decoy respawn during the flight puts a different
+       * player in that slot — so anything that credits the passer at ARRIVAL
+       * must check this, not the index. Same reasoning as
+       * `decoyReceiverPlayerId` below and `targetPlayerId` on PowerState.
+       */
+      fromPlayerId: string;
       to: number;
       willSucceed: boolean;
       interceptor: number;

@@ -1588,13 +1588,19 @@ export function possessionTick(state: MatchState): void {
         // the chain, but it leaves willSucceed true with b.to rewritten to a
         // keeper. When that keeper is on the passer's own side, a plain
         // same-team test would restart the chain that was just killed.
-        const passerTeam = playerAt(state, b.from)?.team;
+        //
+        // The passer is checked BY IDENTITY, not by slot. A substitution or a
+        // Decoy respawn during the flight puts a different player at index
+        // `b.from`, and enrolling them would hand a +20% bonus and an x5 ghost
+        // trail to somebody who never touched the ball.
+        const passer = playerAt(state, b.from);
         const receiverTeam = requirePlayerAt(state, targetIdx).team;
         if (
           !intercepted &&
           b.gustRedirect !== true &&
-          passerTeam !== undefined &&
-          passerTeam === receiverTeam
+          passer !== undefined &&
+          passer.def.id === b.fromPlayerId &&
+          passer.team === receiverTeam
         ) {
           extendPassCombo(state, receiverTeam, b.from, targetIdx);
         } else {
@@ -1822,6 +1828,7 @@ export function launchPass(
     pos: { ...passer.pos },
     from,
     to: passTo,
+    fromPlayerId: passer.def.id,
     willSucceed: gustRedirect !== null || ok,
     interceptor,
     z: 0,
