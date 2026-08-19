@@ -644,18 +644,18 @@ export function playPassCombo(count: number): void {
 }
 
 /**
- * The two escalation cues, each fired once per chain at its own threshold. x6
- * and beyond keep the pitched `pass-combo` pip alone: one hit per threshold is
- * what keeps each one dramatic, and it stops a 3s file overlapping itself on a
- * quick chain.
+ * The escalation chord: both cues fire together on the 5th completed pass, once
+ * per chain. x4 is deliberately silent and x6 and beyond keep the pitched
+ * `pass-combo` pip alone — one hit at one threshold is what keeps it dramatic,
+ * and it stops a 3s file overlapping itself on a quick chain.
  *
  * "Once per chain" needs no flag here. The caller only reaches this on the tick
- * the sim's count RISES, so a chain passes through 4 and through 5 exactly
- * once.
+ * the sim's count RISES, so a chain passes through 5 exactly once.
  */
 export function playPassComboMilestone(count: number): void {
-  if (count === 4) playSfxKey('pass-combo-epic', false);
-  else if (count === 5) playSfxKey('pass-combo-surge', false);
+  if (count !== 5) return;
+  playSfxKey('pass-combo-epic', false);
+  playSfxKey('pass-combo-surge', false);
 }
 
 /** How far `kick-shot` is bent down at each shot tier. */
