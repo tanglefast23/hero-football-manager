@@ -254,14 +254,19 @@ describe('opening sentinel', () => {
     // all. That is a discrimination loss in the sentinel, not a balance
     // regression, but it is worth watching — if it persists, this sample needs
     // more seeds to stay useful.
+    // Moved once more within the same m2.5 change, by one character on two
+    // arms, when the passer began being enrolled by stable id instead of by
+    // slot. Auto-coaching substitutes mid-pass-flight in these runs, so the
+    // wrong player used to inherit the bonus. Totals across 7 arms x 8 seeds
+    // are now 7 wins, 12 draws, 37 losses.
     expect(digests).toEqual({
       ordinary: 'LLDLDWLL',
       'smart-breadth': 'LLDLDWLL',
       'smart-extra-fwd': 'LLDLDWLL',
       'smart-concentration': 'LLLDLLDL',
-      'joe-observed-coach': 'LLLDWLLW',
+      'joe-observed-coach': 'LLLDWLLL',
       'joe-observed-no-coach': 'LWLLLWLL',
-      'no-training': 'LDDLLWDD',
+      'no-training': 'LLDLLWDD',
     });
   });
 });
