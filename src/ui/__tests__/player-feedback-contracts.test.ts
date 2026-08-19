@@ -229,4 +229,17 @@ describe('speech bubble placement contract', () => {
     expect(overlay).toContainSource('const bubbleMeasured = bubbleWidth > 0;');
     expect(overlay).toContainSource('opacity: bubbleMeasured ? pop : 0,');
   });
+
+  it('never auto-advances a timed line while a screen reader is on or unknown', () => {
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+
+    // VoiceOver reads slower than the character-count timers the callers
+    // pass, so a timed line has to wait for a tap unless the screen reader is
+    // known off. rivalHeroSpeechAutoExitMs applied this contract to one
+    // surface; the overlay enforces it here once for every caller.
+    expect(overlay).toContainSource(
+      'const screenReaderEnabled = useScreenReaderEnabled();',
+    );
+    expect(overlay).toContainSource('screenReaderEnabled !== false ||');
+  });
 });

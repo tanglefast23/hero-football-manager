@@ -12,9 +12,13 @@ export function useScreenReaderEnabled(): boolean | null {
 
   useEffect(() => {
     let active = true;
-    void AccessibilityInfo.isScreenReaderEnabled().then((value) => {
-      if (active) setEnabled(value);
-    });
+    void AccessibilityInfo.isScreenReaderEnabled()
+      .then((value) => {
+        if (active) setEnabled(value);
+      })
+      // A platform that cannot answer stays null — treated as enabled by
+      // timed story content, which is the safe side.
+      .catch(() => {});
     const subscription = AccessibilityInfo.addEventListener(
       'screenReaderChanged',
       setEnabled,

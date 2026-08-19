@@ -32,6 +32,23 @@ if (encryption !== 'false') {
   );
 }
 
+// The game has no background audio content, so the audio background mode
+// (expo-audio's plugin default) must never reach a shipped archive — App
+// Review 2.5.4 rejects unused background modes.
+const backgroundModes = optionalPlistValue(infoPlist, 'UIBackgroundModes');
+if (backgroundModes !== undefined) {
+  throw new Error(
+    `Release app must not declare UIBackgroundModes, got ${backgroundModes}`,
+  );
+}
+
+const privacyManifest = files.find(
+  (file) => basename(file) === 'PrivacyInfo.xcprivacy',
+);
+if (privacyManifest === undefined) {
+  throw new Error('Release app does not contain PrivacyInfo.xcprivacy');
+}
+
 const fonts = files
   .filter((file) =>
     /HFMSilkscreen_(400Regular|700Bold)\.ttf$/.test(basename(file)),
@@ -61,7 +78,13 @@ if (license === undefined) {
 
 console.info(
   JSON.stringify(
-    { app, encryption, fonts, license: license.slice(app.length + 1) },
+    {
+      app,
+      encryption,
+      fonts,
+      license: license.slice(app.length + 1),
+      privacyManifest: privacyManifest.slice(app.length + 1),
+    },
     null,
     2,
   ),
@@ -84,6 +107,17 @@ function walk(directory) {
     if (entry.isSymbolicLink()) return [];
     return entry.isDirectory() ? walk(file) : [file];
   });
+}
+
+function optionalPlistValue(plist, key) {
+  const result = spawnSync(
+    '/usr/bin/plutil',
+    ['-extract', key, 'raw', '-o', '-', plist],
+    {
+      encoding: 'utf8',
+    },
+  );
+  return result.status === 0 ? result.stdout.trim() : undefined;
 }
 
 function plistValue(plist, key) {

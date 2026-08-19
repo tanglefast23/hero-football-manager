@@ -16,7 +16,10 @@ import {
 } from '../../game/market-career';
 import type { CareerPlayer, GameState } from '../../game/types';
 import { playerGrowthGrade } from '../../game/training';
-import { renewalOpeningOfferWage } from '../../game/market';
+import {
+  cheapestScoutMissionCost,
+  renewalOpeningOfferWage,
+} from '../../game/market';
 import { careerContractPromiseHeroLimit } from '../../game/contract-promises';
 import { copyFor } from '../../i18n';
 
@@ -116,6 +119,25 @@ describe('career market view-model source adapter', () => {
     expect(careerMarketScoutOptions(withBestDivision(3))).toHaveLength(105);
     expect(careerMarketScoutOptions(withBestDivision(2))).toHaveLength(110);
     expect(careerMarketScoutOptions(withBestDivision(1))).toHaveLength(110);
+  });
+
+  it('quotes cheapestScoutMissionCost as the true floor of every board', () => {
+    // AGE is a priced focus ($500 over LOCAL, cheaper than any PROFILE brief)
+    // that no board offers. If a cheaper focus is ever wired onto the board,
+    // the scout's opening-favour trigger silently stops matching the cheapest
+    // slip a club can actually buy — this pins the quote to the real boards.
+    const initial = fullCareer(712);
+    for (const division of [5, 4, 3, 2, 1] as const) {
+      const options = careerMarketScoutOptions({
+        ...initial,
+        m2: { ...initial.m2!, highestDivisionReached: division },
+      });
+      expect(
+        Math.min(
+          ...options.map((option) => option.cost ?? Number.POSITIVE_INFINITY),
+        ),
+      ).toBe(cheapestScoutMissionCost());
+    }
   });
 
   it('exposes an active mission, its charged cash, and the same deterministic option mapping', () => {

@@ -58,6 +58,20 @@ if (config.ios?.infoPlist?.ITSAppUsesNonExemptEncryption !== false) {
   failures.push('ITSAppUsesNonExemptEncryption must be declared false');
 }
 
+// expo-audio's config plugin defaults enableBackgroundPlayback to true, which
+// puts UIBackgroundModes=["audio"] in the Info.plist. A game with no
+// background audio content declaring that mode is an App Review 2.5.4
+// rejection, so the flag must be pinned false in app.json.
+const audioPlugin = (config.plugins ?? []).find(
+  (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-audio',
+);
+if (audioPlugin?.[1]?.enableBackgroundPlayback !== false) {
+  failures.push(
+    'expo-audio plugin must set "enableBackgroundPlayback": false' +
+      ' — the plugin default adds the audio background mode to Info.plist',
+  );
+}
+
 if (failures.length > 0) {
   console.error('Release preflight failed:');
   for (const failure of failures) console.error(`- ${failure}`);

@@ -2,10 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
   StyleSheet,
-  Text,
+  Text as RNText,
   View,
   useWindowDimensions,
+  type TextProps,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+/**
+ * Every text node on this screen is match chrome inside fixed-metric layouts
+ * (the scorebar pill, dock buttons, possession cards), which unclamped
+ * Dynamic Type (~310% at accessibility sizes) overflows. Shadowing the import
+ * clamps all of it in one place; 1.3 matches the in-game text-size top step.
+ */
+function Text(props: TextProps) {
+  return <RNText maxFontSizeMultiplier={1.3} {...props} />;
+}
 import {
   Atlas,
   Circle,
@@ -665,6 +677,18 @@ export function MatchScreen({
   const { width, height, scale: devicePixelRatio } = useWindowDimensions();
   const compactHeight = height < 760;
   const narrowWidth = width < 375;
+  // The match renders full-bleed, so the scorebar (also the pause button) must
+  // clear the status bar / Dynamic Island itself, and the coaching dock — the
+  // game's only live match inputs — must clear the home-indicator gesture
+  // zone. The style-sheet paddings are the floors; insets only ever add.
+  const insets = useSafeAreaInsets();
+  const scorebarPaddingTop = Math.max(
+    compactHeight ? 24 : 56,
+    insets.top + (compactHeight ? 6 : 12),
+  );
+  const dockPaddingBottom = (compactHeight ? 6 : 8) + insets.bottom;
+  const safeAreaExtraChrome =
+    scorebarPaddingTop - (compactHeight ? 24 : 56) + insets.bottom;
   // Keep the pitch and both coaching rows visible on short phones. Decorative
   // chrome compresses first; all controls retain at least a 44pt touch target.
   // FormationDiagram's compact artwork is 62pt tall, so that first row is
@@ -681,9 +705,7 @@ export function MatchScreen({
     ? 0
     : railLayout
       ? MATCH_RAIL_TOP_INSET + MATCH_RAIL_GUTTER
-      : compactHeight
-        ? 226
-        : 286;
+      : (compactHeight ? 226 : 286) + safeAreaExtraChrome;
   const availablePitchHeight = Math.max(280, height - reservedChromeHeight);
   const availablePitchWidth = railLayout
     ? Math.max(280, width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3)
@@ -3856,6 +3878,7 @@ export function MatchScreen({
           style={({ pressed }) => [
             styles.scorebar,
             compactHeight ? styles.scorebarCompact : null,
+            { paddingTop: scorebarPaddingTop },
             hudSide === 'right' ? styles.scorebarFlipped : null,
             // Scaling a full-width surface shifts both screen edges by almost
             // 6px on a 390px phone. Keep this large target crisp: one pixel of
@@ -4411,6 +4434,7 @@ export function MatchScreen({
           style={[
             styles.coachingDock,
             compactHeight ? styles.coachingDockCompact : null,
+            { paddingBottom: dockPaddingBottom },
           ]}
         >
           <PowerTitleTakeover
@@ -4424,6 +4448,7 @@ export function MatchScreen({
           style={[
             styles.coachingDock,
             compactHeight ? styles.coachingDockCompact : null,
+            { paddingBottom: dockPaddingBottom },
           ]}
         >
           <View style={styles.coachBar}>

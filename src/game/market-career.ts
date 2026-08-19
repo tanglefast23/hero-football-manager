@@ -334,7 +334,10 @@ export function startCareerScoutMission(
         kind: 'scouting',
         label: `Scouting mission · ${readableRegion(region)}`,
         labelKey: 'cashTransaction.scoutingMission',
-        labelParams: { region: readableRegion(region) },
+        labelParams: {
+          region: readableRegion(region),
+          regionKey: REGION_NAME_KEYS[region],
+        },
         amount: -mission.cost,
         referenceId: mission.id,
       });
@@ -1802,6 +1805,19 @@ export function refreshCareerMarketForNewSeason(
     clubFameAdjustment: previous.clubFameAdjustment ?? 0,
   };
 }
+
+/**
+ * @i18n-fallback — `readableRegion` below is the English half the save holds;
+ * this table names the translated half `translatedParams` substitutes via the
+ * `regionKey` pair (the `DIVISION_NAME_KEYS` pattern).
+ */
+const REGION_NAME_KEYS: Readonly<Record<ScoutRegion, string>> = {
+  LOCAL: 'scoutRegion.local.name',
+  EUROPE: 'scoutRegion.europe.name',
+  SOUTH_AMERICA: 'scoutRegion.southAmerica.name',
+  AFRICA: 'scoutRegion.africa.name',
+  ASIA: 'scoutRegion.asia.name',
+};
 
 function readableRegion(region: ScoutRegion): string {
   return region

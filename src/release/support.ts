@@ -1,7 +1,6 @@
 /**
- * Public support contact already published for Joe's existing Liquid Calendar
- * app. Keep it in one place so it is trivial to replace if Joe chooses a
- * game-specific address before the final archive.
+ * Public support contact, shared with Joe's other published apps. Confirmed
+ * for release on 2026-08-19 — no game-specific address is planned.
  */
 export const SUPPORT_EMAIL = 'mrjoevu@hotmail.com';
 
