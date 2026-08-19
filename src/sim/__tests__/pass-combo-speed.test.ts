@@ -1,11 +1,16 @@
+import { launchPass, possessionTick, restartKickoff } from '../engine';
 import { createMatch } from '../match';
 import {
   PASS_COMBO_DECAY_TICKS,
   PASS_COMBO_TIER_D,
+  breakPassCombo,
+  chainMembers,
   comboBonusD,
   decayPassCombo,
   endChain,
+  extendPassCombo,
 } from '../pass-combo';
+import { performSubstitution } from '../substitutions';
 import { ROVERS, UNITED } from '../teams';
 import type { DecoyCloneState, MatchState } from '../types';
 
@@ -36,6 +41,19 @@ function spawnHomeClone(state: MatchState): void {
     untilTick: 99999,
   };
   state.decoyClones[0] = clone;
+}
+
+/**
+ * Runs a pass from `from` to `to` all the way to its arrival, through the real
+ * engine. The 4th argument is `lofted` (required) and the 5th is `guaranteed`,
+ * which forces the contest to succeed so this always produces a clean catch.
+ */
+function completePass(state: MatchState, from: number, to: number): void {
+  state.ball = { kind: 'held', by: from };
+  launchPass(state, from, to, false, true);
+  for (let i = 0; i < 60 && state.ball.kind === 'pass'; i += 1) {
+    possessionTick(state);
+  }
 }
 
 describe('pass combo bonus arithmetic', () => {
@@ -102,5 +120,177 @@ describe('pass combo bonus arithmetic', () => {
     expect(PASS_COMBO_TIER_D[4]).toBe(1000);
     expect(PASS_COMBO_TIER_D[5]).toBe(1500);
     expect(PASS_COMBO_TIER_D[6]).toBe(2000);
+  });
+});
+
+describe('pass combo chain membership', () => {
+  it('enrols both ends of a completed pass and nobody else', () => {
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    expect(chainMembers(state, 0).sort((a, b) => a - b)).toEqual([4, 7]);
+    expect(comboBonusD(state.players[5])).toBe(0);
+  });
+
+  it('grants nothing at x1 and 200 at x2', () => {
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    expect(comboBonusD(state.players[4])).toBe(0);
+    extendPassCombo(state, 0, 7, 5);
+    expect(comboBonusD(state.players[4])).toBe(200);
+    expect(comboBonusD(state.players[5])).toBe(200);
+  });
+
+  it('climbs the ladder and holds at 2000 above x6', () => {
+    const state = freshMatch();
+    const order = [4, 7, 5, 6, 8, 3, 2, 1];
+    for (let i = 0; i + 1 < order.length; i += 1) {
+      extendPassCombo(state, 0, order[i], order[i + 1]);
+    }
+    expect(state.passCombo[0].count).toBe(7);
+    expect(comboBonusD(state.players[1])).toBe(2000);
+  });
+
+  it('enrols a Decoy clone and not the keeper or the copied forward', () => {
+    const state = freshMatch();
+    spawnHomeClone(state);
+    extendPassCombo(state, 0, 6, 22);
+    extendPassCombo(state, 0, 22, 8);
+    expect(chainMembers(state, 0).sort((a, b) => a - b)).toEqual([6, 8, 22]);
+    expect(comboBonusD(state.players[0])).toBe(0); // keeper, the 22 % 11 trap
+    expect(comboBonusD(state.players[9])).toBe(0); // copied source forward
+    expect(comboBonusD(state.decoyClones[0]!)).toBe(200);
+  });
+
+  it('does not lift a stale decayer from a previous chain', () => {
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    breakPassCombo(state);
+    extendPassCombo(state, 0, 8, 6);
+    extendPassCombo(state, 0, 6, 3);
+    extendPassCombo(state, 0, 3, 2);
+    extendPassCombo(state, 0, 2, 1);
+    extendPassCombo(state, 0, 1, 10); // five extends = x5
+    expect(state.passCombo[0].count).toBe(5);
+    expect(comboBonusD(state.players[8])).toBe(1500);
+    expect(comboBonusD(state.players[4])).toBe(200); // still the old tier
+  });
+
+  it('keeps the higher bonus and the old countdown across a break', () => {
+    const state = freshMatch();
+    const order = [4, 7, 5, 6, 8, 3, 2];
+    for (let i = 0; i + 1 < order.length; i += 1) {
+      extendPassCombo(state, 0, order[i], order[i + 1]);
+    }
+    expect(comboBonusD(state.players[4])).toBe(2000);
+    breakPassCombo(state);
+    for (let i = 0; i < 3; i += 1) decayPassCombo(state);
+    const beforeSnap = comboBonusD(state.players[4]);
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5); // a fresh x2 = 200
+    expect(comboBonusD(state.players[4])).toBe(beforeSnap);
+    expect(state.players[4].comboTierD).toBe(2000);
+  });
+
+  it('ends the other team chain on a completion', () => {
+    const state = freshMatch();
+    const order = [4, 7, 5, 6, 8];
+    for (let i = 0; i + 1 < order.length; i += 1) {
+      extendPassCombo(state, 0, order[i], order[i + 1]);
+    }
+    const idBefore = state.passCombo[0].chainId;
+    expect(state.passCombo[0].count).toBe(4);
+    extendPassCombo(state, 1, 15, 17);
+    expect(state.passCombo[0].count).toBe(0);
+    expect(state.passCombo[0].chainId).toBeGreaterThan(idBefore);
+    expect(chainMembers(state, 0)).toEqual([]);
+    expect(chainMembers(state, 1).sort((a, b) => a - b)).toEqual([15, 17]);
+  });
+
+  it('does not re-enrol first-half members after a restart', () => {
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    restartKickoff(state, 0);
+    expect(state.passCombo[0].count).toBe(0);
+    expect(comboBonusD(state.players[4])).toBe(0);
+    extendPassCombo(state, 0, 8, 6);
+    extendPassCombo(state, 0, 6, 3);
+    expect(comboBonusD(state.players[4])).toBe(0);
+    expect(comboBonusD(state.players[8])).toBe(200);
+  });
+
+  it('extends through a real engine arrival, not just the helper', () => {
+    // Every other membership case calls extendPassCombo directly. Without this
+    // one the clean-catch predicate in possessionTick has NO test, and the
+    // whole hook could be omitted with a green suite.
+    const state = freshMatch();
+    completePass(state, 4, 7);
+    completePass(state, 7, 5);
+    expect(state.passCombo[0].count).toBe(2);
+    expect(chainMembers(state, 0).sort((a, b) => a - b)).toEqual([4, 5, 7]);
+    expect(comboBonusD(state.players[4])).toBe(200);
+  });
+
+  it('breaks the chain when a pass fails at launch', () => {
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    state.ball = { kind: 'held', by: 5 };
+    // `ok` comes from a contest roll, NOT from distance — a far-away target
+    // still succeeds when the roll wins. Force the roll to lose instead.
+    state.rng = () => 1;
+    launchPass(state, 5, 7, false);
+    expect(state.passCombo[0].count).toBe(0);
+  });
+
+  it('does not re-extend on a same-team Gust redirect', () => {
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    breakPassCombo(state);
+    state.ball = {
+      kind: 'pass',
+      pos: { ...state.players[5].pos },
+      from: 5,
+      to: 0,
+      willSucceed: true,
+      interceptor: -1,
+      z: 0,
+      vz: 0,
+      speed: 250,
+      gustRedirect: true,
+    };
+    for (let i = 0; i < 60 && state.ball.kind === 'pass'; i += 1) {
+      possessionTick(state);
+    }
+    expect(state.ball.kind).toBe('held');
+    expect(state.passCombo[0].count).toBe(0);
+  });
+
+  it('gives a substitute no membership', () => {
+    // ROVERS ships no bench, so give it one. The substitute must arrive with
+    // zeroed combo fields and outside the live chain — which it does by
+    // construction, because performSubstitution builds a fresh SimPlayer.
+    const spare = {
+      ...ROVERS.players[6],
+      id: 'r-sub-1',
+      name: 'Spare Part',
+      attrs: { ...ROVERS.players[6].attrs },
+    };
+    const state = createMatch(
+      7,
+      { ...ROVERS, bench: [spare] },
+      UNITED,
+      POLICIES,
+    );
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    const replacement = state.bench[0][0];
+    expect(replacement).toBeDefined();
+    expect(performSubstitution(state, 0, 5, replacement.id)).toBe(true);
+    expect(state.players[5].comboChainId).toBe(0);
+    expect(comboBonusD(state.players[5])).toBe(0);
+    expect(chainMembers(state, 0)).not.toContain(5);
   });
 });
