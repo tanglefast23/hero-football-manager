@@ -31,8 +31,6 @@ export type SfxKey =
   | 'kick-shot'
   | 'ball-flight-whoosh'
   | 'pass-combo'
-  | 'pass-combo-epic'
-  | 'pass-combo-surge'
   | 'tackle-thud'
   | 'grunt'
   | 'body-fall'
@@ -77,8 +75,6 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'fulltime-whistle': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'kick-pass': require('../../assets/audio/sfx/kick-pass.wav'),
   'pass-combo': require('../../assets/audio/sfx/pass-combo.m4a'),
-  'pass-combo-epic': require('../../assets/audio/sfx/pass-combo-epic.m4a'),
-  'pass-combo-surge': require('../../assets/audio/sfx/pass-combo-surge.m4a'),
   'kick-shot': require('../../assets/audio/sfx/kick-shot.m4a'),
   'ball-flight-whoosh': require('../../assets/audio/sfx/ball-flight-whoosh.m4a'),
   'tackle-thud': require('../../assets/audio/sfx/tackle-thud.m4a'),
@@ -627,21 +623,6 @@ export function playPassCombo(count: number): void {
     }
   }
   playSfxKey('pass-combo', false);
-}
-
-/**
- * The two escalation cues, each fired once per chain at its own threshold. x6
- * and beyond keep the pitched `pass-combo` pip alone: one hit per threshold is
- * what keeps each one dramatic, and it stops a 3s file overlapping itself on a
- * quick chain.
- *
- * "Once per chain" needs no flag here. The caller only reaches this on the tick
- * the sim's count RISES, so a chain passes through 4 and through 5 exactly
- * once.
- */
-export function playPassComboMilestone(count: number): void {
-  if (count === 4) playSfxKey('pass-combo-epic', false);
-  else if (count === 5) playSfxKey('pass-combo-surge', false);
 }
 
 /** How far `kick-shot` is bent down at each shot tier. */

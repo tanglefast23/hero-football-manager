@@ -280,7 +280,6 @@ import {
   initAudio,
   playBallFlightWhoosh,
   playPassCombo,
-  playPassComboMilestone,
   playForEvent,
   playShotTierAudio,
   startFireAmbience,
@@ -1998,7 +1997,6 @@ export function MatchScreen({
             });
             setNewestPop('combo');
             playPassCombo(comboCount);
-            playPassComboMilestone(comboCount);
             passComboLife.value = 0;
             passComboLife.value = withTiming(PASS_COMBO_POP_MS, {
               duration: PASS_COMBO_POP_MS,

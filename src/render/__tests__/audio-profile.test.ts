@@ -35,18 +35,6 @@ describe('pass combo cue', () => {
     );
   });
 
-  it('ships the two milestone cues and loads them in a full match', () => {
-    for (const key of ['pass-combo-epic', 'pass-combo-surge'] as const) {
-      expect(
-        existsSync(join(process.cwd(), `assets/audio/sfx/${key}.m4a`)),
-      ).toBe(true);
-      expect(audioKeysForProfile('full')).toContain(key);
-      expect(audioKeysForProfile('showcase', 'SUPER_STRENGTH')).not.toContain(
-        key,
-      );
-    }
-  });
-
   it('climbs with the run, then stops climbing before it chirps', () => {
     expect(passComboPlaybackRate(2)).toBe(1);
     expect(passComboPlaybackRate(3)).toBeGreaterThan(1);
