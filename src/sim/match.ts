@@ -159,6 +159,9 @@ function makePlayers(
       tackleRecoveryUntil: 0,
       tackleCooldownUntil: 0,
       cards: 0 as const,
+      comboTierD: 0,
+      comboTicks: 0,
+      comboChainId: 0,
     }));
   return [...mk(0, home), ...mk(1, away)];
 }
@@ -216,6 +219,10 @@ export function createMatch(
     ],
     substitutionsUsed: [0, 0],
     resolve: [100, 100],
+    passCombo: [
+      { count: 0, chainId: 1 },
+      { count: 0, chainId: 1 },
+    ],
     rng: mulberry32(seed),
     events: [],
     pendingInputs: [],

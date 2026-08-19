@@ -1628,6 +1628,11 @@ function spawnDecoyClone(
     tackleRecoveryUntil: 0,
     tackleCooldownUntil: 0,
     cards: 0,
+    // A clone is a first-class pass-combo member: it can be passed to and pass
+    // onward, and speedFor128 already accepts entity 22/23.
+    comboTierD: 0,
+    comboTicks: 0,
+    comboChainId: 0,
     ownerIdx,
     ownerPlayerId: owner.def.id,
     sourceIdx,

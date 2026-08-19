@@ -184,6 +184,20 @@ export interface SimPlayer {
   tackleRecoveryUntil: number;
   tackleCooldownUntil: number;
   cards: 0 | 1 | 2;
+  /**
+   * Pass-combo speed bonus tier in ten-thousandths (2000 = +20%). The live
+   * bonus is derived from this and `comboTicks` rather than stored, so a value
+   * read every tick by every mover cannot drift.
+   */
+  comboTierD: number;
+  /** Ticks left on that bonus, 30 down to 0. At 0 the tier is cleared too. */
+  comboTicks: number;
+  /**
+   * Id of the last pass chain this entity touched the ball in; 0 means never.
+   * Live chain ids start at 1, so a freshly built entity — a substitute, a new
+   * Decoy clone — can never match a live chain by accident.
+   */
+  comboChainId: number;
 }
 
 /**
@@ -412,6 +426,18 @@ export interface MovementState {
   presserSinceTick: number;
 }
 
+/**
+ * One team's live pass chain. `chainId` is an epoch: ending a chain increments
+ * it, which drops every member at once without touching them. It is never
+ * reset and never reused, because `restartKickoff` reuses the same SimPlayer
+ * objects — a recycled id would silently re-enrol players from a chain that
+ * ended before the restart.
+ */
+export interface PassComboChain {
+  count: number;
+  chainId: number;
+}
+
 export interface MatchState {
   tick: number;
   half: 1 | 2;
@@ -436,6 +462,8 @@ export interface MatchState {
   bench: [PlayerDef[], PlayerDef[]];
   substitutionsUsed: [number, number];
   resolve: [number, number];
+  /** Live pass chain per team. The render ring reads this instead of counting events. */
+  passCombo: [PassComboChain, PassComboChain];
   rng: Rng;
   events: MatchEvent[];
   pendingInputs: MatchInput[];
