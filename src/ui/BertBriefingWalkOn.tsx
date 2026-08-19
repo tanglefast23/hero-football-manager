@@ -58,6 +58,8 @@ export interface BertBriefingWalkOnProps {
     readonly focus?: AssistantGuideFocus;
   };
   moneyAnchor?: TutorialAnchorLayout | null;
+  /** The crowd chip, lit as it appears for the first time. */
+  fansAnchor?: TutorialAnchorLayout | null;
   /** The Board Loan card, left lit while Bert explains the one rescue. */
   loanAnchor?: TutorialAnchorLayout | null;
   /** The discovered facility-pair card, left lit while Bert explains it. */
@@ -94,6 +96,7 @@ export function BertBriefingWalkOn({
   sequenceId,
   customMessage,
   moneyAnchor,
+  fansAnchor,
   loanAnchor,
   facilityAdjacencyAnchor,
   coachSpeechAnchor,
@@ -158,20 +161,22 @@ export function BertBriefingWalkOn({
   const spotlightAnchor =
     focus === 'money'
       ? moneyAnchor
-      : focus === 'emergency-loan'
-        ? loanAnchor
-        : focus === 'facility-adjacency'
-          ? facilityAdjacencyAnchor
-          : focus === 'coach-speech'
-            ? coachSpeechAnchor
-            : focus === 'navigation'
-              ? navigationAnchor
-              : // The board beats point at a sub-tab rather than a chip or the rail, and
-                // a tab talked about under the scrim reads as one he is not talking
-                // about.
-                focus === 'division-leaders' || focus === 'national-cup'
-                ? subTabAnchor
-                : null;
+      : focus === 'fans'
+        ? fansAnchor
+        : focus === 'emergency-loan'
+          ? loanAnchor
+          : focus === 'facility-adjacency'
+            ? facilityAdjacencyAnchor
+            : focus === 'coach-speech'
+              ? coachSpeechAnchor
+              : focus === 'navigation'
+                ? navigationAnchor
+                : // The board beats point at a sub-tab rather than a chip or the rail, and
+                  // a tab talked about under the scrim reads as one he is not talking
+                  // about.
+                  focus === 'division-leaders' || focus === 'national-cup'
+                  ? subTabAnchor
+                  : null;
   const moneyCuePosition =
     focus === 'money' && moneyAnchor
       ? tutorialCuePosition(moneyAnchor, viewportWidth)

@@ -898,8 +898,11 @@ function transferListing(
     })),
     // An unaffordable target stays pressable so the manager gets a direct
     // refusal from the desk instead of a grey control with no response.
-    available: windowOpen && listing.saleBlockedReason === undefined,
-    ...(!windowOpen
+    // Selling is open every week; only buying waits for the window.
+    available:
+      (listing.direction === 'SELL' || windowOpen) &&
+      listing.saleBlockedReason === undefined,
+    ...(!windowOpen && listing.direction === 'BUY'
       ? { blockedReason: t('market.transferWindowClosed') }
       : listing.saleBlockedReason !== undefined
         ? { blockedReason: listing.saleBlockedReason }

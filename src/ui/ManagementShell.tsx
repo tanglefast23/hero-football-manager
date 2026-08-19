@@ -324,7 +324,7 @@ export interface ManagementShellProps {
    * detected on their own — see useKeyBindings.
    */
   keyboardShortcutsEnabled?: boolean;
-  guideFocus?: 'money' | 'navigation';
+  guideFocus?: 'money' | 'fans' | 'navigation';
   /** Persistent first-week helper copy; floating arrows may retire after a tap. */
   guideObjective?: string;
   /** Present when the helper itself can take the manager to the required tab. */
@@ -340,6 +340,13 @@ export interface ManagementShellProps {
     | 'training-ground-facility'
     | 'advance-week';
   onMoneyGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
+  onFansGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
+  /**
+   * The crowd chip is hidden until Bert introduces it. Fans mean nothing to a
+   * manager who has never won one, and the number sat in the HUD from week 1
+   * with no lesson attached to it.
+   */
+  showFans?: boolean;
   onNavigationGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
   /**
    * Clears guidance the player has stopped following. It runs when the finger
@@ -382,6 +389,8 @@ export function ManagementShell({
   onBackToInboxDuties,
   guideTarget,
   onMoneyGuideAnchorChange,
+  onFansGuideAnchorChange,
+  showFans = true,
   onNavigationGuideAnchorChange,
   onDismissGuidance,
   developerSaveSummaries,
@@ -426,6 +435,10 @@ export function ManagementShell({
   const moneyGuideAnchor = useGuideAnchor(
     guideFocus === 'money',
     onMoneyGuideAnchorChange,
+  );
+  const fansGuideAnchor = useGuideAnchor(
+    guideFocus === 'fans',
+    onFansGuideAnchorChange,
   );
   const navigationGuideAnchor = useGuideAnchor(
     guideFocus === 'navigation',
@@ -480,14 +493,27 @@ export function ManagementShell({
       {/* Last of the three, and the only one drawn rather than lettered: fans
           are not spent, they are what the gate and the merchandise are priced
           off, so the chip names the crowd in the crowd's own art. */}
-      <ResourceChip
-        icon={<FansGlyph />}
-        name={t('managementShell.fans')}
-        explainer={t('managementShell.fansExplainer')}
-        value={resources.fans}
-        reduceMotion={reduceMotion}
-        onPress={openLedgerFromChip}
-      />
+      {showFans ? (
+        <View
+          ref={fansGuideAnchor.anchorRef}
+          collapsable={false}
+          onLayout={fansGuideAnchor.scheduleMeasurement}
+          className={
+            guideFocus === 'fans'
+              ? 'border-2 border-blue-dark bg-blue-light p-1'
+              : undefined
+          }
+        >
+          <ResourceChip
+            icon={<FansGlyph />}
+            name={t('managementShell.fans')}
+            explainer={t('managementShell.fansExplainer')}
+            value={resources.fans}
+            reduceMotion={reduceMotion}
+            onPress={openLedgerFromChip}
+          />
+        </View>
+      ) : null}
     </View>
   );
 
@@ -506,7 +532,10 @@ export function ManagementShell({
           styles.hudTopLayer,
           { paddingTop: insets.top + HUD_TOP_BREATHING_ROOM },
         ]}
-        onLayout={moneyGuideAnchor.scheduleMeasurement}
+        onLayout={() => {
+          moneyGuideAnchor.scheduleMeasurement();
+          fansGuideAnchor.scheduleMeasurement();
+        }}
       >
         <View className="flex-row items-center gap-2">
           <ClubCrest clubName={clubName} size={24} />

@@ -4207,9 +4207,21 @@ export function facilityTransactionErrorCopy(error: unknown): string {
 /** Turns the pressable-but-unaffordable transfer refusal into player copy. */
 export function transferTransactionErrorCopy(error: unknown): string {
   const raw = rawMessage(error);
-  return raw === 'transfer fee exceeds current cash'
-    ? t('market.notEnoughCash')
-    : t('store.actionUnavailable');
+  if (raw === 'transfer fee exceeds current cash')
+    return t('market.notEnoughCash');
+  // Sale refusals the Squad screen's Lay-off button can reach. The Market
+  // screen prints these as a row's blocked reason before the press; the player
+  // file has no such row, so the same three answers arrive as the refusal.
+  if (raw === 'no club can afford to bid for this player')
+    return t('layOff.empty');
+  if (raw === 'an expired player cannot be transfer-listed')
+    return t('market.saleNeedsContract');
+  // A regex, not `includes`: the message interpolates the player's name, and
+  // the prose scanner counts a bare sentence fragment in a comparison as copy.
+  if (/without matchday cover/.test(raw)) return t('market.saleNeedsCover');
+  if (raw === 'the selling club has no eligible lineup replacement')
+    return t('market.saleNeedsReplacement');
+  return t('store.actionUnavailable');
 }
 
 export function assertTransferCashAvailable(cash: number, fee: number): void {

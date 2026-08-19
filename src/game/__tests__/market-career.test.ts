@@ -1291,7 +1291,7 @@ describe('career market integration', () => {
     expect(accepted.market.transferListings).toEqual([]);
   });
 
-  test('expires listings at the end of their registration window and rejects a saved bid later', () => {
+  test('ages saved bids out after two weeks and rejects one accepted later', () => {
     const initial = createCareer(createLaunchCareerSetup(826));
     const weekFour = { ...initial, week: 4 };
     const starters = new Set(
@@ -1307,13 +1307,33 @@ describe('career market integration', () => {
     const listed = listCareerPlayer(weekFour, weekFour.market!, reserve.id);
     const bidId = listed.transferListings![0].bids[0].id;
 
+    // Week 10 is mid-season and shut for signings; a sale still opens.
     expect(
-      expireCareerTransferListings({ ...weekFour, week: 5 }, listed)
+      listCareerPlayer({ ...weekFour, week: 10 }, weekFour.market!, reserve.id)
+        .transferListings?.[0].bids.length,
+    ).toBeGreaterThan(0);
+
+    // Selling is open every week, so the bid ages out instead of closing with
+    // a registration window: the listed week plus two advances.
+    expect(
+      expireCareerTransferListings({ ...weekFour, week: 6 }, listed)
+        .transferListings,
+    ).toEqual(listed.transferListings);
+    expect(
+      expireCareerTransferListings({ ...weekFour, week: 7 }, listed)
         .transferListings,
     ).toEqual([]);
     expect(() =>
-      acceptCareerTransferBid({ ...weekFour, week: 17 }, listed, bidId),
+      acceptCareerTransferBid({ ...weekFour, week: 7 }, listed, bidId),
     ).toThrow('transfer bid has expired');
+    // The window itself no longer gates a sale: week 10 is mid-season.
+    expect(
+      acceptCareerTransferBid(
+        { ...weekFour, week: 5 },
+        listed,
+        bidId,
+      ).state.players.find((player) => player.id === reserve.id)?.clubId,
+    ).not.toBe(weekFour.userClubId);
     expect(() =>
       acceptCareerTransferBid(
         { ...weekFour, season: 2, week: 1 },

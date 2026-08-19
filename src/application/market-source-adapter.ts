@@ -60,6 +60,29 @@ function englishCopy(): CopyFn {
  * Plain adapter for the application boundary. It derives display inputs only;
  * the career and market save objects are never mutated or enriched with UI data.
  */
+/**
+ * Whether the club may sell its own players yet.
+ *
+ * The Squad screen's lay-off button asks the same question the Market screen's
+ * SELL rows do, and asking it twice is how the two drift apart — so both read
+ * this. Selling itself is open every week; only the story's opening pacing
+ * holds it back.
+ */
+export function careerPlayerSalesUnlocked(
+  state: GameState,
+  suppliedMarket?: CareerMarketState,
+): boolean {
+  const market = suppliedMarket ?? state.market;
+  if (market === undefined) return false;
+  return (
+    !isStoryFeaturePacingActive(state) ||
+    (market.transferListings ?? []).length > 0 ||
+    isStoryScoutingUnlocked(state) ||
+    market.activeScoutMission !== undefined ||
+    market.scoutReports.length > 0
+  );
+}
+
 export function careerMarketViewModelSource(
   state: GameState,
   suppliedMarket?: CareerMarketState,
@@ -88,8 +111,7 @@ export function careerMarketViewModelSource(
       listing,
     ]),
   );
-  const playerSalesUnlocked =
-    !storyPacing || savedSellListings.size > 0 || scoutingUnlocked;
+  const playerSalesUnlocked = careerPlayerSalesUnlocked(state, market);
   const transferDealsUnlocked =
     !storyPacing ||
     market.scoutReports.length > 0 ||
