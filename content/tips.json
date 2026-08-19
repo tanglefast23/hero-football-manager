@@ -2,6 +2,11 @@
   "schemaVersion": 1,
   "tips": [
     {
+      "id": "hold-or-hover-for-help",
+      "title": "Hold or hover for an explainer",
+      "body": "Most labels and numbers on this desk explain themselves. Hover over one with a mouse, or press and hold it on a phone, and a note tells you what it does."
+    },
+    {
       "id": "condition-under-thirty",
       "title": "Injury risk starts under 30 condition",
       "body": "Above 30 condition, drills are safe. Below it the risk is 10%, plus 2% for every point under 30, so 10 condition is a coin flip. A Medical Bay beside the Training Pitch cuts that by a fifth."

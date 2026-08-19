@@ -18,6 +18,7 @@ import {
 import type { GestureResponderEvent, ViewStyle } from 'react-native';
 import type { AssistantGuideFocus, ManagerTipDestination } from '../../content';
 import {
+  ActionButton,
   Metric,
   PaperPanel,
   SectionLabel,
@@ -315,6 +316,8 @@ export interface SquadTrainingScreenProps {
   /** The saved roster ordering. Held by the app shell so it survives leaving the tab. */
   squadSort: SquadSort | null;
   onChangeSquadSort: (sort: SquadSort | null) => void;
+  /** Opens the lay-off offers for this player. Omitted where sales are locked. */
+  onLayOffPlayer?: (playerId: string) => void;
 }
 
 export function SquadTrainingScreen({
@@ -346,6 +349,7 @@ export function SquadTrainingScreen({
   showSortHint = false,
   squadSort,
   onChangeSquadSort,
+  onLayOffPlayer,
 }: SquadTrainingScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -661,6 +665,7 @@ export function SquadTrainingScreen({
                   guideQuickTrain && selectedPlayer.injuryWeeks === 0
                 }
                 attributesRef={attributesRef}
+                onLayOff={onLayOffPlayer}
               />
             ),
           },
@@ -1472,6 +1477,8 @@ interface PlayerFileSectionProps {
   guideQuickTrain?: boolean;
   /** Lets the screen scroll the attribute grid into view for that lesson. */
   attributesRef?: RefObject<View | null>;
+  /** Opens the lay-off offers. Absent while player sales are still locked. */
+  onLayOff?: (playerId: string) => void;
 }
 
 function PlayerFileSection({
@@ -1481,6 +1488,7 @@ function PlayerFileSection({
   onTrainAttribute,
   guideQuickTrain = false,
   attributesRef,
+  onLayOff,
 }: PlayerFileSectionProps) {
   const t = useCopy();
   return (
@@ -1516,6 +1524,18 @@ function PlayerFileSection({
               fame: selectedPlayer.fame,
             })}
           </Text>
+          {onLayOff === undefined ? null : (
+            <View className="mt-2">
+              <ActionButton
+                label={t('layOff.action')}
+                accessibilityLabel={t('layOff.a11y.open', {
+                  player: selectedPlayer.name,
+                })}
+                variant="danger"
+                onPress={() => onLayOff(selectedPlayer.id)}
+              />
+            </View>
+          )}
         </View>
       </View>
       {selectedPlayer.injuryWeeks > 0 ? (

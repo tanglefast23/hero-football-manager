@@ -242,6 +242,33 @@ describe('career market view-model source adapter', () => {
     ).toMatch(new RegExp(`^${playerGrowthGrade(ownedPlayer)} · SUPER \\d+%$`));
   });
 
+  it('keeps SELL rows pressable outside the transfer window and BUY rows blocked', () => {
+    // Week 10 is mid-season: registration is shut for signings, but a club may
+    // move a player off its own wage bill any week of the year.
+    const state = { ...fullCareer(4242), week: 10 };
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const market: CareerMarketState = {
+      ...state.market!,
+      nextMissionNumber: 2,
+      scoutReports: [exactReport(target)],
+    };
+    const visible = marketViewModel(careerMarketViewModelSource(state, market));
+
+    expect(visible.window.open).toBe(false);
+    const sells = visible.transfers.filter(
+      (listing) => listing.direction === 'SELL',
+    );
+    expect(sells.length).toBeGreaterThan(0);
+    expect(sells.some((listing) => listing.available)).toBe(true);
+    expect(
+      visible.transfers
+        .filter((listing) => listing.direction === 'BUY')
+        .every((listing) => !listing.available),
+    ).toBe(true);
+  });
+
   it('maps a scouted player from outside the active division into a buy listing', () => {
     const state = fullCareer(714);
     const division = state.m2!.pyramid.divisions.find(

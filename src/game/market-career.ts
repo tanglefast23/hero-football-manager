@@ -561,15 +561,13 @@ export function reportSurvivesUntil(
   return state.week + durationWeeks < expiryWeek;
 }
 
-/** Removes saved bids as soon as their exact registration window ends. */
+/** Removes saved bids once they are older than the club can still honour. */
 export function expireCareerTransferListings(
   state: Pick<GameState, 'season' | 'week'>,
   market: CareerMarketState,
 ): CareerMarketState {
   const listings = market.transferListings ?? [];
-  const active = listings.filter((listing) =>
-    listingBelongsToCurrentWindow(state, listing),
-  );
+  const active = listings.filter((listing) => listingIsCurrent(state, listing));
   if (active.length === listings.length) return market;
   return { ...market, transferListings: active };
 }
@@ -597,10 +595,11 @@ function talksBelongToCurrentWindow(
 ): boolean {
   const opened = /^transfer-s(\d+)-w(\d+)-/.exec(talks.negotiation.id);
   if (opened === null) return false;
-  return listingBelongsToCurrentWindow(state, {
-    listedSeason: Number(opened[1]),
-    listedWeek: Number(opened[2]),
-  });
+  if (state.season !== Number(opened[1])) return false;
+  const window = transferWindowNumber(state.week);
+  return (
+    window !== undefined && window === transferWindowNumber(Number(opened[2]))
+  );
 }
 
 function transferNegotiationId(state: GameState, playerId: string): string {
@@ -1308,8 +1307,6 @@ export function listCareerPlayer(
   division = 5,
 ): CareerMarketState {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week))
-    throw new Error('the transfer window is closed');
   const currentMarket = expireCareerTransferListings(state, market);
   const player = userCareerPlayer(state, playerId);
   if (player.contractSeasonsRemaining < 1) {
@@ -1385,15 +1382,13 @@ export function acceptCareerTransferBid(
   bidId: string,
 ): CareerMarketTransaction {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week))
-    throw new Error('the transfer window is closed');
   const listing = (market.transferListings ?? []).find((candidate) =>
     candidate.bids.some((bid) => bid.id === bidId),
   );
   const bid = listing?.bids.find((candidate) => candidate.id === bidId);
   if (listing === undefined || bid === undefined)
     throw new Error(`unknown transfer bid ${bidId}`);
-  if (!listingBelongsToCurrentWindow(state, listing)) {
+  if (!listingIsCurrent(state, listing)) {
     throw new Error('the transfer bid has expired');
   }
   const result = completeCareerPlayerSale(
@@ -1423,8 +1418,6 @@ export function sellCareerPlayer(
   division = 5,
 ): CareerMarketTransaction {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week))
-    throw new Error('the transfer window is closed');
   const player = state.players.find(
     (candidate) =>
       candidate.id === playerId && candidate.clubId === state.userClubId,
@@ -1581,16 +1574,21 @@ function completeCareerPlayerSale(
   };
 }
 
-function listingBelongsToCurrentWindow(
+/**
+ * Selling is open every week, so a saved bid can no longer expire with a
+ * registration window. It ages instead: the week it was made plus the two
+ * advances after it, and never across a season boundary. Rival clubs quoting
+ * week-2 money in week 25 is the failure this prevents.
+ */
+const TRANSFER_BID_WEEKS = 2;
+
+function listingIsCurrent(
   state: Pick<GameState, 'season' | 'week'>,
   listing: Pick<CareerTransferListing, 'listedSeason' | 'listedWeek'>,
 ): boolean {
   if (state.season !== listing.listedSeason) return false;
-  return (
-    transferWindowNumber(state.week) !== undefined &&
-    transferWindowNumber(state.week) ===
-      transferWindowNumber(listing.listedWeek)
-  );
+  const age = state.week - listing.listedWeek;
+  return age >= 0 && age <= TRANSFER_BID_WEEKS;
 }
 
 function transferWindowNumber(week: number): 1 | 2 | undefined {

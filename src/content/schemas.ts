@@ -271,6 +271,8 @@ export const AssistantGuideSequenceIdSchema = z.enum([
 export const AssistantGuideFocusSchema = z.enum([
   'assistant',
   'money',
+  /** The crowd chip, which only appears when Bert introduces it. */
+  'fans',
   'navigation',
   'desk',
   'training',

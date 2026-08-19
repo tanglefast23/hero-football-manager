@@ -157,6 +157,7 @@ import {
   PlayerSaleFarewellWalkOn,
   type PlayerSaleFarewellModel,
 } from './src/ui/PlayerSaleFarewellWalkOn';
+import { LayOffOffersModal } from './src/ui/LayOffOffersModal';
 import {
   PlayerSigningOverlay,
   type PlayerSigningConfirmation,
@@ -297,7 +298,10 @@ import {
 } from './src/application/awards-ceremony';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
-import { careerMarketViewModelSource } from './src/application/market-source-adapter';
+import {
+  careerMarketViewModelSource,
+  careerPlayerSalesUnlocked,
+} from './src/application/market-source-adapter';
 import { rivalHeroIntroViewModel } from './src/application/rival-hero-intro';
 import { midseasonTrainingViewModel } from './src/application/midseason-training';
 import type { QaRootAppProps } from './src/ui/qa/QaRootApp';
@@ -629,6 +633,8 @@ function GameApp() {
   );
   const [moneyGuideAnchor, setMoneyGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
+  const [fansGuideAnchor, setFansGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
   const [loanGuideAnchor, setLoanGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
   const [facilityAdjacencyGuideAnchor, setFacilityAdjacencyGuideAnchor] =
@@ -647,6 +653,8 @@ function GameApp() {
     useState<PlayerSigningConfirmation | null>(null);
   const [playerSaleFarewell, setPlayerSaleFarewell] =
     useState<PlayerSaleFarewellModel | null>(null);
+  /** The player whose lay-off offers are open, straight from the player file. */
+  const [layOffPlayerId, setLayOffPlayerId] = useState<string | null>(null);
   const [awakeningBeat, setAwakeningBeat] = useState<1 | 2 | 3>(1);
   const [selectedLeagueDivision, setSelectedLeagueDivision] = useState<
     DivisionLevel | undefined
@@ -2215,6 +2223,16 @@ function GameApp() {
     // read played out dimmed behind the modal and was over by the time they
     // tapped Continue. Every briefing waits for the report to be dismissed.
     !postMatchSummaryVisible;
+  /**
+   * The crowd chip appears with Bert's lesson and never hides again. Before the
+   * first supporter is won the number is a constant the manager cannot move,
+   * and it sat in the HUD from week 1 explaining nothing.
+   */
+  const fansChipVisible =
+    store.career !== null &&
+    (!careerTeaches ||
+      (guideOverlayVisible && fansLessonVisible) ||
+      hasAssistantGuideMilestone(store.career, 'first-fans-seen'));
   const bertBriefingVisible =
     guideOverlayVisible || store.inboxDutyReminder !== null;
   const scoutDealsGuideVisible =
@@ -2640,6 +2658,97 @@ function GameApp() {
     },
     [store.setActiveTab],
   );
+
+  const handleTransferAction = (
+    playerId: string,
+    direction: 'BUY' | 'SELL',
+    bidId?: string,
+  ): void => {
+    if (direction === 'BUY') {
+      const lessonOwed =
+        careerTeaches &&
+        store.career !== null &&
+        !hasAssistantGuideSequenceCompleted(
+          store.career,
+          'transfer-negotiation',
+        );
+      performManagementAction(
+        () => store.actOnTransfer(playerId, direction),
+        'card',
+        'select',
+      );
+      if (
+        lessonOwed &&
+        useM1Store.getState().error === null &&
+        useM1Store.getState().career?.market?.transferTalks !== undefined
+      ) {
+        openAssistantGuide('transfer-negotiation', 'market-transfers');
+      }
+      return;
+    }
+    const market = marketViewModel(
+      careerMarketViewModelSource(store.career!, undefined, t),
+      t,
+    );
+    const listing = market.transfers.find(
+      (candidate) =>
+        candidate.playerId === playerId && candidate.direction === 'SELL',
+    );
+    const bid = listing?.bids.find((candidate) => candidate.id === bidId);
+    const acceptingBid = bid !== undefined;
+    const careerBeforeSale = store.career;
+    const farewellPlayer: PlayerSaleFarewellModel | undefined =
+      acceptingBid && listing !== undefined && careerBeforeSale !== null
+        ? {
+            playerId: listing.playerId,
+            playerName: listing.playerName,
+            role: listing.role,
+            lookId: listing.lookId,
+            selectionKey: `${careerBeforeSale.careerSeed}:${careerBeforeSale.season}:${careerBeforeSale.week}:${listing.playerId}`,
+          }
+        : undefined;
+    requestConfirmation({
+      title: acceptingBid
+        ? t('confirm.transferAccept.title', {
+            club: bid?.buyerName ?? t('confirm.fallback.thisClub'),
+          })
+        : t('confirm.transferList.title', {
+            player: listing?.playerName ?? t('confirm.fallback.thisPlayer'),
+          }),
+      detail: acceptingBid
+        ? t('confirm.transferAccept.detail', {
+            fee:
+              bid === undefined
+                ? t('confirm.fallback.shownAmount')
+                : formatCurrency(t, bid.fee),
+            player: listing?.playerName ?? t('confirm.fallback.thePlayer'),
+          })
+        : t('confirm.transferList.detail'),
+      confirmLabel: acceptingBid
+        ? t('market.actionAcceptBid')
+        : t('confirm.transferList.confirm'),
+      tone: acceptingBid ? 'danger' : 'normal',
+      onConfirm: () => {
+        performManagementAction(
+          () => store.actOnTransfer(playerId, direction, bidId),
+          acceptingBid ? 'cash' : 'dispatch',
+          acceptingBid ? 'success' : 'commit',
+        );
+        const after = useM1Store.getState();
+        if (
+          farewellPlayer !== undefined &&
+          after.error === null &&
+          after.career?.players.some(
+            (player) =>
+              player.id === farewellPlayer.playerId &&
+              player.clubId === after.career?.userClubId,
+          ) !== true
+        ) {
+          setPlayerSaleFarewell(farewellPlayer);
+        }
+      },
+    });
+  };
 
   const browserDatabaseLock =
     bootError !== null &&
@@ -3351,10 +3460,14 @@ function GameApp() {
         guidanceNudgeToken={guidanceNudgeToken}
         guideFocus={
           careerTeaches &&
-          (activeGuideFocus === 'money' || activeGuideFocus === 'navigation')
+          (activeGuideFocus === 'money' ||
+            activeGuideFocus === 'fans' ||
+            activeGuideFocus === 'navigation')
             ? activeGuideFocus
             : undefined
         }
+        // The crowd chip arrives with the lesson that explains it, and stays.
+        showFans={fansChipVisible}
         // The helper sentence is the durable first-week flow. Only the
         // floating arrow retires after a general screen tap; losing the text
         // left a glowing control and a blocked Advance Week with no explanation.
@@ -3378,6 +3491,7 @@ function GameApp() {
           hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget
         }
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
+        onFansGuideAnchorChange={setFansGuideAnchor}
         onNavigationGuideAnchorChange={setNavigationGuideAnchor}
         onDismissGuidance={dismissVisibleTips}
         mustDoObjective={focusedInboxDutyObjective}
@@ -3401,6 +3515,24 @@ function GameApp() {
             }
             squadSort={preferences.squadSort}
             onChangeSquadSort={saveSquadSort}
+            onLayOffPlayer={
+              careerPlayerSalesUnlocked(store.career)
+                ? (playerId) => {
+                    const alreadyListed = (
+                      store.career?.market?.transferListings ?? []
+                    ).some((listing) => listing.playerId === playerId);
+                    if (!alreadyListed) {
+                      performManagementAction(
+                        () => store.actOnTransfer(playerId, 'SELL'),
+                        'card',
+                        'select',
+                      );
+                      if (useM1Store.getState().error !== null) return;
+                    }
+                    setLayOffPlayerId(playerId);
+                  }
+                : undefined
+            }
             viewModel={squadTrainingVm!}
             selectedPlayerId={store.selectedPlayerId}
             onSelectPlayer={(playerId) => {
@@ -3730,103 +3862,7 @@ function GameApp() {
             onBuyDetailedScoutReport={(playerId) =>
               store.buyDetailedScoutReport(playerId)
             }
-            onTransferAction={(playerId, direction, bidId) => {
-              if (direction === 'BUY') {
-                const lessonOwed =
-                  careerTeaches &&
-                  store.career !== null &&
-                  !hasAssistantGuideSequenceCompleted(
-                    store.career,
-                    'transfer-negotiation',
-                  );
-                performManagementAction(
-                  () => store.actOnTransfer(playerId, direction),
-                  'card',
-                  'select',
-                );
-                if (
-                  lessonOwed &&
-                  useM1Store.getState().error === null &&
-                  useM1Store.getState().career?.market?.transferTalks !==
-                    undefined
-                ) {
-                  openAssistantGuide(
-                    'transfer-negotiation',
-                    'market-transfers',
-                  );
-                }
-                return;
-              }
-              const market = marketViewModel(
-                careerMarketViewModelSource(store.career!, undefined, t),
-                t,
-              );
-              const listing = market.transfers.find(
-                (candidate) =>
-                  candidate.playerId === playerId &&
-                  candidate.direction === 'SELL',
-              );
-              const bid = listing?.bids.find(
-                (candidate) => candidate.id === bidId,
-              );
-              const acceptingBid = bid !== undefined;
-              const careerBeforeSale = store.career;
-              const farewellPlayer: PlayerSaleFarewellModel | undefined =
-                acceptingBid &&
-                listing !== undefined &&
-                careerBeforeSale !== null
-                  ? {
-                      playerId: listing.playerId,
-                      playerName: listing.playerName,
-                      role: listing.role,
-                      lookId: listing.lookId,
-                      selectionKey: `${careerBeforeSale.careerSeed}:${careerBeforeSale.season}:${careerBeforeSale.week}:${listing.playerId}`,
-                    }
-                  : undefined;
-              requestConfirmation({
-                title: acceptingBid
-                  ? t('confirm.transferAccept.title', {
-                      club: bid?.buyerName ?? t('confirm.fallback.thisClub'),
-                    })
-                  : t('confirm.transferList.title', {
-                      player:
-                        listing?.playerName ?? t('confirm.fallback.thisPlayer'),
-                    }),
-                detail: acceptingBid
-                  ? t('confirm.transferAccept.detail', {
-                      fee:
-                        bid === undefined
-                          ? t('confirm.fallback.shownAmount')
-                          : formatCurrency(t, bid.fee),
-                      player:
-                        listing?.playerName ?? t('confirm.fallback.thePlayer'),
-                    })
-                  : t('confirm.transferList.detail'),
-                confirmLabel: acceptingBid
-                  ? t('market.actionAcceptBid')
-                  : t('confirm.transferList.confirm'),
-                tone: acceptingBid ? 'danger' : 'normal',
-                onConfirm: () => {
-                  performManagementAction(
-                    () => store.actOnTransfer(playerId, direction, bidId),
-                    acceptingBid ? 'cash' : 'dispatch',
-                    acceptingBid ? 'success' : 'commit',
-                  );
-                  const after = useM1Store.getState();
-                  if (
-                    farewellPlayer !== undefined &&
-                    after.error === null &&
-                    after.career?.players.some(
-                      (player) =>
-                        player.id === farewellPlayer.playerId &&
-                        player.clubId === after.career?.userClubId,
-                    ) !== true
-                  ) {
-                    setPlayerSaleFarewell(farewellPlayer);
-                  }
-                },
-              });
-            }}
+            onTransferAction={handleTransferAction}
             onHireCoach={(coachId, role) => {
               if (
                 focusedInboxDutyId === 'head-coach-market' &&
@@ -4362,6 +4398,7 @@ function GameApp() {
                     : undefined
                 }
                 moneyAnchor={moneyGuideAnchor}
+                fansAnchor={fansGuideAnchor}
                 loanAnchor={loanGuideAnchor}
                 coachSpeechAnchor={coachSpeechGuideAnchor}
                 navigationAnchor={navigationGuideAnchor}
@@ -4422,7 +4459,13 @@ function GameApp() {
                 customMessage={{
                   title: t('bert.firstFans.title'),
                   body: [t('bert.firstFans.body1'), t('bert.firstFans.body2')],
+                  // Lights the chip he is introducing, and only that chip.
+                  focus: 'fans',
                 }}
+                fansAnchor={fansGuideAnchor}
+                // Without this the chip he is introducing stays under the
+                // scrim: the focus is what enables its measurement.
+                onFocusChange={setActiveGuideFocus}
                 navigationAnchor={navigationGuideAnchor}
                 reduceMotion={reduceMotion}
                 onDone={() => {
@@ -4598,6 +4641,34 @@ function GameApp() {
                 player={playerSigning}
                 reduceMotion={reduceMotion}
                 onClose={() => setPlayerSigning(null)}
+              />
+            ) : null}
+            {layOffPlayerId !== null ? (
+              <LayOffOffersModal
+                playerName={
+                  store.career?.players.find(
+                    (player) => player.id === layOffPlayerId,
+                  )?.name ?? ''
+                }
+                offers={(
+                  (store.career?.market?.transferListings ?? []).find(
+                    (listing) => listing.playerId === layOffPlayerId,
+                  )?.bids ?? []
+                ).map((bid) => ({
+                  id: bid.id,
+                  clubName:
+                    store.career?.clubs.find(
+                      (club) => club.id === bid.buyerClubId,
+                    )?.name ?? bid.buyerClubId,
+                  fee: bid.quote.fee,
+                }))}
+                reduceMotion={reduceMotion}
+                onCancel={() => setLayOffPlayerId(null)}
+                onAccept={(bidId) => {
+                  const playerId = layOffPlayerId;
+                  setLayOffPlayerId(null);
+                  handleTransferAction(playerId, 'SELL', bidId);
+                }}
               />
             ) : null}
             {playerSaleFarewell !== null ? (
