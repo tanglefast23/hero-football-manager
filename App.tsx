@@ -4834,9 +4834,13 @@ function LoadingScreen() {
           <View className="relative h-[72px] w-[120px] overflow-hidden border-4 border-paper bg-pitch-dark">
             <View className="absolute left-[56px] top-0 h-full w-1 bg-paper" />
             <View className="absolute left-[42px] top-[18px] h-7 w-7 rounded-full border-[3px] border-paper" />
+            {/* NativeWind ignores className on Animated wrappers, so the
+                mover is style-only and the styled ball is the View inside. */}
             <Animated.View
-              className="absolute left-3 top-[26px] h-4 w-4 items-center justify-center rounded-full border-2 border-ink bg-paper"
               style={{
+                position: 'absolute',
+                left: 10.5,
+                top: 26,
                 transform: [
                   {
                     translateX: reduceMotion
@@ -4849,7 +4853,9 @@ function LoadingScreen() {
                 ],
               }}
             >
-              <View className="h-1.5 w-1.5 bg-ink" />
+              <View className="h-4 w-4 items-center justify-center rounded-full border-2 border-ink bg-paper">
+                <View className="h-1.5 w-1.5 bg-ink" />
+              </View>
             </Animated.View>
           </View>
           <Text className="mt-5 font-pixel text-lg uppercase tracking-widest text-signal">

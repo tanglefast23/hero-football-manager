@@ -76,11 +76,22 @@ describe('m1.18 approved power contracts', () => {
         power.windupTicks,
       ]),
     );
-    expect(windups).toMatchObject({
+    // The sim's truth is the windup constants in powers.ts (default 15;
+    // Strength 5; Portal/Gravity/Decoy 1). Nothing at runtime reads the
+    // content field, so this full-catalog assert is the only thing keeping
+    // the authored numbers from drifting away from the simulator.
+    const SIM_EXCEPTIONS: Record<string, number> = {
+      SUPER_STRENGTH: 5,
       PORTAL_PASS: 1,
       DECOY_DOUBLE: 1,
       GRAVITY_WELL: 1,
-    });
+    };
+    expect(Object.keys(windups)).toHaveLength(17);
+    expect(windups).toEqual(
+      Object.fromEntries(
+        Object.keys(windups).map((id) => [id, SIM_EXCEPTIONS[id] ?? 15]),
+      ),
+    );
 
     for (const [power, slot] of [
       ['PORTAL_PASS', 5],

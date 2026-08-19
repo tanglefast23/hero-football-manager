@@ -134,6 +134,10 @@ export function MarketScreen({
 }: MarketScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
+  // The store re-validates every spend, so a double-tap costs nothing — but
+  // the second call earns a phantom error buzz and banner. Guard the three
+  // spend callbacks the way the negotiation sheet already guards its offers.
+  const guardTap = useTapGuard();
   const [section, setSection] = useState<MarketSectionId>(() =>
     lockedSection !== undefined && viewModel.sections.includes(lockedSection)
       ? lockedSection
@@ -383,7 +387,7 @@ export function MarketScreen({
   const youthDesk = viewModel.youth ? (
     <YouthDesk
       viewModel={viewModel}
-      onSignYouth={onSignYouth}
+      onSignYouth={(playerId) => guardTap(() => onSignYouth(playerId))}
       onDeclineYouth={onDeclineYouth}
       guideFocus={visibleGuideFocus}
       guidanceNudgeTarget={guidanceNudgeTarget}
@@ -394,7 +398,9 @@ export function MarketScreen({
   const scoutDesk = scoutSectionVisible ? (
     <ScoutingDesk
       viewModel={viewModel}
-      onStartScoutMission={onStartScoutMission}
+      onStartScoutMission={(missionId) =>
+        guardTap(() => onStartScoutMission(missionId))
+      }
       onOpenScoutReport={onOpenScoutReport}
       onDismissScoutReport={onDismissScoutReport}
       onBuyDetailedScoutReport={onBuyDetailedScoutReport}
@@ -412,7 +418,9 @@ export function MarketScreen({
   const coachDesk = coachSectionVisible ? (
     <CoachDesk
       viewModel={viewModel}
-      onHireCoach={onHireCoach}
+      onHireCoach={(coachId, role) =>
+        guardTap(() => onHireCoach(coachId, role))
+      }
       guidanceNudgeTarget={guidanceNudgeTarget}
       guidanceNudgeToken={guidanceNudgeToken}
       reduceMotion={reduceMotion}

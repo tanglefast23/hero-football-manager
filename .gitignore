@@ -52,3 +52,7 @@ yarn-error.*
 
 # Council-review scratch output — transient, never part of the source.
 .claude/review/
+
+# Synth-stage WAV intermediates (gen-music.mjs / gen-menu-music.mjs write them
+# beside the shipped .m4a encodes; only the .m4a is referenced by the app)
+assets/audio/music/*.wav

@@ -113,7 +113,7 @@ const DISPLAY_LEAVES: readonly RegExp[] = [
 const BODY_LEAVES: readonly RegExp[] = [
   /^confirm\.[^.]+\.detail[A-Za-z]*$/, // ConfirmationSheet.tsx:195  <Text className="mt-3 text-base leading-6">
   /^confirm\.facilityClose\.(netCash|shortfall)$/, // interpolated into detailStaffed
-  /^confirm\.sponsor\.(contract|chairmanFee|objective|chairmanBonus)$/, // joined into the same paragraph
+  /^confirm\.sponsor\.(contract|objective)$/, // joined into the same paragraph
   /^confirm\.hireCoach\.replaceNote$/, // joined into the same paragraph
   /^trainingDrill\.notEnoughTpDetail$/, // TrainingDrillModal.tsx:1295  <Text className="mt-2 text-center text-sm">
   /^market\.promiseNeedsHeroLicenseChoice$/, // App.tsx:4890  FeedbackNotice  <Text className="flex-1 text-sm font-bold text-ink">

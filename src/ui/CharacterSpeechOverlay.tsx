@@ -28,6 +28,7 @@ import {
   speechBubbleStyles,
 } from './speech-bubble';
 import { useReducedMotion } from './use-reduced-motion';
+import { useScreenReaderEnabled } from './use-screen-reader';
 
 /** How far in from the right edge a character comes to rest. */
 const PENETRATION = 1 / 5;
@@ -207,6 +208,7 @@ export function CharacterSpeechOverlay({
   const { width: viewportWidth, height: viewportHeight } =
     useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
+  const screenReaderEnabled = useScreenReaderEnabled();
   const initialPhase: Phase = reduce || instant ? 'speaking' : 'arriving';
   const [phase, setPhase] = useState<Phase>(initialPhase);
   // A ref makes two fast taps observe each other's phase change even when React
@@ -594,9 +596,14 @@ export function CharacterSpeechOverlay({
   const lineFullyRevealed = !typewriter || reduce ? true : lineComplete;
 
   // Auto-advance for a character who is remarking rather than briefing.
+  // VoiceOver reads slower than the character-count timers the callers pass,
+  // so a timed line waits for a tap unless the screen reader is known off —
+  // the same contract rivalHeroSpeechAutoExitMs applies, enforced here once
+  // for every caller.
   useEffect(() => {
     if (
       autoAdvanceMs === undefined ||
+      screenReaderEnabled !== false ||
       phase !== 'speaking' ||
       !speechReady ||
       !lineFullyRevealed
@@ -610,6 +617,7 @@ export function CharacterSpeechOverlay({
     lineFullyRevealed,
     lineIndex,
     phase,
+    screenReaderEnabled,
     speechReady,
   ]);
 

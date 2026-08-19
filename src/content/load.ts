@@ -21,6 +21,19 @@ export function parseLaunchContent(input: unknown): LaunchContent {
 }
 
 /**
+ * The schema only validates — no defaults, transforms or coercions (pinned by
+ * content-schema-validation-only.test.ts) — and CI runs the full parse over
+ * the identical bundled bytes. A production Hermes boot therefore skips the
+ * several-hundred-ms zod pass and trusts the shape CI already proved. Dev,
+ * Jest and Node (where `__DEV__` is undefined) keep validating.
+ */
+function validatedLaunchContent(input: unknown): LaunchContent {
+  return typeof __DEV__ !== 'undefined' && !__DEV__
+    ? (input as LaunchContent)
+    : parseLaunchContent(input);
+}
+
+/**
  * Parsed once: the zod pass over ~208KB of catalog JSON costs 40-80ms in Node
  * (several hundred ms on Hermes), and three call sites run before first paint.
  *
@@ -35,7 +48,7 @@ export function parseLaunchContent(input: unknown): LaunchContent {
 let cachedLaunchContent: LaunchContent | undefined;
 
 export function loadLaunchContent(): LaunchContent {
-  cachedLaunchContent ??= parseLaunchContent({
+  cachedLaunchContent ??= validatedLaunchContent({
     assistantGuide: assistantGuideJson,
     awardCeremonyLines: awardCeremonyLinesJson,
     fulltimeBlameLines: fulltimeBlameLinesJson,

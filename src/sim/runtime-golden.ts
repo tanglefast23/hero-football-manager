@@ -4,6 +4,12 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
+// m2.6 rebaseline: ENGINE_VERSION only. No play, RNG, score or event payload
+// change — the bump re-anchors the byte-identical invariant after two fixes
+// landed inside m2.5 (see the version history in match.ts). Both hashes move
+// solely because fingerprintOf() hashes the version string; parity-replay's
+// snapshot (which holds no version) is unchanged, which is the evidence that
+// nothing else moved.
 // m2.4 rebaseline: ENGINE_VERSION only. The engine gained the
 // MOTIVATIONAL_SPEECH coaching input, which no golden match issues — play, RNG
 // consumption, scores and event payloads are all byte-identical to m2.3. Both
@@ -23,7 +29,7 @@ import { ROVERS, UNITED } from './teams';
 // domains, career condition carryover, fixed-point PAC/STA movement), m1.29
 // (presser standoff ring; PAC-widened duel spacing), m1.25 (five named subs,
 // immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
-const EXPECTED_RUNTIME_GOLDEN = '039f1e16';
+const EXPECTED_RUNTIME_GOLDEN = '9ecf9513';
 
 // Seed 42 finishes 0-0, so neither this hash nor parity-replay's snapshot has
 // ever contained a GOAL payload — adding assistedById to that event moved
@@ -38,7 +44,7 @@ const EXPECTED_RUNTIME_GOLDEN = '039f1e16';
 // have rebaselined quietly while the both-kinds contract below went red. Seed
 // 25 restores the same profile 81 used to have. Re-scan for a replacement
 // rather than weakening the assertion if a future change costs it again.
-const EXPECTED_GOAL_GOLDEN = '1044ff86';
+const EXPECTED_GOAL_GOLDEN = 'c6111b7d';
 
 const GOAL_GOLDEN_SEED = 25;
 

@@ -166,6 +166,10 @@ describe('career market integration', () => {
     expect(started.state.cashTransactions?.at(-1)).toMatchObject({
       kind: 'scouting',
       label: 'Scouting mission · Europe',
+      labelKey: 'cashTransaction.scoutingMission',
+      // regionKey pairs with region so translatedParams can swap the English
+      // name out of the persisted ledger line in the other six locales.
+      labelParams: { region: 'Europe', regionKey: 'scoutRegion.europe.name' },
       amount: -2700,
       balanceAfter: started.state.clubs.find(
         (club) => club.id === initial.userClubId,

@@ -28,6 +28,15 @@ import type {
   TeamDef,
 } from './types';
 
+// m2.6 changes no behavior. It re-anchors the "same version ⇒ byte-identical"
+// invariant after two same-day fixes (power-turnover chain breaks, passer
+// identity enrolment) changed results inside m2.5 without a bump, so replays
+// recorded on early m2.5 diverge on late m2.5 while the version guard passes.
+// Rule going forward: any post-bump behavior change on main bumps again in the
+// same commit.
+// m2.5 adds the pass-combo chain: chain arithmetic with per-tick decay, a
+// movement speed bonus for the chaining team, and chain breaks on every
+// turnover (arrivals, tackles, saves, restarts, power turnovers).
 // m2.4 adds the MOTIVATIONAL_SPEECH coaching input (the head coach's half-time
 // speech: a flat temporary attribute lift for the controlled team). No existing
 // match changes — no new RNG draw, no altered tick — but a replay recorded here
@@ -58,7 +67,7 @@ import type {
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.5';
+export const ENGINE_VERSION = 'm2.6';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

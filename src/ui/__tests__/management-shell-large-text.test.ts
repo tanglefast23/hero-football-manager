@@ -44,4 +44,13 @@ describe('management shell at accessibility text sizes', () => {
     expect(shell.match(/maxFontSizeMultiplier=\{1\.2\}/g)).toHaveLength(3);
     expect(shell).toContain("'mt-1 text-[11px] uppercase text-ink'");
   });
+
+  test('match chrome clamps Dynamic Type in one place', () => {
+    // Unlike the shell, the match screen cannot let text grow: the pitch math
+    // reserves fixed chrome heights, so every Text on it routes through one
+    // clamped wrapper instead of per-site caps.
+    const match = source('src/render/MatchScreen.tsx');
+    expect(match).toContain('function Text(props: TextProps)');
+    expect(match).toContain('maxFontSizeMultiplier={1.3}');
+  });
 });
