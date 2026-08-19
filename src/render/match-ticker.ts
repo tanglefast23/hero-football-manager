@@ -19,6 +19,22 @@ export const TICKER_LANES = 4;
 export const TICKER_LANE_HEIGHT = 30;
 /** Gap between the top touchline and the first lane. */
 export const TICKER_TOP_INSET = 8;
+/**
+ * Extra drop, as a share of pitch height, so the band runs over the grass
+ * rather than along the top touchline. A share rather than points because the
+ * pitch frame is a different height on a phone, a tablet and the desktop rail.
+ */
+export const TICKER_DROP_FRACTION = 0.05;
+
+/** Where the band's first lane sits inside a pitch frame `pitchHeight` tall. */
+export function tickerBandTop(pitchHeight: number): number {
+  return TICKER_TOP_INSET + pitchHeight * TICKER_DROP_FRACTION;
+}
+
+/** Normal announcement type, in points. */
+export const BANNER_FONT_PX = 18;
+/** The goal line: twice the announcement, and two lanes tall to hold it. */
+export const BANNER_BIG_FONT_PX = BANNER_FONT_PX * 2;
 /** Outline thickness. Two pixels survives being read over the mow bands. */
 export const OUTLINE_PX = 2;
 /**
@@ -73,6 +89,17 @@ export const OUTLINE_OFFSETS_CHEAP: readonly TickerOffset[] =
 export interface TickerOccupant {
   readonly lane: number;
   readonly subject?: string;
+  /** 'big' is the doubled goal line, which covers two lanes. */
+  readonly size?: 'small' | 'big';
+}
+
+/**
+ * Lanes one line covers. The goal line is set at twice the normal size, so its
+ * box is taller than a lane; giving it two is what stops the power footnote
+ * that follows it from being printed through it.
+ */
+export function tickerLaneSpan(size: TickerOccupant['size']): number {
+  return size === 'big' ? 2 : 1;
 }
 
 /**
@@ -86,9 +113,11 @@ export interface TickerOccupant {
 export function allocateTickerLane(
   occupied: readonly number[],
   fallbackLane: number,
+  span = 1,
 ): number {
-  for (let lane = 0; lane < TICKER_LANES; lane += 1) {
-    if (!occupied.includes(lane)) return lane;
+  for (let lane = 0; lane + span <= TICKER_LANES; lane += 1) {
+    if (!occupied.some((taken) => taken >= lane && taken < lane + span))
+      return lane;
   }
   return fallbackLane;
 }
@@ -105,6 +134,7 @@ export function allocateTickerLane(
 export function tickerLane(
   live: readonly TickerOccupant[],
   subject: string | undefined,
+  size?: TickerOccupant['size'],
 ): number {
   const replaced =
     subject === undefined
@@ -112,8 +142,14 @@ export function tickerLane(
       : live.find((occupant) => occupant.subject === subject);
   if (replaced !== undefined) return replaced.lane;
   return allocateTickerLane(
-    live.map((occupant) => occupant.lane),
+    live.flatMap((occupant) =>
+      Array.from(
+        { length: tickerLaneSpan(occupant.size) },
+        (_unused, step) => occupant.lane + step,
+      ),
+    ),
     live[0]?.lane ?? 0,
+    tickerLaneSpan(size),
   );
 }
 
@@ -164,4 +200,32 @@ export function tickerTranslateX(progress: number, pitchWidth: number): number {
 /** Top edge of a lane inside the ticker band. */
 export function tickerLaneTop(lane: number): number {
   return lane * TICKER_LANE_HEIGHT;
+}
+
+/**
+ * How much longer a goal line lingers than any other line, per speed.
+ *
+ * The scorer's name is the one line a player actually reads, and at x3 a
+ * normal crossing is over in a second. Stretching it back out costs nothing —
+ * the lane is free again well before the next goal — and the stretch grows
+ * with speed because that is where the line was hardest to catch.
+ */
+const GOAL_TICKER_STRETCH: Record<MatchSpeed, number> = {
+  1: 1.15,
+  2: 1.3,
+  3: 1.6,
+};
+
+/**
+ * Goal-line lifetime in ticks, stretched for the speed it was scored at.
+ *
+ * Ticks, not milliseconds, because the same number has to do both jobs: it
+ * sets the crossing duration AND the tick the HUD drops the line on. Stretch
+ * only the duration and the line would be yanked off screen mid-crossing.
+ */
+export function goalTickerLifeTicks(
+  baseTicks: number,
+  speed: MatchSpeed,
+): number {
+  return Math.round(baseTicks * GOAL_TICKER_STRETCH[speed]);
 }

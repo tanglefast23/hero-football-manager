@@ -624,6 +624,41 @@ export function SeasonEndScreen({
                 </View>
               </View>
 
+              {/* Renew or release is a squad decision, and the card used to
+                  show a wage and nothing else. Same grid the story-event card
+                  uses, so a manager reads one layout in both places. */}
+              <View className="mt-3 flex-row flex-wrap gap-1.5 border-2 border-ink/20 bg-paper p-2">
+                <View className="min-w-[22%] flex-1 border border-ink/20 bg-white px-2 py-1">
+                  <PixelText className="text-sm uppercase text-ink/50">
+                    {t('col.squad.overall')}
+                  </PixelText>
+                  <Text className="mt-0.5 font-mono text-base text-ink">
+                    {contract.overall}
+                  </Text>
+                </View>
+                <View className="min-w-[22%] flex-1 border border-ink/20 bg-white px-2 py-1">
+                  <PixelText className="text-sm uppercase text-ink/50">
+                    {t('squadTraining.age')}
+                  </PixelText>
+                  <Text className="mt-0.5 font-mono text-base text-ink">
+                    {contract.age}
+                  </Text>
+                </View>
+                {contract.attributes.map((attribute) => (
+                  <View
+                    key={attribute.label}
+                    className="min-w-[22%] flex-1 border border-ink/20 bg-white px-2 py-1"
+                  >
+                    <PixelText className="text-sm uppercase text-ink/50">
+                      {attribute.label}
+                    </PixelText>
+                    <Text className="mt-0.5 font-mono text-base text-ink">
+                      {attribute.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
               {contract.isHeroWageCliff ? (
                 <View className="mt-3 border-2 border-gold-dark bg-gold/40 p-3">
                   <PixelText className="text-sm uppercase tracking-wide text-gold-dark">

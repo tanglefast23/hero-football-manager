@@ -133,6 +133,21 @@ describe('overlay dismissal', () => {
     expect(overlay).toContain('const animation = Animated.parallel([');
   });
 
+  it('lets a tap end the walk-off instead of doing nothing', () => {
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+    const leaving = overlay.slice(
+      overlay.indexOf("if (activePhase === 'leaving')"),
+    );
+
+    // The branch used to be a bare `return`, so a tap during the exit walk was
+    // swallowed and the manager waited out the whole stride.
+    expect(leaving).not.toMatch(/^if \(activePhase === 'leaving'\) return;/);
+    expect(leaving.slice(0, 400)).toContain('travel.setValue(offRight);');
+    expect(leaving.slice(0, 400)).toContain('onDone();');
+    // And the exit animation must not then call onDone a second time.
+    expect(overlay).toContain('if (finished && !doneRef.current)');
+  });
+
   it('lets a tap finish later typing lines during their delivery pop', () => {
     const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
     const entrySnapGuard = overlay.slice(

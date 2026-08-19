@@ -38,8 +38,9 @@ import {
 export interface MatchTickerLineProps {
   readonly text: string;
   readonly tone: 'gold' | 'red' | 'blue';
-  /** The footnote under a powered goal, set smaller than the goal line itself. */
-  readonly small?: boolean;
+  /** 'small' is the footnote under a powered goal; 'big' is the goal line,
+   * set at twice the normal size and given two lanes to stand in. */
+  readonly size?: 'small' | 'big';
   readonly lane: number;
   /** Travel distance. The line starts one pitch left of the frame and ends one right. */
   readonly pitchWidth: number;
@@ -62,7 +63,7 @@ export interface MatchTickerLineProps {
 export const MatchTickerLine = memo(function MatchTickerLine({
   text,
   tone,
-  small = false,
+  size,
   lane,
   pitchWidth,
   lifeTicks,
@@ -103,7 +104,8 @@ export const MatchTickerLine = memo(function MatchTickerLine({
     styles.banner,
     tone === 'red' ? styles.bannerThreat : null,
     tone === 'blue' ? styles.bannerAction : null,
-    small ? styles.bannerSmall : null,
+    size === 'small' ? styles.bannerSmall : null,
+    size === 'big' ? styles.bannerBig : null,
   ];
   const ring = reducedEffects ? OUTLINE_OFFSETS_CHEAP : OUTLINE_OFFSETS;
 

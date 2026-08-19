@@ -155,6 +155,7 @@ import type {
   RivalMockeryViewModel,
   PostMatchViewModel,
   SeasonEndViewModel,
+  StoryEventPlayerAttributeViewModel,
   StoryEventPlayerViewModel,
   StoryEventViewModel,
   StoryEventCoachViewModel,
@@ -1885,7 +1886,7 @@ function facilitiesShareEdge(
  */
 function storyPlayerAttributes(
   player: GameState['players'][number],
-): StoryEventPlayerViewModel['attributes'] {
+): readonly StoryEventPlayerAttributeViewModel[] {
   return (Object.keys(player.attrs) as Array<keyof typeof player.attrs>).map(
     (attribute) => ({
       label: attribute.toUpperCase(),
@@ -2538,6 +2539,12 @@ export function seasonEndViewModel(
                 : careerRenewalWeeklyAsk(state, expiredPlayer),
             isHeroWageCliff:
               expiredPlayer.power !== undefined && !expiredPlayer.onHeroWage,
+            // The card used to show a wage and nothing else, so the manager was
+            // asked to renew a man without being told what he is. Same grid the
+            // story-event card uses.
+            overall: overall(expiredPlayer.role, expiredPlayer.attrs),
+            age: expiredPlayer.age ?? 24,
+            attributes: storyPlayerAttributes(expiredPlayer),
             termOptions: contractTermOptions(renewalTermCap),
             // Clamped rather than trusted: the term is held in the store across
             // players, so a 3 dialled in for one man must not survive onto the

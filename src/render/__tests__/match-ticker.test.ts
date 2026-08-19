@@ -1,5 +1,10 @@
 import {
   allocateTickerLane,
+  BANNER_BIG_FONT_PX,
+  BANNER_FONT_PX,
+  goalTickerLifeTicks,
+  tickerBandTop,
+  TICKER_TOP_INSET,
   EXTRUDE_OFFSETS,
   EXTRUDE_STEPS,
   OUTLINE_OFFSETS,
@@ -152,5 +157,53 @@ describe('lane geometry', () => {
     expect(tickerLaneTop(1)).toBe(TICKER_LANE_HEIGHT);
     // 18pt type + a 2pt ring + a 3pt extrusion has to fit inside a lane.
     expect(TICKER_LANE_HEIGHT).toBeGreaterThanOrEqual(18 + OUTLINE_PX * 2 + 3);
+  });
+});
+
+describe('goalTickerLifeTicks', () => {
+  it('slows the scorer line more the faster the match runs', () => {
+    expect(goalTickerLifeTicks(30, 1)).toBe(35); // 30 * 1.15
+    expect(goalTickerLifeTicks(30, 2)).toBe(39); // 30 * 1.3
+    expect(goalTickerLifeTicks(30, 3)).toBe(48); // 30 * 1.6
+  });
+
+  it('leaves a goal crossing longer than a normal line at every speed', () => {
+    for (const speed of [1, 2, 3] as const) {
+      expect(
+        tickerDurationMs(goalTickerLifeTicks(30, speed), speed),
+      ).toBeGreaterThan(tickerDurationMs(30, speed));
+    }
+  });
+});
+
+describe('the doubled goal line', () => {
+  it('takes two lanes so its power footnote is not printed through it', () => {
+    // A goal on an empty ticker takes lanes 0 and 1; the footnote gets lane 2.
+    expect(tickerLane([], undefined, 'big')).toBe(0);
+    expect(tickerLane([{ lane: 0, size: 'big' }], undefined)).toBe(2);
+  });
+
+  it('will not start on the last lane, where its lower half would be clipped', () => {
+    const live = [{ lane: 0 }, { lane: 1 }];
+    expect(tickerLane(live, undefined)).toBe(2);
+    // Only lanes 2+3 are free, and a big line needs both.
+    expect(tickerLane(live, undefined, 'big')).toBe(2);
+    expect(tickerLane([...live, { lane: 2 }], undefined, 'big')).toBe(0);
+  });
+
+  it('is twice the announcement size, and fits two lanes', () => {
+    expect(BANNER_BIG_FONT_PX).toBe(BANNER_FONT_PX * 2);
+    // Silkscreen's box is 1.28em: 46pt of type has to sit in the two lanes
+    // tickerLaneSpan reserves for it.
+    expect(BANNER_BIG_FONT_PX * 1.28).toBeLessThanOrEqual(
+      TICKER_LANE_HEIGHT * 2,
+    );
+  });
+});
+
+describe('tickerBandTop', () => {
+  it('drops the band 5% of the pitch below the touchline inset', () => {
+    expect(tickerBandTop(600)).toBe(TICKER_TOP_INSET + 30);
+    expect(tickerBandTop(0)).toBe(TICKER_TOP_INSET);
   });
 });
