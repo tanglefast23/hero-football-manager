@@ -633,6 +633,8 @@ function GameApp() {
     useState<TutorialAnchorLayout | null>(null);
   const [facilityAdjacencyGuideAnchor, setFacilityAdjacencyGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
+  const [coachSpeechGuideAnchor, setCoachSpeechGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] =
     useState<TutorialAnchorLayout | null>(null);
   const [coachOverlay, setCoachOverlay] = useState<{
@@ -2545,6 +2547,16 @@ function GameApp() {
     setActiveGuideFocus(undefined);
   }, [assistantSequenceId]);
 
+  // The half-time speech lesson is about one button, so the briefing opens the
+  // board that button is on. Without this Bert explained the Train Coach button
+  // from whatever screen the week happened to start on, with nothing to point
+  // at and nothing lit under the scrim.
+  useEffect(() => {
+    if (assistantSequenceId !== 'coach-speech') return;
+    setClubOfficeTab('staff');
+    store.setActiveTab('club');
+  }, [assistantSequenceId, store.setActiveTab]);
+
   /**
    * The end of a whole briefing, not of a page.
    *
@@ -3687,6 +3699,7 @@ function GameApp() {
             onFacilityAdjacencyGuideAnchorChange={
               setFacilityAdjacencyGuideAnchor
             }
+            onCoachSpeechGuideAnchorChange={setCoachSpeechGuideAnchor}
             reduceMotion={reduceMotion}
             focusSponsorSummaryToken={sponsorSummaryFocusToken}
           />
@@ -4350,6 +4363,7 @@ function GameApp() {
                 }
                 moneyAnchor={moneyGuideAnchor}
                 loanAnchor={loanGuideAnchor}
+                coachSpeechAnchor={coachSpeechGuideAnchor}
                 navigationAnchor={navigationGuideAnchor}
                 subTabAnchor={leagueSubTabGuideAnchor}
                 reduceMotion={reduceMotion}

@@ -279,6 +279,8 @@ export const AssistantGuideFocusSchema = z.enum([
   'coach-hire',
   'coaching-office',
   'assistant-coach-hire',
+  /** The Train Coach button under the head coach's card. */
+  'coach-speech',
   'facility-grid',
   'facility-upgrade',
   'facility-adjacency',

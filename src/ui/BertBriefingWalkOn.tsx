@@ -62,6 +62,8 @@ export interface BertBriefingWalkOnProps {
   loanAnchor?: TutorialAnchorLayout | null;
   /** The discovered facility-pair card, left lit while Bert explains it. */
   facilityAdjacencyAnchor?: TutorialAnchorLayout | null;
+  /** The Train Coach button, left lit while Bert explains the speech. */
+  coachSpeechAnchor?: TutorialAnchorLayout | null;
   navigationAnchor?: TutorialAnchorLayout | null;
   /** The League sub-tab the beat is about, so the scrim lifts off it. */
   subTabAnchor?: TutorialAnchorLayout | null;
@@ -94,6 +96,7 @@ export function BertBriefingWalkOn({
   moneyAnchor,
   loanAnchor,
   facilityAdjacencyAnchor,
+  coachSpeechAnchor,
   navigationAnchor,
   subTabAnchor,
   reduceMotion = false,
@@ -159,14 +162,16 @@ export function BertBriefingWalkOn({
         ? loanAnchor
         : focus === 'facility-adjacency'
           ? facilityAdjacencyAnchor
-          : focus === 'navigation'
-            ? navigationAnchor
-            : // The board beats point at a sub-tab rather than a chip or the rail, and
-              // a tab talked about under the scrim reads as one he is not talking
-              // about.
-              focus === 'division-leaders' || focus === 'national-cup'
-              ? subTabAnchor
-              : null;
+          : focus === 'coach-speech'
+            ? coachSpeechAnchor
+            : focus === 'navigation'
+              ? navigationAnchor
+              : // The board beats point at a sub-tab rather than a chip or the rail, and
+                // a tab talked about under the scrim reads as one he is not talking
+                // about.
+                focus === 'division-leaders' || focus === 'national-cup'
+                ? subTabAnchor
+                : null;
   const moneyCuePosition =
     focus === 'money' && moneyAnchor
       ? tutorialCuePosition(moneyAnchor, viewportWidth)
