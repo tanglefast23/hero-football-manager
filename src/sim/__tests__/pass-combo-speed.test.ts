@@ -16,6 +16,7 @@ import {
   endChain,
   extendPassCombo,
 } from '../pass-combo';
+import { dismissDecoyClone, emitPowerTurnover, knockOut } from '../powers';
 import { performSubstitution } from '../substitutions';
 import { ROVERS, UNITED } from '../teams';
 import type { DecoyCloneState, MatchState } from '../types';
@@ -279,6 +280,50 @@ describe('pass combo chain membership', () => {
     }
     expect(ballKind(state)).toBe('held');
     expect(state.passCombo[0].count).toBe(0);
+  });
+
+  it('breaks when a power strips the ball, not just a tackle', () => {
+    // Three ball-stripping paths live in powers.ts, not engine.ts: a knocked
+    // out carrier, a Decoy clone popping mid-carry, and Web Trap rooting the
+    // carrier. Each is a turnover. Missing them let a team lose the ball at x4,
+    // win it back, and climb to x5 off an interrupted move.
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    expect(state.passCombo[0].count).toBe(2);
+    state.ball = { kind: 'held', by: 5 };
+    knockOut(state, 5, state.tick + 50, 'ko');
+    expect(state.ball.kind).toBe('loose');
+    expect(state.passCombo[0].count).toBe(0);
+    // The bonus still fades rather than snapping, as with any in-play break.
+    expect(comboBonusD(state.players[4])).toBe(200);
+  });
+
+  it('breaks when a carrying Decoy clone pops', () => {
+    const state = freshMatch();
+    spawnHomeClone(state);
+    extendPassCombo(state, 0, 6, 22);
+    extendPassCombo(state, 0, 22, 8);
+    expect(state.passCombo[0].count).toBe(2);
+    state.ball = { kind: 'held', by: 22 };
+    expect(dismissDecoyClone(state, 0, 'expired')).toBe(true);
+    expect(state.ball.kind).toBe('loose');
+    expect(state.passCombo[0].count).toBe(0);
+  });
+
+  it('breaks on a power turnover, at the shared funnel', () => {
+    // Shadow Mark and Web Trap both steal through emitPowerTurnover, which
+    // emits a won TACKLE. A won tackle ends the move whether a boot or a power
+    // did it, so the break lives in that one funnel rather than at each caller.
+    const state = freshMatch();
+    extendPassCombo(state, 0, 4, 7);
+    extendPassCombo(state, 0, 7, 5);
+    expect(state.passCombo[0].count).toBe(2);
+    emitPowerTurnover(state, 15, 5); // away hero steals from home
+    expect(state.passCombo[0].count).toBe(0);
+    expect(state.passCombo[1].count).toBe(0);
+    // In-play break, so the bonus keeps fading rather than snapping off.
+    expect(comboBonusD(state.players[4])).toBe(200);
   });
 
   it('gives a substitute no membership', () => {

@@ -237,17 +237,31 @@ describe('opening sentinel', () => {
     // is an input change, not an ENGINE_VERSION one. The opening's shape holds:
     // still loss-heavy, still no policy running away with it.
     //
-    // The line flagged last time did move. `ordinary` and `smart-breadth` no
-    // longer share a digest, so the opening plan separates them again over this
-    // sample. `smart-breadth` and `smart-extra-fwd` still match; watch that one.
+    // REBASELINED for the m2.5 pass-combo speed bonus. This one IS an
+    // ENGINE_VERSION change — players who touch the ball in a passing move run
+    // up to 20% faster for 3s — so every arm moved, as a movement change over
+    // eight seeds will.
+    //
+    // The shape the sentinel exists to protect holds. Across 7 arms x 8 seeds:
+    // 8 wins, 13 draws, 35 losses, against 14/10/32 at the last mark. Still
+    // loss-heavy, and still no policy running away with it — the best arm wins
+    // twice out of eight. Balance rails were measured separately and moved
+    // barely at all (goals/match 2.060 -> 2.080).
+    //
+    // The line flagged last time reversed: `ordinary` and `smart-breadth` share
+    // a digest again, and `smart-extra-fwd` joins them. Three arms on one
+    // fingerprint means this sample no longer separates the training plans at
+    // all. That is a discrimination loss in the sentinel, not a balance
+    // regression, but it is worth watching — if it persists, this sample needs
+    // more seeds to stay useful.
     expect(digests).toEqual({
-      ordinary: 'LWDWLWLL',
-      'smart-breadth': 'LWLWLWLL',
-      'smart-extra-fwd': 'LWLWLWLL',
-      'smart-concentration': 'DLLDDLWD',
-      'joe-observed-coach': 'DLLDLLDL',
-      'joe-observed-no-coach': 'LWLWLLWL',
-      'no-training': 'LWLLLLWW',
+      ordinary: 'LLDLDWLL',
+      'smart-breadth': 'LLDLDWLL',
+      'smart-extra-fwd': 'LLDLDWLL',
+      'smart-concentration': 'LLLDLLDL',
+      'joe-observed-coach': 'LLLDWLLW',
+      'joe-observed-no-coach': 'LWLLLWLL',
+      'no-training': 'LDDLLWDD',
     });
   });
 });

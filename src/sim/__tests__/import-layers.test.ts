@@ -31,7 +31,14 @@ const ALLOWED: Record<string, string[]> = {
     'tactics',
     'types',
   ],
-  'powers.ts': ['types', 'geometry', 'events', 'entities', 'contest'],
+  'powers.ts': [
+    'types',
+    'geometry',
+    'events',
+    'entities',
+    'contest',
+    'pass-combo',
+  ],
   'engine.ts': [
     'movement-table',
     'pass-combo',
