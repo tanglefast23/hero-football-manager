@@ -188,8 +188,7 @@ describe('story onboarding state machine', () => {
       ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'],
       ['glowing-caterpillar'],
       {
-        chancePercent: 10,
-        secondInSeasonChancePercent: 2,
+        weeklyChanceStepPercent: 5,
         maxPerSeason: 1,
         minimumMatchesBetween: 3,
       },
@@ -343,8 +342,7 @@ describe('story onboarding state machine', () => {
         ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'],
         ['glowing-caterpillar'],
         {
-          chancePercent: 10,
-          secondInSeasonChancePercent: 2,
+          weeklyChanceStepPercent: 5,
           maxPerSeason: 1,
           minimumMatchesBetween: 3,
         },

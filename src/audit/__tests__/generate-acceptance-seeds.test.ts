@@ -111,8 +111,7 @@ function buildScenarios(): Scenario[] {
     content.powers.powers.map((power) => power.id),
     content.onboarding.triggers.map((trigger) => trigger.id),
     {
-      chancePercent: 100,
-      secondInSeasonChancePercent: 100,
+      weeklyChanceStepPercent: 100,
       maxPerSeason: 99,
       minimumMatchesBetween: 0,
     },

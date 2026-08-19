@@ -231,9 +231,8 @@ const awakeningTriggerIds = launchContent.onboarding.triggers.map(
   (trigger) => trigger.id,
 );
 const awakeningTuning = {
-  chancePercent: launchContent.powers.awakening.postMatchChancePercent,
-  secondInSeasonChancePercent:
-    launchContent.powers.awakening.secondInSeasonChancePercent,
+  weeklyChanceStepPercent:
+    launchContent.powers.awakening.weeklyChanceStepPercent,
   maxPerSeason: launchContent.powers.awakening.maxPerSeason,
   minimumMatchesBetween: launchContent.powers.awakening.minimumMatchesBetween,
 };

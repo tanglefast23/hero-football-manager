@@ -598,8 +598,7 @@ describe('validated M1 launch content', () => {
       guaranteeAfterDryWeeks: 6,
     });
     expect(content.powers.awakening).toEqual({
-      postMatchChancePercent: 10,
-      secondInSeasonChancePercent: 2,
+      weeklyChanceStepPercent: 5,
       maxPerSeason: 1,
       minimumMatchesBetween: 3,
     });
