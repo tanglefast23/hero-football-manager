@@ -21,6 +21,7 @@ const ALLOWED: Record<string, string[]> = {
   'movement-table.ts': ['formation-tables.json', 'geometry'],
   'events.ts': ['types'],
   'entities.ts': ['types'],
+  'pass-combo.ts': ['entities', 'types'],
   'substitutions.ts': ['events', 'types'],
   'auto-coaching.ts': [
     'contest',
@@ -43,6 +44,7 @@ const ALLOWED: Record<string, string[]> = {
     'attributes',
   ],
   'match.ts': [
+    'pass-combo',
     'rng',
     'geometry',
     'events',

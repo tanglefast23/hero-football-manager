@@ -1,3 +1,4 @@
+import { decayPassCombo } from './pass-combo';
 import { mulberry32 } from './rng';
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
@@ -537,6 +538,11 @@ export function tick(state: MatchState): void {
   applyAutomaticCoaching(state, cancelPowerReferencesForSubstitution);
   powerTick(state, dueInputs);
   movementTick(state);
+  // After movement, before the arrival that may snap a new tier. A snap in
+  // possessionTick sets 30 ticks; movement on the NEXT tick then runs at the
+  // full tier before this decrement. Decaying first would mean the full tier
+  // never moved anybody.
+  decayPassCombo(state);
   possessionTick(state);
   tackleTick(state);
   shotFlightTick(state);
