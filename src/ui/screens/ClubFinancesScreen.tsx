@@ -199,6 +199,10 @@ export interface ClubFinancesScreenProps {
   onFacilityAdjacencyGuideAnchorChange?: (
     anchor: TutorialAnchorLayout | null,
   ) => void;
+  /** The Train Coach button, lit while Bert explains the half-time speech. */
+  onCoachSpeechGuideAnchorChange?: (
+    anchor: TutorialAnchorLayout | null,
+  ) => void;
   reduceMotion?: boolean;
   /** Bumped after the signing modal is gone so the replacement desk receives focus. */
   focusSponsorSummaryToken?: number;
@@ -228,6 +232,7 @@ export function ClubFinancesScreen({
   guideFocus,
   onLoanGuideAnchorChange,
   onFacilityAdjacencyGuideAnchorChange,
+  onCoachSpeechGuideAnchorChange,
   reduceMotion = false,
   focusSponsorSummaryToken,
 }: ClubFinancesScreenProps) {
@@ -254,6 +259,13 @@ export function ClubFinancesScreen({
   } = useGuideAnchor(
     guideFocus === 'facility-adjacency',
     onFacilityAdjacencyGuideAnchorChange,
+  );
+  const {
+    anchorRef: coachSpeechGuideAnchorRef,
+    scheduleMeasurement: scheduleCoachSpeechGuideAnchorMeasurement,
+  } = useGuideAnchor(
+    guideFocus === 'coach-speech',
+    onCoachSpeechGuideAnchorChange,
   );
   const facilityGuideScrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrolledPhaseRef = useRef<GuidedFirstFacilityPhase | null>(
@@ -864,6 +876,9 @@ export function ClubFinancesScreen({
                 }
                 onDismissCoach={onDismissCoach}
                 onTrainCoachSpeech={onTrainCoachSpeech}
+                trainCoachRef={
+                  coach.role === 'HEAD' ? coachSpeechGuideAnchorRef : undefined
+                }
               />
             ),
           })),
@@ -1025,6 +1040,9 @@ export function ClubFinancesScreen({
           }
           if (guideFocus === 'facility-adjacency') {
             scheduleFacilityAdjacencyGuideAnchorMeasurement();
+          }
+          if (guideFocus === 'coach-speech') {
+            scheduleCoachSpeechGuideAnchorMeasurement();
           }
         }}
         scrollEventThrottle={16}
@@ -2179,6 +2197,8 @@ interface CoachCardSectionProps {
   coachSpeech?: CoachSpeechViewModel;
   onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
   onTrainCoachSpeech?: () => void;
+  /** Measured by the briefing so its scrim cuts a hole over this button. */
+  trainCoachRef?: RefObject<View | null>;
 }
 
 /** One coach, one section: head and assistant stand side by side on a wide
@@ -2188,6 +2208,7 @@ function CoachCardSection({
   coachSpeech,
   onDismissCoach,
   onTrainCoachSpeech,
+  trainCoachRef,
 }: CoachCardSectionProps) {
   const t = useCopy();
   return (
@@ -2249,7 +2270,7 @@ function CoachCardSection({
         })}
       </Text>
       {coachSpeech === undefined || onTrainCoachSpeech === undefined ? null : (
-        <View className="mt-3">
+        <View ref={trainCoachRef} collapsable={false} className="mt-3">
           {/* The running tally sits ABOVE the button, so the stock is visible
               whether or not this week's purchase is available. Absent at zero:
               an empty shelf needs no label. */}

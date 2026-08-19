@@ -74,6 +74,12 @@ export interface ClubAlertViewModel {
   isHero?: boolean;
   /** A pending career event which interrupts the week until it is answered. */
   isStory?: boolean;
+  /**
+   * A notice with nothing to open: it resolves itself later (a retirement the
+   * season review settles, a farewell already past). Drawn grey and inert
+   * rather than as a live row that answers a tap with "come back later".
+   */
+  readOnly?: boolean;
 }
 
 /**

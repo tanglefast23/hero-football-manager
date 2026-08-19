@@ -112,18 +112,18 @@
           "kicker": "The staff room",
           "title": "Train the gaffer",
           "body": [
-            "Boss, your head coach can take a session himself. Put the week's training points his way and he'll work on his team talk instead."
+            "You can spend TP to train the coach now too!"
           ],
-          "focus": "assistant",
+          "focus": "coach-speech",
           "buttonLabel": "Go on..."
         },
         {
           "kicker": "One in the bank",
           "title": "A word at half time",
           "body": [
-            "Spend the lot and he'll have one speech saved up. Give him the nod at half time and the lads come out for the second half flying."
+            "He'll give amazing half time speeches. Just like in the movies!"
           ],
-          "focus": "assistant",
+          "focus": "coach-speech",
           "buttonLabel": "He'll earn it."
         }
       ]

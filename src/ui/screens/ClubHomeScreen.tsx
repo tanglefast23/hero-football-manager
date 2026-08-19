@@ -107,6 +107,8 @@ function MatchWeekMarquee({
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
 function alertPalette(alert: ClubAlertViewModel): string {
+  // A notice that resolves itself later reads as the calendar notes below it.
+  if (alert.readOnly) return 'border-grey-dark bg-paper-dark';
   if (alert.mustDoDutyId !== undefined) return 'border-blue-dark bg-blue-light';
   if (alert.tone === 'urgent') return 'border-red-dark bg-red-light';
   if (alert.isStory) return 'border-story-dark bg-story-light';
@@ -175,6 +177,11 @@ export function ClubHomeScreen({
   const visibleNotes = focusGuidedAlert
     ? []
     : viewModel.notes.filter((note) => showManagerTips || note.kind !== 'tip');
+  // Read-only notices sit in the inbox but ask for nothing, so the "open" chip
+  // never counts them — otherwise the desk claims a job that has no tap.
+  const openAlertCount = viewModel.alerts.filter(
+    (alert) => !alert.readOnly,
+  ).length;
 
   const sections: FlowSection[] = [
     {
@@ -262,9 +269,9 @@ export function ClubHomeScreen({
             right={
               <StatusChip
                 label={t('clubHome.openCount', {
-                  count: viewModel.alerts.length,
+                  count: openAlertCount,
                 })}
-                tone={viewModel.alerts.length ? 'danger' : 'normal'}
+                tone={openAlertCount ? 'danger' : 'normal'}
               />
             }
           />
@@ -288,7 +295,7 @@ export function ClubHomeScreen({
               return (
                 <Pressable
                   key={alert.id}
-                  accessibilityRole="button"
+                  accessibilityRole={alert.readOnly ? 'summary' : 'button'}
                   accessibilityLabel={
                     alert.mustDoDutyId === undefined
                       ? `${alert.title}. ${alert.detail}`
@@ -297,6 +304,7 @@ export function ClubHomeScreen({
                           detail: alert.detail,
                         })
                   }
+                  disabled={alert.readOnly === true}
                   onPress={() => onOpenAlert(alert.id)}
                   className={`relative min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert)}`}
                   // Kept in the existing function form rather than split into an
@@ -347,7 +355,9 @@ export function ClubHomeScreen({
                       {alert.detail}
                     </Text>
                   </View>
-                  <Text className="font-pixel text-xl text-ink">›</Text>
+                  {alert.readOnly ? null : (
+                    <Text className="font-pixel text-xl text-ink">›</Text>
+                  )}
                 </Pressable>
               );
             })}
