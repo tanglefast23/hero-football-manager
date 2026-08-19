@@ -3020,6 +3020,7 @@ export function homeProductAlerts(
                     season: state.season - 1,
                   }),
             tone: 'info' as const,
+            readOnly: true as const,
             ...(justRetired.some((player) => player.power !== undefined)
               ? { isHero: true }
               : {}),
@@ -3061,6 +3062,7 @@ export function homeProductAlerts(
                     ),
                   }),
             tone: 'info' as const,
+            readOnly: true as const,
             ...(finalWeeks.some((player) => player.power !== undefined)
               ? { isHero: true }
               : {}),
@@ -3117,6 +3119,7 @@ export function homeProductAlerts(
           age: player.age ?? 24,
         }),
         tone: 'info' as const,
+        readOnly: true as const,
       })),
     ...injured.map((player) => ({
       id: `injury-${player.id}`,
