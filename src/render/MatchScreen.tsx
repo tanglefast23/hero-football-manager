@@ -140,6 +140,7 @@ import {
   passComboAfter,
   type PassComboChain,
 } from './pass-combo';
+import { TacklePop, TACKLE_POP_MS, type TacklePopSubject } from './TacklePop';
 import {
   appendNewestFour,
   hasPowerJuiceExtras,
@@ -789,6 +790,11 @@ export function MatchScreen({
     null,
   );
   const passComboLife = useSharedValue(PASS_COMBO_POP_MS);
+  // The name-over-"Tackle!" card under whoever just won the ball. Same shape as
+  // the pass counter above: React state for the words, a parked shared value
+  // for the animation, so an idle mount draws nothing.
+  const [tacklePop, setTacklePop] = useState<TacklePopSubject | null>(null);
+  const tacklePopLife = useSharedValue(TACKLE_POP_MS);
   // Which number popped most recently. Both can be alive at once — a pass
   // lands, then its receiver shoots inside the counter's 620ms — and the newer
   // one has to win, so the order is recency and not a fixed nesting.
@@ -2106,6 +2112,27 @@ export function MatchScreen({
             };
           }
         }
+        // Every won challenge, standing and slide alike — about 28 a match
+        // (~23 standing, ~5 slide). That rate is only affordable because the
+        // card lives 620ms on the grass where it happened: the crossing lines
+        // up top are a queue and would bury themselves at a fifth of it.
+        if (e.kind === 'TACKLE' && e.won) {
+          const tackler = playerAt(s, e.by);
+          const position = eventAfter.players[e.by];
+          if (tackler !== undefined && position !== undefined) {
+            setTacklePop({
+              name: tackler.def.name,
+              word: t('matchScreen.tacklePop'),
+              x: position.x,
+              y: position.y,
+            });
+            tacklePopLife.value = 0;
+            tacklePopLife.value = withTiming(TACKLE_POP_MS, {
+              duration: TACKLE_POP_MS,
+              easing: ReanimatedEasing.linear,
+            });
+          }
+        }
         if (e.kind === 'TACKLE' && e.contact) {
           const challenger = eventAfter.players[e.by];
           const target = eventAfter.players[e.on];
@@ -3060,7 +3087,20 @@ export function MatchScreen({
         reduceMotion={reduceMotion}
       />
     );
-    return newestPop === 'shot' ? [combo, shot] : [shot, combo];
+    // The tackle card is not in the recency swap: it hangs BELOW the boots
+    // while both numbers float above the head, so the two can never overlap.
+    const tackle = (
+      <TacklePop
+        key="tackle"
+        subject={tacklePop}
+        life={tacklePopLife}
+        scale={scale}
+        playerDrawScale={playerSpriteScale.drawScale}
+        devicePixelRatio={devicePixelRatio}
+        reduceMotion={reduceMotion}
+      />
+    );
+    return newestPop === 'shot' ? [combo, shot, tackle] : [shot, combo, tackle];
   }, [
     devicePixelRatio,
     newestPop,
@@ -3072,6 +3112,8 @@ export function MatchScreen({
     shotPopWord,
     shotPowerPop,
     shotPowerPopLife,
+    tacklePop,
+    tacklePopLife,
   ]);
 
   // Seconds-until-back numbers over stricken players. Measured over 10 seeded

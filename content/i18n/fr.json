@@ -4055,6 +4055,7 @@
     "matchScreen.speechConfirm": "La faire",
     "matchScreen.speechCancel": "La garder",
     "matchScreen.bannerMotivationalSpeech": "CAUSERIE",
+    "matchScreen.tacklePop": "TACLE !",
     "bert.guide.coach-speech.page1.body1": "Patron, ton entraîneur peut aussi travailler sur lui-même. Donne-lui les points d'entraînement de la semaine et il préparera sa causerie.",
     "bert.guide.coach-speech.page2.body1": "Dépense le tout et il gardera une causerie. Fais-lui signe à la mi-temps et les gars repartiront des ailes aux pieds.",
     "coachSpeech.bankedTally": "EN RÉSERVE · {count}",

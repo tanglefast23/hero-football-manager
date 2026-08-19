@@ -2854,6 +2854,7 @@
     "matchScreen.speechConfirm": "Give it",
     "matchScreen.speechCancel": "Save it",
     "matchScreen.bannerMotivationalSpeech": "TEAM TALK",
+    "matchScreen.tacklePop": "TACKLE!",
     "coachSpeech.bankedTally": "BANKED · {count}",
     "coachSpeech.blocked.BANK_FULL": "Your coach cannot hold any more"
   }

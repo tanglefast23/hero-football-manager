@@ -187,3 +187,33 @@ export function nameplateBox(glyph: PixelGlyph, pixel: number): NameplateBox {
 export function nameGlyph(name: string): PixelGlyph {
   return pixelGlyph(lastName(name).slice(0, MAX_NAME_CHARACTERS));
 }
+
+/** Blank row between stacked lines, in glyph cells. */
+export const GLYPH_ROW_GAP = 1;
+
+/**
+ * Several lines of text as one block, each line centred on the widest one.
+ *
+ * The centring offset is rounded to a whole cell on purpose: a half-cell offset
+ * would put one line's pixels off the grid the rest of the plate sits on, which
+ * at a 2-source-pixel cell is the difference between crisp and smeared.
+ *
+ * Empty lines are dropped rather than reserving a blank row, so a name with
+ * nothing drawable in it leaves a one-line plate instead of a lopsided box.
+ */
+export function stackedGlyph(lines: readonly string[]): PixelGlyph {
+  const rows = lines
+    .map((line) => pixelGlyph(line))
+    .filter((row) => row.pixels.length > 0);
+  if (rows.length === 0) return EMPTY_GLYPH;
+  const width = Math.max(...rows.map((row) => row.width));
+  const pixels: { x: number; y: number }[] = [];
+  let top = 0;
+  for (const row of rows) {
+    const left = Math.round((width - row.width) / 2);
+    for (const cell of row.pixels)
+      pixels.push({ x: cell.x + left, y: cell.y + top });
+    top += row.height + GLYPH_ROW_GAP;
+  }
+  return { pixels, width, height: top - GLYPH_ROW_GAP };
+}

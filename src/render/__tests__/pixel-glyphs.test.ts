@@ -9,6 +9,7 @@ import {
   nameGlyph,
   nameplateBox,
   pixelGlyph,
+  stackedGlyph,
 } from '../pixel-glyphs';
 
 function render(text: string): string[] {
@@ -129,5 +130,45 @@ describe('nameplateBox at a real phone scale', () => {
   it('keeps a ten-letter name inside the pitch', () => {
     const box = nameplateBox(nameGlyph('Wijnaldum'), pixel);
     expect(box.right - box.left).toBeLessThan(layout.pitchWidth);
+  });
+});
+
+describe('stackedGlyph', () => {
+  function draw(glyph: ReturnType<typeof stackedGlyph>): string[] {
+    const rows = Array.from({ length: glyph.height }, () =>
+      new Array<string>(glyph.width).fill('.'),
+    );
+    for (const cell of glyph.pixels) rows[cell.y][cell.x] = '#';
+    return rows.map((row) => row.join(''));
+  }
+
+  it('centres the narrow line under the wide one', () => {
+    const glyph = stackedGlyph(['I', 'III']);
+    expect(glyph.width).toBe(pixelGlyph('III').width);
+    // The single I is 3 cells wide inside an 11-cell block: 4 blank each side.
+    expect(draw(glyph)[0]).toBe('....###....');
+    expect(draw(glyph)[4]).toBe('....###....');
+  });
+
+  it('leaves one blank row between the lines', () => {
+    const glyph = stackedGlyph(['A', 'B']);
+    expect(glyph.height).toBe(GLYPH_HEIGHT * 2 + 1);
+    expect(draw(glyph)[GLYPH_HEIGHT]).toBe('...');
+  });
+
+  it('drops a line with nothing drawable instead of leaving a gap', () => {
+    expect(stackedGlyph(['€€', 'A'])).toEqual(pixelGlyph('A'));
+    expect(stackedGlyph(['€€', ''])).toEqual({
+      pixels: [],
+      width: 0,
+      height: 0,
+    });
+  });
+
+  it('draws the exclamation the tackle card needs', () => {
+    expect(pixelGlyph('!').pixels.length).toBeGreaterThan(0);
+    expect(stackedGlyph(['ROSSI', 'TACKLE!']).width).toBe(
+      pixelGlyph('TACKLE!').width,
+    );
   });
 });

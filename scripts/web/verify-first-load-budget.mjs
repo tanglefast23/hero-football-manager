@@ -417,6 +417,38 @@ const DIST = path.resolve('dist');
 // (831_622 -> 831_664). Both numbers are CI's own, not local + offset. Per
 // the convention here, if a later CI run reports lower, ratchet down to that
 // figure.
+// 2026-08-18, the tackle card. A two-line plate — the tackler's last name over
+// the word "Tackle!" — pops under the boots on every won challenge. One new
+// component (`TacklePop`), one new function in the pitch alphabet
+// (`stackedGlyph`), and the wiring in `MatchScreen` that fires it.
+//
+// CI measured +533 raw and +158 gzip over the 3_410_095 / 831_475 baseline.
+// The first attribution written here was WRONG, and the correction is worth
+// more than the number: it said the card costs first-load bytes "because
+// MatchScreen is already in the startup graph". MatchScreen is NOT in the
+// startup graph, and has not been since 0f3057f7 (PR #173, 2026-08-17) added
+// `LazyMatchScreen.web.tsx`. That claim was true when an earlier entry above
+// wrote it, and was copied forward after it stopped being true.
+//
+// Checked against the built bundle rather than reasoned about. Probes unique
+// to each module, counted in `index-*.js` against the lazy
+// `SkiaSurfaceImplementations-*.js`:
+//
+//   'impact-core'      (MatchScreen only)    index 0, skia 1
+//   '#ffaeae'          (TacklePop only)      index 0, skia 1
+//   '001001001101111'  (pixel-glyphs only)   index 0, skia 1
+//   'matchScreen.tacklePop'                  index 1, skia 1
+//
+// So none of this branch's COMPONENT code reaches the first load. What reaches
+// it is the English catalog key and its value, about 40 bytes; the six other
+// locales ship as their own chunks. The rest of the raw difference is baseline
+// drift between runs, and is recorded as unattributed rather than assigned to
+// the card to make the number add up.
+//
+// For whoever writes the next entry: grep the built `index-*.js` for a string
+// unique to your change before naming a cause. A literal that appears only in
+// your file settles in one command what an import chain read by eye keeps
+// getting wrong.
 //
 // 2026-08-18, the formation role labels. DEF/MID/FWD plates under the
 // controlled team's outfield after a formation change. This branch earlier
@@ -425,8 +457,36 @@ const DIST = path.resolve('dist');
 // none of the feature reaches the first load. The nine gzip bytes were
 // content-hash compression noise, not feature code. Main's later marks
 // already cover them. No new raise.
-const RAW_BUDGET = 3_410_808;
-const GZIP_BUDGET = 831_664;
+// 2026-08-18, headroom. Owner's call, and a deliberate break with the ratchet
+// convention every entry above follows: the budget is set well clear of the
+// measurement instead of onto it. Four branches in two days each stopped on
+// this gate for a few hundred bytes they had no way to measure locally, and
+// the toll was not the bytes — it was a red PR per feature and a budget commit
+// per feature to clear it.
+//
+// Say plainly what it costs. At 3_410_628 raw the gate fired on 0.016%
+// growth, which is what caught the drift the entry above records. At the
+// figures below it will not fire until first load grows by about 190 KB raw or
+// 48 KB gzip. That is still far below the accidents this gate exists to catch
+// — the export's own chunk list shows the shapes, `SkiaSurfaceImplementations`
+// at 1.9 MB, `sprites` at 1.6 MB, `portraits` at 1.1 MB — so a lazy chunk
+// dragged into the startup graph still trips it, hard. What no longer trips it
+// is a feature spending a few KB, and the record of that spend now depends on
+// whoever writes the entry rather than on the gate refusing to go green.
+//
+// The `qaBodyMarkers` and `skiaBodyMarkers` checks below are untouched and are
+// the sharper half of this script anyway: they fail on WHAT reached the first
+// load, not how much, and no amount of headroom weakens them.
+//
+// Merge note, after merging main twice more. #186 (formation role labels) and
+// #187 ratcheted onto 3_410_808 / 831_664, and #188 then took ~16_047 raw /
+// ~4_714 gzip back OUT by keeping `headless.ts` and `copy-budget.ts` from
+// riding their barrels into the startup graph. Every one of those figures
+// stays in the ledger above, because the ledger is the record of what was
+// measured. The headroom constants below supersede all of them; #188's cut
+// only widens the gap.
+const RAW_BUDGET = 3_600_000;
+const GZIP_BUDGET = 880_000;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
