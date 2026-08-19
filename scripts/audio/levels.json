@@ -421,6 +421,16 @@
       "afterTruePeak": -7.2,
       "bytes": 25020
     },
+    "assets/audio/sfx/goal-confetti.m4a": {
+      "class": "sfx",
+      "before": -9.7,
+      "beforeTruePeak": 2,
+      "gainDb": -6.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -4.3,
+      "bytes": 28856
+    },
     "assets/audio/sfx/goal-crowd.m4a": {
       "class": "sfx",
       "before": -9.7,

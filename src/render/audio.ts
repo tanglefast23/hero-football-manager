@@ -41,6 +41,7 @@ export type SfxKey =
   | 'goal-celebration'
   | 'goal-net-hit'
   | 'goal-crowd'
+  | 'goal-confetti'
   | 'card-whistle'
   | 'crowd-jeer'
   | 'rally-drums'
@@ -91,6 +92,12 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   // lossless: AAC reconstruction pushed its sharp transient over true peak.
   'goal-net-hit': require('../../assets/audio/sfx/goal-net-hit.wav'),
   'goal-crowd': require('../../assets/audio/sfx/goal-crowd.m4a'),
+  // The shells under the goal confetti, cut to exactly the 2.2s that confetti
+  // is on screen (GOAL_CONFETTI_MS) with its own fade at the tail, so the two
+  // end together without any stop call. Kept at 44.1k rather than the usual
+  // supplied-asset 24k: the whole cue is high-frequency crackle, and a 12kHz
+  // ceiling turns it into a rumble.
+  'goal-confetti': require('../../assets/audio/sfx/goal-confetti.m4a'),
   'card-whistle': require('../../assets/audio/sfx/card-whistle.wav'),
   'crowd-jeer': require('../../assets/audio/sfx/crowd-jeer.wav'),
   'rally-drums': require('../../assets/audio/sfx/rally-drums.m4a'),
@@ -214,6 +221,7 @@ const SHOWCASE_BASE_SFX: readonly SfxKey[] = [
   'goal-celebration',
   'goal-net-hit',
   'goal-crowd',
+  'goal-confetti',
   'zone-enter',
   'save-slap',
   'crowd-ooh',
@@ -274,7 +282,13 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'GOAL':
       // Everything in a list fires at once, so this is a chord rather than a
       // sequence: contact, fanfare, celebration, crowd.
-      return ['goal-net-hit', 'goal-fanfare', 'goal-celebration', 'goal-crowd'];
+      return [
+        'goal-net-hit',
+        'goal-fanfare',
+        'goal-celebration',
+        'goal-crowd',
+        'goal-confetti',
+      ];
     case 'CARD':
       return ['card-whistle', 'crowd-jeer'];
     case 'POWER_READY':
