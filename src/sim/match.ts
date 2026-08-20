@@ -17,6 +17,7 @@ import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import { MAX_PLAYER_ATTRIBUTE } from './attributes';
 import type {
   Attrs,
+  FirePolicy,
   MatchInput,
   MatchOpts,
   MatchResult,
@@ -28,6 +29,11 @@ import type {
   TeamDef,
 } from './types';
 
+// m2.7 exempts goalkeepers from the manual firing policy: a GK slot is always
+// FIRE_WHEN_READY whatever homePolicy/awayPolicy asks for, and a substitute now
+// inherits the player it replaced rather than slot 0 (which is the keeper). No
+// shipped match changed — both live paths already passed FIRE_WHEN_READY — but
+// SAVE_FOR_TAP replays and the audit probes do, so it bumps.
 // m2.6 changes no behavior. It re-anchors the "same version ⇒ byte-identical"
 // invariant after two same-day fixes (power-turnover chain breaks, passer
 // identity enrolment) changed results inside m2.5 without a bump, so replays
@@ -67,7 +73,7 @@ import type {
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.6';
+export const ENGINE_VERSION = 'm2.7';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -159,12 +165,22 @@ function makePlayers(
       gauge: 0,
       zonesOpened: 0,
       powerState: { kind: 'idle' as const },
-      // Auto-fire is the only shipped hero mode; SAVE_FOR_TAP survives as
-      // explicitly requested test instrumentation, never a default.
-      firePolicy:
+      // Goalkeepers ALWAYS fire automatically, whatever the team asked for.
+      // Their Zone opens at a Heat threshold of 5 and their only useful moment
+      // is an enemy shot already in flight — a few ticks. A manual keeper is
+      // therefore either never fired or tapped into a 2-second armed window
+      // that almost always expires, which is a worse keeper than no hero at
+      // all. Automatic play already gives the manager what a tap was reaching
+      // for: the Zone is banked when an attack arrives and spent on the next
+      // shot on target. Keyed on the ROLE, not the power — a keeper may carry
+      // GUST (power-catalog ROLE_POOL.GK), and a slot whose policy disagrees
+      // with its team is exactly what validateEnvelope refuses.
+      firePolicy: firePolicyForRole(
+        def.role,
         team === 0
           ? (opts.homePolicy ?? 'FIRE_WHEN_READY')
           : (opts.awayPolicy ?? 'FIRE_WHEN_READY'),
+      ),
       outUntilTick: 0,
       tackleRecoveryUntil: 0,
       tackleCooldownUntil: 0,
@@ -258,6 +274,18 @@ function requireDistinctSquadIds(home: TeamDef, away: TeamDef): void {
       );
     }
   }
+}
+
+/**
+ * The one place the goalkeeper exemption is expressed. Every path that assigns
+ * a fire policy — match creation, substitution, SET_AUTO_POWERS — routes
+ * through here so they cannot drift apart.
+ */
+export function firePolicyForRole(
+  role: PlayerDef['role'],
+  teamPolicy: FirePolicy,
+): FirePolicy {
+  return role === 'GK' ? 'FIRE_WHEN_READY' : teamPolicy;
 }
 
 export function queueInput(state: MatchState, input: MatchInput): void {
@@ -399,7 +427,10 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
     const policy = input.enabled ? 'FIRE_WHEN_READY' : 'SAVE_FOR_TAP';
     const first = team * 11;
     for (let index = first; index < first + 11; index += 1) {
-      state.players[index].firePolicy = policy;
+      const player = state.players[index];
+      // Not a blanket assignment: the keeper exemption has to survive a
+      // mid-match flip too, or the goalkeeper silently becomes tappable.
+      player.firePolicy = firePolicyForRole(player.def.role, policy);
     }
     return;
   }
@@ -948,10 +979,12 @@ export function validateEnvelope(env: ReplayEnvelope): void {
         `replay envelope: input targets team ${targetTeam} slot ${targetSlot}, which is not a hero (no power)`,
       );
     }
-    const targetPolicy =
+    const targetPolicy = firePolicyForRole(
+      target.role,
       targetTeam === 0
         ? (env.opts?.homePolicy ?? 'FIRE_WHEN_READY')
-        : (env.opts?.awayPolicy ?? 'FIRE_WHEN_READY');
+        : (env.opts?.awayPolicy ?? 'FIRE_WHEN_READY'),
+    );
     if (targetPolicy !== 'SAVE_FOR_TAP') {
       throw new Error(
         `replay envelope: input targets team ${targetTeam}, which is not manually controlled`,

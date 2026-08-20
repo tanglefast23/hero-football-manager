@@ -49,8 +49,14 @@ export function performSubstitution(
     gauge: 0,
     zonesOpened: 0,
     powerState: { kind: 'idle' },
-    // A substitute inherits the team's live manual/automatic power policy.
-    firePolicy: state.players[first].firePolicy,
+    // A substitute inherits the policy of the player they replaced, not slot
+    // 0's. Slot 0 is the goalkeeper (lineup.ts rejects any other order), and
+    // since m2.7 the keeper is always FIRE_WHEN_READY — so reading slot 0 would
+    // hand every outfield substitute the keeper's exemption and quietly stop
+    // them being tappable. Role is preserved across a substitution (a GK may
+    // only replace a GK, checked above), so the outgoing player is always the
+    // right source for both roles.
+    firePolicy: outgoing.firePolicy,
     outUntilTick: 0,
     tackleRecoveryUntil: 0,
     tackleCooldownUntil: state.tick,

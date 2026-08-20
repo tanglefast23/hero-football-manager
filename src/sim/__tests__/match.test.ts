@@ -277,10 +277,21 @@ describe('match skeleton', () => {
 
     queueInput(m, { tick: 2, kind: 'SET_AUTO_POWERS', enabled: false });
     tick(m);
+    // Every outfielder goes manual; the goalkeeper does not. Since m2.7 a GK
+    // slot is always FIRE_WHEN_READY, and the exemption has to survive a
+    // mid-match flip too — a blanket loop here would quietly make the keeper
+    // tappable, and their Zone is unfireable by hand.
     expect(
       m.players
         .slice(11)
+        .filter((player) => player.def.role !== 'GK')
         .every((player) => player.firePolicy === 'SAVE_FOR_TAP'),
+    ).toBe(true);
+    expect(
+      m.players
+        .slice(11)
+        .filter((player) => player.def.role === 'GK')
+        .every((player) => player.firePolicy === 'FIRE_WHEN_READY'),
     ).toBe(true);
 
     while (m.phase !== 'fulltime') tick(m);

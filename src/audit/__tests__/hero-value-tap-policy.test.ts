@@ -16,10 +16,19 @@ function matchWith(power: PowerId, slot: number) {
 }
 
 describe('hero-value well-tapped policy', () => {
-  it.each(['ELASTIC_KEEPER', 'GIANT_GK'] as const)(
-    '%s waits for the on-target shot instead of arming on a closing Zone',
+  // Slot 0 is the goalkeeper — lineup.ts rejects any other order.
+  it.each(['ELASTIC_KEEPER', 'GIANT_GK', 'GUST'] as const)(
+    'never taps a goalkeeper carrying %s, even on a live on-target shot',
     (power) => {
+      // Since m2.7 a GK slot is always FIRE_WHEN_READY (firePolicyForRole), so
+      // queueInput refuses a tap on one and the probe must not offer it. The
+      // rule is keyed on the ROLE, not the power: a keeper may carry GUST,
+      // whose context is common enough that the old policy would have tapped
+      // it — and a slot whose policy disagrees with its team is exactly what
+      // validateEnvelope rejects.
       const match = matchWith(power, 0);
+      expect(match.players[0].firePolicy).toBe('FIRE_WHEN_READY');
+
       match.players[0].powerState = { kind: 'zone', remainingTicks: 1 };
       match.ball = { kind: 'held', by: 20 };
       expect(shouldQueueWellTappedPower(match, 0)).toBe(false);
@@ -38,7 +47,9 @@ describe('hero-value well-tapped policy', () => {
         trajectory: 'driven',
         keeperChecked: false,
       };
-      expect(shouldQueueWellTappedPower(match, 0)).toBe(true);
+      // The moment the old policy tapped on. Automatic play still spends the
+      // Zone here; the manager simply has no say in it.
+      expect(shouldQueueWellTappedPower(match, 0)).toBe(false);
     },
   );
 

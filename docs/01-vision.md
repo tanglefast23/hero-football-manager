@@ -12,7 +12,7 @@ You run a tiny club in the fifth division. Your striker is decent. Then match pr
 
 Every feature decision gets tested against these four. If it doesn't serve one, cut it.
 
-1. **Matches are toy theater.** A watched match is 3–4 real minutes of charming, readable pixel soccer. You're the coach, not a twitch gamer — your live levers are Formation, Playstyle, Swaps, and Energy Use, while powers fire themselves at their perfect moment. Any match can be instant-simmed guilt-free.
+1. **Matches are toy theater.** A watched match is 3–4 real minutes of charming, readable pixel soccer. You're the coach, not a twitch gamer — your live levers are Formation, Playstyle, Swaps, and Energy Use, while powers fire themselves at their perfect moment — unless you opt into MANUAL and time them yourself. Any match can be instant-simmed guilt-free.
 2. **Cozy crunch.** The management layer is Kairosoft's proven loop: everything costs money, every choice compounds, numbers go up in satisfying ways. Tension without stress — you can struggle, you can't really die.
 3. **Heroes are precious.** Powers are rare, risky to obtain, expensive to keep, and spectacular when they fire. A team of five heroes is an endgame achievement, not a mid-game default.
 4. **One more season.** Promotion races, contract timing, aging stars, and event luck create natural cliffhangers at every season boundary.

@@ -9,10 +9,15 @@ export function retainedCarrierIndex(
   return currentCarrier >= 0 ? currentCarrier : previousCarrier;
 }
 
-/** Every watched side uses the authored contextual power timing. */
+/**
+ * A watched side fires on the manager's HERO POWER setting; the opposition
+ * always fires automatically. Quick Result never reaches this function, and
+ * never passes 'manual' — see controlledMatchOptions.
+ */
 export function matchPoliciesForControlledTeam(
   controlledTeam: 0 | 1,
   initialFormation: FormationId = '4-4-2',
+  heroPowers: 'auto' | 'manual' = 'auto',
 ): ReturnType<typeof controlledMatchOptions> {
-  return controlledMatchOptions(controlledTeam, initialFormation);
+  return controlledMatchOptions(controlledTeam, initialFormation, heroPowers);
 }
