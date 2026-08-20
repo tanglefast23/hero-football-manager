@@ -240,20 +240,63 @@ function skinTokens(source: Grid): { base: string; shadow: string } {
   return { base, shadow: SKIN_RAMP[Math.max(0, index - 1)] };
 }
 
+/**
+ * Every ramp a jersey can be painted in: the two authored kits, then the two
+ * the loader's kit rewrite paints with. Shadow, base, light — the same order
+ * the ramps use everywhere else.
+ *
+ * The digits are duplicated from `loader.ts` rather than imported, exactly as
+ * the letters beside them already are: the loader imports this module, so
+ * reaching back would make a cycle. The rewrite's PATTERN slot (4-6) is
+ * deliberately absent — the poses below draw new hip and leg pixels, and those
+ * take the shirt's base colour rather than its stripes.
+ */
+const KIT_RAMPS: readonly {
+  base: string;
+  shadow: string;
+  light: string;
+}[] = [
+  { shadow: 'r', base: 'R', light: 'E' },
+  { shadow: 'b', base: 'B', light: 'C' },
+  { shadow: '1', base: '2', light: '3' },
+  { shadow: '7', base: '8', light: '9' },
+];
+
+/** Rows of an authored 24x30 frame that hold the shirt. */
+const JERSEY_ROWS = { top: 16, bottom: 23 } as const;
+
+/**
+ * Which ramp this player's shirt is painted in.
+ *
+ * Counted over the jersey rows only. Counting the whole grid — which this did —
+ * lets a red-haired player in a blue shirt out-vote his own kit: `u:f27` has 84
+ * red-family pixels against 66 blue, and drew red hip and leg patches onto a
+ * blue away shirt. It also could not see a rewritten kit at all, because the
+ * rewrite leaves no letters in the band.
+ *
+ * Ties fall to the home ramp, which is what the old `redCount >= blueCount`
+ * did. That is what keeps goalkeepers unchanged: their band holds none of these
+ * tokens, so every candidate counts zero.
+ */
 function kitTokens(source: Grid): {
   base: string;
   shadow: string;
   light: string;
 } {
-  const redCount = source
-    .flat()
-    .filter((token) => token === 'R' || token === 'r' || token === 'E').length;
-  const blueCount = source
-    .flat()
-    .filter((token) => token === 'B' || token === 'b' || token === 'C').length;
-  return redCount >= blueCount
-    ? { base: 'R', shadow: 'r', light: 'E' }
-    : { base: 'B', shadow: 'b', light: 'C' };
+  const band = source.slice(JERSEY_ROWS.top, JERSEY_ROWS.bottom + 1).flat();
+  let best = KIT_RAMPS[0];
+  let bestCount = 0;
+  for (const ramp of KIT_RAMPS) {
+    const count = band.filter(
+      (token) =>
+        token === ramp.base || token === ramp.shadow || token === ramp.light,
+    ).length;
+    if (count > bestCount) {
+      best = ramp;
+      bestCount = count;
+    }
+  }
+  return best;
 }
 
 function uprightBody(source: Grid): Grid {

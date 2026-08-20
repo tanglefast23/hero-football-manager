@@ -64,16 +64,16 @@ export function shouldShowFullPowerCutIn(
 export type PowerOverlayPath = 'tile' | 'banner';
 
 /** Own heroes use the compact player-name callout; rivals remain threats. */
+/**
+ * Both teams' powers take the tile. A rival's is the same announcement wearing
+ * their kit colour — routing them to a text banner instead made the same event
+ * read as two different features depending on who fired it.
+ */
 export function powerOverlayPath(
   mode: 'full' | 'banner',
   reduceMotion: boolean,
-  firingTeam: 0 | 1,
-  controlledTeam: 0 | 1,
 ): PowerOverlayPath {
-  return shouldShowFullPowerCutIn(mode, reduceMotion) &&
-    firingTeam === controlledTeam
-    ? 'tile'
-    : 'banner';
+  return shouldShowFullPowerCutIn(mode, reduceMotion) ? 'tile' : 'banner';
 }
 
 export function appendNewestFour<T>(items: readonly T[], item: T): T[] {

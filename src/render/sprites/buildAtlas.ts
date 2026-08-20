@@ -12,6 +12,7 @@ import {
   type SpriteSheet,
   type AtlasLayout,
 } from './loader';
+import type { KitPlan } from './club-kit';
 
 export interface SkiaRectLike {
   x: number;
@@ -79,17 +80,26 @@ const atlasCache = new Map<string, SpriteAtlas>();
 
 function atlasCacheKey(
   visualIds: readonly string[] | undefined,
-  paletteOverrides: Readonly<Record<string, string>> | undefined,
+  plan: KitPlan | undefined,
 ): string {
   const ids = visualIds === undefined ? '*' : visualIds.join('|');
-  const overrides =
-    paletteOverrides === undefined
+  // The kit is part of the identity of the pixels, so it has to be part of the
+  // key: without it a club that changed its shirt would be served the atlas
+  // painted for the old one.
+  const kit =
+    plan === undefined
       ? ''
-      : Object.keys(paletteOverrides)
-          .sort()
-          .map((key) => `${key}=${paletteOverrides[key]}`)
+      : (['r', 'u'] as const)
+          .map((prefix) => {
+            const side = plan[prefix];
+            if (side === undefined) return '';
+            return `${prefix}:${side.shape}:${side.base.join('/')}:${
+              side.pattern?.join('/') ?? ''
+            }`;
+          })
+          .filter((part) => part !== '')
           .join(',');
-  return `${ids}#${overrides}`;
+  return `${ids}#${kit}`;
 }
 
 /** Drops every cached atlas. Exposed for tests and for reclaiming memory. */
@@ -100,13 +110,13 @@ export function clearSpriteAtlasCache(): void {
 export function buildSpriteAtlas(
   Skia: SkiaApi,
   visualIds?: readonly string[],
-  paletteOverrides?: Readonly<Record<string, string>>,
+  plan?: KitPlan,
 ): SpriteAtlas {
-  const cacheKey = atlasCacheKey(visualIds, paletteOverrides);
+  const cacheKey = atlasCacheKey(visualIds, plan);
   const cached = atlasCache.get(cacheKey);
   if (cached !== undefined) return cached;
 
-  const sheet: SpriteSheet = loadSpriteSheet(visualIds);
+  const sheet: SpriteSheet = loadSpriteSheet(visualIds, plan);
   const layout = atlasLayout(sheet);
 
   const atlasW = layout.cols * layout.slotW;
@@ -130,13 +140,15 @@ export function buildSpriteAtlas(
     paintByColor.set(color, paint);
     return paint;
   };
+  // A straight palette lookup. The kit is already in these pixels: it is
+  // painted into the sheet's own tokens before any pose is derived, which is
+  // the only place a row band can be honest — see `withKitRewrite`.
   const colorAt = (
     key: string,
     line: string,
     row: number,
     col: number,
-  ): string | null | undefined =>
-    atlasPixelColor(key, row, line[col], sheet.palette, paletteOverrides);
+  ): string | null | undefined => sheet.palette[line[col]];
 
   for (const key of Object.keys(sheet.sprites)) {
     const { x: originX, y: originY } = layout.rectFor(key);
@@ -180,28 +192,6 @@ export function buildSpriteAtlas(
   }
   atlasCache.set(cacheKey, built);
   return built;
-}
-
-/**
- * Resolves one sprite pixel without letting a jersey palette recolour a face.
- *
- * Home-kit pixels occupy rows 16-23 in every authored player frame. Special
- * heads reuse some of the same red/blue palette tokens above that boundary;
- * applying overrides by token alone changed their helmets, masks, and hair.
- */
-export function atlasPixelColor(
-  spriteKey: string,
-  row: number,
-  token: string,
-  palette: Readonly<Record<string, string | null>>,
-  paletteOverrides?: Readonly<Record<string, string>>,
-): string | null | undefined {
-  const isHomeJerseyPixel =
-    spriteKey.startsWith('r:') && row >= 16 && row <= 23;
-  return (
-    (isHomeJerseyPixel ? paletteOverrides?.[token] : undefined) ??
-    palette[token]
-  );
 }
 
 /**

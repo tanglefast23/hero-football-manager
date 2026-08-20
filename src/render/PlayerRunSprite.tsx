@@ -8,6 +8,7 @@ import {
   type SkRect,
 } from '@shopify/react-native-skia';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
+import { useClubKit } from '../ui/club-kit-context';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
 
@@ -24,6 +25,8 @@ export interface PlayerRunSpriteProps {
   lookId?: string;
   /** Match kit family when the sprite represents one side of a completed match. */
   side?: 'home' | 'away';
+  /** Draws the stock strip rather than the club's kit — for rival players. */
+  stockKit?: boolean;
   /** Whole-number multiple of the 24×30 cell; fractional values blur the art. */
   scale?: number;
   /** False parks the sprite on its standing frame. */
@@ -44,11 +47,13 @@ export function PlayerRunSprite({
   role,
   lookId,
   side = 'home',
+  stockKit = false,
   scale = 4,
   walking = false,
   accessibilityLabel,
 }: PlayerRunSpriteProps) {
   const [frame, setFrame] = useState(0);
+  const { planFor } = useClubKit();
 
   useEffect(() => {
     if (!walking) {
@@ -68,15 +73,21 @@ export function PlayerRunSprite({
     [playerId, role, lookId, side],
   );
 
+  // The plan joins the dependency list, not just the call: this memo is keyed
+  // on what it draws, and a kit change has to repaint.
+  const plan = useMemo(
+    () => (stockKit ? undefined : planFor(side === 'home' ? 'r' : 'u')),
+    [planFor, side, stockKit],
+  );
   const atlas = useMemo(() => {
     try {
-      return buildSpriteAtlas(Skia, [visualId]);
+      return buildSpriteAtlas(Skia, [visualId], plan);
     } catch (error) {
       // A missing look is a cosmetic problem, not a reason to blank the screen.
       console.warn('PlayerRunSprite: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [visualId]);
+  }, [plan, visualId]);
 
   const sprites: SkRect[] = useMemo(() => {
     const cell = atlas.rectFor(

@@ -171,3 +171,36 @@ describe('typed names are held to what the shipped pixel face can draw', () => {
     ).toThrow('cannot display');
   });
 });
+
+describe('club kit on the created-player draft', () => {
+  const kit = { base: 'FOREST', pattern: 'STRIPES', patternColor: 'STONE' };
+
+  it('carries the chosen kit through validation', () => {
+    expect(
+      validateCreatedPlayerDraft({
+        name: 'Kit Picker',
+        ratings: DEFAULT_CREATION_RATINGS,
+        clubKit: kit,
+      }).clubKit,
+    ).toEqual(kit);
+  });
+
+  it('leaves a manager who never opened the editor on the stock strip', () => {
+    expect(
+      validateCreatedPlayerDraft({
+        name: 'Kit Picker',
+        ratings: DEFAULT_CREATION_RATINGS,
+      }).clubKit,
+    ).toBeUndefined();
+  });
+
+  it('rejects a malformed kit rather than persisting it', () => {
+    expect(() =>
+      validateCreatedPlayerDraft({
+        name: 'Kit Picker',
+        ratings: DEFAULT_CREATION_RATINGS,
+        clubKit: { base: '', pattern: 'PLAIN', patternColor: 'STONE' },
+      }),
+    ).toThrow('Club kit base');
+  });
+});

@@ -65,11 +65,10 @@ describe('M4 power cut-in policy', () => {
     expect(powerTakeoverShouldRemain(1500)).toBe(false);
   });
 
-  it('selects own-team title takeovers and routes rivals or banner mode to text banners', () => {
-    expect(powerOverlayPath('full', false, 0, 0)).toBe('tile');
-    expect(powerOverlayPath('full', false, 1, 0)).toBe('banner');
-    expect(powerOverlayPath('banner', false, 0, 0)).toBe('banner');
-    expect(powerOverlayPath('full', true, 0, 0)).toBe('tile');
+  it('gives both teams the title takeover, and banner mode the text banner', () => {
+    expect(powerOverlayPath('full', false)).toBe('tile');
+    expect(powerOverlayPath('full', true)).toBe('tile');
+    expect(powerOverlayPath('banner', false)).toBe('banner');
   });
 
   it('keeps the newest four overlays', () => {

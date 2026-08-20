@@ -1,5 +1,9 @@
 import type { Attrs } from '../../sim/types';
-import type { CreatedPlayerAppearance, DifficultyMode } from '../types';
+import type {
+  ClubKitState,
+  CreatedPlayerAppearance,
+  DifficultyMode,
+} from '../types';
 import { DEFAULT_DIFFICULTY, validateDifficulty } from '../difficulty';
 import { reducedPlayerWeeklyWage } from '../market';
 
@@ -60,6 +64,11 @@ export interface CreatedPlayerDraft {
    * field the moment it is tapped, so an abandoned field must keep its name.
    */
   rosterNames?: Readonly<Record<string, string>>;
+  /**
+   * The club's chosen shirt. Absent means the stock strip, which is what every
+   * career had before the kit editor existed.
+   */
+  clubKit?: Readonly<ClubKitState>;
 }
 
 export const DEFAULT_CREATED_APPEARANCE: Readonly<CreatedPlayerAppearance> =
@@ -80,6 +89,22 @@ export function creationPointsRemaining(
   return CREATION_RATING_TOTAL - ratingTotal;
 }
 
+function validateClubKit(
+  kit: Readonly<ClubKitState> | undefined,
+): ClubKitState | undefined {
+  if (kit === undefined) return undefined;
+  for (const field of ['base', 'pattern', 'patternColor'] as const) {
+    if (typeof kit[field] !== 'string' || kit[field].length === 0) {
+      throw new Error(`Club kit ${field} must be a non-empty id`);
+    }
+  }
+  return {
+    base: kit.base,
+    pattern: kit.pattern,
+    patternColor: kit.patternColor,
+  };
+}
+
 export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
   name: string;
   attrs: Attrs;
@@ -89,6 +114,8 @@ export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
   clubName: string | undefined;
   /** Only the ids the manager actually retyped. */
   rosterNames: Readonly<Record<string, string>>;
+  /** Absent when the manager never opened the kit editor. */
+  clubKit: ClubKitState | undefined;
 } {
   const name = validateTypedName(draft.name, 'Player name');
   validateRatingsShape(draft.ratings);
@@ -119,6 +146,10 @@ export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
     difficulty: validateDifficulty(draft.difficulty ?? DEFAULT_DIFFICULTY),
     clubName: validateOptionalTypedName(draft.clubName, 'Club name'),
     rosterNames: validateRosterNames(draft.rosterNames),
+    // Ids are not checked against a catalog here: the catalog lives in the
+    // render ring, which a pure ring may not import, and an unknown id already
+    // falls back to the stock strip where the pixels are painted.
+    clubKit: validateClubKit(draft.clubKit),
   };
 }
 

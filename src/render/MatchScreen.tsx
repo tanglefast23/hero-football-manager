@@ -69,6 +69,8 @@ import {
 } from '../sim/entities';
 import type { HudSide, MatchPerformanceLimit } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
+import { clubKitPlan } from './sprites/club-kit';
+import type { ClubKitChoice } from './sprites/club-kit';
 import {
   keeperReadyFrameFacingBall,
   runFrameFacingBall,
@@ -147,6 +149,8 @@ import { ShotPowerPop, type ShotPowerPopSubject } from './ShotPowerPop';
 import { SHOT_POWER_POP_MS, shotPowerBand } from './shot-power-pop';
 import { PassComboPop, type PassComboPopSubject } from './PassComboPop';
 import { PASS_COMBO_FLOOR, PASS_COMBO_POP_MS } from './pass-combo';
+import { SpeedBoostLabels } from './SpeedBoostLabels';
+import { speedBoostMask, SPEED_BOOST_MIN_COUNT } from './speed-boost-labels';
 import { TacklePop, TACKLE_POP_MS, type TacklePopSubject } from './TacklePop';
 import {
   appendNewestFour,
@@ -199,7 +203,12 @@ import {
   type MatchBannerSubject,
 } from './match-banners';
 import { MatchTickerLine } from './MatchTickerLine';
-import { goalTickerLifeTicks, tickerBandTop, tickerLane } from './match-ticker';
+import {
+  goalTickerLifeTicks,
+  tickerBandTop,
+  tickerDurationMs,
+  tickerLane,
+} from './match-ticker';
 import { CupTitleCard } from './CupTitleCard';
 import { cupTitleCard, type CupRoundLabel } from './cup-title-card';
 import { PowerEffectScene, type PowerEffectPoint } from './PowerEffectScene';
@@ -278,11 +287,10 @@ import {
 } from './match-energy-ui';
 import { mentalityLabel } from './match-mentality-ui';
 import { chargeMeter } from './hero-charge-meter';
+import { carrierCardGeometry } from './match-carrier-card';
 import { HeroChargeMeter } from './HeroChargeMeter';
-import { matchKitPaletteOverride, teamKitColor } from './team-kit-ui';
+import { teamKitColor } from './team-kit-ui';
 import {
-  CARRIER_CARD_CONTENT_WIDTH,
-  CARRIER_CARD_DESKTOP_CONTENT_WIDTH,
   CARRIER_CHARGE_DESKTOP_HEIGHT,
   CARRIER_CHARGE_HEIGHT,
   useMatchScreenStyles,
@@ -293,7 +301,6 @@ import {
   initAudio,
   playBallFlightWhoosh,
   playPassCombo,
-  playPassComboMilestone,
   playForEvent,
   playShotTierAudio,
   startFireAmbience,
@@ -480,6 +487,8 @@ type PowerCutInEntry = {
   skippable: boolean;
   /** Present for real activations; the static QA group has no lifecycle owner. */
   player?: number;
+  /** Whose kit the tile wears. Absent in the QA group, which uses the club's. */
+  team?: 0 | 1;
   /** Wall-clock start of the one-second post-power hold. */
   outroStartedAt?: number;
 };
@@ -576,6 +585,7 @@ export function MatchScreen({
   onPowerCutInSeen,
   highContrast = false,
   colorSafeKits = true,
+  clubKit,
   pausedExternally = false,
   firstMatchTutorial = false,
   motivationalSpeech,
@@ -616,6 +626,8 @@ export function MatchScreen({
   onPowerCutInSeen?: (power: PowerId) => void;
   highContrast?: boolean;
   colorSafeKits?: boolean;
+  /** The club's own kit. Absent means the stock strip. */
+  clubKit?: ClubKitChoice;
   pausedExternally?: boolean;
   firstMatchTutorial?: boolean;
   /**
@@ -1106,7 +1118,11 @@ export function MatchScreen({
         ...buildSpriteAtlas(
           Skia,
           matchVisualIds,
-          matchKitPaletteOverride(colorSafeKits),
+          clubKitPlan({
+            kit: clubKit,
+            userSide: controlledTeam === 0 ? 'r' : 'u',
+            colorSafeKits,
+          }),
         ),
         fallbackMode: false,
       };
@@ -1120,7 +1136,13 @@ export function MatchScreen({
         fallbackMode: true,
       };
     }
-  }, [colorSafeKits, graphicsGeneration, matchVisualIds]);
+  }, [
+    clubKit,
+    colorSafeKits,
+    controlledTeam,
+    graphicsGeneration,
+    matchVisualIds,
+  ]);
 
   // Sprite-rect cache, keyed by atlas because rectFor's layout is derived from
   // the sheet this atlas was built from. `sprites` below asks for 25 rects on
@@ -2016,7 +2038,14 @@ export function MatchScreen({
         passComboCountsRef.current = nextComboCounts;
         if (comboRisenTeam !== null) {
           const comboCount = nextComboCounts[comboRisenTeam];
-          if (comboCount >= PASS_COMBO_FLOOR && s.ball.kind === 'held') {
+          // From x5 the chain marks the players it sped up instead — see
+          // SpeedBoostLabels. The pop and the plate would say the same thing
+          // twice, and the pop would say it over one head only.
+          if (
+            comboCount >= PASS_COMBO_FLOOR &&
+            comboCount < SPEED_BOOST_MIN_COUNT &&
+            s.ball.kind === 'held'
+          ) {
             const receiver = nextRef.current!.players[s.ball.by];
             setPassComboPop({
               count: comboCount,
@@ -2025,7 +2054,6 @@ export function MatchScreen({
             });
             setNewestPop('combo');
             playPassCombo(comboCount);
-            playPassComboMilestone(comboCount);
             passComboLife.value = 0;
             passComboLife.value = withTiming(PASS_COMBO_POP_MS, {
               duration: PASS_COMBO_POP_MS,
@@ -2403,14 +2431,7 @@ export function MatchScreen({
           if (juiceRef.current === null || hasPowerJuiceExtras(e.power)) {
             startJuice(e.power, e.player, now);
           }
-          if (
-            powerOverlayPath(
-              cutInMode,
-              reduceMotion,
-              firingPlayer.team,
-              controlledTeam,
-            ) === 'tile'
-          ) {
+          if (powerOverlayPath(cutInMode, reduceMotion) === 'tile') {
             const skippable = seenPowerCutInsRef.current.has(e.power);
             if (!skippable) {
               seenPowerCutInsRef.current.add(e.power);
@@ -2423,6 +2444,7 @@ export function MatchScreen({
                 playerName: firingPlayer.def.name,
                 skippable,
                 player: e.player,
+                team: firingPlayer.team,
               }),
             );
           } else {
@@ -2523,25 +2545,36 @@ export function MatchScreen({
           }
         }
         if (e.kind === 'HALF_TIME') {
+          // Read like the scorer's line: same big type, same stretched
+          // crossing. Half time is an announcement, not a footnote, and at the
+          // normal life it was gone before a player looked up.
+          const halfTicks = goalTickerLifeTicks(FLASH_TICKS, speedRef.current);
           bannerRef.current = pushMatchBanner(bannerRef.current, {
             id: `half:${e.t}`,
             text: t('matchScreen.bannerHalfTime'),
-            untilTick: e.t + FLASH_TICKS,
+            untilTick: e.t + halfTicks,
+            lifeTicks: halfTicks,
             tone: 'blue',
+            size: 'big',
           });
         }
         if (e.kind === 'FULL_TIME') {
           // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
           // holds and this banner stays up for the whole end-of-match hold.
-          // That hold is `FULLTIME_HOLD_MS` of wall clock and does not scale
-          // with match speed, so the crossing is given the hold directly
-          // rather than a tick life that would finish in 500ms at ×3.
+          // That hold is wall clock and does not scale with match speed, so
+          // the crossing is given a duration directly rather than a tick life
+          // that would finish in 500ms at ×3. The duration is the half-time
+          // line's crossing, so the two whistles read the same.
           bannerRef.current = pushMatchBanner(bannerRef.current, {
             id: `full:${e.t}`,
             text: t('matchScreen.bannerFullTime'),
             untilTick: e.t + FLASH_TICKS,
-            durationMs: FULLTIME_HOLD_MS,
+            durationMs: tickerDurationMs(
+              goalTickerLifeTicks(FLASH_TICKS, speedRef.current),
+              speedRef.current,
+            ),
             tone: 'blue',
+            size: 'big',
           });
         }
         roleLabelWindowRef.current = applyRoleLabelEvent(
@@ -3089,6 +3122,7 @@ export function MatchScreen({
     if (player.team !== controlledTeam) rivalHeroPlayers.push(index);
     if (player.def.power === 'FIRE_TORCH') fireTorchMask |= 1 << index;
   });
+  const speedBoosted = speedBoostMask(match.players);
   const activeWebTraps = match.players.flatMap((player, index) =>
     player.def.power === 'WEB_TRAP' &&
     isActive(match, index) &&
@@ -3515,7 +3549,12 @@ export function MatchScreen({
             (entry) =>
               entry !== primaryPowerCutIn && entry.outroStartedAt === undefined,
           ).length,
-          teamColor: teamKitColor(controlledTeam, colorSafeKits),
+          // The tile wears the firing team's kit, so a rival power reads as a
+          // rival power at a glance rather than as one of yours.
+          teamColor: teamKitColor(
+            primaryPowerCutIn.team ?? controlledTeam,
+            colorSafeKits,
+          ),
           ending: primaryPowerCutIn.outroStartedAt !== undefined,
           reduceMotion,
           skippable: powerCutInPolicy.skippable,
@@ -4267,6 +4306,17 @@ export function MatchScreen({
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
                   />
+                  {/* Same plate height as the role labels, and drawn after
+                    them: a formation change during a long chain must not hide
+                    which players it made faster. */}
+                  <SpeedBoostLabels
+                    mask={speedBoosted}
+                    visualPositions={workletVisualPositions}
+                    visibility={workletVisibility}
+                    scale={scale}
+                    playerDrawScale={playerSpriteScale.drawScale}
+                    devicePixelRatio={devicePixelRatio}
+                  />
                   {/* Last inside the camera: a Fire Torch victim's flame tongues
                     rise well above his head, exactly where this plate sits, so
                     drawing the number earlier hid it for its whole short life. */}
@@ -4349,6 +4399,9 @@ export function MatchScreen({
                   {
                     backgroundColor: teamKitColor(carrier.team, colorSafeKits),
                   },
+                  // Capped against the pitch, so a narrow window cannot let the
+                  // card reach the middle and cover the goalkeeper.
+                  { width: carrierCardGeometry(pitchWidth, railLayout).width },
                 ]}
               >
                 <View style={styles.carrierLine}>
@@ -4397,9 +4450,7 @@ export function MatchScreen({
                   <HeroChargeMeter
                     meter={chargeMeter(carrier.gauge, carrier.powerState)}
                     trackWidth={
-                      railLayout
-                        ? CARRIER_CARD_DESKTOP_CONTENT_WIDTH
-                        : CARRIER_CARD_CONTENT_WIDTH
+                      carrierCardGeometry(pitchWidth, railLayout).contentWidth
                     }
                     height={
                       railLayout

@@ -138,8 +138,15 @@ export function addCreatedPlayer(
   if (state.onboarding?.stage !== 'create-player') {
     throw new Error('A player can only be created at the start of onboarding');
   }
-  const { name, attrs, appearance, difficulty, clubName, rosterNames } =
-    validateCreatedPlayerDraft(draft);
+  const {
+    name,
+    attrs,
+    appearance,
+    difficulty,
+    clubName,
+    rosterNames,
+    clubKit,
+  } = validateCreatedPlayerDraft(draft);
   // A Map rather than the record itself: ids reach here from a draft, so a key
   // like `constructor` would otherwise read an inherited function off the
   // prototype and be assigned as somebody's name.
@@ -216,6 +223,9 @@ export function addCreatedPlayer(
   return {
     ...state,
     difficulty,
+    // Absent when the manager never opened the kit editor, which is what keeps
+    // an untouched career on the stock strip.
+    ...(clubKit === undefined ? {} : { clubKit }),
     clubs: state.clubs.map((club) =>
       club.id === state.userClubId
         ? {

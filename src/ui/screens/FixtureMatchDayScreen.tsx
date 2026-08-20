@@ -537,11 +537,24 @@ export function FixtureMatchDayScreen({
                         current === player.id ? null : current,
                       )
                     }
-                    onPress={() =>
+                    onPress={() => {
+                      // A second starter tapped after the first trades their
+                      // places. The keeper keeps their slot, so tapping them
+                      // just moves the selection.
+                      if (
+                        selectedStarter !== undefined &&
+                        selectedStarter.id !== player.id &&
+                        selectedStarter.formationRole !== 'GK' &&
+                        player.formationRole !== 'GK'
+                      ) {
+                        onSwapStartingPlayer(selectedStarter.id, player.id);
+                        setSelectedStarterId(null);
+                        return;
+                      }
                       setSelectedStarterId((current) =>
                         current === player.id ? null : player.id,
-                      )
-                    }
+                      );
+                    }}
                     className={cardClass}
                     style={({ pressed }) => ({
                       opacity: pressed ? 0.7 : undefined,

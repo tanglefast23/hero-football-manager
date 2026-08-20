@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClubKit } from '../ui/club-kit-context';
 import {
   Animated,
   Easing,
@@ -359,14 +360,17 @@ function DrillAtlasStage({
     [playerId, role, lookId],
   );
 
+  // These screens draw the club's OWN players, and drew them in stock red even
+  // when the pitch was in colour-safe amber. The home plan fixes both at once.
+  const plan = useClubKit().planFor('r');
   const atlas = useMemo(() => {
     try {
-      return buildSpriteAtlas(Skia, [visualId]);
+      return buildSpriteAtlas(Skia, [visualId], plan);
     } catch (error) {
       console.warn('DrillSceneOverlay: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [visualId]);
+  }, [plan, visualId]);
 
   const sprites: SkRect[] = useMemo(() => {
     const frame = spriteFrame % 2 === 0 ? 'run0' : 'run1';

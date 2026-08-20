@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClubKit } from '../club-kit-context';
 import {
   Animated,
   Easing,
@@ -321,14 +322,17 @@ function useCelebrationAtlas(
     () => players.map((player) => player.spriteKey.slice(0, -':run0'.length)),
     [players],
   );
+  // These screens draw the club's OWN players, and drew them in stock red even
+  // when the pitch was in colour-safe amber. The home plan fixes both at once.
+  const plan = useClubKit().planFor('r');
   return useMemo<CelebrationAtlas>(() => {
     try {
-      return buildSpriteAtlas(Skia, visualIds);
+      return buildSpriteAtlas(Skia, visualIds, plan);
     } catch (error) {
       console.warn('EndgameCelebrationScreen: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [visualIds]);
+  }, [plan, visualIds]);
 }
 
 /** Where a celebration's feet belong: up in the near grass, not on the floor. */

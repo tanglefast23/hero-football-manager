@@ -1,10 +1,10 @@
 import {
-  atlasPixelColor,
   buildSpriteAtlas,
   clearSpriteAtlasCache,
   type SkiaApi,
 } from '../buildAtlas';
-import { loadSpriteSheet } from '../loader';
+import { JERSEY_BAND, loadSpriteSheet } from '../loader';
+import { clubKitPlan, swatchById } from '../club-kit';
 
 /**
  * Counts what the builder asks of Skia, so the two costs that made entering a
@@ -85,27 +85,53 @@ describe('sprite atlas build cost', () => {
     expect(skia.drawRects()).toBe(drawsAfterFirst);
   });
 
-  it('treats a different palette override as a different atlas', () => {
+  it('treats a different kit as a different atlas', () => {
     const skia = countingSkia();
 
     const plain = buildSpriteAtlas(skia.api, LOOKS);
-    const recoloured = buildSpriteAtlas(skia.api, LOOKS, { R: '#ffffff' });
+    const kitted = buildSpriteAtlas(
+      skia.api,
+      LOOKS,
+      clubKitPlan({
+        kit: { base: 'FOREST', pattern: 'PLAIN', patternColor: 'FOREST' },
+        userSide: 'r',
+        colorSafeKits: false,
+      }),
+    );
+    const striped = buildSpriteAtlas(
+      skia.api,
+      LOOKS,
+      clubKitPlan({
+        kit: { base: 'FOREST', pattern: 'STRIPES', patternColor: 'STONE' },
+        userSide: 'r',
+        colorSafeKits: false,
+      }),
+    );
 
-    expect(recoloured).not.toBe(plain);
+    expect(kitted).not.toBe(plain);
+    expect(striped).not.toBe(kitted);
   });
 
   it('recolours only the home jersey and preserves every special head', () => {
-    const palette = loadSpriteSheet(['r:f171']).palette;
-    const colourSafe = { o: '#6a4326', r: '#ba7517', R: '#edb54a' };
+    const plan = clubKitPlan({
+      kit: { base: 'FOREST', pattern: 'PLAIN', patternColor: 'FOREST' },
+      userSide: 'r',
+      colorSafeKits: false,
+    });
+    const forest = swatchById('FOREST')!.ramp;
+    const home = loadSpriteSheet(['r:f171', 'u:f171'], plan);
 
-    expect(atlasPixelColor('r:f171:run0', 2, 'o', palette, colourSafe)).toBe(
-      '#7a2731',
+    // f171 wears a kit token above the jersey band. Recolouring by token alone
+    // would repaint its head, which is the defect the band exists to prevent.
+    expect(home.sprites['r:f171:run0'][2]).toBe(
+      loadSpriteSheet(['r:f171']).sprites['r:f171:run0'][2],
     );
-    expect(atlasPixelColor('r:f171:run0', 16, 'R', palette, colourSafe)).toBe(
-      '#edb54a',
+    expect(home.palette['2']).toBe(forest[1]);
+    expect(home.sprites['r:f171:run0'][JERSEY_BAND.top].includes('R')).toBe(
+      false,
     );
-    expect(atlasPixelColor('u:f171:run0', 16, 'R', palette, colourSafe)).toBe(
-      '#e8433f',
+    expect(home.sprites['u:f171:run0']).toEqual(
+      loadSpriteSheet(['u:f171']).sprites['u:f171:run0'],
     );
   });
 

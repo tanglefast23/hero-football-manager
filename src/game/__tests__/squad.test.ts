@@ -326,6 +326,26 @@ describe('career squad integration', () => {
     ).toThrow('injured and unavailable');
   });
 
+  it('trades formation slots when both players already start, never the keeper', () => {
+    const initial = career();
+    const lineup = initial.lineups.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const [keeperId, , outfieldA, , outfieldB] = lineup.playerIds;
+
+    const swapped = swapCareerLineupPlayer(initial, outfieldA!, outfieldB!);
+    const swappedIds = swapped.lineups.find(
+      (candidate) => candidate.clubId === swapped.userClubId,
+    )!.playerIds;
+    expect(swappedIds[2]).toBe(outfieldB);
+    expect(swappedIds[4]).toBe(outfieldA);
+    expect([...swappedIds].sort()).toEqual([...lineup.playerIds].sort());
+
+    expect(() =>
+      swapCareerLineupPlayer(initial, keeperId!, outfieldA!),
+    ).toThrow('goalkeeper cannot trade places');
+  });
+
   it('repairs an unavailable starter with the strongest legal same-role reserve', () => {
     const initial = career();
     const injuredId = `${CLUB_IDS[0]}-p9`;

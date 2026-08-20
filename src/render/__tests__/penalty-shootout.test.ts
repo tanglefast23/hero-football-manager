@@ -70,10 +70,14 @@ describe('penalty shootout screen contract', () => {
   });
 
   it('batches the two players and ball through the pixel-sampled Atlas', () => {
-    // The palette override carries the pitch's kit setting onto this screen:
-    // color-safe kits default to ON, so a match played in amber used to finish
-    // in red here.
-    expect(screen).toContainSource('matchKitPaletteOverride(colorSafeKits)');
+    // The kit plan carries the pitch's shirts onto this screen — the club's own
+    // kit and the color-safe setting both. Color-safe defaults to ON, so a match
+    // played in amber used to finish in red here.
+    expect(screen).toContainSource('clubKitPlan({');
+    expect(screen).toContainSource('kit: clubKit,');
+    expect(screen).toContainSource(
+      "userSide: shootout.clubIsHome ? 'r' : 'u',",
+    );
     expect(screen).toContainSource('buildFallbackAtlas(Skia, FALLBACK_SPRITE)');
     expect(screen).toContainSource('<Atlas');
     expect(screen).toContainSource('sampling={PIXEL_ART_SAMPLING}');

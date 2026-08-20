@@ -34,6 +34,9 @@ import { formatChoiceValue, stepChoice } from '../appearance-stepper';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { hasHoverPointer, hasTouchPointer } from '../pointer-capability';
 import { PixelText } from '../components/PixelText';
+import { KitEditorModal, DEFAULT_CLUB_KIT } from '../KitEditorModal';
+import { ClubKitProvider } from '../club-kit-context';
+import type { ClubKitChoice } from '../../render/sprites/club-kit';
 import { useCopy } from '../../i18n';
 
 export interface CharacterCreationScreenProps {
@@ -173,6 +176,8 @@ export function CharacterCreationScreen({
   const [appearance, setAppearance] = useState<CreatedPlayerAppearance>({
     ...DEFAULT_CREATED_APPEARANCE,
   });
+  const [clubKit, setClubKit] = useState<ClubKitChoice>(DEFAULT_CLUB_KIT);
+  const [kitEditorOpen, setKitEditorOpen] = useState(false);
   const [difficulty, setDifficulty] =
     useState<DifficultyMode>(initialDifficulty);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -257,14 +262,18 @@ export function CharacterCreationScreen({
           {/* `rest` rather than `joy` so the rookie blinks while you dress them:
               every joy face squints, and PixelPortrait can only close eyes it can
               find open (see portrait-blink). */}
-          <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
-            <PixelPortrait
-              playerId="created-player-preview"
-              role="FWD"
-              lookId={createdAppearanceLookId(appearance)}
-              expression="rest"
-            />
-          </View>
+          {/* The career does not exist yet, so the club kit comes from the
+              draft rather than from the app-level provider. */}
+          <ClubKitProvider kit={clubKit}>
+            <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
+              <PixelPortrait
+                playerId="created-player-preview"
+                role="FWD"
+                lookId={createdAppearanceLookId(appearance)}
+                expression="rest"
+              />
+            </View>
+          </ClubKitProvider>
           <View className={wide ? 'min-w-0 flex-1 gap-2' : 'w-full gap-2'}>
             <AppearanceChoice
               label={t('characterCreation.skinTone')}
@@ -305,6 +314,27 @@ export function CharacterCreationScreen({
                 cycleAppearance('kitAccent', 1, APPEARANCE_OPTIONS.kitAccent)
               }
             />
+            {/* The steppers pick this player's trim; the kit is the whole
+                club's, so it gets its own door rather than a fourth arrow. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('kit.a11y.openEditor')}
+              pressSfx="stat-step"
+              onPress={() => setKitEditorOpen(true)}
+              style={{ minHeight: 44 }}
+              className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink bg-blue px-3 py-2"
+            >
+              <PixelText
+                className="min-w-0 flex-1 text-sm uppercase text-white"
+                maxFontSizeMultiplier={STEPPER_MAX_FONT_SIZE_MULTIPLIER}
+                numberOfLines={1}
+              >
+                {t('kit.clubKit')}
+              </PixelText>
+              <PixelText className="text-sm uppercase text-white">
+                {t('kit.customise')}
+              </PixelText>
+            </Pressable>
           </View>
         </View>
       </PaperPanel>
@@ -636,7 +666,20 @@ export function CharacterCreationScreen({
             // drops an undefined name rather than writing one over itself.
             clubName: clubName.trim() === '' ? undefined : clubName,
             rosterNames,
+            clubKit,
           });
+        }}
+      />
+      <KitEditorModal
+        visible={kitEditorOpen}
+        kit={clubKit}
+        previewPlayerId="created-player-preview"
+        previewRole="FWD"
+        previewLookId={createdAppearanceLookId(appearance)}
+        onCancel={() => setKitEditorOpen(false)}
+        onDone={(next) => {
+          setClubKit(next);
+          setKitEditorOpen(false);
         }}
       />
     </>

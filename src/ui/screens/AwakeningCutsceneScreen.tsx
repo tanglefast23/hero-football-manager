@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClubKit } from '../club-kit-context';
 import {
   Animated,
   StyleSheet,
@@ -157,10 +158,13 @@ export function AwakeningCutsceneScreen({
     [cutsceneVisualIds],
   );
 
+  // These screens draw the club's OWN players, and drew them in stock red even
+  // when the pitch was in colour-safe amber. The home plan fixes both at once.
+  const plan = useClubKit().planFor('r');
   const atlas = useMemo(() => {
     try {
       return {
-        ...buildSpriteAtlas(Skia, cutsceneVisualIds),
+        ...buildSpriteAtlas(Skia, cutsceneVisualIds, plan),
         fallbackMode: false,
       };
     } catch (error) {

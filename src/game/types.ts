@@ -28,6 +28,20 @@ export interface ClubState {
   weeklyWages: number;
 }
 
+/**
+ * The club's chosen shirt, as it is persisted.
+ *
+ * Three ids, not three colours: the palette they name lives in the render ring
+ * (`src/render/sprites/club-kit.ts`), which a pure ring may not import. Ids are
+ * persisted enum values and are never translated. An id this build does not
+ * know falls back to the stock strip rather than failing the save.
+ */
+export interface ClubKitState {
+  base: string;
+  pattern: string;
+  patternColor: string;
+}
+
 export interface CareerSetup {
   seed: number;
   userClubId: string;
@@ -948,6 +962,8 @@ export interface GameState {
   awakening: CareerAwakeningState;
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;
+  /** The club's chosen shirt. Absent means the stock strip. */
+  clubKit?: ClubKitState;
   trainingPoints: number;
   /**
    * How many motivational speeches the head coach is holding for half time.

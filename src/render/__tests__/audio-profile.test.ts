@@ -35,15 +35,9 @@ describe('pass combo cue', () => {
     );
   });
 
-  it('ships the two milestone cues and loads them in a full match', () => {
-    for (const key of ['pass-combo-epic', 'pass-combo-surge'] as const) {
-      expect(
-        existsSync(join(process.cwd(), `assets/audio/sfx/${key}.m4a`)),
-      ).toBe(true);
-      expect(audioKeysForProfile('full')).toContain(key);
-      expect(audioKeysForProfile('showcase', 'SUPER_STRENGTH')).not.toContain(
-        key,
-      );
+  it('no longer loads the retired x5 milestone cues', () => {
+    for (const key of ['pass-combo-epic', 'pass-combo-surge']) {
+      expect(audioKeysForProfile('full')).not.toContain(key);
     }
   });
 
