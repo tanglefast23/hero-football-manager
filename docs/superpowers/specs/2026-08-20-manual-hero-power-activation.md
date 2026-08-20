@@ -484,39 +484,26 @@ picks one.)
 Handled by §5.1 and §5.2. Both are pinned to opposite bottom corners and each is
 capped at a share of pitch width (card 32%, dock 45%), so they cannot meet.
 
-### 6.7 Balance — the gates as written cannot be measured yet — MEDIUM
+### 6.7 Balance — NOT MEASURED, by owner decision — CLOSED
 
-`MANUAL_ACTIVATION_GRADE / AUTO_ACTIVATION_GRADE = 1.15 / 0.85 = 1.35` is a
-**strength-grade** ratio, not a match-outcome ratio. It must not appear in any
-copy, doc or commit message as "35% stronger".
+`MANUAL_ACTIVATION_GRADE / AUTO_ACTIVATION_GRADE = 1.15 / 0.85 = 1.35`. That is
+a **strength-grade** ratio, not a match-outcome ratio, and it must not be quoted
+as "35% stronger" anywhere.
 
-The round-1 gates named metrics no existing harness produces:
+Both reviewers asked for a measured gate before shipping. Round 3 proposed one:
+a +1 squad-point ceiling in the currency `docs/09-tech-stack.md:69` makes
+canonical, plus an armed-expiry rate for a naive tapper — which would have
+needed a new naive-tapper mode in `power-firing-probe.test.ts`, since the
+existing probes model skilled, context-gated tapping only.
 
-- `power-firing-probe.test.ts` models **skilled, context-gated** taps. It has
-  no naive "tap the moment the Zone opens" mode, which is the behaviour that
-  actually needs measuring.
-- `hero-value-probe.test.ts` calls itself a scratch probe and reports **squad
-  points and squad worth**, not win rate.
-- `docs/09-tech-stack.md:69` makes **squad-point equivalence** the canonical
-  balance currency.
+**Owner decision, 2026-08-20: not measuring it.** The judgement is that manual
+timing will not move outcomes enough to matter. No probe mode, no gate, no
+numbers. This closes the item — do not reopen it with a "quick sanity probe".
 
-So the gates are stated in the currency the harness already speaks, **and** the
-firing probe needs a new mode — the expiry metric cannot be produced without
-one:
-
-- **Squad-point equivalence: +1 squad point, maximum.** `docs/09-tech-stack.md:69`
-  measures 1 squad point at roughly 8 percentage points of win rate near an even
-  match, so this is the same ceiling the round-1 gate meant, stated in the
-  currency the harness actually speaks. docs/09 gives calibration bands, not a
-  manual-versus-auto tolerance — there is no existing number to read, so this
-  one is chosen here, before measuring, on purpose.
-- **Armed-expiry rate for a naive tapper**: report it. Above **40%**, D1(a) is
-  too punishing and D1(b) or §6.2(a) should be reconsidered.
-- Goals per match for the controlled side must stay inside the existing
-  balance-harness rails.
-
-Set these before running anything, or the numbers will be read as whatever they
-turn out to be.
+What that buys and what it costs, stated once so the decision stays informed:
+manual play is ungated, so if it does turn out to be strong, the first signal
+will be play feel rather than a red rail. That is an acceptable trade for a
+setting that defaults to the manager's own choice and can be turned off.
 
 ### 6.8 3x speed leaves under a second to react — MEDIUM
 
@@ -604,7 +591,5 @@ carries one.
     legacy-preferences fixture (§6.3). Plus **one real rendered `MatchScreen`
     check at eleven buttons** — pure layout tests cannot prove eleven controls
     stay readable over a live pitch.
-12. Add a naive-tapper mode to `power-firing-probe.test.ts` (tap on Zone open,
-    no context gate) — the existing probes model skilled play only and cannot
-    produce the expiry metric. Then run both probes and record the numbers
-    against the §6.7 limits.
+12. ~~Balance measurement.~~ Cut by owner decision (§6.7). No naive-tapper
+    probe mode, no squad-point gate.
