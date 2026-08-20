@@ -59,7 +59,7 @@ The approved Bert design and full copy cadence live in [the assistant-manager br
 
 ## Accessibility
 
-Colorblind-safe kit palette pairs (never red-vs-green matches); text scaling respected on management screens; reduce-motion keeps the team-colour power title but removes its movement and sheen; no match input is timed at all, since a charged Zone holds without a countdown and fires on its own; left/right-hand HUD flip.
+Colorblind-safe kit palette pairs (never red-vs-green matches); text scaling respected on management screens; reduce-motion keeps the team-colour power title but removes its movement and sheen; no match input is timed at all under AUTO, since a charged Zone holds without a countdown and fires on its own — MANUAL is the one timed input in the game, and it is opt-in; left/right-hand HUD flip.
 
 ## PC port posture
 

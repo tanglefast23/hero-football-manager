@@ -279,19 +279,15 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'RECOVERED', player: 5 })).toEqual([]);
   });
 
-  it('leaves POWER_EXPIRED silent — the Zone stopped expiring at m1.27', () => {
-    // The countdown is gone, so a Zone never lapses in a played match: the only
-    // emit left sits behind POWER_TAP, which is test instrumentation (docs/04).
-    // The womp stayed wired long after it could play; keep it unwired.
-    expect(filesForEvent({ t: 0, kind: 'POWER_EXPIRED', player: 5 })).toEqual(
-      [],
-    );
-
-    const audio = readFileSync(
-      join(process.cwd(), 'src/render/audio.ts'),
-      'utf8',
-    );
-    expect(audio).not.toContain("'zone-expire'");
+  it('sounds POWER_EXPIRED again, now a manual tap can lose a Zone', () => {
+    // Unreachable and deliberately unwired from m1.27 (the Zone stopped
+    // counting down) until the manual tap returned on 2026-08-20. A tap
+    // outside the authored context arms a 20-tick window; when it lapses the
+    // hero loses one of only three Zones for the match. A charge the manager
+    // earned must never vanish in silence.
+    expect(filesForEvent({ t: 0, kind: 'POWER_EXPIRED', player: 5 })).toEqual([
+      'zone-expire',
+    ]);
   });
 
   /**

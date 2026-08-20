@@ -907,6 +907,12 @@ function GameApp() {
     },
     [savePreferences],
   );
+  const saveAutoPowers = useCallback(
+    (autoPowers: boolean) => {
+      savePreferences({ ...preferencesRef.current, autoPowers });
+    },
+    [savePreferences],
+  );
   const saveMatchPerformanceLimit = useCallback(
     (performanceLimit: AppPreferences['performanceLimit']) => {
       savePreferences({ ...preferencesRef.current, performanceLimit });
@@ -1772,6 +1778,7 @@ function GameApp() {
         // between the matches of one career, but a new manager starts in charge
         // of their own bench rather than inheriting the last career's switch.
         if (preferencesRef.current.autoSubs) saveAutoSubs(false);
+        if (preferencesRef.current.autoPowers) saveAutoPowers(false);
         store.startNewCareer(undefined, assistantMode);
       };
       if (!store.hasSavedCareer) {
@@ -1788,6 +1795,7 @@ function GameApp() {
     },
     [
       requestConfirmation,
+      saveAutoPowers,
       saveAutoSubs,
       store.hasSavedCareer,
       store.startNewCareer,
@@ -3029,6 +3037,7 @@ function GameApp() {
         onPowerCutInSeen={recordSeenPowerCutIn}
         highContrast={preferences.highContrast}
         colorSafeKits={preferences.colorSafeKits}
+        autoPowers={preferences.autoPowers}
         autoSubs={preferences.autoSubs}
         onAutoSubsChange={saveAutoSubs}
         onFormationChange={rememberMatchFormation}
@@ -3137,6 +3146,10 @@ function GameApp() {
             )
           }
           onWatchMatch={store.watchMatch}
+          autoPowers={preferences.autoPowers}
+          onAutoPowersChange={saveAutoPowers}
+          autoSubs={preferences.autoSubs}
+          onAutoSubsChange={saveAutoSubs}
           formationOptions={matchdayFormationOptions}
           onSelectFormation={selectFormationPreset}
           onQuickResult={() =>

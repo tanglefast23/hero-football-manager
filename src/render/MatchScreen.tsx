@@ -288,6 +288,12 @@ import {
 import { mentalityLabel } from './match-mentality-ui';
 import { chargeMeter } from './hero-charge-meter';
 import { carrierCardGeometry } from './match-carrier-card';
+import {
+  heroPowerDockCells,
+  heroPowerDockLayout,
+  heroPowerTapBlocked,
+} from './hero-power-dock';
+import { HeroPowerDock } from './HeroPowerDock';
 import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
 import {
@@ -591,6 +597,7 @@ export function MatchScreen({
   motivationalSpeech,
   autoSubs: initialAutoSubs = false,
   onAutoSubsChange,
+  autoPowers = false,
   onFormationChange,
   maximumSpeed = 3,
   performanceLimit,
@@ -642,6 +649,17 @@ export function MatchScreen({
     readonly coachName: string;
     readonly coachPortraitId: string;
   };
+  /**
+   * The manager's HERO POWER setting, read once at mount.
+   *
+   * False is MANUAL — the shipped default — which opens the controlled side on
+   * SAVE_FOR_TAP and puts a fire button on the pitch for every hero holding a
+   * Zone. Goalkeepers are exempt in the engine (m2.7) whatever this says.
+   * Deliberately not live: changing it mid-match would record a
+   * SET_AUTO_POWERS the envelope validator cannot reconcile against the
+   * opening policy, and the saved replay would fail its own validation.
+   */
+  autoPowers?: boolean;
   /** Bench cover as the manager last left it, so it survives the final whistle. */
   autoSubs?: boolean;
   /** Fires only when the substitution board saves a different setting. */
@@ -782,7 +800,11 @@ export function MatchScreen({
       seed,
       home,
       away,
-      matchPoliciesForControlledTeam(controlledTeam, livePresets[0]),
+      matchPoliciesForControlledTeam(
+        controlledTeam,
+        livePresets[0],
+        autoPowers ? 'auto' : 'manual',
+      ),
     );
     if (powerMatchQa !== undefined) {
       initializePowerMatchShowcase(stateRef.current, powerMatchQa.power);
@@ -3773,6 +3795,26 @@ export function MatchScreen({
       return false;
     }
   };
+  /**
+   * Fires one hero's banked power by hand.
+   *
+   * Two guards, and both are load-bearing. `pendingInputs` stops a double press
+   * inside the same tick, but it clears one tick after the tap while the armed
+   * window runs for twenty — so the cell state is checked as well. Without it,
+   * every press during those two seconds would append a POWER_TAP the sim
+   * silently skips (powers.ts acts only on a `zone`) and the replay still
+   * records; at MAX_REPLAY_INPUTS queueInput starts throwing, and it would then
+   * refuse real coaching inputs for the rest of the match.
+   */
+  const firePower = (slot: number, pressable: boolean) => {
+    if (!pressable) return;
+    if (heroPowerTapBlocked(match, slot)) return;
+    recordCoachingInput({
+      tick: match.tick + 1,
+      kind: 'POWER_TAP',
+      player: slot,
+    });
+  };
   // Re-picking what is already selected is not a coaching decision: it would
   // record a redundant replay input and flash a banner announcing no change.
   // Compared against the DISPLAYED value, so a second tap landing before the
@@ -3892,6 +3934,15 @@ export function MatchScreen({
           ];
         })();
   const railHeroTiles = [...controlledRailHeroTiles, ...rivalRailHeroTiles];
+  // One cell per hero the manager may fire by hand. Empty unless MANUAL is on,
+  // because every slot is FIRE_WHEN_READY otherwise — and goalkeepers are
+  // always FIRE_WHEN_READY, so they never appear here (m2.7).
+  const heroPowerCells = heroPowerDockCells(match, controlledTeam);
+  const heroPowerLayout = heroPowerDockLayout(
+    heroPowerCells.length,
+    pitchWidth,
+    railLayout,
+  );
   const railClockLine = `${t(
     match.half === 1 ? 'matchScreen.firstHalf' : 'matchScreen.secondHalf',
   )} · ${minute}'${stoppage ? '+' : ''}${paused ? ` · ${t('matchScreen.paused')}` : ''}`;
@@ -4462,6 +4513,17 @@ export function MatchScreen({
                 ) : null}
               </View>
             ) : null}
+            <HeroPowerDock
+              cells={heroPowerCells}
+              layout={heroPowerLayout}
+              // The corner the possession card is not using. Pinning the dock
+              // to the right unconditionally would stack the two for every
+              // manager who moved Match Info to the right.
+              side={hudSide === 'left' ? 'right' : 'left'}
+              desktop={railLayout}
+              reduceMotion={reduceMotion}
+              onFire={firePower}
+            />
           </View>
         </View>
       </View>

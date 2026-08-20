@@ -275,9 +275,10 @@ describe('player-facing acceptance audit regressions', () => {
     expect(app).toContainSource(
       'formationPresets={preferences.formationPresets}',
     );
-    expect(liveMatch).toContainSource(
-      'matchPoliciesForControlledTeam(controlledTeam, livePresets[0]),',
-    );
+    // Slot 0 still decides the shape the match opens on; the third argument
+    // is the manager's HERO POWER setting, which does not touch formation.
+    expect(liveMatch).toContainSource('livePresets[0],');
+    expect(liveMatch).toContainSource('matchPoliciesForControlledTeam(');
   });
 
   test('never reorders the live formation chips under the manager', () => {

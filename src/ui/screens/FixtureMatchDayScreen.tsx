@@ -51,6 +51,18 @@ export interface FixtureMatchDayScreenProps {
   watchDisabled?: boolean;
   quickResultDisabled?: boolean;
   onOpenSettings: () => void;
+  /**
+   * Remembered between matches: heroes fire their own powers, or the boss does.
+   *
+   * Goalkeepers are exempt in the engine whatever this says (m2.7) — their Zone
+   * opens early and its only useful moment is a shot already in flight, so a
+   * hand-fired keeper is a wasted keeper.
+   */
+  autoPowers: boolean;
+  onAutoPowersChange: (autoPowers: boolean) => void;
+  /** The same switch the touchline board carries, set before kick-off. */
+  autoSubs: boolean;
+  onAutoSubsChange: (autoSubs: boolean) => void;
 }
 
 const ROLE_ORDER: ReadonlyArray<'FWD' | 'MID' | 'DEF' | 'GK'> = [
@@ -281,6 +293,10 @@ export function FixtureMatchDayScreen({
   watchDisabled = false,
   quickResultDisabled = false,
   onOpenSettings,
+  autoPowers,
+  onAutoPowersChange,
+  autoSubs,
+  onAutoSubsChange,
 }: FixtureMatchDayScreenProps) {
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
@@ -610,6 +626,48 @@ export function FixtureMatchDayScreen({
     </View>
   );
 
+  const matchOrderRow = (
+    key: 'heroPower' | 'substitutions',
+    on: boolean,
+    onChange: (next: boolean) => void,
+  ) => {
+    const mode = t(on ? 'fixtureMatchDay.auto' : 'fixtureMatchDay.manual');
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t(
+          key === 'heroPower'
+            ? 'fixtureMatchDay.a11y.heroPowerMode'
+            : 'fixtureMatchDay.a11y.substitutionsMode',
+          { mode },
+        )}
+        onPress={() => onChange(!on)}
+        className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-white px-3 py-2"
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+      >
+        <PixelText className="flex-1 pr-2 text-sm uppercase text-ink">
+          {t(`fixtureMatchDay.${key}`)}
+        </PixelText>
+        <PixelText
+          className={
+            on
+              ? 'text-base uppercase text-blue-dark'
+              : 'text-base uppercase text-ink/60'
+          }
+        >
+          {mode}
+        </PixelText>
+      </Pressable>
+    );
+  };
+
+  const matchOrders = (
+    <View className={wide ? 'gap-2' : 'mt-4 gap-2'}>
+      {matchOrderRow('heroPower', autoPowers, onAutoPowersChange)}
+      {matchOrderRow('substitutions', autoSubs, onAutoSubsChange)}
+    </View>
+  );
+
   const bench = (
     <View className={wide ? undefined : 'mt-4'}>
       <StageSection
@@ -886,6 +944,7 @@ export function FixtureMatchDayScreen({
               {inspectedStarter === undefined ? null : (
                 <StarterDetailPanel player={inspectedStarter} />
               )}
+              {matchOrders}
               {bench}
               {heroLicenses}
             </View>
@@ -894,6 +953,7 @@ export function FixtureMatchDayScreen({
           <View className="w-full max-w-[720px] self-center">
             {fixtureCard}
             {teamSheet}
+            {matchOrders}
             {bench}
             {heroLicenses}
           </View>

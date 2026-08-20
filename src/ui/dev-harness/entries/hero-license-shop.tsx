@@ -100,6 +100,10 @@ export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
       formationOptions={COACHING_FORMATION_IDS}
       onSelectFormation={() => {}}
       onOpenSettings={() => {}}
+      autoPowers={false}
+      onAutoPowersChange={() => {}}
+      autoSubs={false}
+      onAutoSubsChange={() => {}}
     />
   );
 }

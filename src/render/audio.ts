@@ -44,6 +44,7 @@ export type SfxKey =
   | 'crowd-jeer'
   | 'rally-drums'
   | 'zone-enter'
+  | 'zone-expire'
   | 'positive'
   | 'extinguisher-spray'
   | 'super-speed-whoosh'
@@ -98,6 +99,10 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'crowd-jeer': require('../../assets/audio/sfx/crowd-jeer.wav'),
   'rally-drums': require('../../assets/audio/sfx/rally-drums.m4a'),
   'zone-enter': require('../../assets/audio/sfx/zone-enter.m4a'),
+  // Procedural .wav: this cue has no supplied replacement, like the other
+  // catalog fixtures. It was wired, then unreachable from m1.27, and is
+  // reachable again now that a manual tap can arm a window that lapses.
+  'zone-expire': require('../../assets/audio/sfx/zone-expire.wav'),
   positive: require('../../assets/audio/sfx/positive.m4a'),
   'extinguisher-spray': require('../../assets/audio/sfx/extinguisher-spray.wav'),
   'super-speed-whoosh': require('../../assets/audio/sfx/super-speed-whoosh.wav'),
@@ -311,19 +316,19 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['decoy-pop'];
     case 'IGNITED':
       return ['flame-hit']; // a defender catches fire (distinct from the caster's flame-up)
+    // Reachable again since the manual tap came back (2026-08-20). A tap
+    // outside the authored context arms a 20-tick window, and when that window
+    // lapses the hero loses one of only three Zones. Silence there is the
+    // worst outcome for trust: the manager sees a charge they earned vanish
+    // with no explanation. Unreachable, and deliberately unwired, between
+    // m1.27 and now.
+    case 'POWER_EXPIRED':
+      return ['zone-expire'];
     // RECOVERED (a player getting back up) has no matching asset — deliberately
     // silent, an explicit case (not a catch-all) so the exhaustiveness check
     // below stays meaningful.
     //
-    // POWER_EXPIRED is silent because it can no longer reach a played match:
-    // the Zone stopped counting down at m1.27, so the sole remaining emit (the
-    // 'armed' branch of sim/powers.ts) is entered only from a POWER_TAP, which
-    // survives as test instrumentation alone (docs/04). Its zone-expire.wav
-    // deliberately stays in scripts/audio/catalog.mjs — that catalog seeds its
-    // generators by array index, so dropping the entry would re-roll every
-    // sound after it.
     case 'RECOVERED':
-    case 'POWER_EXPIRED':
     case 'FORMATION_CHANGED':
     case 'MENTALITY_CHANGED':
     case 'ENERGY_USE_CHANGED':

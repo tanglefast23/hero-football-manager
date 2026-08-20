@@ -12,14 +12,26 @@ import type { MatchOpts, MatchState } from '../sim/types';
  *
  * Both watched play and Quick Result use it. Keeping the options here prevents
  * one path from silently returning to the engine's fully automatic defaults.
+ *
+ * `heroPowers` is the manager's HERO POWER setting, and it defaults to 'auto'
+ * on purpose. **Quick Result must never pass 'manual'.** Nobody is watching a
+ * Quick Result, so SAVE_FOR_TAP heroes would hold their Zones to the whistle
+ * and the club would field its heroes for no effect at all — silently. The
+ * parameter lives here rather than in a second options builder because this
+ * function is shared precisely to stop the watched and quick paths drifting.
  */
 export function controlledMatchOptions(
   controlledTeam: 0 | 1,
   initialFormation: FormationId = '4-4-2',
+  heroPowers: 'auto' | 'manual' = 'auto',
 ): MatchOpts {
+  // Only the manager's own side may be manual. The opposition always fires
+  // automatically — there is nobody to tap for them.
+  const controlledPolicy =
+    heroPowers === 'manual' ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY';
   return {
-    homePolicy: 'FIRE_WHEN_READY',
-    awayPolicy: 'FIRE_WHEN_READY',
+    homePolicy: controlledTeam === 0 ? controlledPolicy : 'FIRE_WHEN_READY',
+    awayPolicy: controlledTeam === 1 ? controlledPolicy : 'FIRE_WHEN_READY',
     controlledTeam,
     ...(controlledTeam === 0
       ? { homeFormation: initialFormation }
