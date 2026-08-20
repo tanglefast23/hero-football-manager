@@ -38,7 +38,7 @@ import { ROVERS, UNITED } from './teams';
 // domains, career condition carryover, fixed-point PAC/STA movement), m1.29
 // (presser standoff ring; PAC-widened duel spacing), m1.25 (five named subs,
 // immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
-const EXPECTED_RUNTIME_GOLDEN = '6d8b2d78';
+const EXPECTED_RUNTIME_GOLDEN = '8a123c1a';
 
 // Seed 42 finishes 0-0, so neither this hash nor parity-replay's snapshot has
 // ever contained a GOAL payload — adding assistedById to that event moved
@@ -53,7 +53,7 @@ const EXPECTED_RUNTIME_GOLDEN = '6d8b2d78';
 // have rebaselined quietly while the both-kinds contract below went red. Seed
 // 25 restores the same profile 81 used to have. Re-scan for a replacement
 // rather than weakening the assertion if a future change costs it again.
-const EXPECTED_GOAL_GOLDEN = '6cadbc24';
+const EXPECTED_GOAL_GOLDEN = 'bddb180e';
 
 const GOAL_GOLDEN_SEED = 25;
 

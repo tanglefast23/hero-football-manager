@@ -287,13 +287,17 @@ import {
 } from './match-energy-ui';
 import { mentalityLabel } from './match-mentality-ui';
 import { chargeMeter } from './hero-charge-meter';
+import { isShotSavePower } from '../sim/powers';
 import { carrierCardGeometry } from './match-carrier-card';
 import {
+  handFireable,
   heroPowerDockCells,
   heroPowerDockLayout,
+  heroPowerRingMasks,
   heroPowerTapBlocked,
 } from './hero-power-dock';
 import { HeroPowerDock } from './HeroPowerDock';
+import { HeroPowerRings } from './HeroPowerRings';
 import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
 import {
@@ -475,6 +479,44 @@ function pushMatchBanner(
 }
 
 /** The same, for the three coaching controls that replace their own line. */
+/**
+ * A wasted-power line, which must never cost the manager a goal line.
+ *
+ * The ticker holds four banners and allocates lanes by span, and a `big` line
+ * claims two of them. When no free pair exists `tickerLane` reuses the oldest
+ * lane, so a second big line does not evict a goal — it is drawn ON TOP of one.
+ * Both hazards are refused here rather than in the generic pusher, because
+ * goals, half time and full time are all entitled to shove each other.
+ *
+ * An existing wasted line is not a reason to skip: replacing it is exactly what
+ * the `power-wasted` subject exists to do.
+ */
+/**
+ * A goal, half time or full time takes the lane back.
+ *
+ * The skip guard in `pushWastedPowerBanner` is only half the protection: it
+ * stops a wasted line being ADDED under a live big line, but a goal arriving
+ * afterwards would find the lane taken and `tickerLane` reuses the oldest lane
+ * rather than failing — drawing the goal on top of it. Dropping the wasted line
+ * first is the other half.
+ */
+function clearWastedPowerBanner(
+  banners: readonly MatchBanner[],
+): MatchBanner[] {
+  return banners.filter((live) => live.subject !== 'power-wasted');
+}
+
+function pushWastedPowerBanner(
+  banners: readonly MatchBanner[],
+  banner: NewMatchBanner & { subject: MatchBannerSubject },
+): MatchBanner[] {
+  const blockingBigLine = banners.some(
+    (live) => live.size === 'big' && live.subject !== 'power-wasted',
+  );
+  if (blockingBigLine) return [...banners];
+  return pushSubjectedMatchBanner(banners, banner);
+}
+
 function pushSubjectedMatchBanner(
   banners: readonly MatchBanner[],
   banner: NewMatchBanner & { subject: MatchBannerSubject },
@@ -654,7 +696,7 @@ export function MatchScreen({
    *
    * False is MANUAL — the shipped default — which opens the controlled side on
    * SAVE_FOR_TAP and puts a fire button on the pitch for every hero holding a
-   * Zone. Goalkeepers are exempt in the engine (m2.7) whatever this says.
+   * Zone. Goalkeepers obey it too since m2.8, with their own button rules.
    * Deliberately not live: changing it mid-match would record a
    * SET_AUTO_POWERS the envelope validator cannot reconcile against the
    * opening policy, and the saved replay would fail its own validation.
@@ -2154,7 +2196,15 @@ export function MatchScreen({
         // Before playForEvent, never after: this sets kick-shot's playback rate
         // and adds the scorch layer, and the rate must land before it starts.
         if (e.kind === 'SHOT') playShotTierAudio(shotTierRef.current);
-        playForEvent(e);
+        // A rival save keeper arms at 5 Heat, so an unfiltered zone-enter cue
+        // sounded about twelve seconds into every single match. Suppressed HERE
+        // in the play path, never in `filesForEvent` — the manager's OWN heroes
+        // arming is exactly the beat this change exists to give them.
+        const mutedRivalArm =
+          e.kind === 'POWER_READY' &&
+          isShotSavePower(e.power) &&
+          s.players[e.player].team !== controlledTeam;
+        if (!mutedRivalArm) playForEvent(e);
         playHapticForEvent(e, controlledTeam);
         if (e.kind === 'POWER_FIRED' && e.power === 'FIRE_TORCH') {
           torchCasterPos = { ...nextRef.current!.players[e.player] };
@@ -2305,16 +2355,19 @@ export function MatchScreen({
           // The scorer's line crosses slower than everything else, and more
           // so the faster the match runs — see goalTickerLifeTicks.
           const goalTicks = goalTickerLifeTicks(FLASH_TICKS, speedRef.current);
-          bannerRef.current = pushMatchBanner(bannerRef.current, {
-            id: `goal:${e.t}:${e.by}`,
-            // The icon below is a pictogram, not a word: it stays in the
-            // source and only the sentence beside it comes from the catalog.
-            text: `${presentation.icon} ${t('matchScreen.bannerGoal', { player: scorerName })}`,
-            untilTick: e.t + goalTicks,
-            lifeTicks: goalTicks,
-            tone: presentation.tone,
-            size: 'big',
-          });
+          bannerRef.current = pushMatchBanner(
+            clearWastedPowerBanner(bannerRef.current),
+            {
+              id: `goal:${e.t}:${e.by}`,
+              // The icon below is a pictogram, not a word: it stays in the
+              // source and only the sentence beside it comes from the catalog.
+              text: `${presentation.icon} ${t('matchScreen.bannerGoal', { player: scorerName })}`,
+              untilTick: e.t + goalTicks,
+              lifeTicks: goalTicks,
+              tone: presentation.tone,
+              size: 'big',
+            },
+          );
           // A powered finish names the power on a smaller tile directly under
           // the goal banner. The name comes from the already-translated power
           // catalog, so this adds no new string to the i18n catalogs. It shares
@@ -2571,14 +2624,17 @@ export function MatchScreen({
           // crossing. Half time is an announcement, not a footnote, and at the
           // normal life it was gone before a player looked up.
           const halfTicks = goalTickerLifeTicks(FLASH_TICKS, speedRef.current);
-          bannerRef.current = pushMatchBanner(bannerRef.current, {
-            id: `half:${e.t}`,
-            text: t('matchScreen.bannerHalfTime'),
-            untilTick: e.t + halfTicks,
-            lifeTicks: halfTicks,
-            tone: 'blue',
-            size: 'big',
-          });
+          bannerRef.current = pushMatchBanner(
+            clearWastedPowerBanner(bannerRef.current),
+            {
+              id: `half:${e.t}`,
+              text: t('matchScreen.bannerHalfTime'),
+              untilTick: e.t + halfTicks,
+              lifeTicks: halfTicks,
+              tone: 'blue',
+              size: 'big',
+            },
+          );
         }
         if (e.kind === 'FULL_TIME') {
           // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
@@ -2726,19 +2782,47 @@ export function MatchScreen({
           };
         }
         // Controlled heroes activate automatically without a readiness marker.
-        // Rival Zone entry remains a short red threat so keeping possession
-        // away from that hero is still visible counterplay.
-        if (e.kind === 'POWER_READY') {
-          const firstName = s.players[e.player].def.name.split(' ')[0];
+        // A rival arming stays a short red threat, because since m2.8 a rival
+        // Zone genuinely holds until their context arrives — denying it for the
+        // rest of the match is real counterplay, and the warning is honest.
+        //
+        // Save keepers are the exception. They arm at 5 Heat, so an unfiltered
+        // warning fired about twelve seconds into every single match. Keyed on
+        // the POWER carried by the event — not on the slot, which batched
+        // rendering may find holding a substitute by now.
+        if (e.kind === 'POWER_READY' && !isShotSavePower(e.power)) {
+          // No player name: rendering is batched, so the slot may already hold
+          // a substitute by the time this line is pushed, and it would name the
+          // wrong man. The warning is about the threat, not the shirt.
           if (s.players[e.player].team !== controlledTeam) {
             bannerRef.current = pushMatchBanner(bannerRef.current, {
               id: `rival-zone:${e.t}:${e.player}`,
-              text: `⚠ ${t('matchScreen.bannerRivalZone', { player: firstName })}`,
+              text: `⚠ ${t('matchScreen.bannerRivalZone')}`,
               untilTick: e.t + RIVAL_ZONE_BANNER_TICKS,
               lifeTicks: RIVAL_ZONE_BANNER_TICKS,
               tone: 'red',
             });
           }
+        }
+        // A charge the manager earned has been lost. It gets the goal line's
+        // own treatment at the other end of the emotional scale: same ticker,
+        // same big type, red.
+        if (
+          e.kind === 'POWER_EXPIRED' &&
+          s.players[e.player].team === controlledTeam
+        ) {
+          bannerRef.current = pushWastedPowerBanner(bannerRef.current, {
+            id: `power-wasted:${e.t}:${e.player}`,
+            text:
+              e.reason === 'no-shot'
+                ? t('matchScreen.bannerNoShotOnNet')
+                : t('matchScreen.bannerPowerWasted'),
+            untilTick: e.t + goalTickerLifeTicks(FLASH_TICKS, speedRef.current),
+            lifeTicks: goalTickerLifeTicks(FLASH_TICKS, speedRef.current),
+            tone: 'red',
+            size: 'big',
+            subject: 'power-wasted',
+          });
         }
       }
       // Every frame, not every tick: the beat sheet runs on wall clock so its
@@ -3139,11 +3223,21 @@ export function MatchScreen({
   // UI-thread mappers (one per flame layer) on every sim tick; a number compares
   // by value, so the mappers now only restart when the cast actually changes.
   let fireTorchMask = 0;
+  // The manager's own hand-fireable heroes and their power colours, for the
+  // on-pitch rings. Empty in AUTO — `handFireable` is false for the whole side
+  // — so the rings and their POWER plates never draw there.
+  const heroPowerRingHeroes: { slot: number; color: string }[] = [];
   match.players.forEach((player, index) => {
     if (!player.def.power) return;
     if (player.team !== controlledTeam) rivalHeroPlayers.push(index);
+    else if (handFireable(match, index))
+      heroPowerRingHeroes.push({
+        slot: index,
+        color: powerCutInPresentation(player.def.power, t).color,
+      });
     if (player.def.power === 'FIRE_TORCH') fireTorchMask |= 1 << index;
   });
+  const heroPowerRings = heroPowerRingMasks(match, controlledTeam);
   const speedBoosted = speedBoostMask(match.players);
   const activeWebTraps = match.players.flatMap((player, index) =>
     player.def.power === 'WEB_TRAP' &&
@@ -3161,6 +3255,7 @@ export function MatchScreen({
   );
 
   const shotPopWord = t('matchScreen.shotPop');
+  const heroPowerRingWord = t('matchScreen.heroPowerRing');
   // The two pitch numbers, ordered newest-last so the fresher pop draws over
   // the older one when both are still alive. Keys keep each node's identity
   // across the swap, so a reorder does not remount it and rebuild its SkPath.
@@ -3892,7 +3987,7 @@ export function MatchScreen({
               powerName: presentation.name,
               powerGlyph: presentation.glyph,
               powerColor: presentation.color,
-              heat: heatFraction(player.gauge),
+              heat: heatFraction(player.gauge, player.def.role),
               status: railHeroStatus(player.powerState),
               rival: false,
             },
@@ -3927,7 +4022,7 @@ export function MatchScreen({
               powerName: presentation.name,
               powerGlyph: presentation.glyph,
               powerColor: '#d94f52',
-              heat: heatFraction(player.gauge),
+              heat: heatFraction(player.gauge, player.def.role),
               status: railHeroStatus(player.powerState),
               rival: true,
             },
@@ -3936,7 +4031,7 @@ export function MatchScreen({
   const railHeroTiles = [...controlledRailHeroTiles, ...rivalRailHeroTiles];
   // One cell per hero the manager may fire by hand. Empty unless MANUAL is on,
   // because every slot is FIRE_WHEN_READY otherwise — and goalkeepers are
-  // always FIRE_WHEN_READY, so they never appear here (m2.7).
+  // FIRE_WHEN_READY. Goalkeepers are included since m2.8.
   const heroPowerCells = heroPowerDockCells(match, controlledTeam);
   const heroPowerLayout = heroPowerDockLayout(
     heroPowerCells.length,
@@ -4316,6 +4411,24 @@ export function MatchScreen({
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
                   />
+                  {/* Which body the corner fire button belongs to. Drawn
+                    before the other overlays so a hero's own power FX — flames,
+                    speed lines, the Zone glow — always sit over the ring rather
+                    than under it. */}
+                  <HeroPowerRings
+                    heroes={heroPowerRingHeroes}
+                    dashedMask={heroPowerRings.dashed}
+                    solidMask={heroPowerRings.solid}
+                    label={heroPowerRingWord}
+                    visualPositions={workletVisualPositions}
+                    visibility={workletVisibility}
+                    visualTick={workletVisualTick}
+                    scale={scale}
+                    ringRadius={ringR}
+                    playerDrawScale={playerSpriteScale.drawScale}
+                    devicePixelRatio={devicePixelRatio}
+                    reduceMotion={reduceMotion}
+                  />
                   <WorkletMatchOverlays
                     visualPositions={workletVisualPositions}
                     visibility={workletVisibility}
@@ -4499,7 +4612,11 @@ export function MatchScreen({
                 {/* Heroes only — an ordinary player has no Heat to read. */}
                 {carrier.def.power ? (
                   <HeroChargeMeter
-                    meter={chargeMeter(carrier.gauge, carrier.powerState)}
+                    meter={chargeMeter(
+                      carrier.gauge,
+                      carrier.powerState,
+                      carrier.def.role,
+                    )}
                     trackWidth={
                       carrierCardGeometry(pitchWidth, railLayout).contentWidth
                     }

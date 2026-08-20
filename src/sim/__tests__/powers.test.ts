@@ -141,17 +141,20 @@ describe('hero gauge and firing', () => {
     expect(boosted.players[SPEEDSTER].gauge).toBe(20.5);
   });
 
-  it('banked Heat converts immediately when an authored context appears', () => {
+  it('converts a full bar the moment it fills, with nothing else required', () => {
+    // The m2.8 inversion, stated as plainly as it can be. Before this, a hero
+    // could sit at 199 Heat — more than three times the threshold — and stay
+    // idle because their power's authored setup was not on the pitch. The
+    // manager saw a full bar and no button, for minutes, with no explanation
+    // available anywhere in the game.
     const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].gauge = 199;
+    // An opponent has the ball at the far end: nothing this power wants.
     m.ball = { kind: 'held', by: 9 };
     powerTick(m);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
-    expect(m.players[SPEEDSTER].gauge).toBe(199.02);
 
-    m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
-    m.ball = { kind: 'held', by: SPEEDSTER };
-    powerTick(m);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
+    expect(m.players[SPEEDSTER].gauge).toBe(0); // heat resets on entry
     expect(
       m.events.some(
         (e) =>
@@ -159,8 +162,8 @@ describe('hero gauge and firing', () => {
           (e as { player: number }).player === SPEEDSTER,
       ),
     ).toBe(true);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
-    expect(m.players[SPEEDSTER].gauge).toBe(0); // heat resets on entry
+    // Armed is not fired. The authored moment still gates the power itself.
+    expect(inUsefulContext(m, SPEEDSTER)).toBe(false);
   });
 
   it('caps each hero at three Zone opportunities in one match', () => {
@@ -227,6 +230,9 @@ describe('hero gauge and firing', () => {
     expect(m.players[SPEEDSTER].powerState).toEqual({
       kind: 'armed',
       remainingTicks: 20,
+      windowTicks: ARM_WINDOW_TICKS,
+      strength: 0.9,
+      sawShotOnTarget: false,
     });
 
     m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
@@ -676,6 +682,9 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     expect(m.players[SPEEDSTER].powerState).toEqual({
       kind: 'armed',
       remainingTicks: ARM_WINDOW_TICKS,
+      windowTicks: ARM_WINDOW_TICKS,
+      strength: 0.9,
+      sawShotOnTarget: false,
     });
     expect(m.pendingInputs).toHaveLength(0);
     expect(
@@ -707,6 +716,9 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     expect(m.players[SPEEDSTER].powerState).toEqual({
       kind: 'armed',
       remainingTicks: ARM_WINDOW_TICKS,
+      windowTicks: ARM_WINDOW_TICKS,
+      strength: 0.9,
+      sawShotOnTarget: false,
     });
     expect(m.pendingInputs).toHaveLength(0);
   });
@@ -726,6 +738,9 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     expect(m.players[SPEEDSTER].powerState).toEqual({
       kind: 'armed',
       remainingTicks: 1,
+      windowTicks: ARM_WINDOW_TICKS,
+      strength: 0.9,
+      sawShotOnTarget: false,
     });
     expect(m.events).not.toContainEqual(
       expect.objectContaining({ kind: 'POWER_EXPIRED', player: SPEEDSTER }),
@@ -748,7 +763,13 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     (state) => {
       const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
       const player = m.players[SPEEDSTER];
-      player.powerState = { kind: 'armed', remainingTicks: ARM_WINDOW_TICKS };
+      player.powerState = {
+        kind: 'armed',
+        remainingTicks: ARM_WINDOW_TICKS,
+        windowTicks: ARM_WINDOW_TICKS,
+        strength: 0.9,
+        sawShotOnTarget: false,
+      };
       if (state === 'out') {
         player.outUntilTick = 100;
         player.outReason = 'ko';
@@ -768,7 +789,13 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
         m.tick++;
         powerTick(m);
       }
-      expect(player.powerState).toEqual({ kind: 'armed', remainingTicks: 1 });
+      expect(player.powerState).toEqual({
+        kind: 'armed',
+        remainingTicks: 1,
+        windowTicks: ARM_WINDOW_TICKS,
+        strength: 0.9,
+        sawShotOnTarget: false,
+      });
 
       m.tick++;
       powerTick(m);

@@ -435,7 +435,7 @@ export function MatchControlRail({
               </Text>
               <View style={styles.heroCopy}>
                 <Text numberOfLines={1} style={styles.heroName}>
-                  {tile.name}
+                  {`${tile.name} (${heroStateWord(tile, t)})`}
                 </Text>
                 <Text
                   numberOfLines={1}
@@ -451,7 +451,7 @@ export function MatchControlRail({
                       styles.heatFill,
                       tile.rival
                         ? styles.heatFillRival
-                        : tile.status === 'building'
+                        : tile.status === 'loading'
                           ? null
                           : styles.heatFillReady,
                       { width: `${Math.round(tile.heat * 100)}%` },
@@ -465,7 +465,7 @@ export function MatchControlRail({
                     styles.heroStatus,
                     tile.rival
                       ? styles.heroStatusRival
-                      : tile.status === 'building'
+                      : tile.status === 'loading'
                         ? null
                         : styles.heroStatusReady,
                   ]}
@@ -481,12 +481,18 @@ export function MatchControlRail({
   );
 }
 
+/** LOADING while the bar fills, ARMED once it is full, LIVE while it plays. */
+function heroStateWord(tile: MatchRailHeroTile, t: CopyFn): string {
+  if (tile.status === 'firing') return t('matchRail.statusLive');
+  if (tile.status === 'armed') return t('matchRail.statusArmed');
+  return t('matchRail.statusLoading');
+}
+
 function heroStatusText(tile: MatchRailHeroTile, t: CopyFn): string {
   if (tile.status === 'firing') return t('matchRail.statusLive');
-  // m1.27 removed the Zone countdown from the sim: remainingTicks never
-  // decrements, so a seconds readout would sit frozen at "7s" for the whole
-  // hold. The tile states the phase instead of faking a timer.
-  if (tile.status === 'zone') return t('matchRail.statusZone');
+  // ARMED, not a timer. There is no countdown to show: an armed hero holds
+  // until the manager fires them or the whistle goes.
+  if (tile.status === 'armed') return '';
   return `${Math.round(tile.heat * 100)}%`;
 }
 

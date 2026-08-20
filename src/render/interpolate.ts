@@ -2,7 +2,7 @@
 // Math.random / Date.now — safe to unit test headless (same rule as src/sim/).
 import { ballHeight, ballPos } from '../sim/engine';
 import { PITCH_H, PITCH_W, type Vec } from '../sim/geometry';
-import { ARM_WINDOW_TICKS, ZONE_WINDOW_TICKS } from '../sim/powers';
+import { ZONE_WINDOW_TICKS } from '../sim/powers';
 import type { MatchState } from '../sim/types';
 import { playerAt, RENDER_PLAYER_COUNT } from '../sim/entities';
 import { snapDevicePixels } from './pixel-grid';
@@ -328,7 +328,7 @@ export function snapshotFrame(
       if (p.powerState.kind === 'zone')
         return p.powerState.remainingTicks / ZONE_WINDOW_TICKS;
       if (p.powerState.kind === 'armed')
-        return p.powerState.remainingTicks / ARM_WINDOW_TICKS;
+        return p.powerState.remainingTicks / p.powerState.windowTicks;
       return 0;
     }),
     moved: positions.map(

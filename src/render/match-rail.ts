@@ -1,5 +1,5 @@
-import { ZONE_HEAT_THRESHOLD } from '../sim/powers';
-import type { PowerState } from '../sim/types';
+import { zoneHeatThreshold } from '../sim/powers';
+import type { PlayerDef, PowerState } from '../sim/types';
 
 /**
  * Desktop match layout (design sign-off 2026-07-23): a fixed control rail on
@@ -42,15 +42,20 @@ export function mostTiredFirst<T extends { condition: number }>(
 }
 
 /**
- * Banked Heat as a 0–1 bar fraction. Measured against the outfield Zone
- * threshold; a keeper hero's own (much lower) threshold is engine-private, so
- * a GK tile reads conservatively rather than wrongly full.
+ * Banked Heat as a 0–1 bar fraction, measured against THIS ROLE's threshold.
+ *
+ * The role argument is not decoration. A keeper arms at 5 Heat and an outfield
+ * hero at 60, so dividing every bar by 60 drew a keeper's full charge as an
+ * eighth of a bar. That was tolerable while keepers fired automatically and
+ * nobody was asked to act on the number. Since m2.8 a keeper has a button, and
+ * a full bar has to mean the same thing for them as for everyone else — it is
+ * the entire promise of the ARMED state.
  */
-export function heatFraction(gauge: number): number {
-  return Math.max(0, Math.min(1, gauge / ZONE_HEAT_THRESHOLD));
+export function heatFraction(gauge: number, role: PlayerDef['role']): number {
+  return Math.max(0, Math.min(1, gauge / zoneHeatThreshold(role)));
 }
 
-export type RailHeroStatus = 'building' | 'zone' | 'firing';
+export type RailHeroStatus = 'loading' | 'armed' | 'firing';
 
 /**
  * Zone is the banked window; winding/armed/active are the power playing out.
@@ -59,7 +64,7 @@ export type RailHeroStatus = 'building' | 'zone' | 'firing';
  * timer the rail could derive would be a frozen fake.
  */
 export function railHeroStatus(state: PowerState): RailHeroStatus {
-  if (state.kind === 'zone') return 'zone';
-  if (state.kind === 'idle') return 'building';
+  if (state.kind === 'zone') return 'armed';
+  if (state.kind === 'idle') return 'loading';
   return 'firing';
 }

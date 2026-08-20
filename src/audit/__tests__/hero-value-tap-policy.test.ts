@@ -17,17 +17,16 @@ function matchWith(power: PowerId, slot: number) {
 
 describe('hero-value well-tapped policy', () => {
   // Slot 0 is the goalkeeper — lineup.ts rejects any other order.
-  it.each(['ELASTIC_KEEPER', 'GIANT_GK', 'GUST'] as const)(
-    'never taps a goalkeeper carrying %s, even on a live on-target shot',
+  it.each(['ELASTIC_KEEPER', 'GIANT_GK'] as const)(
+    'taps a %s keeper on the shot, and never before it',
     (power) => {
-      // Since m2.7 a GK slot is always FIRE_WHEN_READY (firePolicyForRole), so
-      // queueInput refuses a tap on one and the probe must not offer it. The
-      // rule is keyed on the ROLE, not the power: a keeper may carry GUST,
-      // whose context is common enough that the old policy would have tapped
-      // it — and a slot whose policy disagrees with its team is exactly what
-      // validateEnvelope rejects.
+      // The m2.7 exemption is retired (m2.8): a keeper takes their team's
+      // policy like anyone else, so the probe must now model a manager who
+      // actually presses. What it must NOT model is pressing early — a save
+      // keeper's ten-second window is spent, not extended, so a press on a
+      // build-up that turns back has thrown a Zone away.
       const match = matchWith(power, 0);
-      expect(match.players[0].firePolicy).toBe('FIRE_WHEN_READY');
+      expect(match.players[0].firePolicy).toBe('SAVE_FOR_TAP');
 
       match.players[0].powerState = { kind: 'zone', remainingTicks: 1 };
       match.ball = { kind: 'held', by: 20 };
@@ -47,11 +46,20 @@ describe('hero-value well-tapped policy', () => {
         trajectory: 'driven',
         keeperChecked: false,
       };
-      // The moment the old policy tapped on. Automatic play still spends the
-      // Zone here; the manager simply has no say in it.
-      expect(shouldQueueWellTappedPower(match, 0)).toBe(false);
+      expect(shouldQueueWellTappedPower(match, 0)).toBe(true);
     },
   );
+
+  it('taps a GUST keeper on possession, not on a shot at goal', () => {
+    // GUST is in ROLE_POOL.GK but is not a save power: it bends the opponent's
+    // next pass, so its moment is enemy possession. Keying the keeper rules on
+    // the ROLE rather than the POWER would give this keeper the shot-save
+    // contract and leave their button dead through every build-up.
+    const match = matchWith('GUST', 0);
+    match.players[0].powerState = { kind: 'zone', remainingTicks: 1 };
+    match.ball = { kind: 'held', by: 20 };
+    expect(shouldQueueWellTappedPower(match, 0)).toBe(true);
+  });
 
   it('keeps the closing-window fallback for an outfield power', () => {
     const match = matchWith('SUPER_SPEED', 9);

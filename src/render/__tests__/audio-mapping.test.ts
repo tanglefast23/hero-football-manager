@@ -281,13 +281,20 @@ describe('filesForEvent: event → SFX wiring', () => {
 
   it('sounds POWER_EXPIRED again, now a manual tap can lose a Zone', () => {
     // Unreachable and deliberately unwired from m1.27 (the Zone stopped
-    // counting down) until the manual tap returned on 2026-08-20. A tap
-    // outside the authored context arms a 20-tick window; when it lapses the
-    // hero loses one of only three Zones for the match. A charge the manager
-    // earned must never vanish in silence.
-    expect(filesForEvent({ t: 0, kind: 'POWER_EXPIRED', player: 5 })).toEqual([
-      'zone-expire',
-    ]);
+    // counting down) until the manual tap returned on 2026-08-20. A press
+    // outside the authored context arms a window; when it lapses the hero
+    // loses one of only three Zones for the match. A charge the manager earned
+    // must never vanish in silence — and since m2.8 it is not merely audible
+    // but audibly BAD, the shipped negative cue layered under the expiry.
+    expect(
+      filesForEvent({
+        t: 0,
+        kind: 'POWER_EXPIRED',
+        player: 5,
+        power: 'SUPER_SPEED',
+        reason: 'other',
+      }),
+    ).toEqual(['zone-expire', 'negative']);
   });
 
   /**
@@ -375,7 +382,7 @@ describe('filesForEvent: event → SFX wiring', () => {
       { t: 0, kind: 'SAVE', by: 0, resolveLeft: 80 },
       { t: 0, kind: 'MISS', by: 9 },
       { t: 0, kind: 'GOAL', by: 9, team: 0, scoredById: 'p9' },
-      { t: 0, kind: 'POWER_READY', player: 10 },
+      { t: 0, kind: 'POWER_READY', player: 10, power: 'FIRE_TORCH' },
       {
         t: 0,
         kind: 'POWER_FIRED',
@@ -391,7 +398,13 @@ describe('filesForEvent: event → SFX wiring', () => {
         target: 10,
       },
       { t: 0, kind: 'POWER_INTERRUPTED', player: 10 },
-      { t: 0, kind: 'POWER_EXPIRED', player: 10 },
+      {
+        t: 0,
+        kind: 'POWER_EXPIRED',
+        player: 10,
+        power: 'FIRE_TORCH',
+        reason: 'other',
+      },
       {
         t: 0,
         kind: 'DECOY_POP',

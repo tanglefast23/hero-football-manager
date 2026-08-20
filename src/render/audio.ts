@@ -45,6 +45,7 @@ export type SfxKey =
   | 'rally-drums'
   | 'zone-enter'
   | 'zone-expire'
+  | 'negative'
   | 'positive'
   | 'extinguisher-spray'
   | 'super-speed-whoosh'
@@ -103,6 +104,9 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   // catalog fixtures. It was wired, then unreachable from m1.27, and is
   // reachable again now that a manual tap can arm a window that lapses.
   'zone-expire': require('../../assets/audio/sfx/zone-expire.wav'),
+  // The shipped "you cannot do that" cue, layered under a lost charge so the
+  // loss lands as a loss rather than as an ambiguous noise.
+  negative: require('../../assets/audio/sfx/negative.m4a'),
   positive: require('../../assets/audio/sfx/positive.m4a'),
   'extinguisher-spray': require('../../assets/audio/sfx/extinguisher-spray.wav'),
   'super-speed-whoosh': require('../../assets/audio/sfx/super-speed-whoosh.wav'),
@@ -323,7 +327,7 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     // with no explanation. Unreachable, and deliberately unwired, between
     // m1.27 and now.
     case 'POWER_EXPIRED':
-      return ['zone-expire'];
+      return ['zone-expire', 'negative'];
     // RECOVERED (a player getting back up) has no matching asset — deliberately
     // silent, an explicit case (not a catch-all) so the exhaustiveness check
     // below stays meaningful.

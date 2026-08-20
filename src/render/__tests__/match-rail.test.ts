@@ -15,6 +15,7 @@ import {
   RAIL_TIRED_ROWS,
   railHeroStatus,
 } from '../match-rail';
+import { ARM_WINDOW_TICKS } from '../../sim/powers';
 import { mentalityLabel } from '../match-mentality-ui';
 import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 
@@ -72,19 +73,28 @@ describe('desktop match control rail', () => {
   });
 
   it('reads heat as a clamped share of the Zone threshold', () => {
-    expect(heatFraction(0)).toBe(0);
-    expect(heatFraction(30)).toBe(0.5);
-    expect(heatFraction(60)).toBe(1);
-    expect(heatFraction(120)).toBe(1);
-    expect(heatFraction(-5)).toBe(0);
+    expect(heatFraction(0, 'MID')).toBe(0);
+    expect(heatFraction(30, 'MID')).toBe(0.5);
+    expect(heatFraction(60, 'MID')).toBe(1);
+    expect(heatFraction(120, 'MID')).toBe(1);
+    expect(heatFraction(-5, 'MID')).toBe(0);
   });
 
-  it('separates banking heat, the tappable Zone, and a power playing out', () => {
-    expect(railHeroStatus({ kind: 'idle' })).toBe('building');
-    expect(railHeroStatus({ kind: 'zone', remainingTicks: 70 })).toBe('zone');
-    expect(railHeroStatus({ kind: 'armed', remainingTicks: 20 })).toBe(
-      'firing',
-    );
+  it('separates LOADING, ARMED, and a power playing out', () => {
+    // The player-facing words, which are the ones the rail tile prints in
+    // brackets after the name. The engine keeps its own state names; this is
+    // the only place the two vocabularies are allowed to meet.
+    expect(railHeroStatus({ kind: 'idle' })).toBe('loading');
+    expect(railHeroStatus({ kind: 'zone', remainingTicks: 70 })).toBe('armed');
+    expect(
+      railHeroStatus({
+        kind: 'armed',
+        remainingTicks: 20,
+        windowTicks: ARM_WINDOW_TICKS,
+        strength: 0.9,
+        sawShotOnTarget: false,
+      }),
+    ).toBe('firing');
     expect(
       railHeroStatus({ kind: 'winding', untilTick: 40, strength: 1 }),
     ).toBe('firing');

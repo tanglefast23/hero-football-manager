@@ -15,6 +15,7 @@ import type {
   MatchInput,
   MatchState,
   OutReason,
+  PlayerDef,
   PowerId,
   SimPlayer,
 } from './types';
@@ -32,6 +33,14 @@ const ARMED_STRENGTH = 0.9;
 export const CONTEXT_AUTO_STRENGTH = 0.85;
 const LAPSE_STRENGTH = 0.75;
 export const ARM_WINDOW_TICKS = 20;
+/**
+ * A save keeper's press window: ten seconds, not two.
+ *
+ * Their power waits on an event they do not control and cannot hurry. Two
+ * seconds would make every press a coin flip on whether the opponent happened
+ * to shoot inside it.
+ */
+export const GK_ARM_WINDOW_TICKS = 100;
 const GAUGE_TRICKLE = 0.02;
 export const MAX_ZONES_PER_PLAYER = 3;
 const STRENGTH_WINDUP_TICKS = 5;
@@ -89,7 +98,208 @@ function zoneLimit(player: SimPlayer): number {
   return MAX_ZONES_PER_PLAYER + (player.encoreState === 'BANKED' ? 1 : 0);
 }
 
+/**
+ * The Heat a hero of this role must bank before their Zone opens.
+ *
+ * The one source for a number that used to be written inline in four places —
+ * Zone entry, the encore refill, and both Heat bars. A keeper's 5 against an
+ * outfielder's 60 is not a detail: it is the whole reason the bar has to be
+ * drawn against the role rather than against a constant.
+ */
+export function zoneHeatThreshold(role: PlayerDef['role']): number {
+  return role === 'GK' ? GK_ZONE_HEAT_THRESHOLD : ZONE_HEAT_THRESHOLD;
+}
+
+/**
+ * Heat handed back when a charge is lost rather than spent — an interrupted
+ * wind-up, a lapsed armed window, a stale activation.
+ *
+ * Five sixths of that role's threshold, which is exactly the historical 50 for
+ * an outfield hero and 4 for a keeper. A flat 50 was ten times a keeper's own
+ * line, so a keeper who lost a charge re-armed on the very next tick and could
+ * burn all three Zones inside half a minute.
+ */
+export function heatRefund(role: PlayerDef['role']): number {
+  return Math.round((zoneHeatThreshold(role) * 5) / 6);
+}
+
+/**
+ * Keeper powers whose only useful moment is a shot already flying at goal.
+ *
+ * Keyed on the POWER, never the role. A goalkeeper may carry GUST, which fires
+ * on enemy possession anywhere on the pitch — give that keeper the shot-save
+ * contract and their button is dead during the exact build-up the power exists
+ * for. `ROLE_POOL.GK` in the content catalog is the proof.
+ */
+export function isShotSavePower(power: PowerId | undefined): boolean {
+  return power === 'ELASTIC_KEEPER' || power === 'GIANT_GK';
+}
+
+/** The press window a power's tap opens. Save powers wait for a shot. */
+export function armWindowTicks(power: PowerId | undefined): number {
+  return isShotSavePower(power) ? GK_ARM_WINDOW_TICKS : ARM_WINDOW_TICKS;
+}
+
+/**
+ * Strength a landed press is worth.
+ *
+ * A save keeper can never press "in context" — a shot in flight is far too
+ * brief to react to — so their press would otherwise be capped at the armed
+ * grade, making a manual keeper strictly worse than an automatic one and the
+ * whole control pointless. Their committed press is worth full strength.
+ */
+export function tapStrengthFor(power: PowerId | undefined): number {
+  return isShotSavePower(power) ? TAP_STRENGTH : ARMED_STRENGTH;
+}
+
 /** Power-authored states that suspend ordinary movement and interaction. */
+/**
+ * An on-target shot has reached this keeper's plane. Give their power its one
+ * and only chance, and record that a shot happened.
+ *
+ * Called from the shot resolution in `engine.ts`, not from `powerTick`, because
+ * that is where the moment actually is. Handles both policies deliberately:
+ * a MANUAL keeper who pressed fires at the strength their press bought, and an
+ * AUTO keeper fires at the ordinary automatic grade. Splitting these across two
+ * call sites is how they drifted apart before.
+ *
+ * `available` is passed in rather than recomputed, so this and the save roll
+ * that follows it agree exactly. Deciding availability twice, by two different
+ * rules, would let a keeper activate here and then be skipped by the roll —
+ * spending the Zone and making no save.
+ */
+export function releaseKeeperSavePower(
+  state: MatchState,
+  gkIdx: number,
+  available: boolean,
+): void {
+  const keeper = state.players[gkIdx];
+  if (!isShotSavePower(keeper.def.power)) return;
+  if (keeper.powerState.kind === 'armed') {
+    // Recorded even when the keeper cannot act. A shot that passed while they
+    // were flattened still happened, and the lapse message must not go on to
+    // claim there was no shot on net.
+    keeper.powerState.sawShotOnTarget = true;
+    if (available) beginPower(state, gkIdx, keeper.powerState.strength);
+    return;
+  }
+  if (
+    keeper.powerState.kind === 'zone' &&
+    keeper.firePolicy === 'FIRE_WHEN_READY' &&
+    available
+  ) {
+    beginPower(state, gkIdx, CONTEXT_AUTO_STRENGTH);
+  }
+}
+
+/** One place a lost charge is given up, so the refund and the event agree. */
+function expirePower(
+  state: MatchState,
+  idx: number,
+  reason: 'no-shot' | 'other',
+): void {
+  const p = state.players[idx];
+  const power = p.def.power;
+  if (power === undefined) return;
+  emit(state, {
+    t: state.tick,
+    kind: 'POWER_EXPIRED',
+    player: idx,
+    power,
+    reason,
+  });
+  p.gauge = heatRefund(p.def.role);
+  p.powerState = { kind: 'idle' };
+}
+
+/**
+ * Closes a save keeper's lapsed press window, AFTER shots have been created and
+ * flown for this tick.
+ *
+ * Split out of `powerTick` on purpose. `powerTick` runs before movement and
+ * before shot flight (`match.ts`), so a window that hit zero inside it would be
+ * gone by the time a shot launched later in the same tick reached the keeper.
+ * The manager would have pressed correctly, a shot would have arrived inside
+ * ten seconds, and nothing would have happened.
+ *
+ * `sawShotOnTarget` is what makes the resulting message honest: it is set by
+ * the shot itself, whatever the keeper's own availability at the time, so a
+ * shot that passed while the keeper was flattened still counts as a shot.
+ */
+export function expireSaveArm(state: MatchState): void {
+  for (let idx = 0; idx < 22; idx += 1) {
+    const p = state.players[idx];
+    if (p.powerState.kind !== 'armed') continue;
+    if (!isShotSavePower(p.def.power)) continue;
+    if (p.powerState.remainingTicks > 0) continue;
+    expirePower(state, idx, p.powerState.sawShotOnTarget ? 'other' : 'no-shot');
+  }
+}
+
+/**
+ * A full Heat bar becomes a live Zone. The one place that transition happens.
+ *
+ * There used to be a THIRD condition here: `zoneEntryContext`, the power's own
+ * authored setup. It is gone, and its removal is the point of engine m2.8. A
+ * manager watched a full bar do nothing for minutes because a gate they could
+ * not see, could not influence and were never told about had not opened. Heat
+ * is earned; the bar is the promise; the promise is now kept.
+ *
+ * What did NOT change: firing still waits for `inUsefulContext`. A Zone opens
+ * on a full bar, but the power still lands only in a moment worth landing in.
+ * So this moves WHEN a hero is ready, not how often their power actually fires.
+ *
+ * Called twice per hero per tick — once before the availability guard so a
+ * downed hero still arms, once after the trickle so a bar filling this tick
+ * arms this tick. Idempotent: the `idle` check makes the second call a no-op.
+ */
+function convertFullHeatToZone(state: MatchState, idx: number): void {
+  const p = state.players[idx];
+  if (p.def.power === undefined) return;
+  if (p.powerState.kind !== 'idle') return;
+  if (p.zonesOpened >= zoneLimit(p)) return;
+  if (p.gauge < zoneHeatThreshold(p.def.role)) return;
+  p.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+  p.zonesOpened++;
+  if (p.zonesOpened > MAX_ZONES_PER_PLAYER && p.encoreState === 'BANKED') {
+    p.encoreState = 'CONSUMED';
+  }
+  p.gauge = 0;
+  // Event kind retained for replay compatibility; it means Zone entry. `power`
+  // travels ON the event because rendering is batched — by the time a banner is
+  // pushed this slot may already hold a substitute with a different power.
+  emit(state, {
+    t: state.tick,
+    kind: 'POWER_READY',
+    player: idx,
+    power: p.def.power,
+  });
+}
+
+/**
+ * Can this player act on a power right now?
+ *
+ * The ONE availability rule, shared by every path that asks: the tap handler,
+ * the armed branch, the shot-site keeper rescue, and `engine.ts`'s
+ * `isAvailable`. Two paths deciding this by two different rules is how a keeper
+ * ends up activating at the shot site and then being skipped by the save roll
+ * — Zone spent, no save, no explanation.
+ *
+ * `powerInteractionBlocked` alone is NOT this rule: it covers webbing, forced
+ * movement and Shadow Hunt, but says nothing about a player who is flat on the
+ * floor or mid-tackle.
+ */
+export function powerActorAvailable(state: MatchState, idx: number): boolean {
+  const player = playerAt(state, idx);
+  if (player === undefined) return false;
+  return (
+    player.outUntilTick <= state.tick &&
+    player.slideTackle === undefined &&
+    player.tackleRecoveryUntil <= state.tick &&
+    !powerInteractionBlocked(state, idx)
+  );
+}
+
 export function powerInteractionBlocked(
   state: MatchState,
   idx: number,
@@ -122,7 +332,7 @@ export function interruptWindup(state: MatchState, idx: number): void {
   clearStrengthLock(state, idx, p.powerState.targetIdx);
   p.powerState = { kind: 'idle' };
   p.powerAnchor = undefined;
-  p.gauge = 50;
+  p.gauge = heatRefund(p.def.role);
   emit(state, { t: state.tick, kind: 'POWER_INTERRUPTED', player: idx });
 }
 
@@ -286,71 +496,6 @@ const RALLY_CRY_TEAMMATE_HEAT = 35;
 export const WEB_TRAP_TRIGGER_RANGE = 2600;
 // SUPER_SPEED's useful context distance to a loose ball worth a sprint for.
 const SPEED_LOOSE_BALL_RANGE = 1500;
-
-/** A useful moment is developing. Heat may open the Zone here, while firing
- * still waits for the stricter inUsefulContext below. */
-export function zoneEntryContext(state: MatchState, idx: number): boolean {
-  const player = state.players[idx];
-  const power = player.def.power;
-  if (!power) return false;
-  const carrying = state.ball.kind === 'held' && state.ball.by === idx;
-  const progress = player.team === 0 ? PITCH_H - player.pos.y : player.pos.y;
-  if (power === 'BLINK_RUN' || power === 'THUNDER_STRIKE') {
-    return carrying && progress > PITCH_H * 0.45;
-  }
-  if (power === 'SUPER_SPEED') {
-    return (
-      (carrying && progress > PITCH_H * 0.38) ||
-      (state.ball.kind === 'loose' &&
-        dist2(state.ball.pos, player.pos) <
-          SPEED_LOOSE_BALL_RANGE * SPEED_LOOSE_BALL_RANGE)
-    );
-  }
-  if (power === 'FIRE_TORCH') return carrying && progress > PITCH_H * 0.52;
-  if (power === 'PORTAL_PASS' && state.ball.kind === 'held') {
-    const carrier = requirePlayerAt(state, state.ball.by);
-    const portalStrength =
-      player.firePolicy === 'SAVE_FOR_TAP'
-        ? TAP_STRENGTH
-        : CONTEXT_AUTO_STRENGTH;
-    return (
-      carrier.team === player.team &&
-      portalDestination(
-        state,
-        state.ball.by,
-        projectedEffectStrength(player, portalStrength),
-      ) !== null
-    );
-  }
-  if (power === 'GRAVITY_WELL') {
-    return gravityWellContext(
-      state,
-      idx,
-      GRAVITY_WELL_ENTRY_RANGE,
-      900,
-      1200,
-      450,
-    );
-  }
-  if (power === 'ELASTIC_KEEPER' || power === 'GIANT_GK') {
-    return (
-      dangerousKeeperPossession(state, idx) || enemyOnTargetShot(state, idx)
-    );
-  }
-  return inUsefulContext(state, idx);
-}
-
-function dangerousKeeperPossession(state: MatchState, idx: number): boolean {
-  const keeper = state.players[idx];
-  if (keeper.def.role !== 'GK' || state.ball.kind !== 'held') return false;
-  const carrier = requirePlayerAt(state, state.ball.by);
-  if (carrier.team === keeper.team) return false;
-  const progress = carrier.team === 0 ? PITCH_H - carrier.pos.y : carrier.pos.y;
-  // Open while the attack is genuinely in shooting range. The old 72% line
-  // spent too many of a keeper's three windows on harmless build-ups that
-  // turned back before a shot; on-target shots still open a Zone directly.
-  return progress > PITCH_H * 0.82;
-}
 
 function enemyOnTargetShot(state: MatchState, idx: number): boolean {
   const keeper = state.players[idx];
@@ -682,29 +827,54 @@ export function powerTick(
   for (const input of dueInputs) {
     if (input.kind !== 'POWER_TAP') continue;
     const p = state.players[input.player];
-    if (p.powerState.kind === 'zone') {
-      const available =
-        p.outUntilTick <= state.tick &&
-        p.slideTackle === undefined &&
-        p.tackleRecoveryUntil <= state.tick;
-      if (available && inUsefulContext(state, input.player)) {
-        beginPower(state, input.player, TAP_STRENGTH);
-      }
-      // The armed branch below runs later in this same tick, so seed one extra
-      // count to expose a full 20 subsequent decision ticks.
-      else
-        p.powerState = { kind: 'armed', remainingTicks: ARM_WINDOW_TICKS + 1 };
+    if (p.powerState.kind !== 'zone') continue;
+    const power = p.def.power;
+    // One availability rule for every path that asks. The keeper rescue in
+    // engine.ts consults `powerInteractionBlocked` through `isAvailable`, and a
+    // keeper who counted as available here but not there would press the button
+    // and watch nothing happen.
+    const available = powerActorAvailable(state, input.player);
+    // A save keeper never fires instantly, because they can never press "in
+    // context" — the shot they exist for is far too brief to react to. Their
+    // press always opens the window, and the armed branch below fires it in
+    // this very tick if a shot is already on target.
+    if (
+      !isShotSavePower(power) &&
+      available &&
+      inUsefulContext(state, input.player)
+    ) {
+      beginPower(state, input.player, TAP_STRENGTH);
+      continue;
     }
+    // The armed branch runs later in this same tick, so seed one extra count to
+    // expose a full window of subsequent decision ticks.
+    p.powerState = {
+      kind: 'armed',
+      remainingTicks: armWindowTicks(power) + 1,
+      windowTicks: armWindowTicks(power),
+      strength: tapStrengthFor(power),
+      sawShotOnTarget: false,
+    };
   }
 
   for (let idx = 0; idx < 22; idx++) {
     const p = state.players[idx];
     if (!p.def.power) continue;
+    // Arming is now the bar filling, and a bar does not stop filling because
+    // its owner is face down. A hero at full Heat therefore converts even while
+    // knocked down, sliding or in tackle recovery — the button simply refuses
+    // the press until they are up. Only a sending-off stops it: a red card is
+    // also `outUntilTick > tick`, and arming a player who has left the pitch
+    // would put a fire button under a man who is in the tunnel.
+    //
+    // The TRICKLE deliberately does not move with it. An unavailable hero below
+    // full Heat still earns nothing; this converts what they already banked.
+    if (p.outReason !== 'redcard') convertFullHeatToZone(state, idx);
     if (p.outUntilTick > state.tick) {
       if (p.powerState.kind === 'winding') interruptWindup(state, idx);
       // An untouched Zone still pauses while its hero is down. Pressing commits
-      // that Zone to a real 20-tick armed placement, which continues to expire
-      // even if the hero is knocked down before the context appears.
+      // that Zone to a real armed placement, which continues to expire even if
+      // the hero is knocked down before the context appears.
       if (p.powerState.kind !== 'armed') continue;
     }
     const tacklingBusy =
@@ -735,35 +905,11 @@ export function powerTick(
         idx,
         roleTrickle + (defensiveEngagement ? DEFENSIVE_ENGAGEMENT_TRICKLE : 0),
       );
-      // Heat is never spent on an unusable window. It remains banked until the
-      // authored situation appears, then converts without a second luck check.
-      // This runs before movement/possession in ascending player order, so the
-      // context and event remain byte-identical for the same replay inputs.
-      const zoneThreshold =
-        p.def.role === 'GK' ? GK_ZONE_HEAT_THRESHOLD : ZONE_HEAT_THRESHOLD;
-      // Watched and automatic keepers must enter the same visible danger
-      // window. Previously auto waited for a shot while watched play spent its
-      // limited Zones on build-ups that could fizzle, making tapping worse even
-      // though its save bonus was stronger.
-      // zoneEntryContext last: for PORTAL_PASS/GRAVITY_WELL it is a full
-      // pitch search, and the cheap gauge gates skip it (pure, no RNG) on
-      // every tick a hero is still charging.
-      if (
-        p.zonesOpened < zoneLimit(p) &&
-        p.gauge >= zoneThreshold &&
-        zoneEntryContext(state, idx)
-      ) {
-        p.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
-        p.zonesOpened++;
-        if (
-          p.zonesOpened > MAX_ZONES_PER_PLAYER &&
-          p.encoreState === 'BANKED'
-        ) {
-          p.encoreState = 'CONSUMED';
-        }
-        p.gauge = 0;
-        emit(state, { t: state.tick, kind: 'POWER_READY', player: idx }); // event kind retained; now means Zone entry
-      }
+      // Crossing the threshold arms in THIS tick, not the next: the trickle
+      // above may be the very increment that fills the bar, and a hero whose
+      // bar is visibly full with no button is the defect this whole change
+      // exists to remove.
+      convertFullHeatToZone(state, idx);
     } else if (p.powerState.kind === 'zone') {
       // A charged hero now HOLDS until the moment is genuinely optimal. The Zone
       // used to be a 7-second window that decayed to half heat if the authored
@@ -786,22 +932,30 @@ export function powerTick(
       // SAVE_FOR_TAP heroes still never auto-fire; they are test instrumentation
       // only (see docs/04) and their Zone also simply persists.
     } else if (p.powerState.kind === 'armed') {
-      const available = p.outUntilTick <= state.tick && !tacklingBusy;
+      const available = powerActorAvailable(state, idx);
+      // The press's own grade, carried on the state since it was placed. Both
+      // fire sites read it: a shot arriving on the window's LAST tick used to
+      // settle at the armed grade even for a keeper whose press was worth full.
+      const strength = p.powerState.strength;
       if (available && inUsefulContext(state, idx)) {
-        beginPower(state, idx, ARMED_STRENGTH);
+        beginPower(state, idx, strength);
       } else {
         p.powerState.remainingTicks--;
         if (p.powerState.remainingTicks <= 0) {
-          // Pressing places a real 20-tick window. If the ideal moment never
-          // arrives but the authored play is still broadly alive at its edge,
-          // cash it at the armed grade instead of treating a correctly placed
-          // press as identical to never watching the match.
-          if (available && hasUsableTarget(state, idx)) {
-            beginPower(state, idx, ARMED_STRENGTH);
+          // A save keeper's window is NOT expired here. Shots are created and
+          // fly after this function in the same tick, so expiring now would let
+          // a final-tick shot meet a window that closed moments earlier — the
+          // manager pressed, a shot came, and nothing happened. `expireSaveArm`
+          // runs after shot processing instead.
+          if (isShotSavePower(p.def.power)) {
+            p.powerState.remainingTicks = 0;
+          } else if (available && hasUsableTarget(state, idx)) {
+            // If the ideal moment never arrived but the authored play is still
+            // broadly alive at its edge, cash it rather than treating a
+            // correctly placed press as identical to never watching at all.
+            beginPower(state, idx, strength);
           } else {
-            emit(state, { t: state.tick, kind: 'POWER_EXPIRED', player: idx });
-            p.gauge = 50;
-            p.powerState = { kind: 'idle' };
+            expirePower(state, idx, 'other');
           }
         }
       }
@@ -1322,7 +1476,7 @@ export function activatePower(
     else {
       p.powerState = { kind: 'idle' };
       p.powerAnchor = undefined;
-      p.gauge = 50;
+      p.gauge = heatRefund(p.def.role);
     }
     return;
   }
@@ -3023,10 +3177,7 @@ export function finishMomentPower(
   player.powerState = { kind: 'idle' };
   player.powerAnchor = undefined;
   player.gauge = encoreRefill
-    ? Math.max(
-        player.gauge,
-        player.def.role === 'GK' ? GK_ZONE_HEAT_THRESHOLD : ZONE_HEAT_THRESHOLD,
-      )
+    ? Math.max(player.gauge, zoneHeatThreshold(player.def.role))
     : 0;
   player.encoreQueuedRefill = undefined;
 }

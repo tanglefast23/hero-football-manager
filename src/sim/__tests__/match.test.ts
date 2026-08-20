@@ -277,21 +277,14 @@ describe('match skeleton', () => {
 
     queueInput(m, { tick: 2, kind: 'SET_AUTO_POWERS', enabled: false });
     tick(m);
-    // Every outfielder goes manual; the goalkeeper does not. Since m2.7 a GK
-    // slot is always FIRE_WHEN_READY, and the exemption has to survive a
-    // mid-match flip too — a blanket loop here would quietly make the keeper
-    // tappable, and their Zone is unfireable by hand.
+    // The WHOLE side goes manual, goalkeeper included. This assertion is the
+    // exact inverse of what it held under m2.7, and that inversion is the
+    // point: the keeper exemption is retired, so a mid-match flip must reach
+    // slot 0 like every other slot.
     expect(
       m.players
         .slice(11)
-        .filter((player) => player.def.role !== 'GK')
         .every((player) => player.firePolicy === 'SAVE_FOR_TAP'),
-    ).toBe(true);
-    expect(
-      m.players
-        .slice(11)
-        .filter((player) => player.def.role === 'GK')
-        .every((player) => player.firePolicy === 'FIRE_WHEN_READY'),
     ).toBe(true);
 
     while (m.phase !== 'fulltime') tick(m);
@@ -498,10 +491,21 @@ describe('validateEnvelope', () => {
     expect(() => validateEnvelope(env)).toThrow('must be an object');
   });
 
-  it('rejects a tap on an in-range but non-hero slot (validate up front, not validate-then-fail)', () => {
+  it('leaves tap LEGALITY to live state rather than the opening options', () => {
+    // A tap is no longer judged against the envelope's opening policy, and it
+    // cannot be: SET_AUTO_POWERS flips a side mid-match and substitutions
+    // change who occupies a slot, so the opening snapshot rejected input logs
+    // that were perfectly legal — record on AUTO, switch to MANUAL, tap, and
+    // the replay refused to load. queueInput and the tick loop check against
+    // live state, which is the only state that can answer.
     const env = makeValidEnvelope();
-    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 0 }]; // slot 0 is the GK — no power
-    expect(() => validateEnvelope(env)).toThrow('not a hero');
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 0 }];
+    expect(() => validateEnvelope(env)).not.toThrow();
+
+    // Structural nonsense is still refused up front.
+    const outOfRange = makeValidEnvelope();
+    outOfRange.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 99 }];
+    expect(() => validateEnvelope(outOfRange)).toThrow();
   });
 
   it('rejects an input tick stamped past full time', () => {
