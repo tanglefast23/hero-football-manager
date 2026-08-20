@@ -67,6 +67,9 @@ function marketPlayer(
     power: options.power,
     powerTier: options.powerTier,
     contractSeasonsRemaining: options.contractSeasonsRemaining ?? 2,
+    ...(options.sellingClubDivision === undefined
+      ? {}
+      : { sellingClubDivision: options.sellingClubDivision }),
   };
 }
 
@@ -99,6 +102,7 @@ describe('deterministic scouting', () => {
     marketPlayer('mid-a'),
     marketPlayer('mid-b', { age: 20, potential: 5 }),
     marketPlayer('mid-c', { power: 'SUPER_SPEED', powerTier: 1 }),
+    marketPlayer('mid-d'),
     marketPlayer('forward', { role: 'FWD' }),
     marketPlayer('local-mid', { region: 'LOCAL' }),
   ];
@@ -235,7 +239,7 @@ describe('deterministic scouting', () => {
     }
   });
 
-  it('makes rumored heroes a rare real lead, confirms exact powers only at level 3, and gates the focus to Div 3+', () => {
+  it('keeps heroes in revealed Hero searches and gates the focus to Div 3+', () => {
     expect(() =>
       startScoutMission({
         careerSeed: 5,
@@ -268,8 +272,11 @@ describe('deterministic scouting', () => {
       const hero = result.reports.find((report) => report.playerId === 'mid-c');
       if (hero !== undefined) {
         hits += 1;
-        expect(hero).toMatchObject({ rumoredHeroLead: true });
-        expect(hero.power).toBeUndefined();
+        expect(hero).toMatchObject({
+          rumoredHeroLead: true,
+          power: 'SUPER_SPEED',
+          powerTier: 1,
+        });
       }
       expect(
         resolveScoutMission(mission, mission.dueWeek, candidates, 5),
@@ -277,41 +284,41 @@ describe('deterministic scouting', () => {
     }
     expect(hits).toBeGreaterThanOrEqual(15);
     expect(hits).toBeLessThanOrEqual(35);
+  });
 
-    const confirmingMission = startScoutMission({
-      careerSeed: Array.from({ length: 100 }, (_, index) => index + 1).find(
-        (seed) => {
-          const mission = startScoutMission({
-            careerSeed: seed,
-            missionId: 'hero-search',
-            startWeek: 1,
-            region: 'EUROPE',
-            focus: { kind: 'RUMORED_HERO' },
-            scoutOfficeLevel: 3,
-            division: 3,
-          });
-          return resolveScoutMission(
-            mission,
-            mission.dueWeek,
-            candidates,
-            5,
-          ).reports.some((report) => report.playerId === 'mid-c');
-        },
-      )!,
-      missionId: 'hero-search',
-      startWeek: 1,
-      region: 'EUROPE',
-      focus: { kind: 'RUMORED_HERO' },
-      scoutOfficeLevel: 3,
-      division: 3,
-    });
-    const confirmed = resolveScoutMission(
-      confirmingMission,
-      confirmingMission.dueWeek,
-      candidates,
-      5,
-    ).reports.find((report) => report.playerId === 'mid-c');
-    expect(confirmed?.power).toBe('SUPER_SPEED');
+  it('limits ordinary searches to two divisions above and excludes heroes', () => {
+    const pool = [
+      marketPlayer('d5-player', { sellingClubDivision: 5 }),
+      marketPlayer('d3-player', { sellingClubDivision: 3 }),
+      marketPlayer('d2-player', { sellingClubDivision: 2 }),
+      marketPlayer('d1-player', { sellingClubDivision: 1 }),
+      marketPlayer('d3-hero', {
+        sellingClubDivision: 3,
+        power: 'SUPER_SPEED',
+      }),
+    ];
+    const search = (division: DivisionLevel) => {
+      const mission = startScoutMission({
+        careerSeed: 19,
+        missionId: `division-${division}`,
+        startWeek: 1,
+        region: 'EUROPE',
+        focus: { kind: 'POSITION', role: 'MID' },
+        scoutOfficeLevel: 1,
+        division,
+      });
+      return resolveScoutMission(mission, mission.dueWeek, pool, 5)
+        .reports.map((report) => report.playerId)
+        .sort();
+    };
+
+    expect(search(5)).toEqual(['d3-player', 'd5-player']);
+    expect(search(3)).toEqual([
+      'd1-player',
+      'd2-player',
+      'd3-player',
+      'd5-player',
+    ]);
   });
 
   it('unlocks Elite Prospect searches in D2 and returns only young 4-5 star players', () => {
