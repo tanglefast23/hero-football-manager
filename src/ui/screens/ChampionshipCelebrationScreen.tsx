@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useClubKit } from '../club-kit-context';
 import {
   Animated,
   Easing,
@@ -88,9 +89,12 @@ export function ChampionshipCelebrationScreen({
       ),
     [viewModel.squad, viewModel.star],
   );
+  // These screens draw the club's OWN players, and drew them in stock red even
+  // when the pitch was in colour-safe amber. The home plan fixes both at once.
+  const plan = useClubKit().planFor('r');
   const spriteAtlas = useMemo<CelebrationAtlas>(() => {
     try {
-      return buildSpriteAtlas(Skia, celebrationVisualIds);
+      return buildSpriteAtlas(Skia, celebrationVisualIds, plan);
     } catch (error) {
       console.warn(
         'ChampionshipCelebrationScreen: sprite atlas unavailable',
@@ -98,7 +102,7 @@ export function ChampionshipCelebrationScreen({
       );
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [celebrationVisualIds]);
+  }, [celebrationVisualIds, plan]);
 
   const completeOnce = useCallback(() => {
     if (finished.current) return;

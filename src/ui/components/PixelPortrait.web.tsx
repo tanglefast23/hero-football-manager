@@ -9,10 +9,18 @@ import {
   type PortraitExpression,
   type PortraitRole,
 } from '../pixel-portrait-model';
+import { useClubKit } from '../club-kit-context';
 import { usePixelSheets } from '../../render/sprites/use-pixel-sheets';
 import { useReducedMotion } from '../use-reduced-motion';
 
 export interface PixelPortraitProps {
+  /**
+   * Draws the stock strip instead of the club's kit. For the handful of lists
+   * that show OTHER clubs' players — the market's buy side and the rival
+   * screens. The default is the club kit, because almost every portrait in the
+   * game is one of your own.
+   */
+  stockKit?: boolean;
   playerId: string;
   role: PortraitRole;
   lookId?: string;
@@ -31,8 +39,10 @@ export function PixelPortrait({
   expression = 'rest',
   reduceMotion = false,
   scale = PIXEL_PORTRAIT_SCALE,
+  stockKit = false,
 }: PixelPortraitProps) {
   const pixel = Math.max(1, Math.round(scale));
+  const { ownKit } = useClubKit();
   const spriteKey = useMemo(
     () => portraitSpriteKey(playerId, role, expression, lookId),
     [expression, lookId, playerId, role],
@@ -80,7 +90,12 @@ export function PixelPortrait({
       blinking && blinkVariant
         ? blinkVariant
         : portraitSpriteRows(sheets.portraits, spriteKey);
-    const runs = portraitPixelRuns(sheets.portraits, rows, spriteKey);
+    const runs = portraitPixelRuns(
+      sheets.portraits,
+      rows,
+      spriteKey,
+      stockKit ? undefined : ownKit,
+    );
     const commandsByColor = new Map<string, string[]>();
     for (const run of runs) {
       const commands = commandsByColor.get(run.color) ?? [];
@@ -91,7 +106,7 @@ export function PixelPortrait({
       color,
       path: commands.join(''),
     }));
-  }, [blinkVariant, blinking, sheets, spriteKey]);
+  }, [blinkVariant, blinking, ownKit, sheets, spriteKey, stockKit]);
 
   return (
     <svg

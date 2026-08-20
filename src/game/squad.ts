@@ -652,8 +652,10 @@ export function setCareerLineup(
 }
 
 /**
- * Replaces one starter with an eligible bench player. The lineup slot preserves
- * the selected formation, so any outfield player may occupy any outfield slot;
+ * Replaces one starter with an eligible bench player, or trades the formation
+ * slots of two starters when the replacement is already in the eleven. The
+ * lineup slot preserves the selected formation, so any outfield player may
+ * occupy any outfield slot;
  * goalkeeper and hero-license boundaries remain strict.
  */
 export function swapCareerLineupPlayer(
@@ -671,8 +673,24 @@ export function swapCareerLineupPlayer(
   const starterSlot = lineup.playerIds.indexOf(starterId);
   if (starterSlot < 0)
     throw new Error('Select a player from the Starting XI first.');
-  if (lineup.playerIds.includes(replacementId)) {
-    throw new Error('The replacement must come from the bench.');
+  const replacementSlot = lineup.playerIds.indexOf(replacementId);
+  // Two starters trade formation slots. Slot 0 is the goalkeeper slot, which
+  // only a bench keeper may take, so it stays out of the shuffle.
+  if (replacementSlot >= 0) {
+    if (starterSlot === replacementSlot) return state;
+    if (starterSlot === 0 || replacementSlot === 0) {
+      throw new Error('The goalkeeper cannot trade places with an outfielder.');
+    }
+    return setCareerLineup(
+      state,
+      lineup.playerIds.map((playerId, slot) =>
+        slot === starterSlot
+          ? replacementId
+          : slot === replacementSlot
+            ? starterId
+            : playerId,
+      ),
+    );
   }
 
   const roster = rosterForClub(state, state.userClubId);

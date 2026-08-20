@@ -128,6 +128,7 @@ import {
   teardownRivalHeroVoice,
 } from './src/render/rival-hero-voice';
 import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
+import { setClubKitColorSafe } from './src/ui/club-kit-context';
 import { assertRuntimeGoldenReplay } from './src/sim/runtime-golden';
 import type { FormationId } from './src/sim/tactics';
 import type { MatchState } from './src/sim/types';
@@ -1394,6 +1395,7 @@ function GameApp() {
 
   useEffect(() => {
     setHapticsEnabled(preferences.hapticsEnabled);
+    setClubKitColorSafe(preferences.colorSafeKits);
   }, [preferences.hapticsEnabled]);
 
   useEffect(() => {

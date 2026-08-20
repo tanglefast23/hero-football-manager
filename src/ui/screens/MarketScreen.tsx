@@ -667,10 +667,12 @@ function YouthDesk({
                   meets this card, because a season-1 duty sends them here. */}
               <View className="flex-row items-start justify-between gap-3">
                 <View className="shrink-0 overflow-hidden border-2 border-ink bg-blue-light">
+                  {/* Another club's player, so their strip, not ours. */}
                   <PixelPortrait
                     playerId={offer.playerId}
                     role={offer.role}
                     lookId={offer.lookId}
+                    stockKit
                   />
                 </View>
                 <View className="min-w-0 flex-1">
@@ -865,10 +867,12 @@ function ScoutingDesk({
             >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="overflow-hidden border-2 border-ink bg-blue-light">
+                  {/* A scouted player is not signed yet. Stock strip. */}
                   <PixelPortrait
                     playerId={report.playerId}
                     role={report.role}
                     lookId={report.lookId}
+                    stockKit
                   />
                 </View>
                 <View className="flex-1">
@@ -1167,6 +1171,8 @@ function TransferDesk({
                     playerId={listing.playerId}
                     role={listing.role}
                     lookId={listing.lookId}
+                    // A sale is one of ours in our kit; a buy is not ours yet.
+                    stockKit={listing.direction === 'BUY'}
                   />
                 </View>
                 <View className="flex-1">
@@ -1679,10 +1685,14 @@ export function NegotiationPanel({
     >
       <View className={`flex-row items-center gap-3 border-2 p-3 ${moodClass}`}>
         <View className="overflow-hidden border-2 border-ink bg-white">
+          {/* This panel serves a signing and a renewal alike, and nothing on
+              the view model says which. Stock, because putting our kit on a
+              rival's player reads worse than leaving one of ours in red. */}
           <PixelPortrait
             playerId={viewModel.playerId}
             role={viewModel.playerRole}
             lookId={viewModel.lookId}
+            stockKit
             expression={
               viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
                 ? 'ko'

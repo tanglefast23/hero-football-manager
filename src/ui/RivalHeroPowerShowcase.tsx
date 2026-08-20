@@ -309,6 +309,7 @@ export function RivalHeroPowerShowcase({
                   role={viewModel.role}
                   scale={heroScale}
                   walking
+                  stockKit
                 />
               </Animated.View>
             ))
@@ -333,6 +334,8 @@ export function RivalHeroPowerShowcase({
             role={viewModel.role}
             scale={heroScale}
             walking={heroWalking}
+            // A rival's hero, so a rival's shirt.
+            stockKit
           />
         </Animated.View>
       </View>

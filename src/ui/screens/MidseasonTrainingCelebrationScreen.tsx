@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClubKit } from '../club-kit-context';
 import {
   Animated,
   Easing,
@@ -105,9 +106,12 @@ export function MidseasonTrainingCelebrationScreen({
     () => viewModel.squad.map((player) => player.spriteKey.slice(0, -5)),
     [viewModel.squad],
   );
+  // These screens draw the club's OWN players, and drew them in stock red even
+  // when the pitch was in colour-safe amber. The home plan fixes both at once.
+  const plan = useClubKit().planFor('r');
   const spriteAtlas = useMemo<CelebrationAtlas>(() => {
     try {
-      return buildSpriteAtlas(Skia, visualIds);
+      return buildSpriteAtlas(Skia, visualIds, plan);
     } catch (error) {
       console.warn(
         'MidseasonTrainingCelebrationScreen: sprite atlas unavailable',
@@ -115,7 +119,7 @@ export function MidseasonTrainingCelebrationScreen({
       );
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [visualIds]);
+  }, [plan, visualIds]);
 
   const pitchTop = Math.max(104, Math.round(height * 0.18));
   const pitchHeight = Math.max(300, height - pitchTop);

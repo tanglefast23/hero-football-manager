@@ -24,7 +24,8 @@ import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { playerLookId } from './sprites/player-look';
-import { matchKitPaletteOverride } from './team-kit-ui';
+import { clubKitPlan } from './sprites/club-kit';
+import type { ClubKitChoice } from './sprites/club-kit';
 
 // Half the original pace (720 / 420). Every kick shares a shooter, a keeper and
 // a ball at the same three points on screen, so the eye has nothing to track
@@ -49,6 +50,8 @@ export interface PenaltyShootoutProps {
   readonly reduceMotion: boolean;
   /** The manager's kit setting, so these shirts match the ones on the pitch. */
   readonly colorSafeKits?: boolean;
+  /** The club's own kit. Absent means the stock strip. */
+  readonly clubKit?: ClubKitChoice;
   readonly onDone: () => void;
 }
 
@@ -57,6 +60,7 @@ export function PenaltyShootout({
   shootout,
   reduceMotion,
   colorSafeKits = true,
+  clubKit,
   onDone,
 }: PenaltyShootoutProps) {
   const t = useCopy();
@@ -193,13 +197,17 @@ export function PenaltyShootout({
       return buildSpriteAtlas(
         Skia,
         visualIds,
-        matchKitPaletteOverride(colorSafeKits),
+        clubKitPlan({
+          kit: clubKit,
+          userSide: shootout.clubIsHome ? 'r' : 'u',
+          colorSafeKits,
+        }),
       );
     } catch (error) {
       console.warn('PenaltyShootout: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [colorSafeKits, visualIds]);
+  }, [clubKit, colorSafeKits, shootout.clubIsHome, visualIds]);
   const playerScale = snapSpriteScale(
     1,
     NOMINAL_PLAYER_SCALE,

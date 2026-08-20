@@ -32,7 +32,8 @@ import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { playerLookId } from './sprites/player-look';
 import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
-import { matchKitPaletteOverride } from './team-kit-ui';
+import { clubKitPlan } from './sprites/club-kit';
+import type { ClubKitChoice } from './sprites/club-kit';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import { ClubCrest } from '../ui/components/ClubCrest';
 
@@ -107,6 +108,8 @@ export interface QuickResultFaceOffProps {
   readonly reduceMotion: boolean;
   /** The manager's kit setting, so these shirts match the ones on the pitch. */
   readonly colorSafeKits?: boolean;
+  /** The club's own chosen kit. Absent means the stock strip. */
+  readonly clubKitChoice?: ClubKitChoice;
   /** Called exactly once, on the hold's expiry or a tap. */
   readonly onDone: () => void;
 }
@@ -115,6 +118,7 @@ export function QuickResultFaceOff({
   faceOff,
   reduceMotion,
   colorSafeKits = true,
+  clubKitChoice,
   onDone,
 }: QuickResultFaceOffProps) {
   const t = useCopy();
@@ -193,13 +197,23 @@ export function QuickResultFaceOff({
       return buildSpriteAtlas(
         Skia,
         [clubVisualId, opponentVisualId],
-        matchKitPaletteOverride(colorSafeKits),
+        clubKitPlan({
+          kit: clubKitChoice,
+          userSide: faceOff.clubIsHome ? 'r' : 'u',
+          colorSafeKits,
+        }),
       );
     } catch (error) {
       console.warn('QuickResultFaceOff: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, [clubVisualId, colorSafeKits, opponentVisualId]);
+  }, [
+    clubKitChoice,
+    clubVisualId,
+    colorSafeKits,
+    faceOff.clubIsHome,
+    opponentVisualId,
+  ]);
 
   const playerScale = snapSpriteScale(
     1,

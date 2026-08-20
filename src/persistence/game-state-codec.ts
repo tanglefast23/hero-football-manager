@@ -2029,6 +2029,18 @@ const gameStateSchema = z
     // by the application reconciliation pass without being treated as corrupt.
     awakening: awakeningSchema.optional(),
     onboarding: onboardingSchema.optional(),
+    // Three ids, validated as strings rather than as enums ON PURPOSE. A save
+    // naming a swatch this build does not ship must still load — the kit falls
+    // back to the stock strip in `clubKitPlan`. A save that will not load is
+    // worse than a shirt in the wrong colour. Absent on every save written
+    // before clubs could pick a kit.
+    clubKit: z
+      .object({
+        base: nonemptyString,
+        pattern: nonemptyString,
+        patternColor: nonemptyString,
+      })
+      .optional(),
     trainingPoints: nonnegativeInteger,
     // Absent on saves written before the head coach could bank a half-time
     // speech; absent and 0 mean the same thing.

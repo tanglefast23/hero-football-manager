@@ -48,11 +48,13 @@ describe('first-hire screen copy', () => {
       'formatChoiceValue(appearance.hairstyle, APPEARANCE_OPTIONS.hairstyle)',
     );
     expect(source).not.toMatchSource(/\$\{appearance\.\w+ \+ 1\} \//);
+    // Three: the stepper's label and value cells, plus the club-kit button's
+    // label, which sits in the same fixed row and would ellipsise the same way.
     expect(
       source.match(
         /maxFontSizeMultiplier=\{STEPPER_MAX_FONT_SIZE_MULTIPLIER\}/g,
       )?.length,
-    ).toBe(2);
+    ).toBe(3);
   });
 
   it('cycles every paper-doll control through the shipped option counts', () => {
@@ -111,8 +113,9 @@ describe('first-hire screen copy', () => {
 
   it('uses the supplied tap sound for appearance and stat adjustment buttons', () => {
     // Two appearance-arrow definitions render 6 buttons; two stat-stepper
-    // definitions render 12 more buttons.
-    expect(source.match(/pressSfx="stat-step"/g)?.length).toBe(4);
+    // definitions render 12 more buttons; the club-kit button is the fifth,
+    // and answers with the same cue because it sits in the same row.
+    expect(source.match(/pressSfx="stat-step"/g)?.length).toBe(5);
     const pressable = readFileSync(
       join(process.cwd(), 'src/ui/components/SfxPressable.tsx'),
       'utf8',

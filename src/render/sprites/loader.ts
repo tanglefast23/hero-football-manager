@@ -8,6 +8,7 @@ import {
   slideTackleSpriteFrame,
   withSlideTackleSprites,
 } from './slide-tackle';
+import { kitPatternCell, type KitPlan, type KitPrefix } from './club-kit';
 
 export interface SpriteSheet {
   cell: { w: number; h: number };
@@ -251,6 +252,101 @@ export function deriveWebbedFrame(
   );
 }
 
+/**
+ * The jersey rows of an authored 24x30 player frame. Rows 0-15 are head, face
+ * and shoulders; 24-29 are shorts, socks and boots.
+ */
+export const JERSEY_BAND = { top: 16, bottom: 23 } as const;
+
+/** Shade, body and light, per side. The away sheet has its own three. */
+const KIT_TOKENS: Readonly<
+  Record<KitPrefix, readonly [string, string, string]>
+> = {
+  r: ['r', 'R', 'E'],
+  u: ['b', 'B', 'C'],
+};
+
+/**
+ * Tokens the rewrite paints with, taken from the digits: the authored palette
+ * is letters and "." only, so nothing can collide.
+ *
+ * Slots are assigned by PREFIX, not by role. The side carrying the club's own
+ * kit takes 1-6 (base then pattern) and the other side takes 7-9, whichever of
+ * home or away each of those happens to be.
+ */
+const REWRITE_TOKENS = {
+  first: { base: ['1', '2', '3'], pattern: ['4', '5', '6'] },
+  second: { base: ['7', '8', '9'], pattern: undefined },
+} as const;
+
+/**
+ * Paints the chosen kit into the sheet's own pixels, before any pose is derived
+ * from them.
+ *
+ * Why not a paint-time palette override, which is what the colour-safe kit used
+ * to be: kit tokens are not confined to jerseys. Twenty-five looks paint them in
+ * hair, masks and trim, and three rear-head styles paint them into derived back
+ * frames — so recolouring by token dyes hair. And a paint-time ROW band cannot
+ * work either, because `kneelBody` pastes the torso at row 10 or 12 of a 34x30
+ * slide cell, which a band anchored at row 16 misses. Rewriting the source rows
+ * before derivation is the one place both are true at once: the band is still
+ * honest, and every derived pose inherits the result for free.
+ */
+export function withKitRewrite(
+  sheet: SpriteSheet,
+  plan: KitPlan | undefined,
+): SpriteSheet {
+  const sides = (['r', 'u'] as const).filter(
+    (prefix) => plan?.[prefix] !== undefined,
+  );
+  if (plan === undefined || sides.length === 0) return sheet;
+
+  // The palette is the module singleton `requirePixelSheets()` hands back, and
+  // `loadSpriteSheet` only shallow-copies the sheet around it. Writing to it
+  // would leak one club's colours into every later load and into atlases
+  // already cached under a different kit.
+  const palette: Record<string, string | null> = { ...sheet.palette };
+  const sprites = { ...sheet.sprites };
+
+  sides.forEach((prefix, index) => {
+    const side = plan[prefix]!;
+    const slots = index === 0 ? REWRITE_TOKENS.first : REWRITE_TOKENS.second;
+    const baseTokens = slots.base;
+    const patternTokens =
+      side.pattern === undefined ? undefined : slots.pattern;
+    for (let step = 0; step < 3; step += 1) {
+      palette[baseTokens[step]] = side.base[step];
+      if (patternTokens !== undefined && side.pattern !== undefined) {
+        palette[patternTokens[step]] = side.pattern[step];
+      }
+    }
+
+    const kitTokens = KIT_TOKENS[prefix];
+    for (const [key, rows] of Object.entries(sheet.sprites)) {
+      if (!key.startsWith(`${prefix}:`)) continue;
+      sprites[key] = rows.map((row, rowIndex) => {
+        if (rowIndex < JERSEY_BAND.top || rowIndex > JERSEY_BAND.bottom)
+          return row;
+        let rewritten = '';
+        for (let col = 0; col < row.length; col += 1) {
+          const step = kitTokens.indexOf(row[col]);
+          if (step < 0) {
+            rewritten += row[col];
+            continue;
+          }
+          const usePattern =
+            patternTokens !== undefined &&
+            kitPatternCell(side.shape, rowIndex, col, JERSEY_BAND.top);
+          rewritten += usePattern ? patternTokens[step] : baseTokens[step];
+        }
+        return rewritten;
+      });
+    }
+  });
+
+  return { ...sheet, palette, sprites };
+}
+
 function withWebbedSprites(sheet: SpriteSheet): SpriteSheet {
   const sprites = { ...sheet.sprites };
   for (const [key, rows] of Object.entries(sheet.sprites)) {
@@ -297,6 +393,7 @@ function requiredKeys(playerIds: readonly string[]): string[] {
  */
 export function loadSpriteSheet(
   visualIds: readonly string[] = PLAYER_IDS,
+  plan?: KitPlan,
 ): SpriteSheet {
   // Through the owner module, never `./sprites.json` directly: a second
   // importer makes the sheet shared between the main graph and the lazy match
@@ -354,9 +451,18 @@ export function loadSpriteSheet(
     for (const [key, rows] of Object.entries(baseSheet.sprites)) {
       if (key.startsWith(`${id}:`)) selectedSprites[key] = rows;
     }
+  // The rewrite sits AFTER back-facing on purpose: `deriveBackFacingFrame`
+  // fills the front number patch with the band's most common token, so running
+  // first hands it a plain kit token that the rewrite then patterns along with
+  // everything else — stripes run unbroken across the back instead of leaving a
+  // solid block where the number was. And BEFORE slide and webbed, so both
+  // inherit the kit without knowing it exists.
   const sheet = withWebbedSprites(
     withSlideTackleSprites(
-      withBackFacingSprites({ ...baseSheet, sprites: selectedSprites }),
+      withKitRewrite(
+        withBackFacingSprites({ ...baseSheet, sprites: selectedSprites }),
+        plan,
+      ),
     ),
   );
 

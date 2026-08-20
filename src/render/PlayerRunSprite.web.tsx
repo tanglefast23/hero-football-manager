@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { playerLookId } from './sprites/player-look';
 import { spriteRuns } from './sprites/sprite-runs';
 import { usePixelSheets } from './sprites/use-pixel-sheets';
+import { useClubKit } from '../ui/club-kit-context';
 
 const CELL_WIDTH = 24;
 const CELL_HEIGHT = 30;
@@ -13,6 +14,8 @@ export interface PlayerRunSpriteProps {
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   lookId?: string;
   side?: 'home' | 'away';
+  /** Draws the stock strip rather than the club's kit — for rival players. */
+  stockKit?: boolean;
   scale?: number;
   walking?: boolean;
   accessibilityLabel?: string;
@@ -24,6 +27,7 @@ export function PlayerRunSprite({
   role,
   lookId,
   side = 'home',
+  stockKit = false,
   scale = 4,
   walking = false,
   accessibilityLabel,
@@ -55,15 +59,21 @@ export function PlayerRunSprite({
   // is resident well before any walk-on renders. `undefined` is the cold-start
   // tick: draw the empty cell rather than throw.
   const sheets = usePixelSheets();
+  const { planFor } = useClubKit();
+  const kit = useMemo(() => {
+    if (stockKit) return undefined;
+    const prefix = side === 'home' ? 'r' : 'u';
+    return planFor(prefix)[prefix];
+  }, [planFor, side, stockKit]);
   const runs = useMemo(() => {
     if (sheets === undefined) return [];
     try {
-      return spriteRuns(sheets.sprites, spriteKey);
+      return spriteRuns(sheets.sprites, spriteKey, kit);
     } catch (error) {
       console.warn('PlayerRunSprite: sprite unavailable', error);
-      return spriteRuns(sheets.sprites, 'r:f00:run0');
+      return spriteRuns(sheets.sprites, 'r:f00:run0', kit);
     }
-  }, [sheets, spriteKey]);
+  }, [kit, sheets, spriteKey]);
 
   return (
     <View

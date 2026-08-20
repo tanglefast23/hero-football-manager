@@ -11,9 +11,17 @@ import {
   type PortraitExpression,
   type PortraitRole,
 } from '../pixel-portrait-model';
+import { useClubKit } from '../club-kit-context';
 import { usePixelSheets } from '../../render/sprites/use-pixel-sheets';
 
 export interface PixelPortraitProps {
+  /**
+   * Draws the stock strip instead of the club's kit. For the handful of lists
+   * that show OTHER clubs' players — the market's buy side and the rival
+   * screens. The default is the club kit, because almost every portrait in the
+   * game is one of your own.
+   */
+  stockKit?: boolean;
   playerId: string;
   role: PortraitRole;
   lookId?: string;
@@ -36,8 +44,10 @@ export function PixelPortrait({
   expression = 'rest',
   reduceMotion = false,
   scale = PIXEL_PORTRAIT_SCALE,
+  stockKit = false,
 }: PixelPortraitProps) {
   const pixel = Math.max(1, Math.round(scale));
+  const { ownKit } = useClubKit();
   const spriteKey = useMemo(
     () => portraitSpriteKey(playerId, role, expression, lookId),
     [expression, lookId, playerId, role],
@@ -88,8 +98,13 @@ export function PixelPortrait({
     // The run id doubles as the React key, so it must stay STABLE across the
     // blink: a `:blink`-prefixed id unmounted and remounted every Rect in the
     // Canvas twice per blink (open and close) instead of diffing in place.
-    return portraitPixelRuns(sheets.portraits, rows, spriteKey);
-  }, [sheets, spriteKey, blinking, blinkVariant]);
+    return portraitPixelRuns(
+      sheets.portraits,
+      rows,
+      spriteKey,
+      stockKit ? undefined : ownKit,
+    );
+  }, [sheets, spriteKey, blinking, blinkVariant, ownKit, stockKit]);
 
   return (
     <Canvas

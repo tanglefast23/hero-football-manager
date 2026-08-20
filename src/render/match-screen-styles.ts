@@ -17,23 +17,14 @@ import {
   TICKER_TOP_INSET,
 } from './match-ticker';
 
-// Possession-card geometry. The charge meter's rainbow strip is built from real
-// pixel bands, so it needs the card's content width rather than a percentage.
-const CARRIER_CARD_WIDTH = 150;
-const CARRIER_CARD_PADDING_X = 7;
-// Standard HUD ink pixel frame — a solid kit-coloured panel needs it to hold
-// its edge against the pitch, where the old 1pt cream hairline washed out.
-const CARRIER_CARD_BORDER = 2;
-export const CARRIER_CARD_CONTENT_WIDTH =
-  CARRIER_CARD_WIDTH - (CARRIER_CARD_PADDING_X + CARRIER_CARD_BORDER) * 2;
-// The same card on a desktop window sits on a pitch several times the size and
-// is read from sitting distance, where phone-sized 11pt names and a 6px bar
-// vanish. Same geometry throughout, scaled ~1.7x.
-const CARRIER_CARD_DESKTOP_WIDTH = 260;
-const CARRIER_CARD_DESKTOP_PADDING_X = 12;
-export const CARRIER_CARD_DESKTOP_CONTENT_WIDTH =
-  CARRIER_CARD_DESKTOP_WIDTH -
-  (CARRIER_CARD_DESKTOP_PADDING_X + CARRIER_CARD_BORDER) * 2;
+// Possession-card padding and frame. The width is not here: it is capped
+// against the pitch at render time — see carrierCardGeometry.
+import {
+  CARRIER_CARD_BORDER,
+  CARRIER_CARD_DESKTOP_PADDING_X,
+  CARRIER_CARD_PADDING_X,
+} from './match-carrier-card';
+
 /** Heat-strip height, phone and desktop. */
 export const CARRIER_CHARGE_HEIGHT = 4;
 export const CARRIER_CHARGE_DESKTOP_HEIGHT = 7;
@@ -274,7 +265,7 @@ const makeStyles = (faces: LocaleFaces) =>
       position: 'absolute',
       zIndex: 4,
       bottom: 8,
-      width: CARRIER_CARD_WIDTH,
+      // Width is set inline from the pitch — see carrierCardGeometry.
       // backgroundColor is the carrier's kit colour, applied inline.
       borderWidth: CARRIER_CARD_BORDER,
       borderColor: KIT_PANEL_BORDER_COLOR,
@@ -286,7 +277,6 @@ const makeStyles = (faces: LocaleFaces) =>
     carrierCardRight: { right: 8 },
     carrierCardDesktop: {
       bottom: 12,
-      width: CARRIER_CARD_DESKTOP_WIDTH,
       paddingHorizontal: CARRIER_CARD_DESKTOP_PADDING_X,
       paddingVertical: 9,
     },
