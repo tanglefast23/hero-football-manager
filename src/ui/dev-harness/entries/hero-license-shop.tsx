@@ -13,6 +13,7 @@ interface ShopCase {
   readonly label: string;
   readonly note: string;
   readonly cash: number;
+  readonly sponsorChallenge?: boolean;
 }
 
 /**
@@ -32,6 +33,13 @@ const SHOP_CASES: readonly ShopCase[] = Object.freeze([
     label: 'Cannot pay',
     note: 'Same price, refused — the club is short',
     cash: 12_000,
+  },
+  {
+    id: 'sponsor-challenge',
+    label: 'Challenge',
+    note: 'Active Score 3+ goals challenge and $9,600 prize',
+    cash: 180_000,
+    sponsorChallenge: true,
   },
 ]);
 
@@ -58,6 +66,7 @@ function matchdayCareer(): GameState {
  */
 function shopCareer(shopCase: ShopCase): GameState {
   const base = matchdayCareer();
+  const fixture = activeCareerMatchday(base)!.fixture;
   const squad = base.players.filter(
     (player) => player.clubId === base.userClubId,
   );
@@ -76,6 +85,26 @@ function shopCareer(shopCase: ShopCase): GameState {
           }
         : player,
     ),
+    ...(shopCase.sponsorChallenge
+      ? {
+          clubBusiness: {
+            ...base.clubBusiness,
+            sponsorship: {
+              ...base.clubBusiness.sponsorship,
+              weeklyChallenge: {
+                id: `sponsor-sprint-s${base.season}`,
+                kind: 'SCORE_THREE' as const,
+                sponsorName: 'Sponsor Desk',
+                season: base.season,
+                chosenWeek: fixture.week,
+                fixtureId: fixture.id,
+                fixtureWeek: fixture.week,
+                nominalBonus: 9_600,
+              },
+            },
+          },
+        }
+      : {}),
   };
 }
 

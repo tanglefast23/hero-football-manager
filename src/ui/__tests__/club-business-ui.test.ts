@@ -104,10 +104,19 @@ describe('Club Business phone and accessibility contracts', () => {
       confirmation.indexOf('className="absolute inset-0"'),
     );
     expect(app).toContainSource('onAfterConfirmDismiss: () => {');
-    expect(app).toContainSource("if (Platform.OS !== 'web')");
+    expect(app).toContainSource(
+      'setSponsorSummaryFocusToken(token => (token ?? 0) + 1);',
+    );
     expect(app).toContainSource(
       'focusSponsorSummaryToken={sponsorSummaryFocusToken}',
     );
+    expect(screen).toContainSource(
+      'slot.provisional && slot.offers.length > 0',
+    );
+    expect(screen).toContainSource(
+      'if (nextSlot !== undefined) setSelectedSponsorSlot(nextSlot.slot);',
+    );
+    expect(screen).toContainSource("kicker={t('clubFinances.sponsorDesk')}");
     expect(scorecard).toContainSource('<ChunkyControl');
     expect(chunkyControl).toContainSource('style={[{ minHeight: 44 }, style]}');
   });

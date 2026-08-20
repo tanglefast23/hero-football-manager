@@ -273,6 +273,10 @@ export interface MatchDayViewModel {
   heroes: readonly HeroLicenseViewModel[];
   licenseReady: boolean;
   heroLicenseOffer: HeroLicenseOfferViewModel;
+  sponsorChallenge?: {
+    targetLabel: string;
+    actualBonus: number;
+  };
 }
 
 /**
