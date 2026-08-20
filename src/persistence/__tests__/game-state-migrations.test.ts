@@ -44,7 +44,6 @@ describe('stored game state migrations', () => {
         supporters: { consecutiveLosses: 0 },
         pendingUserMatchImpacts: [],
         sponsorship: { activeContracts: [], offers: [], portfolioSeason: 1 },
-        buzz: { value: 0 },
       }),
     );
   });
@@ -159,7 +158,7 @@ describe('stored game state migrations', () => {
     const buildings = grid.buildings as MutableRecord[];
     const transactions = migrated.cashTransactions as MutableRecord[];
 
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(GAME_SCHEMA_VERSION);
     expect(assistant.weeklyWage).toBe(250);
     expect((migratedMarket.headCoach as MutableRecord).weeklyWage).toBe(
       (market.headCoach as MutableRecord).weeklyWage,
@@ -225,7 +224,6 @@ describe('stored game state migrations', () => {
       )!.sponsorMonthlyFee,
     ).toBe(2_000);
   });
-
   it.each([
     [5, 0],
     [4, 1],
@@ -265,117 +263,6 @@ describe('stored game state migrations', () => {
       ).toBe(true);
     },
   );
-
-  it.each([
-    {
-      label: 'Season 2 Week 30',
-      season: 2,
-      week: 30,
-      phase: 'season-end',
-      ledgerWeeks: [30],
-      expected: { value: 0 },
-    },
-    {
-      label: 'Week 2',
-      season: 3,
-      week: 2,
-      phase: 'manage',
-      ledgerWeeks: [],
-      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
-    },
-    {
-      label: 'Week 4 before settlement',
-      season: 3,
-      week: 4,
-      phase: 'matchday',
-      ledgerWeeks: [],
-      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
-    },
-    {
-      label: 'Week 5',
-      season: 3,
-      week: 5,
-      phase: 'manage',
-      ledgerWeeks: [4],
-      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
-    },
-    {
-      label: 'Week 15 before settlement',
-      season: 3,
-      week: 15,
-      phase: 'matchday',
-      ledgerWeeks: [],
-      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
-    },
-    {
-      label: 'Week 15 after settlement despite stale phase',
-      season: 3,
-      week: 15,
-      phase: 'matchday',
-      ledgerWeeks: [15],
-      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
-    },
-    {
-      label: 'Week 16',
-      season: 3,
-      week: 16,
-      phase: 'manage',
-      ledgerWeeks: [15],
-      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
-    },
-    {
-      label: 'Week 30 before settlement',
-      season: 3,
-      week: 30,
-      phase: 'matchday',
-      ledgerWeeks: [15],
-      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
-    },
-    {
-      label: 'Week 30 after ledger despite stale phase',
-      season: 3,
-      week: 30,
-      phase: 'matchday',
-      ledgerWeeks: [15, 30],
-      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
-    },
-    {
-      label: 'Week 30 season end',
-      season: 3,
-      week: 30,
-      phase: 'season-end',
-      ledgerWeeks: [15],
-      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
-    },
-    {
-      label: 'next-season Week 1',
-      season: 4,
-      week: 1,
-      phase: 'manage',
-      ledgerWeeks: [],
-      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
-    },
-  ] as const)('maps the Buzz boundary without cash: $label', (testCase) => {
-    const legacy = schema3Career();
-    legacy.season = testCase.season;
-    legacy.week = testCase.week;
-    legacy.phase = testCase.phase;
-    legacy.ledgers = testCase.ledgerWeeks.map((week) => ({
-      season: testCase.season,
-      week,
-      lines: [],
-      balanceAfter: 31_337,
-    }));
-    const clubsBefore = JSON.parse(JSON.stringify(legacy.clubs));
-    const ledgersBefore = JSON.parse(JSON.stringify(legacy.ledgers));
-
-    const migrated = migrateStoredGameState(legacy) as MutableRecord;
-    const business = migrated.clubBusiness as MutableRecord;
-
-    expect(business.buzz).toEqual(testCase.expected);
-    expect(migrated.clubs).toEqual(clubsBefore);
-    expect(migrated.ledgers).toEqual(ledgersBefore);
-  });
 
   it.each([
     [

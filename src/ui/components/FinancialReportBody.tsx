@@ -5,15 +5,14 @@ import type { PostMatchViewModel } from '../models';
 import { FinancialStatement } from './FinancialStatement';
 import { Metric, SectionLabel, formatSignedCompactNumber } from './Scorecard';
 import { PixelText } from './PixelText';
-import { PostMatchBuzzCard } from './PostMatchBuzzCard';
 import { useCopy } from '../../i18n';
 
 /**
  * The Financial Report's inner composition — the statement star on top, then
- * the concurrent sections (spec §8): TP/Fans count-ups, the buzz card, and
- * the attention updates, each animating on its own clock from mount, never
- * waiting for the slot machine. Shared verbatim by the modal and the dev
- * harness so QA exercises the production composition.
+ * the concurrent sections (spec §8): TP/Fans count-ups and attention updates,
+ * each animating on its own clock from mount, never waiting for the slot
+ * machine. Shared verbatim by the modal and the dev harness so QA exercises the
+ * production composition.
  */
 
 export interface FinancialReportBodyProps {
@@ -81,12 +80,6 @@ export function FinancialReportBody({
           />
         </View>
       </EntranceView>
-
-      {viewModel.buzz === undefined ? null : (
-        <EntranceView delayMs={80} reduceMotion={reduceMotion} className="mt-5">
-          <PostMatchBuzzCard buzz={viewModel.buzz} />
-        </EntranceView>
-      )}
 
       {viewModel.updates.length > 0 ? (
         <View className="mt-5">

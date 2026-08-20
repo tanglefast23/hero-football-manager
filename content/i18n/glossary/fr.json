@@ -56,14 +56,6 @@
       "why": "Ce qu'un stade appelle vraiment sa boutique."
     },
     {
-      "english": "Buzz",
-      "englishPattern": "\\bBuzz\\b",
-      "allowedForms": [
-        "Ferveur"
-      ],
-      "why": "La ferveur autour du club — ce que la jauge mesure vraiment."
-    },
-    {
       "english": "Superpower",
       "englishPattern": "[Ss]uperpowers?",
       "allowedForms": [

@@ -178,7 +178,6 @@ export function dueAssistantInboxGuideSequences(
     if (highestDivisionReached(state) <= 4 && !completed('sponsor-desk')) {
       due.push(sponsorDeskGuideForState(state));
     }
-    if (state.season >= 3) due.push('sponsor-buzz');
   }
 
   if (state.market.headCoach === undefined) {
@@ -640,7 +639,6 @@ export function reconcileSatisfiedAssistantGuideSequences(
         : 'sponsor-desk',
     );
   }
-  if (next.season < 3) premature.push('sponsor-buzz');
   if (
     next.playerRequests?.pending === undefined &&
     !hasAssistantGuideSequenceCompleted(next, 'player-requests')

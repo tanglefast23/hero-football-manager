@@ -1804,7 +1804,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         fixture.id,
         userResult,
         [],
-        production.powerFiredPlayerIds,
         t,
       );
       const destination = awakening.awakened
@@ -2000,7 +1999,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         fixture.id,
         supplied,
         highlights,
-        production.powerFiredPlayerIds,
         t,
       );
       const destination = awakening.awakened

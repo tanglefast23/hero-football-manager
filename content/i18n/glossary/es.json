@@ -54,14 +54,6 @@
       "why": "'Tienda de Aficionados' is a translation; 'Tienda del Club' is what a ground actually calls it. The plural is allowed because you can build three of them."
     },
     {
-      "english": "Buzz",
-      "englishPattern": "\\bBuzz\\b",
-      "allowedForms": [
-        "Ambiente"
-      ],
-      "why": "'Expectación' is correct but 11 characters, and it broke the copy budget on every label that carries it. 'Ambiente' is what a ground actually says about a club people are talking about."
-    },
-    {
       "english": "Superpower",
       "englishPattern": "[Ss]uperpowers?",
       "allowedForms": [

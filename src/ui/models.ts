@@ -493,16 +493,6 @@ export interface PostMatchViewModel {
   netAmount: number;
   trainingPointsGained: number;
   fanDelta: number;
-  /** Present from Season 3 when this was a production user match. */
-  buzz?: {
-    earned: number;
-    rawEarned: number;
-    valueAfter: number;
-    win: number;
-    goals: number;
-    heroMoments: number;
-    payout?: number;
-  };
   highlights: readonly HighlightViewModel[];
   updates: readonly WeekUpdateViewModel[];
   facilityCompletion?: FacilityCompletionViewModel;
@@ -962,12 +952,6 @@ export interface ClubSponsorshipViewModel {
   chairmanPercent?: number;
   slots: readonly SponsorSlotViewModel[];
   weeklyChallenge?: SponsorWeeklyChallengeViewModel;
-  buzz?: {
-    value: number;
-    pendingPayout: number;
-    nextPayoutLabel: string;
-    lastSettlementLabel?: string;
-  };
 }
 
 export interface ClubFinancesViewModel {
@@ -1002,7 +986,7 @@ export interface ClubFinancesViewModel {
   facilities: ClubFacilityGridViewModel;
   trainingPointIncome: TrainingPointIncomeViewModel;
   incomeGeneration: IncomeGenerationViewModel;
-  /** Absent until D4 managed sponsorship or Season 3 Buzz becomes visible. */
+  /** Absent until D4 managed sponsorship becomes visible. */
   sponsorship?: ClubSponsorshipViewModel;
 }
 
@@ -1262,12 +1246,7 @@ export interface SeasonEndClubBusinessViewModel {
     actualBonus: number;
   }[];
   objectiveBonusTotal: number;
-  buzz?: {
-    reached: number;
-    actualPayout: number;
-    resetTo: 0;
-  };
-  /** Objective bonuses plus the season-end Buzz payment, using actual receipts. */
+  /** Objective bonuses using actual receipts. */
   actualPayoutTotal: number;
 }
 

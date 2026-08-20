@@ -6,7 +6,7 @@ import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
 import type { ClubBusinessState, SponsorRules } from './club-business-types';
 
-export const GAME_SCHEMA_VERSION = 5;
+export const GAME_SCHEMA_VERSION = 6;
 export const SEASON_WEEKS = 30;
 
 type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';

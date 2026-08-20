@@ -1,5 +1,4 @@
 import type { AssistantMode, GameState } from './types';
-import { highestDivisionReached } from './promotion-progression';
 
 /**
  * Whether Bert is teaching this career.
@@ -35,7 +34,6 @@ export const M2_ASSISTANT_GUIDE_SEQUENCE_IDS = [
   'division-leaders',
   'sponsor-desk',
   'sponsor-desk-continuity',
-  'sponsor-buzz',
   'player-requests',
   'first-injury',
   'first-emergency-loan',
@@ -202,8 +200,6 @@ const INBOX_ACKNOWLEDGED_PRODUCT_PREFIX =
 const INBOX_DISMISSED_PRODUCT_PREFIX = 'guide:bert:inbox:dismissed-product:';
 const INBOX_PERMANENTLY_DISMISSED_PRODUCT_PREFIX =
   'guide:bert:inbox:permanently-dismissed-product:';
-const SPONSOR_DESK_FIRST_DELIVERY_PREFIX =
-  'guide:bert:sponsor-desk:first-delivered:';
 const MAX_PERSISTED_ONE_SHOT_PRODUCT_FLAGS = 24;
 const SPONSOR_DESK_INTRO_SEQUENCE_IDS = [
   'sponsor-desk',
@@ -319,15 +315,7 @@ export function deferAssistantGuideSequencesUntilUnlock(
 ): GameState {
   const ids = new Set(sequenceIds);
   for (const sequenceId of ids) assertM2SequenceId(sequenceId);
-  const resetsSponsorDeskDelivery =
-    ids.has('sponsor-desk') && ids.has('sponsor-desk-continuity');
   const nextFlags = state.eventFlags.filter((flag) => {
-    if (
-      resetsSponsorDeskDelivery &&
-      flag.startsWith(SPONSOR_DESK_FIRST_DELIVERY_PREFIX)
-    ) {
-      return false;
-    }
     for (const sequenceId of ids) {
       if (flag === queuedSequenceFlag(sequenceId)) return false;
       if (flag === sequenceCompletionFlag(sequenceId)) return false;
@@ -469,7 +457,6 @@ export function scheduleAssistantInboxWeek(
 ): AssistantInboxWeekPlan {
   validateCareerWeek(inputState.season, inputState.week);
   const productAlerts = validateProductAlerts(options.productAlerts ?? []);
-  const intrinsicallyHeld = intrinsicallyHeldGuideSequences(inputState);
   let state = pruneOldInboxDeliveryFlags(inputState);
   const previouslyPendingOneShots = pendingOneShotProductAlerts(state);
   state = queueAssistantGuideSequences(
@@ -478,7 +465,7 @@ export function scheduleAssistantInboxWeek(
   );
   state = queueOneShotProductAlerts(state, productAlerts);
 
-  const held = [...(options.heldGuideSequenceIds ?? []), ...intrinsicallyHeld];
+  const held = options.heldGuideSequenceIds ?? [];
   const currentDeliveryPrefix = inboxDeliveryWeekPrefix(
     state.season,
     state.week,
@@ -609,7 +596,6 @@ export function scheduleAssistantInboxWeek(
       : productDeliveryFlag(state.season, state.week, candidate.id),
   );
   state = appendMissingFlags(state, deliveryFlags);
-  state = recordFirstSponsorDeskDelivery(state, selected);
   const selectedOneShots = selected.flatMap((candidate) => {
     if (candidate.kind !== 'product') return [];
     const alert = effectiveProductAlerts.find(
@@ -649,77 +635,6 @@ export function scheduleAssistantInboxWeek(
       (sequenceId) => !selectedGuides.has(sequenceId),
     ),
   };
-}
-
-/**
- * Buzz may share an unlock morning with managed sponsors, but it never talks
- * over the Sponsor Desk introduction. Delivery — not completion — starts the
- * one-logical-week gap, so ignoring Bert's card cannot block Buzz forever.
- */
-function intrinsicallyHeldGuideSequences(
-  state: GameState,
-): AssistantInboxGuideSequenceId[] {
-  if (state.season < 3 || highestDivisionReached(state) > 4) return [];
-  if (wasSponsorDeskIntroDeliveredBeforeCurrentWeek(state)) return [];
-
-  const hasDeliveryEvidence =
-    sponsorDeskDeliveryWeeks(state.eventFlags).length > 0;
-  if (
-    !hasDeliveryEvidence &&
-    hasAssistantGuideSequenceCompleted(state, 'sponsor-desk')
-  ) {
-    // A save from before delivery-week tracking can still prove the lesson was
-    // completed. Treat that as historical rather than making Bert repeat it.
-    return [];
-  }
-  return ['sponsor-buzz'];
-}
-
-/** True only when Sponsor Desk was delivered in an earlier logical week. */
-export function wasSponsorDeskIntroDeliveredBeforeCurrentWeek(
-  state: Pick<GameState, 'eventFlags' | 'season' | 'week'>,
-): boolean {
-  return sponsorDeskDeliveryWeeks(state.eventFlags).some(
-    (delivery) =>
-      delivery.season < state.season ||
-      (delivery.season === state.season && delivery.week < state.week),
-  );
-}
-
-function recordFirstSponsorDeskDelivery(
-  state: GameState,
-  selected: readonly InboxCandidate[],
-): GameState {
-  if (
-    state.eventFlags.some((flag) =>
-      flag.startsWith(SPONSOR_DESK_FIRST_DELIVERY_PREFIX),
-    )
-  ) {
-    return state;
-  }
-  const delivered = selected.find(
-    (candidate) =>
-      candidate.kind === 'guide' && isSponsorDeskIntroSequenceId(candidate.id),
-  );
-  if (delivered === undefined) return state;
-  return appendMissingFlags(state, [
-    `${SPONSOR_DESK_FIRST_DELIVERY_PREFIX}s${state.season}:w${state.week}:guide:${delivered.id}`,
-  ]);
-}
-
-function sponsorDeskDeliveryWeeks(
-  eventFlags: readonly string[],
-): { readonly season: number; readonly week: number }[] {
-  const deliveries: { season: number; week: number }[] = [];
-  for (const flag of eventFlags) {
-    const match =
-      /^(?:guide:bert:sponsor-desk:first-delivered:|guide:bert:inbox:delivered:)s(\d+):w(\d+):guide:(sponsor-desk|sponsor-desk-continuity)$/.exec(
-        flag,
-      );
-    if (match === null) continue;
-    deliveries.push({ season: Number(match[1]), week: Number(match[2]) });
-  }
-  return deliveries;
 }
 
 interface InboxCandidateBase {

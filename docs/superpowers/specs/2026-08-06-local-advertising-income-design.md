@@ -1,7 +1,7 @@
 # Local Advertising Income — design
 
 **Date:** 2026-08-06
-**Status:** approved design, ready for planning
+**Status:** historical where it references Buzz; Buzz was removed on 2026-08-20
 **Scope:** one cycle, copy and content only — no economy numbers move
 
 A Division 5 club banks money every fourth week that the game names after a

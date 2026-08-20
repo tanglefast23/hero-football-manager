@@ -54,14 +54,6 @@
       "why": "Steht so an jedem deutschen Stadion."
     },
     {
-      "english": "Buzz",
-      "englishPattern": "\\bBuzz\\b",
-      "allowedForms": [
-        "Wirbel"
-      ],
-      "why": "Der Wirbel um den Verein — kürzer als 'Aufmerksamkeit' und näher dran."
-    },
-    {
       "english": "Superpower",
       "englishPattern": "[Ss]uperpowers?",
       "allowedForms": [

@@ -809,9 +809,6 @@ const pendingUserMatchImpactSchema = z
     divisionScale: positiveInteger,
     supporterWinUnits: nonnegativeInteger,
     supporterHeroUnits: nonnegativeInteger,
-    buzzWin: nonnegativeInteger,
-    buzzGoals: nonnegativeInteger,
-    buzzHeroMoments: nonnegativeInteger,
   })
   .superRefine((impact, context) => {
     if ((impact.competition === 'LEAGUE' ? 0 : 1) !== impact.settlementOrder) {
@@ -878,72 +875,11 @@ const supporterBusinessStateSchema = z.strictObject({
   lastAppliedImpact: supporterWeekSummarySchema.optional(),
 });
 
-const buzzMatchSummarySchema = z.strictObject({
-  fixtureId: nonemptyString,
-  win: nonnegativeInteger,
-  goals: nonnegativeInteger,
-  heroMoments: nonnegativeInteger,
-  rawEarned: nonnegativeInteger,
-});
-
-const buzzSettlementSummarySchema = z.strictObject({
-  season: positiveInteger,
-  half: z.union([z.literal(1), z.literal(2)]),
-  before: nonnegativeInteger.refine(
-    (value) => value <= 100,
-    'must be at most 100',
-  ),
-  rawEarned: nonnegativeInteger,
-  realizedEarned: nonnegativeInteger,
-  prePayoutValue: nonnegativeInteger.refine(
-    (value) => value <= 100,
-    'must be at most 100',
-  ),
-  payout: nonnegativeInteger,
-  resetValue: z.literal(0),
-  impacts: z.array(buzzMatchSummarySchema),
-});
-
-const buzzStateSchema = z
-  .strictObject({
-    value: nonnegativeInteger.refine(
-      (value) => value <= 100,
-      'must be at most 100',
-    ),
-    lastSettledSeason: positiveInteger.optional(),
-    lastSettledHalf: z.union([z.literal(1), z.literal(2)]).optional(),
-    lastSettlementSummary: buzzSettlementSummarySchema.optional(),
-  })
-  .superRefine((buzz, context) => {
-    if (
-      (buzz.lastSettledSeason === undefined) !==
-      (buzz.lastSettledHalf === undefined)
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['lastSettledSeason'],
-        message: 'season and half settlement markers must be present together',
-      });
-    }
-    if (
-      buzz.lastSettlementSummary !== undefined &&
-      (buzz.lastSettlementSummary.season !== buzz.lastSettledSeason ||
-        buzz.lastSettlementSummary.half !== buzz.lastSettledHalf)
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['lastSettlementSummary'],
-        message: 'must match the latest settlement marker',
-      });
-    }
-  });
-
 const clubBusinessStateSchema = z
   .strictObject({
     supporters: supporterBusinessStateSchema,
     pendingUserMatchImpacts: z.array(pendingUserMatchImpactSchema),
     sponsorship: sponsorshipStateSchema,
-    buzz: buzzStateSchema,
   })
   .superRefine((business, context) => {
     const fixtureIds = new Set<string>();
@@ -3432,15 +3368,7 @@ function migrateSchema3To4(
 ): Record<string, unknown> {
   assertUncontaminatedSchema3(state);
   const season = migrationPositiveInteger(state.season, 'season');
-  const week = migrationPositiveInteger(state.week, 'week');
-  const phase = migrationPhase(state.phase);
-  const settledLedgerWeeks = schema3SettledLedgerWeeks(state, season);
-  const baseBusiness = createClubBusinessState({
-    season,
-    week,
-    phase,
-    settledLedgerWeeks,
-  });
+  const baseBusiness = createClubBusinessState({ season });
   const highestDivision = schema3HighestDivisionReached(state);
   const sponsorMonthlyFee = schema3UserSponsorMonthlyFee(state);
   const capacity =
@@ -3544,6 +3472,50 @@ function migrateSchema4To5(
         referenceId: 'economy-rebalance-v5',
       },
     ],
+  };
+}
+
+function migrateSchema5To6(
+  state: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!isRecord(state.clubBusiness)) {
+    throw new CorruptCareerSaveError('schema 5 save is missing Club Business');
+  }
+  const {
+    buzz: _buzz,
+    pendingUserMatchImpacts,
+    ...clubBusiness
+  } = state.clubBusiness;
+  if (!Array.isArray(pendingUserMatchImpacts)) {
+    throw new CorruptCareerSaveError(
+      'schema 5 save has invalid pending match impacts',
+    );
+  }
+  return {
+    ...state,
+    ...(Array.isArray(state.eventFlags)
+      ? {
+          eventFlags: state.eventFlags.filter(
+            (flag) =>
+              typeof flag !== 'string' ||
+              (!flag.includes('sponsor-buzz') &&
+                !flag.startsWith('guide:bert:sponsor-desk:first-delivered:')),
+          ),
+        }
+      : {}),
+    clubBusiness: {
+      ...clubBusiness,
+      pendingUserMatchImpacts: pendingUserMatchImpacts.map((impact) => {
+        if (!isRecord(impact)) return impact;
+        const {
+          buzzWin: _buzzWin,
+          buzzGoals: _buzzGoals,
+          buzzHeroMoments: _buzzHeroMoments,
+          ...next
+        } = impact;
+        return next;
+      }),
+    },
   };
 }
 
@@ -3801,21 +3773,6 @@ function schema3FacilityBasis(
   return basis;
 }
 
-function schema3SettledLedgerWeeks(
-  state: Record<string, unknown>,
-  season: number,
-): number[] {
-  if (!Array.isArray(state.ledgers)) return [];
-  return state.ledgers.flatMap((ledger) =>
-    isRecord(ledger) &&
-    ledger.season === season &&
-    Number.isSafeInteger(ledger.week) &&
-    (ledger.week as number) > 0
-      ? [ledger.week as number]
-      : [],
-  );
-}
-
 function schema3UserSponsorMonthlyFee(state: Record<string, unknown>): number {
   if (typeof state.userClubId !== 'string' || !Array.isArray(state.clubs)) {
     throw new CorruptCareerSaveError('schema 3 save is missing its user club');
@@ -3872,20 +3829,6 @@ function migrationPositiveInteger(value: unknown, label: string): number {
   return value as number;
 }
 
-function migrationPhase(
-  value: unknown,
-): 'manage' | 'matchday' | 'season-end' | 'complete' {
-  if (
-    value !== 'manage' &&
-    value !== 'matchday' &&
-    value !== 'season-end' &&
-    value !== 'complete'
-  ) {
-    throw new CorruptCareerSaveError('schema 3 phase is missing or invalid');
-  }
-  return value;
-}
-
 function checkedMigrationSum(
   left: number,
   right: number,
@@ -3940,6 +3883,10 @@ const GAME_STATE_MIGRATIONS: readonly GameStateMigration[] = [
   {
     to: 5,
     up: migrateSchema4To5,
+  },
+  {
+    to: 6,
+    up: migrateSchema5To6,
   },
 ];
 

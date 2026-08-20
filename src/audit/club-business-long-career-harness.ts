@@ -46,13 +46,10 @@ import {
   activeCareerMatchday,
   addCreatedPlayer,
   advanceWeek,
-  applyBuzzImpacts,
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
   beginStoryOnboarding,
   buildCareerMatchTeamDef,
-  BUZZ_UNLOCK_SEASON,
-  BUZZ_WIN_POINTS,
   careerHeroLimit,
   careerRosterCapacity,
   careerTransferTarget,
@@ -76,7 +73,6 @@ import {
   hireCareerCoach,
   isFirstOnboardingFixture,
   leagueStandings,
-  MAX_BUZZ,
   MAX_FACILITY_LEVEL,
   maxRenewalTermSeasons,
   maxSigningTermSeasons,
@@ -85,7 +81,6 @@ import {
   pendingTrainingPriorityHolder,
   playerAttributeCaps,
   playerPotentialGrade,
-  pendingImpactFromProduction,
   POTENTIAL_GRADES,
   POSITION_TRAINING_ATTRIBUTES,
   quickMatchForFixture,
@@ -113,7 +108,6 @@ import {
   trainPlayerInstantly,
   userCareerRosterCount,
   weeklyAmbientTrainingPoints,
-  type BuzzSettlementSummary,
   type CareerPlayer,
   type DifficultyMode,
   type DivisionLevel,
@@ -274,10 +268,8 @@ export const CLUB_BUSINESS_LONG_CAREER_POLICY: LongCareerPolicyDescription = {
 /**
  * Stable input manifest for shard compatibility.
  *
- * Goal, hero-moment, and payout-boundary values are still production literals
- * rather than exported constants, so they are named explicitly here. Changing
- * any of them requires the policy/input hash to move before old shards can be
- * aggregated with new ones.
+ * Changing a production input requires the policy/input hash to move before
+ * old shards can be aggregated with new ones.
  */
 export const CLUB_BUSINESS_LONG_CAREER_INPUT_MANIFEST = {
   manifestVersion: 1,
@@ -303,17 +295,6 @@ export const CLUB_BUSINESS_LONG_CAREER_INPUT_MANIFEST = {
         ),
     ),
     implementation: createSeasonSponsorship.toString(),
-  },
-  buzzRules: {
-    maximum: MAX_BUZZ,
-    unlockSeason: BUZZ_UNLOCK_SEASON,
-    winPoints: BUZZ_WIN_POINTS,
-    goalPointsPerRegulationGoal: 1,
-    heroMomentPointsPerPowerFired: 2,
-    payoutWeeks: [15, 30] as const,
-    payoutFormula: 'round(actualMonthlySponsorIncome * Buzz / MAX_BUZZ)',
-    impactImplementation: pendingImpactFromProduction.toString(),
-    settlementImplementation: applyBuzzImpacts.toString(),
   },
   facilities: {
     grid: { width: FACILITY_GRID_WIDTH, height: FACILITY_GRID_HEIGHT },
@@ -393,7 +374,6 @@ export interface LongCareerSeasonSummary {
   readonly fanDelta: number;
   readonly sponsorIncome: number;
   readonly sponsorObjectiveBonuses: number;
-  readonly buzzIncome: number;
   readonly ticketIncome: number;
   readonly merchandiseIncome: number;
   readonly prizeAndSubsidyIncome: number;
@@ -427,7 +407,6 @@ export interface LongCareerSeasonSummary {
   readonly createdPlayerImportantAttributes?: Readonly<
     Partial<Record<keyof Attrs, number>>
   >;
-  readonly buzzSettlements: readonly BuzzSettlementSummary[];
   readonly sponsorObjectives: readonly LongCareerSponsorObjectiveSummary[];
   readonly recruitment: LongCareerRecruitmentSummary;
   readonly facilities: readonly LongCareerFacilityLevel[];
@@ -441,7 +420,6 @@ export interface LongCareerSeasonSummary {
 export interface LongCareerTotals {
   readonly sponsorIncome: number;
   readonly sponsorObjectiveBonuses: number;
-  readonly buzzIncome: number;
   readonly ticketIncome: number;
   readonly merchandiseIncome: number;
   readonly wageExpense: number;
@@ -457,8 +435,6 @@ export interface LongCareerTotals {
   readonly trainingDrills: number;
   readonly sponsorObjectivesMet: number;
   readonly sponsorObjectivesSettled: number;
-  readonly buzzSettlementCount: number;
-  readonly buzzCapCount: number;
   readonly boardUltimatumsIssued: number;
   readonly boardForcedSales: number;
   readonly emergencyLoans: number;
@@ -523,7 +499,6 @@ interface RecruitmentWindow {
 interface RunObserver {
   minimumCash: number;
   seasonMinimumCash: number;
-  readonly buzzSettlements: Map<string, BuzzSettlementSummary>;
   readonly ultimatumSeasonById: Map<string, number>;
 }
 
@@ -556,7 +531,6 @@ export function runClubBusinessLongCareer(
   const observer: RunObserver = {
     minimumCash: userCash(state),
     seasonMinimumCash: userCash(state),
-    buzzSettlements: new Map(),
     ultimatumSeasonById: new Map(),
   };
   observeState(state, observer);
@@ -588,7 +562,6 @@ export function runClubBusinessLongCareer(
     const recruitment = createRecruitmentWindow(
       !ownerMaxTp && firstSeasonInDivision && division < 5,
     );
-    const seasonBuzzStart = new Set(observer.buzzSettlements.keys());
     const trainingDrillsAtStart = totalTrainingDrills;
     const trainingPointStart = state.trainingPoints;
     let trainingPointAmbientIncome = 0;
@@ -739,9 +712,6 @@ export function runClubBusinessLongCareer(
       boardUltimatumsIssued: [...observer.ultimatumSeasonById.values()].filter(
         (issuedSeason) => issuedSeason === state.season,
       ).length,
-      buzzSettlements: [...observer.buzzSettlements.entries()]
-        .filter(([key]) => !seasonBuzzStart.has(key))
-        .map(([, summary]) => summary),
     });
     seasons.push(seasonSummary);
 
@@ -1940,7 +1910,6 @@ function summarizeSeason(input: {
   readonly createdPlayerTrainingPointSpend: number;
   readonly createdPlayerSuperTrainingSessions: number;
   readonly boardUltimatumsIssued: number;
-  readonly buzzSettlements: readonly BuzzSettlementSummary[];
 }): LongCareerSeasonSummary {
   const { state } = input;
   const importantAttributes = summarizeImportantAttributes(state);
@@ -1986,7 +1955,6 @@ function summarizeSeason(input: {
           line.kind === 'sponsor' && line.label.endsWith('objective bonus'),
       ),
     ),
-    buzzIncome: sumAmounts(lines.filter((line) => line.kind === 'buzz')),
     ticketIncome: sumAmounts(lines.filter((line) => line.kind === 'tickets')),
     merchandiseIncome: sumAmounts(
       lines.filter((line) => line.kind === 'merch'),
@@ -2064,7 +2032,6 @@ function summarizeSeason(input: {
     ...(importantAttributes.created === undefined
       ? {}
       : { createdPlayerImportantAttributes: importantAttributes.created }),
-    buzzSettlements: input.buzzSettlements,
     sponsorObjectives: sponsorContracts.map((contract) => ({
       slot: contract.slot,
       sponsorName: contract.sponsorName,
@@ -2209,7 +2176,6 @@ function buildRunResult(
   const sponsorObjectives = seasons
     .flatMap((season) => season.sponsorObjectives)
     .filter((objective) => objective.objectiveMet !== undefined);
-  const buzzSettlements = seasons.flatMap((season) => season.buzzSettlements);
   const lines = state.ledgers.flatMap((ledger) => ledger.lines);
   const sumSeason = (
     pick: (season: LongCareerSeasonSummary) => number,
@@ -2241,7 +2207,6 @@ function buildRunResult(
       sponsorObjectiveBonuses: sumSeason(
         (season) => season.sponsorObjectiveBonuses,
       ),
-      buzzIncome: sumSeason((season) => season.buzzIncome),
       ticketIncome: sumSeason((season) => season.ticketIncome),
       merchandiseIncome: sumSeason((season) => season.merchandiseIncome),
       wageExpense: sumSeason((season) => season.wageExpense),
@@ -2261,10 +2226,6 @@ function buildRunResult(
         (objective) => objective.objectiveMet,
       ).length,
       sponsorObjectivesSettled: sponsorObjectives.length,
-      buzzSettlementCount: buzzSettlements.length,
-      buzzCapCount: buzzSettlements.filter(
-        (summary) => summary.prePayoutValue >= 100,
-      ).length,
       boardUltimatumsIssued: observer.ultimatumSeasonById.size,
       boardForcedSales: lines.filter((line) => line.kind === 'board-sale')
         .length,
@@ -2287,13 +2248,6 @@ function observeState(state: GameState, observer: RunObserver): void {
   const cash = userCash(state);
   observer.minimumCash = Math.min(observer.minimumCash, cash);
   observer.seasonMinimumCash = Math.min(observer.seasonMinimumCash, cash);
-  const settlement = state.clubBusiness.buzz.lastSettlementSummary;
-  if (settlement !== undefined) {
-    observer.buzzSettlements.set(
-      `${settlement.season}:${settlement.half}`,
-      settlement,
-    );
-  }
   const ultimatum = state.financialSafety?.boardUltimatum;
   if (ultimatum !== undefined) {
     observer.ultimatumSeasonById.set(ultimatum.id, ultimatum.issuedSeason);

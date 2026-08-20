@@ -56,15 +56,6 @@
       "why": "CLB is the everyday abbreviation for câu lạc bộ, and every Vietnamese football fan reads it instantly."
     },
     {
-      "english": "Buzz",
-      "englishPattern": "\\bBuzz\\b",
-      "allowedForms": [
-        "Sức Hút",
-        "sức hút"
-      ],
-      "why": "The pull a club has on the town's attention — what the meter is actually measuring."
-    },
-    {
       "english": "Superpower",
       "englishPattern": "[Ss]uperpowers?",
       "allowedForms": [

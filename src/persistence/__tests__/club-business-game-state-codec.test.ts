@@ -43,9 +43,6 @@ function fullClubBusinessCareer(): GameState {
           divisionScale: 2,
           supporterWinUnits: 10,
           supporterHeroUnits: 2,
-          buzzWin: 5,
-          buzzGoals: 3,
-          buzzHeroMoments: 2,
         },
       ],
       sponsorship: {
@@ -107,30 +104,6 @@ function fullClubBusinessCareer(): GameState {
           nominalBonus: 8_400,
         },
       },
-      buzz: {
-        value: 0,
-        lastSettledSeason: 3,
-        lastSettledHalf: 1,
-        lastSettlementSummary: {
-          season: 3,
-          half: 1,
-          before: 80,
-          rawEarned: 25,
-          realizedEarned: 20,
-          prePayoutValue: 100,
-          payout: 4_200,
-          resetValue: 0,
-          impacts: [
-            {
-              fixtureId: 'league-s3-r15',
-              win: 5,
-              goals: 3,
-              heroMoments: 2,
-              rawEarned: 10,
-            },
-          ],
-        },
-      },
     },
   };
 }
@@ -188,7 +161,7 @@ describe('Club Business game-state persistence', () => {
     );
   });
 
-  test('rejects inconsistent pending-impact ordering and Buzz settlement markers', () => {
+  test('rejects inconsistent pending-impact ordering', () => {
     const state = fullClubBusinessCareer();
     const invalid = {
       ...state,
@@ -200,16 +173,44 @@ describe('Club Business game-state persistence', () => {
             settlementOrder: 1 as const,
           }),
         ),
-        buzz: {
-          ...state.clubBusiness.buzz,
-          lastSettledHalf: undefined,
-        },
       },
     };
 
     expect(() => serializeGameState(invalid as GameState)).toThrow(
-      /settlementOrder|settlement markers/,
+      /settlementOrder/,
     );
+  });
+
+  test('migrates schema 5 saves by dropping retired Buzz state', () => {
+    const stored = JSON.parse(serializeGameState(fullClubBusinessCareer())) as {
+      schemaVersion: number;
+      clubBusiness: {
+        buzz?: unknown;
+        pendingUserMatchImpacts: Array<Record<string, unknown>>;
+      };
+    };
+    stored.schemaVersion = 5;
+    stored.clubBusiness.buzz = { value: 64 };
+    (stored as unknown as { eventFlags: string[] }).eventFlags.push(
+      'guide:bert:inbox:queued:sponsor-buzz',
+      'guide:bert:sponsor-desk:first-delivered:s3:w1:guide:sponsor-desk',
+    );
+    Object.assign(stored.clubBusiness.pendingUserMatchImpacts[0], {
+      buzzWin: 4,
+      buzzGoals: 3,
+      buzzHeroMoments: 2,
+    });
+
+    const restored = parseStoredGameState(JSON.stringify(stored));
+
+    expect(restored.schemaVersion).toBe(6);
+    expect(restored.clubBusiness).not.toHaveProperty('buzz');
+    expect(restored.clubBusiness.pendingUserMatchImpacts[0]).not.toHaveProperty(
+      'buzzWin',
+    );
+    expect(
+      restored.eventFlags.some((flag) => flag.includes('sponsor-buzz')),
+    ).toBe(false);
   });
 
   test('rejects duplicate participant IDs before a loaded save can brick settlement', () => {
