@@ -83,3 +83,17 @@ describe('youth prospect card on the narrowest phone', () => {
     for (const node of textNodes) expect(node).toContain('numberOfLines={1}');
   });
 });
+
+describe('coach actions on a narrow screen', () => {
+  const source = readFileSync(
+    join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
+    'utf8',
+  );
+
+  it('stacks the two hire buttons in the single-column layout', () => {
+    expect(source).toContain("compact={layoutMode !== 'twoColumn'}");
+    expect(source).toContain(
+      "compact ? 'gap-2' : 'flex-row justify-end gap-2'",
+    );
+  });
+});

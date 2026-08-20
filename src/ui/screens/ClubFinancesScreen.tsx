@@ -822,7 +822,12 @@ export function ClubFinancesScreen({
       key: 'income-generation',
       weight: 3 + viewModel.incomeGeneration.rows.length,
       startsColumn: true,
-      node: <IncomeGenerationSection income={viewModel.incomeGeneration} />,
+      node: (
+        <IncomeGenerationSection
+          income={viewModel.incomeGeneration}
+          compact={layoutMode !== 'twoColumn'}
+        />
+      ),
     },
     // The mirror of the section above it: that one is where next week's money
     // comes from, this is where next week's TP comes from.
@@ -1904,8 +1909,10 @@ function incomeHistoryEntryLabel(
 
 function IncomeGenerationSection({
   income,
+  compact,
 }: {
   readonly income: IncomeGenerationViewModel;
+  readonly compact: boolean;
 }) {
   const t = useCopy();
   return (
@@ -1929,8 +1936,8 @@ function IncomeGenerationSection({
             }`}
             className="min-h-11 border-b border-ink/10 px-3 py-2 last:border-b-0"
           >
-            <View className="flex-row items-center">
-              <View className="flex-1 pr-3">
+            <View className={compact ? 'gap-1' : 'flex-row items-center'}>
+              <View className={compact ? 'min-w-0' : 'min-w-0 flex-1 pr-3'}>
                 <Text
                   className={
                     row.owned ? 'text-base text-ink' : 'text-base text-ink/45'
