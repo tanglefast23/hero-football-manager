@@ -418,6 +418,7 @@ export function MarketScreen({
   const coachDesk = coachSectionVisible ? (
     <CoachDesk
       viewModel={viewModel}
+      compact={layoutMode !== 'twoColumn'}
       onHireCoach={(coachId, role) =>
         guardTap(() => onHireCoach(coachId, role))
       }
@@ -1332,6 +1333,7 @@ function TransferDesk({
 
 function CoachDesk({
   viewModel,
+  compact,
   onHireCoach,
   guidanceNudgeTarget,
   guidanceNudgeToken,
@@ -1343,7 +1345,9 @@ function CoachDesk({
   | 'guidanceNudgeTarget'
   | 'guidanceNudgeToken'
   | 'reduceMotion'
->) {
+> & {
+  readonly compact: boolean;
+}) {
   const t = useCopy();
   const firstAvailableHeadCoachId = viewModel.coaches.find(
     (coach) => coach.headAvailable,
@@ -1488,7 +1492,11 @@ function CoachDesk({
                     {t('market.buildTheCoachingOffice')}
                   </Text>
                 ) : null}
-                <View className="flex-row justify-end gap-2">
+                <View
+                  className={
+                    compact ? 'gap-2' : 'flex-row justify-end gap-2'
+                  }
+                >
                   <SmallAction
                     label={t('market.hireAsHead')}
                     accessibilityLabel={t('market.a11y.hireAsHeadCoach', {

@@ -42,6 +42,11 @@ describe('club finances two-column layout', () => {
       "'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'",
     );
   });
+
+  it('stacks income labels and effects in the single-column layout', () => {
+    expect(source).toContain("compact={layoutMode !== 'twoColumn'}");
+    expect(source).toContain("compact ? 'gap-1' : 'flex-row items-center'");
+  });
 });
 
 /**
