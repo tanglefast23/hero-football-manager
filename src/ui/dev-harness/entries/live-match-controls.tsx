@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MatchScreen } from '../../../render/MatchScreen';
+import { powerMatchShowcaseHome } from '../../../render/power-match-showcase';
 import type { DevHarnessEntry } from '../registry';
 
 /**
@@ -14,17 +15,28 @@ export const liveMatchControlsEntry: DevHarnessEntry = {
   summary: 'Formation, Playstyle, Energy Use HUD',
   cases: [
     { id: 'mid-match', label: 'Mid Match', note: 'Controls clearly visible' },
+    {
+      id: 'keeper-window',
+      label: 'Keeper Window',
+      note: 'Manual Elastic Keeper danger prompt and countdown',
+    },
   ],
-  render: () => <LiveMatchControlsReel />,
+  render: (caseId) => (
+    <LiveMatchControlsReel keeper={caseId === 'keeper-window'} />
+  ),
 };
 
-function LiveMatchControlsReel() {
+function LiveMatchControlsReel({ keeper }: { keeper: boolean }) {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={{ paddingTop: insets.top, flex: 1 }}>
       <MatchScreen
         seed={20260893}
+        home={keeper ? powerMatchShowcaseHome('ELASTIC_KEEPER') : undefined}
+        powerMatchQa={
+          keeper ? { power: 'ELASTIC_KEEPER', manual: true } : undefined
+        }
         controlledTeam={0}
         onOpenSettings={() => {}}
         onDone={() => {}}

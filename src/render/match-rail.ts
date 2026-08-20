@@ -47,7 +47,7 @@ export function mostTiredFirst<T extends { condition: number }>(
  * The role argument is not decoration. A keeper arms at 5 Heat and an outfield
  * hero at 60, so dividing every bar by 60 drew a keeper's full charge as an
  * eighth of a bar. That was tolerable while keepers fired automatically and
- * nobody was asked to act on the number. Since m2.8 a keeper has a button, and
+ * nobody was asked to act on the number. A manual keeper has a button, and
  * a full bar has to mean the same thing for them as for everyone else — it is
  * the entire promise of the ARMED state.
  */
@@ -55,16 +55,26 @@ export function heatFraction(gauge: number, role: PlayerDef['role']): number {
   return Math.max(0, Math.min(1, gauge / zoneHeatThreshold(role)));
 }
 
+/** Player-facing bar fill: a banked Zone and save window both remain full. */
+export function railHeroHeat(
+  gauge: number,
+  role: PlayerDef['role'],
+  state: PowerState,
+): number {
+  return state.kind === 'zone' || state.kind === 'armed'
+    ? 1
+    : heatFraction(gauge, role);
+}
+
 export type RailHeroStatus = 'loading' | 'armed' | 'firing';
 
 /**
- * Zone is the banked window; winding/armed/active are the power playing out.
- * There is deliberately no seconds-remaining companion: m1.27 removed the Zone
- * countdown, so a zoned hero holds until the authored context arrives and any
- * timer the rail could derive would be a frozen fake.
+ * Zone and a pressed save window both read ARMED at a full bar. Winding and
+ * active states read FIRING. The save window's real countdown is over the
+ * keeper, not duplicated in this compact rail.
  */
 export function railHeroStatus(state: PowerState): RailHeroStatus {
-  if (state.kind === 'zone') return 'armed';
+  if (state.kind === 'zone' || state.kind === 'armed') return 'armed';
   if (state.kind === 'idle') return 'loading';
   return 'firing';
 }

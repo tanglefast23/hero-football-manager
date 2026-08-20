@@ -72,12 +72,12 @@ const ENCORE_BOLT_COLOR = '#edb54a';
 // `ringRadius` would not. Bright yellow, held lighter than the Zone's amber
 // (#edb54a) so the two stay distinct.
 const POSSESSION_RING_COLOR = '#ffe14d';
-const POSSESSION_RING_WIDTH = 3;
+export const POSSESSION_RING_WIDTH = 3;
 /** Sprite centre -> the middle of the boots, in source pixels. */
 export const POSSESSION_RING_DROP_PX = 13;
 /** Ellipse radii in source pixels. Flat, so it reads as ground, not a halo. */
-const POSSESSION_RING_RX_PX = 11;
-const POSSESSION_RING_RY_PX = 4.5;
+export const POSSESSION_RING_RX_PX = 11;
+export const POSSESSION_RING_RY_PX = 4.5;
 
 export interface EncoreMarker {
   slot: number;
@@ -589,6 +589,7 @@ export function WorkletPossessionRing({
   scale,
   spriteScale,
   hiddenPlayer,
+  hiddenMask = 0,
 }: {
   visualPositions: SharedValue<Float32Array>;
   carrier: SharedValue<number>;
@@ -596,11 +597,17 @@ export function WorkletPossessionRing({
   /** Screen dp per sprite source pixel: pitch scale x snapped player draw scale. */
   spriteScale: number;
   hiddenPlayer: number;
+  hiddenMask?: number;
 }) {
   const path = usePathValue((builder) => {
     'worklet';
     const index = carrier.value;
-    if (index < 0 || index === hiddenPlayer) return;
+    if (
+      index < 0 ||
+      index === hiddenPlayer ||
+      (hiddenMask & (1 << index)) !== 0
+    )
+      return;
     const rx = POSSESSION_RING_RX_PX * spriteScale;
     const ry = POSSESSION_RING_RY_PX * spriteScale;
     const cx = visualPositions.value[index * 2] * scale;

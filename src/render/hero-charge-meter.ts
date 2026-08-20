@@ -42,7 +42,8 @@ export function chargeMeter(
   powerState: PowerState,
   role: PlayerDef['role'],
 ): ChargeMeter {
-  if (powerState.kind === 'zone') return { state: 'ready', fill: 1 };
+  if (powerState.kind === 'zone' || powerState.kind === 'armed')
+    return { state: 'ready', fill: 1 };
   if (powerState.kind === 'idle')
     return { state: 'building', fill: heatFraction(gauge, role) };
   return { state: 'spent', fill: 0 };

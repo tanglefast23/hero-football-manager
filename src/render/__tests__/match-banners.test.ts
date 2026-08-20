@@ -1,12 +1,14 @@
 import {
   appendBannerNewestFour,
   goalBannerPresentation,
+  wastedPowerBannerTiming,
+  wastedPowerTickerLane,
 } from '../match-banners';
 
 interface TestBanner {
   readonly id: string;
   readonly text: string;
-  readonly subject?: 'formation' | 'mentality' | 'energy';
+  readonly subject?: 'formation' | 'mentality' | 'energy' | 'power-wasted';
 }
 
 const banner = (
@@ -76,6 +78,18 @@ describe('appendBannerNewestFour', () => {
     expect(banners).toHaveLength(2);
   });
 
+  it('keeps repeated wasted-power events distinct', () => {
+    const banners = [
+      banner('waste:1', 'WASTED POWER', 'power-wasted'),
+      banner('waste:2', 'WASTED POWER', 'power-wasted'),
+    ].reduce<TestBanner[]>(
+      (list, entry) => appendBannerNewestFour(list, entry),
+      [],
+    );
+
+    expect(banners.map((entry) => entry.id)).toEqual(['waste:1', 'waste:2']);
+  });
+
   it('never shows more than the newest four banners', () => {
     const banners = ['a', 'b', 'c', 'd', 'e', 'f']
       .map((id) => banner(id, id.toUpperCase()))
@@ -85,5 +99,33 @@ describe('appendBannerNewestFour', () => {
       );
 
     expect(banners.map((entry) => entry.id)).toEqual(['c', 'd', 'e', 'f']);
+  });
+});
+
+describe('wastedPowerTickerLane', () => {
+  it('waits behind a goal, half-time, or full-time line', () => {
+    expect(wastedPowerTickerLane([{ lane: 0, size: 'big' }])).toBeNull();
+  });
+
+  it('runs repeated wasted-power lines one at a time', () => {
+    expect(
+      wastedPowerTickerLane([
+        { lane: 0, size: 'big', subject: 'power-wasted' },
+      ]),
+    ).toBeNull();
+  });
+
+  it('uses the first free pair when only small lines are live', () => {
+    expect(wastedPowerTickerLane([{ lane: 0 }, { lane: 3 }])).toBe(1);
+  });
+});
+
+describe('wastedPowerBannerTiming', () => {
+  it('uses sim ticks during play and wall clock only after full time', () => {
+    expect(wastedPowerBannerTiming(30, 1, 1000, false)).toEqual({});
+    expect(wastedPowerBannerTiming(30, 1, 1000, true)).toEqual({
+      durationMs: 3000,
+      expiresAtMs: 4000,
+    });
   });
 });

@@ -18,7 +18,7 @@ function matchWith(power: PowerId, slot: number) {
 describe('hero-value well-tapped policy', () => {
   // Slot 0 is the goalkeeper — lineup.ts rejects any other order.
   it.each(['ELASTIC_KEEPER', 'GIANT_GK'] as const)(
-    'taps a %s keeper on the shot, and never before it',
+    'taps a %s keeper in the danger third, and never before it',
     (power) => {
       // The m2.7 exemption is retired (m2.8): a keeper takes their team's
       // policy like anyone else, so the probe must now model a manager who
@@ -29,23 +29,12 @@ describe('hero-value well-tapped policy', () => {
       expect(match.players[0].firePolicy).toBe('SAVE_FOR_TAP');
 
       match.players[0].powerState = { kind: 'zone', remainingTicks: 1 };
+      match.players[20].pos.y = 2000;
       match.ball = { kind: 'held', by: 20 };
+      match.ballHolderTeam = 1;
       expect(shouldQueueWellTappedPower(match, 0)).toBe(false);
 
-      match.ball = {
-        kind: 'shot',
-        pos: { x: 3400, y: 9800 },
-        vel: { x: 0, y: 300 },
-        by: 20,
-        shooterId: match.players[20].def.id,
-        shotStrengthD64: 0,
-        power: 40,
-        targetX: 3400,
-        z: 0,
-        vz: 0,
-        trajectory: 'driven',
-        keeperChecked: false,
-      };
+      match.players[20].pos.y = 8000;
       expect(shouldQueueWellTappedPower(match, 0)).toBe(true);
     },
   );
@@ -61,10 +50,10 @@ describe('hero-value well-tapped policy', () => {
     expect(shouldQueueWellTappedPower(match, 0)).toBe(true);
   });
 
-  it('keeps the closing-window fallback for an outfield power', () => {
+  it('does not tap an outfield power outside useful context', () => {
     const match = matchWith('SUPER_SPEED', 9);
     match.players[9].powerState = { kind: 'zone', remainingTicks: 1 };
     match.ball = { kind: 'held', by: 11 };
-    expect(shouldQueueWellTappedPower(match, 9)).toBe(true);
+    expect(shouldQueueWellTappedPower(match, 9)).toBe(false);
   });
 });

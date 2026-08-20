@@ -4,6 +4,9 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
+// m2.9 rebaseline: manual outfield taps outside useful context are no-ops, and
+// save-power taps use the shared defending-third danger prompt. Expired save
+// windows also spend Heat. These intentional replay changes move both hashes.
 // m2.7 rebaseline: ENGINE_VERSION only. The engine gained the goalkeeper
 // firing-policy exemption (a GK slot is always FIRE_WHEN_READY) and substitutes
 // now inherit the player they replaced instead of slot 0. Both goldens run
@@ -38,7 +41,7 @@ import { ROVERS, UNITED } from './teams';
 // domains, career condition carryover, fixed-point PAC/STA movement), m1.29
 // (presser standoff ring; PAC-widened duel spacing), m1.25 (five named subs,
 // immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
-const EXPECTED_RUNTIME_GOLDEN = '8a123c1a';
+const EXPECTED_RUNTIME_GOLDEN = 'd8a5603b';
 
 // Seed 42 finishes 0-0, so neither this hash nor parity-replay's snapshot has
 // ever contained a GOAL payload — adding assistedById to that event moved
@@ -53,7 +56,7 @@ const EXPECTED_RUNTIME_GOLDEN = '8a123c1a';
 // have rebaselined quietly while the both-kinds contract below went red. Seed
 // 25 restores the same profile 81 used to have. Re-scan for a replacement
 // rather than weakening the assertion if a future change costs it again.
-const EXPECTED_GOAL_GOLDEN = 'bddb180e';
+const EXPECTED_GOAL_GOLDEN = '9e56a3c3';
 
 const GOAL_GOLDEN_SEED = 25;
 

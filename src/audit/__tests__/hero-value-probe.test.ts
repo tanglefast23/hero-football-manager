@@ -376,9 +376,7 @@ function sampleMatches(
             tappedThisWindow[slot] = false;
             continue;
           }
-          // Tap at full strength in a useful context. If none arrives, commit
-          // the closing Zone to the fixed two-second armed window rather than
-          // silently letting it expire.
+          // Tap at full strength only when the shipped control is pressable.
           if (
             !tappedThisWindow[slot] &&
             shouldQueueWellTappedPower(match, slot)

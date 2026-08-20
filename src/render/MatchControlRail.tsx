@@ -492,7 +492,7 @@ function heroStatusText(tile: MatchRailHeroTile, t: CopyFn): string {
   if (tile.status === 'firing') return t('matchRail.statusLive');
   // ARMED, not a timer. There is no countdown to show: an armed hero holds
   // until the manager fires them or the whistle goes.
-  if (tile.status === 'armed') return '';
+  if (tile.status === 'armed') return '100%';
   return `${Math.round(tile.heat * 100)}%`;
 }
 

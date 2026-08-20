@@ -279,13 +279,8 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'RECOVERED', player: 5 })).toEqual([]);
   });
 
-  it('sounds POWER_EXPIRED again, now a manual tap can lose a Zone', () => {
-    // Unreachable and deliberately unwired from m1.27 (the Zone stopped
-    // counting down) until the manual tap returned on 2026-08-20. A press
-    // outside the authored context arms a window; when it lapses the hero
-    // loses one of only three Zones for the match. A charge the manager earned
-    // must never vanish in silence — and since m2.8 it is not merely audible
-    // but audibly BAD, the shipped negative cue layered under the expiry.
+  it('sounds POWER_EXPIRED when a pressed save window loses a Zone', () => {
+    // The shipped negative cue makes an unused pressed window clearly costly.
     expect(
       filesForEvent({
         t: 0,

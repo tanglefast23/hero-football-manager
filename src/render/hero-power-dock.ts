@@ -9,13 +9,12 @@
  * Presentation only — nothing here queues an input or touches engine state, so
  * no ENGINE_VERSION bump is involved.
  */
-import { ballPos } from '../sim/engine';
-import { requirePlayerAt } from '../sim/entities';
-import { PITCH_H } from '../sim/geometry';
 import {
   armWindowTicks,
   inUsefulContext,
   isShotSavePower,
+  powerActorAvailable,
+  savePowerDangerPrompt,
 } from '../sim/powers';
 import type { MatchState, PowerId } from '../sim/types';
 
@@ -23,17 +22,12 @@ import type { MatchState, PowerId } from '../sim/types';
  * How a cell reads to the manager.
  *
  * - `fire`   the authored moment is live; pressing fires at full strength.
- * - `arm`    the hero is charged but the moment is not there. Pressing commits
- *            a 2-second armed window that may expire and cost the Zone.
+ * - `arm`    the hero is charged but the moment is not there. Not pressable.
  * - `armed`  a press already happened. Status only — see `heroPowerPressable`.
  * - `down`   flattened, sliding or recovering. Pressing now would almost
  *            certainly waste the Zone, so the cell refuses the press.
- * - `hold`   a save keeper with the ball up the other end. Nothing is wrong
- *            with them; there is simply no shot to save yet. Its own state and
- *            its own words, because `down` announces "{player} is down" and a
- *            healthy keeper waiting out a goal kick is not down.
  */
-export type HeroPowerCellState = 'fire' | 'arm' | 'armed' | 'down' | 'hold';
+export type HeroPowerCellState = 'fire' | 'arm' | 'armed' | 'down';
 
 export interface HeroPowerCell {
   /** Player index. Stable for the life of the slot, so cells never reorder. */
@@ -46,45 +40,14 @@ export interface HeroPowerCell {
   armedTicksRemaining: number;
   /**
    * The full window this power's press opens, so the drain bar divides by the
-   * right number. A save keeper's is five times an outfield hero's; the old
-   * hardcoded 20 pinned their bar full for eight seconds then dumped it.
+   * right number. Only save powers now enter this state.
    */
   armWindowTicks: number;
 }
 
-/** Only a `fire` or `arm` cell accepts a press — never `hold`, never `down`. */
+/** Only a useful-context `fire` cell accepts a press. */
 export function heroPowerPressable(state: HeroPowerCellState | null): boolean {
-  return state === 'fire' || state === 'arm';
-}
-
-/**
- * Is the ball in this keeper's own half — the only place their power matters?
- *
- * Reads the BALL, through `ballPos`, which already covers held, loose, pass and
- * shot. Following the carrier instead would leave the button flickering through
- * every long ball, and hand-listing the kinds would silently omit passes.
- *
- * Never greys during an on-target shot already in flight: a strike from just
- * beyond halfway would otherwise find the button dead for the only ticks it
- * could ever have mattered.
- *
- * Presentation only, and deliberately so. This decides what the BUTTON offers,
- * never what the engine accepts — a replayed tap from any client must still
- * simulate, or old replays stop being replays.
- */
-export function ballInKeepersHalf(match: MatchState, slot: number): boolean {
-  const keeper = match.players[slot];
-  // An enemy shot already in flight always wakes the button, wherever it was
-  // struck from — a strike from just beyond halfway would otherwise find the
-  // control dead for the only ticks it could ever have mattered. Gated on the
-  // SHOOTER being an opponent: the keeper's own side shooting up the other end
-  // is the moment the ball is furthest away, not a reason to offer a press.
-  if (match.ball.kind === 'shot') {
-    return requirePlayerAt(match, match.ball.by).team !== keeper.team;
-  }
-  const ball = ballPos(match);
-  // Team 0 defends the high-y goal, matching the engine's progress convention.
-  return keeper.team === 0 ? ball.y > PITCH_H / 2 : ball.y < PITCH_H / 2;
+  return state === 'fire';
 }
 
 function cellState(
@@ -97,24 +60,15 @@ function cellState(
     return { state: 'armed', armedTicksRemaining: power.remainingTicks };
   }
   if (power.kind !== 'zone') return { state: null, armedTicksRemaining: 0 };
-  // The tap falls through to the armed branch when the hero is unavailable
-  // (sim/powers.ts), and that window counts down while he is still on the
-  // floor — so a press here is very likely a dead Zone. Refuse it instead.
-  const down =
-    player.outUntilTick > match.tick ||
-    player.slideTackle !== undefined ||
-    player.tackleRecoveryUntil > match.tick;
-  if (down) return { state: 'down', armedTicksRemaining: 0 };
-  // A save keeper's power is only ever about a shot at their own goal, so the
-  // button sleeps while the ball is up the other end rather than inviting a
-  // press that starts a ten-second window nothing can fill.
+  // A downed hero keeps the marker and charge, but cannot accept a press.
+  if (!powerActorAvailable(match, slot))
+    return { state: 'down', armedTicksRemaining: 0 };
   const savePower = isShotSavePower(player.def.power);
-  if (savePower && !ballInKeepersHalf(match, slot)) {
-    return { state: 'hold', armedTicksRemaining: 0 };
-  }
-  // A save keeper never reads FIRE: a shot in flight is far too brief to press
-  // on, and their committed window is worth full strength anyway.
-  if (savePower) return { state: 'arm', armedTicksRemaining: 0 };
+  if (savePower)
+    return {
+      state: savePowerDangerPrompt(match, slot) ? 'fire' : 'arm',
+      armedTicksRemaining: 0,
+    };
   return {
     state: inUsefulContext(match, slot) ? 'fire' : 'arm',
     armedTicksRemaining: 0,
@@ -149,8 +103,8 @@ export function handFireable(match: MatchState, slot: number): boolean {
  * a power fired, sliding the remaining buttons under the manager's thumb
  * mid-match — the one thing a control on a live pitch must never do.
  *
- * Goalkeepers are included since m2.8. `cellState` gives the two SAVE powers
- * their own HOLD rule; a keeper carrying GUST is treated as any outfield hero.
+ * Goalkeepers are included. `cellState` gives the two save powers their danger
+ * prompt; a keeper carrying GUST is treated as any outfield hero.
  */
 export function heroPowerDockCells(
   match: MatchState,
@@ -183,12 +137,11 @@ export function heroPowerDockCells(
  * button names a hero, but the manager has to find them among twenty-two
  * sprites before the moment passes.
  *
- * - `dashed` the button is live (FIRE or ARM). Marching dashes: a decision.
- * - `solid`  the press has landed and the power is playing out (armed window,
- *            wind-up, or the moment itself). Nothing left to decide.
+ * - `dashed` a Zone is banked and waiting. The legacy field name remains, but
+ *   the renderer now draws the requested solid oval.
+ * - `solid`  a save keeper's pressed window is running.
  *
- * A hero who is down, or holds no Zone, is in neither: their button refuses a
- * press, so a ring would point at a control that does nothing.
+ * A downed charged hero keeps the marker but has a disabled control.
  *
  * BITMASKS, not arrays, for the same reason as `fireTorchMask` — the drawing
  * worklets capture them, and Reanimated restarts a mapper whose captured value
@@ -209,12 +162,13 @@ export function heroPowerRingMasks(
   for (let slot = first; slot < first + 11; slot += 1) {
     if (!handFireable(match, slot)) continue;
     const kind = match.players[slot].powerState.kind;
-    if (kind === 'armed' || kind === 'winding' || kind === 'active') {
+    if (kind === 'armed') {
       solid |= 1 << slot;
       continue;
     }
     const { state } = cellState(match, slot);
-    if (state === 'fire' || state === 'arm') dashed |= 1 << slot;
+    if (state === 'fire' || state === 'arm' || state === 'down')
+      dashed |= 1 << slot;
   }
   return { dashed, solid };
 }
@@ -229,8 +183,8 @@ export function heroPowerDockIsEmpty(cells: readonly HeroPowerCell[]): boolean {
  *
  * Read off the engine's own queue rather than a second piece of React state,
  * which could drift from it. This is only half the guard — the caller must also
- * refuse a press on a cell that is not `fire` or `arm`, because `pendingInputs`
- * clears one tick after the tap while the armed window runs for twenty.
+ * refuse a press on a cell that is not `fire`, because `pendingInputs` clears
+ * one tick after the tap while a save window may remain active.
  */
 export function heroPowerTapBlocked(match: MatchState, slot: number): boolean {
   return match.pendingInputs.some(

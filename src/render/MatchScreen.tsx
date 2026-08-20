@@ -196,10 +196,15 @@ import {
   CLOSED_ROLE_LABEL_WINDOW,
   roleLabelsVisible,
 } from './formation-role-labels';
-import { incapacityCountdowns } from './incapacity-countdown';
+import {
+  incapacityCountdowns,
+  incapacitySecondsLeft,
+} from './incapacity-countdown';
 import {
   appendBannerNewestFour,
   goalBannerPresentation,
+  wastedPowerBannerTiming,
+  wastedPowerTickerLane,
   type MatchBannerSubject,
 } from './match-banners';
 import { MatchTickerLine } from './MatchTickerLine';
@@ -271,7 +276,7 @@ import {
 } from './MatchControlRail';
 import { SubstitutionBoard } from './SubstitutionBoard';
 import {
-  heatFraction,
+  railHeroHeat,
   MATCH_RAIL_GUTTER,
   MATCH_RAIL_TOP_INSET,
   MATCH_RAIL_WIDTH,
@@ -298,6 +303,7 @@ import {
 } from './hero-power-dock';
 import { HeroPowerDock } from './HeroPowerDock';
 import { HeroPowerRings } from './HeroPowerRings';
+import { firstName } from './pixel-glyphs';
 import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
 import {
@@ -430,8 +436,8 @@ const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this re
 // (matches the player cell width so the placeholder keeps sane proportions).
 const FALLBACK_SPRITE = 24;
 
-// Rival readiness remains visible counterplay. Controlled-team powers activate
-// automatically and announce themselves only when they actually fire.
+// Rival readiness remains visible counterplay. Controlled-team readiness is
+// already shown by the manual dock and pitch marker.
 const RIVAL_ZONE_BANNER_TICKS = 20;
 type MatchBanner = {
   id: string;
@@ -446,6 +452,8 @@ type MatchBanner = {
   lifeTicks: number;
   /** Wall-clock crossing length, overriding `lifeTicks`. Full time only. */
   durationMs?: number;
+  /** Wall-clock removal used after simulation ticks freeze. */
+  expiresAtMs?: number;
   /** 'small' is a footnote to the line above it — the power behind a goal.
    * 'big' is the goal line itself, drawn double size over two lanes. */
   size?: 'small' | 'big';
@@ -482,39 +490,57 @@ function pushMatchBanner(
 /**
  * A wasted-power line, which must never cost the manager a goal line.
  *
- * The ticker holds four banners and allocates lanes by span, and a `big` line
- * claims two of them. When no free pair exists `tickerLane` reuses the oldest
- * lane, so a second big line does not evict a goal — it is drawn ON TOP of one.
- * Both hazards are refused here rather than in the generic pusher, because
- * goals, half time and full time are all entitled to shove each other.
- *
- * An existing wasted line is not a reason to skip: replacing it is exactly what
- * the `power-wasted` subject exists to do.
+ * The ticker holds four banners and a `big` line claims two lanes. The queue
+ * waits while another wasted line or a priority big line is crossing.
  */
 /**
  * A goal, half time or full time takes the lane back.
  *
- * The skip guard in `pushWastedPowerBanner` is only half the protection: it
- * stops a wasted line being ADDED under a live big line, but a goal arriving
- * afterwards would find the lane taken and `tickerLane` reuses the oldest lane
- * rather than failing — drawing the goal on top of it. Dropping the wasted line
- * first is the other half.
+ * A goal arriving after a wasted line defers that line and restarts it later.
  */
-function clearWastedPowerBanner(
+function deferWastedPowerBanners(
   banners: readonly MatchBanner[],
-): MatchBanner[] {
-  return banners.filter((live) => live.subject !== 'power-wasted');
+  queued: readonly NewMatchBanner[],
+): { banners: MatchBanner[]; queued: NewMatchBanner[] } {
+  const deferred: NewMatchBanner[] = [];
+  const kept: MatchBanner[] = [];
+  for (const banner of banners) {
+    if (banner.subject !== 'power-wasted') {
+      kept.push(banner);
+      continue;
+    }
+    const { lane: _lane, expiresAtMs: _expiresAtMs, ...restart } = banner;
+    deferred.push({ ...restart, durationMs: undefined });
+  }
+  return { banners: kept, queued: [...deferred, ...queued] };
 }
 
-function pushWastedPowerBanner(
+function drainWastedPowerQueue(
   banners: readonly MatchBanner[],
-  banner: NewMatchBanner & { subject: MatchBannerSubject },
-): MatchBanner[] {
-  const blockingBigLine = banners.some(
-    (live) => live.size === 'big' && live.subject !== 'power-wasted',
-  );
-  if (blockingBigLine) return [...banners];
-  return pushSubjectedMatchBanner(banners, banner);
+  queued: readonly NewMatchBanner[],
+  tick: number,
+  now: number,
+  speed: MatchSpeed,
+  fulltime: boolean,
+): { banners: MatchBanner[]; queued: NewMatchBanner[] } {
+  const lane = wastedPowerTickerLane(banners);
+  if (lane === null || queued.length === 0)
+    return { banners: [...banners], queued: [...queued] };
+  const [next, ...rest] = queued;
+  const lifeTicks = next.lifeTicks ?? FLASH_TICKS;
+  return {
+    banners: [
+      ...banners,
+      {
+        ...next,
+        lane,
+        lifeTicks,
+        untilTick: tick + lifeTicks,
+        ...wastedPowerBannerTiming(lifeTicks, speed, now, fulltime),
+      },
+    ].slice(-4),
+    queued: rest,
+  };
 }
 
 function pushSubjectedMatchBanner(
@@ -584,6 +610,8 @@ export type PowerCutInQaEntry = PowerCutInEntry;
 
 export interface PowerMatchQaConfig {
   readonly power: PowerId;
+  /** Holds a save-power danger moment so its manual countdown can be reviewed. */
+  readonly manual?: boolean;
 }
 
 /**
@@ -850,6 +878,12 @@ export function MatchScreen({
     );
     if (powerMatchQa !== undefined) {
       initializePowerMatchShowcase(stateRef.current, powerMatchQa.power);
+      if (powerMatchQa.manual && isShotSavePower(powerMatchQa.power)) {
+        stateRef.current.ball = { kind: 'held', by: 21 };
+        stateRef.current.ballHolderTeam = 1;
+        stateRef.current.players[21].actionLockedUntilTick =
+          Number.MAX_SAFE_INTEGER;
+      }
     } else if (matchVfxQa !== undefined) {
       initializeMatchVfxShowcase(stateRef.current, matchVfxQa.kind);
     }
@@ -872,6 +906,7 @@ export function MatchScreen({
     Array.from({ length: RENDER_PLAYER_COUNT }, () => []),
   );
   const bannerRef = useRef<MatchBanner[]>([]);
+  const wastedPowerQueueRef = useRef<NewMatchBanner[]>([]);
   const scoreFlashUntilRef = useRef<number>(0);
   // Elapsed ms into the goal shake. Parked at the duration, which the shake
   // curve reads as "finished" and returns a zero offset for.
@@ -1866,6 +1901,7 @@ export function MatchScreen({
         prevRef.current = before;
         const heldForPowerReview =
           powerMatchQa !== undefined &&
+          !powerMatchQa.manual &&
           advancePowerMatchShowcaseReady(s, powerMatchQa.power);
         const heldForMatchVfxReview =
           !heldForPowerReview &&
@@ -2355,19 +2391,21 @@ export function MatchScreen({
           // The scorer's line crosses slower than everything else, and more
           // so the faster the match runs — see goalTickerLifeTicks.
           const goalTicks = goalTickerLifeTicks(FLASH_TICKS, speedRef.current);
-          bannerRef.current = pushMatchBanner(
-            clearWastedPowerBanner(bannerRef.current),
-            {
-              id: `goal:${e.t}:${e.by}`,
-              // The icon below is a pictogram, not a word: it stays in the
-              // source and only the sentence beside it comes from the catalog.
-              text: `${presentation.icon} ${t('matchScreen.bannerGoal', { player: scorerName })}`,
-              untilTick: e.t + goalTicks,
-              lifeTicks: goalTicks,
-              tone: presentation.tone,
-              size: 'big',
-            },
+          const deferredWaste = deferWastedPowerBanners(
+            bannerRef.current,
+            wastedPowerQueueRef.current,
           );
+          wastedPowerQueueRef.current = deferredWaste.queued;
+          bannerRef.current = pushMatchBanner(deferredWaste.banners, {
+            id: `goal:${e.t}:${e.by}`,
+            // The icon below is a pictogram, not a word: it stays in the
+            // source and only the sentence beside it comes from the catalog.
+            text: `${presentation.icon} ${t('matchScreen.bannerGoal', { player: scorerName })}`,
+            untilTick: e.t + goalTicks,
+            lifeTicks: goalTicks,
+            tone: presentation.tone,
+            size: 'big',
+          });
           // A powered finish names the power on a smaller tile directly under
           // the goal banner. The name comes from the already-translated power
           // catalog, so this adds no new string to the i18n catalogs. It shares
@@ -2624,17 +2662,19 @@ export function MatchScreen({
           // crossing. Half time is an announcement, not a footnote, and at the
           // normal life it was gone before a player looked up.
           const halfTicks = goalTickerLifeTicks(FLASH_TICKS, speedRef.current);
-          bannerRef.current = pushMatchBanner(
-            clearWastedPowerBanner(bannerRef.current),
-            {
-              id: `half:${e.t}`,
-              text: t('matchScreen.bannerHalfTime'),
-              untilTick: e.t + halfTicks,
-              lifeTicks: halfTicks,
-              tone: 'blue',
-              size: 'big',
-            },
+          const deferredWaste = deferWastedPowerBanners(
+            bannerRef.current,
+            wastedPowerQueueRef.current,
           );
+          wastedPowerQueueRef.current = deferredWaste.queued;
+          bannerRef.current = pushMatchBanner(deferredWaste.banners, {
+            id: `half:${e.t}`,
+            text: t('matchScreen.bannerHalfTime'),
+            untilTick: e.t + halfTicks,
+            lifeTicks: halfTicks,
+            tone: 'blue',
+            size: 'big',
+          });
         }
         if (e.kind === 'FULL_TIME') {
           // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
@@ -2643,14 +2683,21 @@ export function MatchScreen({
           // the crossing is given a duration directly rather than a tick life
           // that would finish in 500ms at ×3. The duration is the half-time
           // line's crossing, so the two whistles read the same.
-          bannerRef.current = pushMatchBanner(bannerRef.current, {
+          const deferredWaste = deferWastedPowerBanners(
+            bannerRef.current,
+            wastedPowerQueueRef.current,
+          );
+          wastedPowerQueueRef.current = deferredWaste.queued;
+          const fullTimeDuration = tickerDurationMs(
+            goalTickerLifeTicks(FLASH_TICKS, speedRef.current),
+            speedRef.current,
+          );
+          bannerRef.current = pushMatchBanner(deferredWaste.banners, {
             id: `full:${e.t}`,
             text: t('matchScreen.bannerFullTime'),
             untilTick: e.t + FLASH_TICKS,
-            durationMs: tickerDurationMs(
-              goalTickerLifeTicks(FLASH_TICKS, speedRef.current),
-              speedRef.current,
-            ),
+            durationMs: fullTimeDuration,
+            expiresAtMs: now + fullTimeDuration,
             tone: 'blue',
             size: 'big',
           });
@@ -2781,7 +2828,6 @@ export function MatchScreen({
             untilTick: s.players[e.player].outUntilTick,
           };
         }
-        // Controlled heroes activate automatically without a readiness marker.
         // A rival arming stays a short red threat, because since m2.8 a rival
         // Zone genuinely holds until their context arrives — denying it for the
         // rest of the match is real counterplay, and the warning is honest.
@@ -2811,14 +2857,12 @@ export function MatchScreen({
           e.kind === 'POWER_EXPIRED' &&
           s.players[e.player].team === controlledTeam
         ) {
-          bannerRef.current = pushWastedPowerBanner(bannerRef.current, {
+          const lifeTicks = goalTickerLifeTicks(FLASH_TICKS, speedRef.current);
+          wastedPowerQueueRef.current.push({
             id: `power-wasted:${e.t}:${e.player}`,
-            text:
-              e.reason === 'no-shot'
-                ? t('matchScreen.bannerNoShotOnNet')
-                : t('matchScreen.bannerPowerWasted'),
-            untilTick: e.t + goalTickerLifeTicks(FLASH_TICKS, speedRef.current),
-            lifeTicks: goalTickerLifeTicks(FLASH_TICKS, speedRef.current),
+            text: t('matchScreen.bannerPowerWasted'),
+            untilTick: e.t + lifeTicks,
+            lifeTicks,
             tone: 'red',
             size: 'big',
             subject: 'power-wasted',
@@ -2899,6 +2943,40 @@ export function MatchScreen({
         );
       }
 
+      if (s.phase === 'fulltime' && fulltimeDeadlineRef.current === null) {
+        bannerRef.current = bannerRef.current.map((banner) => ({
+          ...banner,
+          expiresAtMs:
+            banner.expiresAtMs ??
+            now +
+              (banner.durationMs ??
+                tickerDurationMs(banner.lifeTicks, speedRef.current)),
+        }));
+      }
+      const beforeBannerIds = bannerRef.current.map((banner) => banner.id);
+      const beforeQueueLength = wastedPowerQueueRef.current.length;
+      const liveBanners = bannerRef.current.filter((banner) =>
+        banner.expiresAtMs === undefined
+          ? s.tick <= banner.untilTick
+          : now <= banner.expiresAtMs,
+      );
+      const drainedWaste = drainWastedPowerQueue(
+        liveBanners,
+        wastedPowerQueueRef.current,
+        s.tick,
+        now,
+        speedRef.current,
+        s.phase === 'fulltime',
+      );
+      bannerRef.current = drainedWaste.banners;
+      wastedPowerQueueRef.current = drainedWaste.queued;
+      const bannersChanged =
+        beforeQueueLength !== wastedPowerQueueRef.current.length ||
+        beforeBannerIds.length !== bannerRef.current.length ||
+        beforeBannerIds.some(
+          (id, index) => bannerRef.current[index]?.id !== id,
+        );
+
       if (advanced) {
         powerEffectsRef.current = powerEffectsRef.current.filter((effect) => {
           const elapsed =
@@ -2944,9 +3022,6 @@ export function MatchScreen({
           snap || pauseAfterPublish || s.phase === 'fulltime',
         );
         setFrame(nextRef.current!);
-        bannerRef.current = bannerRef.current.filter(
-          (banner) => s.tick <= banner.untilTick,
-        );
         setHud({
           score: [...s.score] as [number, number],
           tick: s.tick,
@@ -2956,6 +3031,11 @@ export function MatchScreen({
         });
         if (pauseAfterPublish) syncPauseReasons();
         if (showcaseFroze) setPowerShowcaseFrozenAt(performance.now());
+      } else if (bannersChanged) {
+        setHud((current) => ({
+          ...current,
+          banners: [...bannerRef.current],
+        }));
       }
 
       if (s.phase === 'fulltime') {
@@ -2968,9 +3048,17 @@ export function MatchScreen({
         if (fulltimeDeadlineRef.current === null) {
           // The `else if` below guarantees a later RAF before unmounting, so
           // even Reduce Motion presents the final React/Atlas frame once.
+          const wastedPowerPending =
+            bannerRef.current.some(
+              (banner) => banner.subject === 'power-wasted',
+            ) || wastedPowerQueueRef.current.length > 0;
           fulltimeDeadlineRef.current =
-            now + (reduceMotion ? 0 : FULLTIME_HOLD_MS);
-        } else if (now >= fulltimeDeadlineRef.current) {
+            now + (reduceMotion && !wastedPowerPending ? 0 : FULLTIME_HOLD_MS);
+        } else if (
+          now >= fulltimeDeadlineRef.current &&
+          bannerRef.current.length === 0 &&
+          wastedPowerQueueRef.current.length === 0
+        ) {
           if (handedOffRef.current) return;
           handedOffRef.current = true;
           onDone(s);
@@ -3226,15 +3314,40 @@ export function MatchScreen({
   // The manager's own hand-fireable heroes and their power colours, for the
   // on-pitch rings. Empty in AUTO — `handFireable` is false for the whole side
   // — so the rings and their POWER plates never draw there.
-  const heroPowerRingHeroes: { slot: number; color: string }[] = [];
+  const heroPowerRingHeroes: {
+    slot: number;
+    color: string;
+    firstName: string;
+    powerName: string;
+    saveWindow: boolean;
+    incapacitated: boolean;
+    saveWindowEndTick: number;
+    saveWindowTicks: number;
+  }[] = [];
   match.players.forEach((player, index) => {
     if (!player.def.power) return;
     if (player.team !== controlledTeam) rivalHeroPlayers.push(index);
-    else if (handFireable(match, index))
+    else if (handFireable(match, index)) {
+      const presentation = powerCutInPresentation(player.def.power, t);
       heroPowerRingHeroes.push({
         slot: index,
-        color: powerCutInPresentation(player.def.power, t).color,
+        color: presentation.color,
+        firstName: firstName(player.def.name),
+        powerName: presentation.name,
+        saveWindow:
+          isShotSavePower(player.def.power) &&
+          player.powerState.kind === 'armed',
+        incapacitated: incapacitySecondsLeft(player, match.tick) > 0,
+        saveWindowEndTick:
+          player.powerState.kind === 'armed'
+            ? match.tick + player.powerState.remainingTicks
+            : match.tick,
+        saveWindowTicks:
+          player.powerState.kind === 'armed'
+            ? player.powerState.windowTicks
+            : 1,
       });
+    }
     if (player.def.power === 'FIRE_TORCH') fireTorchMask |= 1 << index;
   });
   const heroPowerRings = heroPowerRingMasks(match, controlledTeam);
@@ -3255,7 +3368,6 @@ export function MatchScreen({
   );
 
   const shotPopWord = t('matchScreen.shotPop');
-  const heroPowerRingWord = t('matchScreen.heroPowerRing');
   // The two pitch numbers, ordered newest-last so the fresher pop draws over
   // the older one when both are still alive. Keys keep each node's identity
   // across the swap, so a reorder does not remount it and rebuild its SkPath.
@@ -3987,7 +4099,11 @@ export function MatchScreen({
               powerName: presentation.name,
               powerGlyph: presentation.glyph,
               powerColor: presentation.color,
-              heat: heatFraction(player.gauge, player.def.role),
+              heat: railHeroHeat(
+                player.gauge,
+                player.def.role,
+                player.powerState,
+              ),
               status: railHeroStatus(player.powerState),
               rival: false,
             },
@@ -4022,7 +4138,11 @@ export function MatchScreen({
               powerName: presentation.name,
               powerGlyph: presentation.glyph,
               powerColor: '#d94f52',
-              heat: heatFraction(player.gauge, player.def.role),
+              heat: railHeroHeat(
+                player.gauge,
+                player.def.role,
+                player.powerState,
+              ),
               status: railHeroStatus(player.powerState),
               rival: true,
             },
@@ -4030,8 +4150,7 @@ export function MatchScreen({
         })();
   const railHeroTiles = [...controlledRailHeroTiles, ...rivalRailHeroTiles];
   // One cell per hero the manager may fire by hand. Empty unless MANUAL is on,
-  // because every slot is FIRE_WHEN_READY otherwise — and goalkeepers are
-  // FIRE_WHEN_READY. Goalkeepers are included since m2.8.
+  // because every slot is FIRE_WHEN_READY otherwise. Goalkeepers are included.
   const heroPowerCells = heroPowerDockCells(match, controlledTeam);
   const heroPowerLayout = heroPowerDockLayout(
     heroPowerCells.length,
@@ -4319,6 +4438,18 @@ export function MatchScreen({
                     scale={scale}
                     spriteScale={scale * playerSpriteScale.drawScale}
                     hiddenPlayer={-1}
+                    hiddenMask={heroPowerRings.dashed | heroPowerRings.solid}
+                  />
+                  <HeroPowerRings
+                    heroes={heroPowerRingHeroes}
+                    dashedMask={heroPowerRings.dashed}
+                    solidMask={heroPowerRings.solid}
+                    visualPositions={workletVisualPositions}
+                    visibility={workletVisibility}
+                    visualTick={workletVisualTick}
+                    scale={scale}
+                    playerDrawScale={playerSpriteScale.drawScale}
+                    devicePixelRatio={devicePixelRatio}
                   />
                   <Atlas
                     image={atlas.image as SkImage}
@@ -4410,24 +4541,6 @@ export function MatchScreen({
                     scale={scale}
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
-                  />
-                  {/* Which body the corner fire button belongs to. Drawn
-                    before the other overlays so a hero's own power FX — flames,
-                    speed lines, the Zone glow — always sit over the ring rather
-                    than under it. */}
-                  <HeroPowerRings
-                    heroes={heroPowerRingHeroes}
-                    dashedMask={heroPowerRings.dashed}
-                    solidMask={heroPowerRings.solid}
-                    label={heroPowerRingWord}
-                    visualPositions={workletVisualPositions}
-                    visibility={workletVisibility}
-                    visualTick={workletVisualTick}
-                    scale={scale}
-                    ringRadius={ringR}
-                    playerDrawScale={playerSpriteScale.drawScale}
-                    devicePixelRatio={devicePixelRatio}
-                    reduceMotion={reduceMotion}
                   />
                   <WorkletMatchOverlays
                     visualPositions={workletVisualPositions}
@@ -4528,7 +4641,11 @@ export function MatchScreen({
                   // ids, and keying by id would remount the row a tick after
                   // every tap and snap the line back to the left touchline.
                   <MatchTickerLine
-                    key={banner.subject ?? banner.id}
+                    key={
+                      banner.subject === 'power-wasted'
+                        ? banner.id
+                        : (banner.subject ?? banner.id)
+                    }
                     text={banner.text}
                     tone={banner.tone}
                     size={banner.size}
