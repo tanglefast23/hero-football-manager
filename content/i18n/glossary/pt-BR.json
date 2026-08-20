@@ -56,14 +56,6 @@
       "why": "É como um estádio realmente chama."
     },
     {
-      "english": "Buzz",
-      "englishPattern": "\\bBuzz\\b",
-      "allowedForms": [
-        "Clima"
-      ],
-      "why": "'Tem clima' é o que se diz de um clube de que todos falam. Curto, e não é jargão."
-    },
-    {
       "english": "Superpower",
       "englishPattern": "[Ss]uperpowers?",
       "allowedForms": [

@@ -322,7 +322,6 @@ const CASES: readonly HarnessCase[] = [
         plainLine('Harbor Biscuit Co. · Monthly sponsor', 900),
         plainLine('Grid & Girder objective bonus', 750),
         plainLine('Hero Cup Play-in win', 2000),
-        plainLine('Media buzz payout', 640),
         plainLine('Loan repayment', -500, undefined, 'expense'),
         ...CONSTANT_TAIL.map((make) => make()),
       ]),

@@ -11,7 +11,7 @@ import { createLaunchCareerSetup } from '../launch';
 import { seasonEndViewModel } from '../view-models';
 
 describe('season-end Club Business presentation', () => {
-  it('presents the real Week 30 Chairman outcomes and second Buzz payday', () => {
+  it('presents the real Week 30 Chairman sponsor outcomes', () => {
     const settled = advanceWeek(week30ChairmanCareer());
 
     expect(settled).toMatchObject({ season: 3, week: 30, phase: 'season-end' });
@@ -23,14 +23,6 @@ describe('season-end Club Business presentation', () => {
       { met: true, settledSeason: 3, actualBonus: 800 },
       { met: false, settledSeason: 3, actualBonus: 0 },
     ]);
-    expect(settled.clubBusiness.buzz.lastSettlementSummary).toMatchObject({
-      season: 3,
-      half: 2,
-      prePayoutValue: 64,
-      payout: 4_096,
-      resetValue: 0,
-    });
-
     const viewModel = seasonEndViewModel(settled, loadLaunchContent(), 1);
     expect(viewModel.clubBusinessSettlement).toEqual({
       objectiveResults: [
@@ -50,46 +42,8 @@ describe('season-end Club Business presentation', () => {
         },
       ],
       objectiveBonusTotal: 800,
-      buzz: {
-        reached: 64,
-        actualPayout: 4_096,
-        resetTo: 0,
-      },
-      actualPayoutTotal: 4_896,
+      actualPayoutTotal: 800,
     });
-  });
-
-  it('does not mistake the first-half Buzz receipt for a season-end payday', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260806));
-    const state: GameState = {
-      ...initial,
-      season: 3,
-      week: 30,
-      phase: 'season-end',
-      clubBusiness: {
-        ...initial.clubBusiness,
-        buzz: {
-          value: 0,
-          lastSettledSeason: 3,
-          lastSettledHalf: 1,
-          lastSettlementSummary: {
-            season: 3,
-            half: 1,
-            before: 52,
-            rawEarned: 12,
-            realizedEarned: 12,
-            prePayoutValue: 64,
-            payout: 1_280,
-            resetValue: 0,
-            impacts: [],
-          },
-        },
-      },
-    };
-
-    expect(
-      seasonEndViewModel(state, loadLaunchContent(), 1).clubBusinessSettlement,
-    ).toBeUndefined();
   });
 
   it('translates saved Hero of the Season power ids', () => {
@@ -213,7 +167,6 @@ function week30ChairmanCareer(): GameState {
         portfolioSeason: 3,
         offerSeason: 3,
       },
-      buzz: { value: 64 },
       pendingUserMatchImpacts: [],
     },
   };

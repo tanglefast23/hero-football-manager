@@ -58,7 +58,7 @@ import {
 import { repairCareerLineupForInjuries } from './squad';
 import { advancePlayerRequests } from './player-requests';
 import { createClubBusinessState } from './club-business';
-import { applyBuzzImpacts, applySupporterImpacts } from './club-business';
+import { applySupporterImpacts } from './club-business';
 import {
   appendPendingUserMatchImpact,
   pendingImpactFromProduction,
@@ -792,50 +792,15 @@ function settleWeekResults(
       ? { additionalMatchOutcomes }
       : { matchParticipations },
   );
-  const actualMonthlySponsorIncome = currentActualMonthlySponsorIncome(
-    state,
-    userClub,
-  );
-  const appliedBuzz = applyBuzzImpacts(
-    state.clubBusiness.buzz,
-    pendingImpacts,
-    state.season,
-    state.week,
-    actualMonthlySponsorIncome,
-  );
   const trainedState = {
     ...state,
     players: weeklyWellbeing.players,
     ...(weeklyWellbeing.m2 === undefined ? {} : { m2: weeklyWellbeing.m2 }),
     trainingPoints,
-    clubBusiness: {
-      ...state.clubBusiness,
-      buzz: appliedBuzz.buzz,
-    },
   };
-  const buzzAwards: WeeklySettlementAward[] =
-    appliedBuzz.payout === undefined || appliedBuzz.payout.amount === 0
-      ? []
-      : [
-          {
-            line: {
-              kind: 'buzz',
-              label: appliedBuzz.payout.label,
-              labelKey: appliedBuzz.payout.labelKey,
-              amount: appliedBuzz.payout.amount,
-              idempotencyKey: weeklySettlementAwardKeys.buzzHalf(
-                state.userClubId,
-                state.season,
-                appliedBuzz.payout.half,
-              ),
-            },
-          },
-        ];
   const awards = resolveWeeklySettlementAwards(
     state.ledgers,
-    settlementAwards(trainedState, userClub, {
-      awards: [...suppliedAwards.awards, ...buzzAwards],
-    }),
+    settlementAwards(trainedState, userClub, suppliedAwards),
   );
   const lines = settlementLines(trainedState, userClub, 0, awards.lines);
   const safety = resolveFinancialSafety(trainedState, userClub.cash, lines);

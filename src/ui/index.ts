@@ -32,7 +32,6 @@ export * from './components/FormationDiagram';
 export * from './components/PixelPortrait';
 export * from './components/FacilityCompletionCard';
 export * from './components/ConfirmationSheet';
-export * from './components/PostMatchBuzzCard';
 export * from './components/MatchDayBanner';
 export * from './components/ScreenTransition';
 export * from './screens/ClubHomeScreen';

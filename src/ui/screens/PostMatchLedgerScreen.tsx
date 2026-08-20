@@ -21,7 +21,6 @@ import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
 import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
 import { ManagementSprite } from '../components/ManagementSprite';
-import { PostMatchBuzzCard } from '../components/PostMatchBuzzCard';
 import {
   SPEECH_BUBBLE_FONT_SIZE,
   SPEECH_BUBBLE_LINE_HEIGHT,
@@ -157,10 +156,6 @@ export function PostMatchLedgerScreen({
             t={t}
           />
         ) : null}
-
-        {viewModel.buzz === undefined ? null : (
-          <PostMatchBuzzCard buzz={viewModel.buzz} className="mt-6" />
-        )}
 
         {viewModel.highlights.length ? (
           <View className="mt-6">

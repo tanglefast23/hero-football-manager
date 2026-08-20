@@ -1,7 +1,7 @@
 # Club Business, Supporters, and Buzz Implementation Plan
 
 **Date:** 2026-08-04  
-**Status:** implementation authorized; Quick/Watch policy B confirmed 2026-08-05  
+**Status:** historical; Buzz was removed on 2026-08-20
 **Type:** feature plus prerequisite integrity fixes  
 **Source design:**
 [`docs/superpowers/specs/2026-08-04-club-business-and-buzz-design.md`](../specs/2026-08-04-club-business-and-buzz-design.md)

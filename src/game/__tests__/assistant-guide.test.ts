@@ -13,7 +13,6 @@ import {
   queueAssistantGuideSequences,
   scheduleAssistantInboxWeek,
   shouldShowSquadSortHint,
-  wasSponsorDeskIntroDeliveredBeforeCurrentWeek,
 } from '../assistant-guide';
 import { createLaunchCareerSetup } from '../../application/launch';
 
@@ -252,81 +251,6 @@ describe('assistant guide milestones', () => {
     expect(
       isAssistantInboxProductPermanentlyDismissed(nextWeek, 'emergency-loan'),
     ).toBe(true);
-  });
-
-  test.each([0, 1, 2, 3])(
-    'holds simultaneous Buzz behind Sponsor Desk with %i occupied inbox slots, including reload',
-    (occupiedSlots) => {
-      const fresh = createCareer(
-        createLaunchCareerSetup(8_450 + occupiedSlots),
-      );
-      const unlockMorning = {
-        ...fresh,
-        season: 3,
-        week: 1,
-        phase: 'manage' as const,
-        m2: { ...fresh.m2!, highestDivisionReached: 4 as const },
-      };
-      const firstWeek = scheduleAssistantInboxWeek(unlockMorning, {
-        dueGuideSequenceIds: ['sponsor-desk', 'sponsor-buzz'],
-        productAlerts: Array.from({ length: occupiedSlots }, (_, index) => ({
-          id: `urgent-${index}`,
-          priority: 'urgent' as const,
-        })),
-      });
-
-      expect(pendingAssistantInboxGuideSequences(firstWeek.state)).toEqual([
-        'sponsor-desk',
-        'sponsor-buzz',
-      ]);
-      expect(firstWeek.guideSequenceIds).not.toContain('sponsor-buzz');
-
-      const sponsorWeek = firstWeek.guideSequenceIds.includes('sponsor-desk')
-        ? firstWeek
-        : scheduleAssistantInboxWeek({
-            ...(JSON.parse(
-              JSON.stringify(firstWeek.state),
-            ) as typeof firstWeek.state),
-            week: 2,
-          });
-      expect(sponsorWeek.guideSequenceIds).toContain('sponsor-desk');
-      expect(sponsorWeek.guideSequenceIds).not.toContain('sponsor-buzz');
-      expect(
-        wasSponsorDeskIntroDeliveredBeforeCurrentWeek(sponsorWeek.state),
-      ).toBe(false);
-
-      const afterReload = JSON.parse(
-        JSON.stringify(sponsorWeek.state),
-      ) as typeof sponsorWeek.state;
-      const nextMorning = { ...afterReload, week: sponsorWeek.week + 1 };
-      expect(wasSponsorDeskIntroDeliveredBeforeCurrentWeek(nextMorning)).toBe(
-        true,
-      );
-      const buzzWeek = scheduleAssistantInboxWeek(nextMorning);
-      expect(buzzWeek.guideSequenceIds).toContain('sponsor-buzz');
-    },
-  );
-
-  test('does not release simultaneous Buzz merely because Sponsor Desk was read in the same week', () => {
-    const fresh = createCareer(createLaunchCareerSetup(8_459));
-    const unlockMorning = {
-      ...fresh,
-      season: 3,
-      week: 1,
-      phase: 'manage' as const,
-      m2: { ...fresh.m2!, highestDivisionReached: 4 as const },
-    };
-    const first = scheduleAssistantInboxWeek(unlockMorning, {
-      dueGuideSequenceIds: ['sponsor-desk', 'sponsor-buzz'],
-    });
-    const readNow = completeAssistantGuideSequence(first.state, 'sponsor-desk');
-    const sameWeek = scheduleAssistantInboxWeek(readNow);
-
-    expect(sameWeek.guideSequenceIds).not.toContain('sponsor-buzz');
-    expect(
-      scheduleAssistantInboxWeek({ ...sameWeek.state, week: 2 })
-        .guideSequenceIds,
-    ).toContain('sponsor-buzz');
   });
 
   test('lets a newly urgent alert displace, but not erase, a scheduled guide', () => {

@@ -53,7 +53,7 @@ import {
   type ClubBusinessLongCareerResult,
 } from '../club-business-long-career-harness';
 
-const SUMMARY_SCHEMA_VERSION = 3;
+const SUMMARY_SCHEMA_VERSION = 4;
 const DEFAULT_SEED_OFFSET = 30_000;
 const SEED_WINDOW_END = 40_000;
 const PROGRESSION_GATE_SEED_COUNT = 300;
@@ -103,7 +103,6 @@ interface LongCareerShardRun {
   readonly endingFans: number;
   readonly totalSponsorIncome: number;
   readonly totalSponsorObjectiveBonuses: number;
-  readonly totalBuzzIncome: number;
   readonly totalWageExpense: number;
   readonly totalFacilityUpkeepExpense: number;
   readonly totalLoanRepaymentExpense: number;
@@ -125,7 +124,6 @@ interface LongCareerShardRun {
     readonly endingFans: number;
     readonly sponsorIncome: number;
     readonly sponsorObjectiveBonuses: number;
-    readonly buzzIncome: number;
     readonly wageExpense: number;
     readonly facilityUpkeepExpense: number;
     readonly loanRepaymentExpense: number;
@@ -153,11 +151,8 @@ interface LongCareerShardAggregate {
   readonly minimumCashP25: number;
   readonly interventionRunRate: number;
   readonly sponsorObjectiveCompletionRate: number;
-  readonly buzzPrePayoutMedian: number;
-  readonly buzzCapRate: number;
   readonly facilityCapitalSpendMedian: number;
   readonly totalObservedSponsorIncomeMedian: number;
-  readonly totalObservedBuzzIncomeMedian: number;
   readonly totalWageExpenseMedian: number;
   readonly totalFacilityUpkeepExpenseMedian: number;
   readonly totalOrdinaryLedgerNetMedian: number;
@@ -350,9 +345,6 @@ function buildShardSummary(
   const compactRuns = runs.map(({ seedIndex, result }) =>
     compactRun(seedIndex, result),
   );
-  const allBuzzSettlements = runs.flatMap(({ result }) =>
-    result.seasons.flatMap((season) => season.buzzSettlements),
-  );
   const objectives = runs
     .flatMap(({ result }) =>
       result.seasons.flatMap((season) => season.sponsorObjectives),
@@ -423,29 +415,12 @@ function buildShardSummary(
           ? 0
           : objectives.filter((objective) => objective.objectiveMet).length /
             objectives.length,
-      buzzPrePayoutMedian:
-        allBuzzSettlements.length === 0
-          ? 0
-          : percentile(
-              allBuzzSettlements.map((settlement) => settlement.prePayoutValue),
-              0.5,
-            ),
-      buzzCapRate:
-        allBuzzSettlements.length === 0
-          ? 0
-          : allBuzzSettlements.filter(
-              (settlement) => settlement.prePayoutValue >= 100,
-            ).length / allBuzzSettlements.length,
       facilityCapitalSpendMedian: percentile(
         compactRuns.map((run) => run.totalFacilityCapitalSpend),
         0.5,
       ),
       totalObservedSponsorIncomeMedian: percentile(
         compactRuns.map((run) => run.totalSponsorIncome),
-        0.5,
-      ),
-      totalObservedBuzzIncomeMedian: percentile(
-        compactRuns.map((run) => run.totalBuzzIncome),
         0.5,
       ),
       totalWageExpenseMedian: percentile(
@@ -497,7 +472,6 @@ function compactRun(
     endingFans: result.endingFans,
     totalSponsorIncome: result.totals.sponsorIncome,
     totalSponsorObjectiveBonuses: result.totals.sponsorObjectiveBonuses,
-    totalBuzzIncome: result.totals.buzzIncome,
     totalWageExpense: result.totals.wageExpense,
     totalFacilityUpkeepExpense: result.totals.facilityUpkeepExpense,
     totalLoanRepaymentExpense: result.totals.loanRepaymentExpense,
@@ -519,7 +493,6 @@ function compactRun(
       endingFans: season.endingFans,
       sponsorIncome: season.sponsorIncome,
       sponsorObjectiveBonuses: season.sponsorObjectiveBonuses,
-      buzzIncome: season.buzzIncome,
       wageExpense: season.wageExpense,
       facilityUpkeepExpense: season.facilityUpkeepExpense,
       loanRepaymentExpense: season.loanRepaymentExpense,
@@ -573,10 +546,7 @@ function reportShard(summary: LongCareerShardSummary): void {
       `  minimum-cash P25: ${aggregate.minimumCashP25}`,
     `intervention run rate: ${percent(aggregate.interventionRunRate)}` +
       `  objective completion: ${percent(aggregate.sponsorObjectiveCompletionRate)}`,
-    `Buzz median/cap rate: ${aggregate.buzzPrePayoutMedian}` +
-      `/${percent(aggregate.buzzCapRate)}`,
     `observed medians — sponsor: ${aggregate.totalObservedSponsorIncomeMedian}` +
-      `  Buzz: ${aggregate.totalObservedBuzzIncomeMedian}` +
       `  facility capital: ${aggregate.facilityCapitalSpendMedian}`,
     `cost medians — wages: ${aggregate.totalWageExpenseMedian}` +
       `  upkeep: ${aggregate.totalFacilityUpkeepExpenseMedian}` +

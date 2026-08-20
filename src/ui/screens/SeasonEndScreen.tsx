@@ -242,53 +242,15 @@ export function SeasonEndScreen({
             />
             <PaperPanel
               kicker={t('seasonEnd.cashActuallyReceived')}
-              title={t('seasonEnd.sponsorsAndBuzz')}
+              title={t('seasonEnd.objectiveBonuses')}
               stamp={formatCurrency(
                 t,
                 viewModel.clubBusinessSettlement.actualPayoutTotal,
                 true,
               )}
             >
-              {viewModel.clubBusinessSettlement.buzz ? (
-                <View
-                  className="border-2 border-ink bg-blue-light p-3"
-                  accessible
-                  accessibilityLabel={t('seasonEnd.a11y.buzzPayout', {
-                    reached: viewModel.clubBusinessSettlement.buzz.reached,
-                    amount: formatCurrency(
-                      t,
-                      viewModel.clubBusinessSettlement.buzz.actualPayout,
-                    ),
-                    resetTo: viewModel.clubBusinessSettlement.buzz.resetTo,
-                  })}
-                >
-                  <View className="flex-row flex-wrap items-center justify-between gap-2">
-                    <PixelText className="text-base uppercase text-ink">
-                      {t('seasonEnd.buzzPayout')}
-                    </PixelText>
-                    <StatusChip label={t('seasonEnd.paid')} tone="success" />
-                  </View>
-                  <Text className="mt-2 text-sm leading-5 text-ink">
-                    {t('seasonEnd.buzzSettlement', {
-                      reached: viewModel.clubBusinessSettlement.buzz.reached,
-                      amount: formatCurrency(
-                        t,
-                        viewModel.clubBusinessSettlement.buzz.actualPayout,
-                      ),
-                      resetTo: viewModel.clubBusinessSettlement.buzz.resetTo,
-                    })}
-                  </Text>
-                </View>
-              ) : null}
-
               {viewModel.clubBusinessSettlement.objectiveResults.length > 0 ? (
-                <View
-                  className={
-                    viewModel.clubBusinessSettlement.buzz
-                      ? 'mt-3 gap-2'
-                      : 'gap-2'
-                  }
-                >
+                <View className="gap-2">
                   {viewModel.clubBusinessSettlement.objectiveResults.map(
                     (result) => (
                       <View

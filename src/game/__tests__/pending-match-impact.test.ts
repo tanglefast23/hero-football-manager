@@ -83,9 +83,6 @@ describe('durable production match impact', () => {
       divisionScale: 1,
       supporterWinUnits: 5,
       supporterHeroUnits: 2,
-      buzzWin: 4,
-      buzzGoals: 2,
-      buzzHeroMoments: 2,
     });
   });
 
@@ -103,8 +100,6 @@ describe('durable production match impact', () => {
       outcome: 'WIN',
       regulationGoals: 1,
       settlementOrder: 1,
-      buzzWin: 4,
-      buzzGoals: 1,
     });
   });
 
@@ -142,7 +137,7 @@ describe('durable production match impact', () => {
     });
     expect(appendPendingUserMatchImpact([first], first)).toEqual([first]);
     expect(() =>
-      appendPendingUserMatchImpact([first], { ...first, buzzGoals: 99 }),
+      appendPendingUserMatchImpact([first], { ...first, regulationGoals: 99 }),
     ).toThrow(/different pending match impact/);
   });
 });

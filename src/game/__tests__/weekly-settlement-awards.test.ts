@@ -91,7 +91,6 @@ describe('weekly settlement awards', () => {
       weeklySettlementAwardKeys.recruitmentFund('user'),
       weeklySettlementAwardKeys.sponsorMonth('user', 3, 8),
       weeklySettlementAwardKeys.sponsorObjective('user', 3, 'slot-1'),
-      weeklySettlementAwardKeys.buzzHalf('user', 3, 1),
     ];
 
     expect(new Set(keys).size).toBe(keys.length);

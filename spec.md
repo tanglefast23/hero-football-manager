@@ -205,8 +205,9 @@ Change Level 1 only as follows:
 - Level-1 upkeep: **$50/week**.
 
 Keep the existing Level-2 and Level-3 upgrade costs in the first pass. Their
-capital sink was recently calibrated against later sponsor/Buzz income and must
-not be casually reopened. Apply the new per-level gate multiplier to all levels.
+capital sink was calibrated before Buzz was removed and must be remeasured
+before these later prices are approved. Apply the new per-level gate multiplier
+to all levels.
 
 Do not continue deriving the emergency-loan recovery floor from the Stand's
 catalog price. Freeze that floor at **$15,000**. The cheaper Stand should leave a
@@ -275,7 +276,7 @@ alone.
 
 The executable four-week operating template is
 **Home / Away / Home / Away**, with the sponsor payment due in the fourth week,
-no Cup gate, and no prizes, Buzz, events, player sales, or capital purchases.
+no Cup gate, and no prizes, events, player sales, or capital purchases.
 At flat 500 supporters this reconciles to:
 
 | Four-week line | Cozy | Chairman |
@@ -305,7 +306,7 @@ operating outlook:
 - include a projected gate only for scheduled home league matches and known home
   Cup ties, using current supporters, ticket price, and operational Stand level;
 - label an away fixture `Away game · no gate`;
-- exclude prizes, objective bonuses, Buzz, player sales, requests, events, and
+- exclude prizes, objective bonuses, player sales, requests, events, and
   facilities still under construction; and
 - label the result as a projection, never as settled cash.
 
@@ -390,7 +391,7 @@ Run at least 300 deterministic seeds for each difficulty before approval.
    $10,000.
 2. **Cozy operating gate:** after all four opening facilities are operational, a
    `Home / Away / Home / Away` cycle with the sponsor due in its fourth week has
-   nonnegative operating cash before Cup gates, prizes, player sales, Buzz, and
+   nonnegative operating cash before Cup gates, prizes, player sales, and
    event money. Use the fixed worked template above rather than selecting a
    favorable four-week schedule window.
 3. **Cozy Season-1 gate:** under the representative 45% win / 25% draw / 30% loss
@@ -456,7 +457,7 @@ cash changes runway, not sustainability.
 - No change to the hero renewal multiplier.
 - No new currency.
 - No sponsor signing perks.
-- No Buzz unlock or payout change.
+- No replacement for the removed Buzz feature.
 - No transfer-value or player-request cost change in this pass.
 - No blanket facility-price, upkeep, or upgrade rewrite.
 - No match-engine or replay-format change; `ENGINE_VERSION` does not move.

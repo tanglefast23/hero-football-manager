@@ -1,7 +1,7 @@
 # Financial Report — post-match screen redesign
 
 - **Date:** 2026-08-06 (revised through council round 3)
-- **Status:** Approved by owner (design conversation, this date). Council: Fable 5 approved (round 2); Codex hit the 3-round cap still requesting revisions — all of its round-3 items were applied to this document after the cap (sanitizer sign rule, docs 02/06/08 sync, VoiceOver math labels, banner-seed data path, native Pressable skip surface).
+- **Status:** Historical. Buzz card requirements were retired when Buzz was removed on 2026-08-20.
 - **Owner decisions locked:** screen scope, multiplier presentation, audio assets, straight-bonus economy (see §15)
 
 ## 1. Summary

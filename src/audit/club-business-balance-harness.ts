@@ -1,8 +1,6 @@
 import { loadLaunchContent } from '../content';
 import {
-  applyBuzzImpacts,
   applySupporterImpacts,
-  BUZZ_WIN_POINTS,
   createClubBusinessState,
 } from '../game/club-business';
 import type {
@@ -60,16 +58,11 @@ export interface ClubBusinessBalanceScenario {
   readonly profileObjectiveBonusPercent?: Partial<
     Record<SponsorObjectiveKind, number>
   >;
-  /** Probe-only Buzz earning sensitivity; omitted uses the shipped win value. */
-  readonly buzzWinPoints?: number;
-  /** Probe-only per-match cap on hero-moment Buzz; omitted preserves no sub-cap. */
-  readonly buzzHeroMomentCap?: number;
 }
 
 export interface ClubBusinessIncomeAttribution {
   readonly monthlySponsorDelta: number;
   readonly sponsorObjectiveBonus: number;
-  readonly buzzPayout: number;
   readonly supporterGateDelta: number;
   readonly supporterMerchDelta: number;
   readonly totalNewIncome: number;
@@ -99,8 +92,6 @@ export interface ClubBusinessBalanceResult {
   readonly endingFans: number;
   readonly minimumFans: number;
   readonly maximumLossStreak: number;
-  readonly buzzHalfValues: readonly [number, number];
-  readonly buzzCapCount: number;
   readonly objectiveMetCount: number;
   readonly objectiveCount: number;
   /** Exact contract-level values used for objective-family stratification. */
@@ -108,10 +99,10 @@ export interface ClubBusinessBalanceResult {
 }
 
 /**
- * Frozen-outcome accounting comparison for one complete Buzz-active season.
+ * Frozen-outcome accounting comparison for one complete season.
  * Both sides receive the same schedule and results. The control retains the
  * old scalar sponsor and fixed supporter count; the feature side uses the real
- * sponsor, supporter, and Buzz functions. The only modeled facility difference
+ * sponsor and supporter functions. The only modeled facility difference
  * is the mandatory Training Pitch Level-2 uplift ($8,000 -> $10,000).
  */
 export function runClubBusinessBalanceScenario(
@@ -150,10 +141,8 @@ export function runClubBusinessBalanceScenario(
   let controlSponsorIncome = 0;
   let featureSponsorIncome = 0;
   let sponsorObjectiveBonus = 0;
-  let buzzPayout = 0;
   let supporterGateDelta = 0;
   let supporterMerchDelta = 0;
-  const buzzHalfValues: number[] = [];
   const cashIds = new Set<string>();
 
   const userFixturesByWeek = new Map<
@@ -206,20 +195,6 @@ export function runClubBusinessBalanceScenario(
       }
     }
 
-    const appliedBuzz = applyBuzzImpacts(
-      business.buzz,
-      impacts,
-      SEASON,
-      week,
-      featureMonthlySponsor,
-    );
-    if (appliedBuzz.payout !== undefined) {
-      recordUniqueCashId(cashIds, appliedBuzz.payout.idempotencyKey);
-      buzzPayout += appliedBuzz.payout.amount;
-      buzzHalfValues.push(
-        appliedBuzz.buzz.lastSettlementSummary!.prePayoutValue,
-      );
-    }
     const appliedSupporters = applySupporterImpacts(
       business.supporters,
       fans,
@@ -236,20 +211,12 @@ export function runClubBusinessBalanceScenario(
     business = {
       ...business,
       supporters: appliedSupporters.supporters,
-      buzz: appliedBuzz.buzz,
       sponsorship,
     };
-  }
-
-  if (buzzHalfValues.length !== 2) {
-    throw new Error(
-      `expected two Buzz boundaries, received ${buzzHalfValues.length}`,
-    );
   }
   const attribution: ClubBusinessIncomeAttribution = {
     monthlySponsorDelta: featureSponsorIncome - controlSponsorIncome,
     sponsorObjectiveBonus,
-    buzzPayout,
     supporterGateDelta,
     supporterMerchDelta,
     totalNewIncome: 0,
@@ -257,7 +224,6 @@ export function runClubBusinessBalanceScenario(
   const totalNewIncome =
     attribution.monthlySponsorDelta +
     attribution.sponsorObjectiveBonus +
-    attribution.buzzPayout +
     attribution.supporterGateDelta +
     attribution.supporterMerchDelta;
   const completeAttribution = { ...attribution, totalNewIncome };
@@ -269,7 +235,6 @@ export function runClubBusinessBalanceScenario(
     startingCash +
     featureSponsorIncome +
     sponsorObjectiveBonus +
-    buzzPayout +
     supporterGateDelta +
     supporterMerchDelta -
     mandatoryPitchUplift;
@@ -338,8 +303,6 @@ export function runClubBusinessBalanceScenario(
     endingFans: fans,
     minimumFans,
     maximumLossStreak,
-    buzzHalfValues: [buzzHalfValues[0], buzzHalfValues[1]],
-    buzzCapCount: buzzHalfValues.filter((value) => value === 100).length,
     objectiveMetCount: objectiveContracts.filter(
       (contract) => contract.objectiveOutcome?.met,
     ).length,
@@ -478,13 +441,6 @@ function generateScenarioFixtures(scenario: ClubBusinessBalanceScenario): {
         divisionScale: scale,
         supporterWinUnits: outcome === 'WIN' ? 5 * scale : 0,
         supporterHeroUnits: heroCount * scale,
-        buzzWin:
-          outcome === 'WIN' ? (scenario.buzzWinPoints ?? BUZZ_WIN_POINTS) : 0,
-        buzzGoals: userGoals,
-        buzzHeroMoments: cappedHeroMomentBuzz(
-          powerFiredPlayerIds.length * 2,
-          scenario.buzzHeroMomentCap,
-        ),
       };
       const played = {
         ...fixture,
@@ -552,13 +508,6 @@ function generateScenarioFixtures(scenario: ClubBusinessBalanceScenario): {
         divisionScale: scale,
         supporterWinUnits: outcome === 'WIN' ? 5 * scale : 0,
         supporterHeroUnits: heroCount * scale,
-        buzzWin:
-          outcome === 'WIN' ? (scenario.buzzWinPoints ?? BUZZ_WIN_POINTS) : 0,
-        buzzGoals: userGoals,
-        buzzHeroMoments: cappedHeroMomentBuzz(
-          powerFiredPlayerIds.length * 2,
-          scenario.buzzHeroMomentCap,
-        ),
       },
     });
     if (outcome === 'LOSS') break;
@@ -583,10 +532,6 @@ function goalsForOutcome(
 
 function gateIncome(fans: number, division: DivisionLevel): number {
   return Math.floor((fans * 3) / 5) * divisionTicketPrice(division);
-}
-
-function cappedHeroMomentBuzz(raw: number, cap: number | undefined): number {
-  return cap === undefined ? raw : Math.min(raw, cap);
 }
 
 function recordUniqueCashId(ids: Set<string>, id: string): void {
@@ -645,25 +590,5 @@ function validateScenario(scenario: ClubBusinessBalanceScenario): void {
         'Club Business objective-family bonus percent must be 0 to 1000',
       );
     }
-  }
-  if (
-    scenario.buzzWinPoints !== undefined &&
-    (!Number.isSafeInteger(scenario.buzzWinPoints) ||
-      scenario.buzzWinPoints < 0 ||
-      scenario.buzzWinPoints > 100)
-  ) {
-    throw new Error(
-      'Club Business Buzz win points must be an integer from 0 to 100',
-    );
-  }
-  if (
-    scenario.buzzHeroMomentCap !== undefined &&
-    (!Number.isSafeInteger(scenario.buzzHeroMomentCap) ||
-      scenario.buzzHeroMomentCap < 0 ||
-      scenario.buzzHeroMomentCap > 100)
-  ) {
-    throw new Error(
-      'Club Business hero-moment Buzz cap must be an integer from 0 to 100',
-    );
   }
 }

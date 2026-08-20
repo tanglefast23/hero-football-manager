@@ -53,22 +53,6 @@ describe('Club Business phone and accessibility contracts', () => {
     expect(tabs).toContainSource('tabIndex: input.selected ? 0 : -1');
   });
 
-  it('moves the Season 3 walkthrough to the real Buzz progress element', () => {
-    expect(screen).toContainSource(
-      'const sponsorBuzzAccessibilityRef = useRef<View>(null);',
-    );
-    expect(screen).toContainSource(
-      'sponsorBuzzAccessibilityRef.current ?? sponsorBuzzTargetRef.current',
-    );
-    expect(screen).toContainSource('focusGuideTarget(focusTarget);');
-    expect(screen).toContainSource(
-      'focusTargetRef={sponsorBuzzAccessibilityRef}',
-    );
-    expect(screen).toMatchSource(
-      /ref=\{focusTargetRef\}[\s\S]*?accessibilityRole="progressbar"/,
-    );
-  });
-
   it('keeps the confirmation focus boundary modal, reversible, and touch sized', () => {
     expect(confirmation).toContainSource('accessibilityViewIsModal');
     expect(confirmation).toContainSource("role: 'dialog'");
@@ -142,9 +126,6 @@ describe('Club Business phone and accessibility contracts', () => {
     );
     expect(loadCatalog('en').strings['seasonEnd.clubReceived']).toBe(
       'Club received {amount}',
-    );
-    expect(seasonEnd).toContainSource(
-      'viewModel.clubBusinessSettlement.buzz.actualPayout',
     );
   });
 

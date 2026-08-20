@@ -1,5 +1,4 @@
 import type { ProductionFixtureResult } from './matchday';
-import { BUZZ_WIN_POINTS } from './club-business';
 import { currentUserDivision } from './m2-career';
 import type {
   PendingUserMatchImpact,
@@ -98,9 +97,6 @@ export function pendingImpactFromProduction(input: {
     divisionScale,
     supporterWinUnits: outcome === 'WIN' ? 5 * divisionScale : 0,
     supporterHeroUnits: supporterHeroes * divisionScale,
-    buzzWin: outcome === 'WIN' ? BUZZ_WIN_POINTS : 0,
-    buzzGoals: userGoals,
-    buzzHeroMoments: powerFired.length * 2,
   };
 }
 

@@ -101,7 +101,6 @@ import {
   TRAINING_PATHS,
   TRAINING_PITCH_TP_PER_LEVEL,
   BASE_WEEKLY_TRAINING_POINTS,
-  BUZZ_WIN_POINTS,
   coachWeeklyTrainingPoints,
   facilityCloseRefund,
   actualSponsorPortfolioIncome,
@@ -654,17 +653,6 @@ function incomeGenerationViewModel(
                 : { history: sponsorHistory }),
             },
           ]),
-      ...(sponsorship?.buzz === undefined
-        ? []
-        : [
-            {
-              id: 'income-buzz',
-              label: 'Buzz',
-              detail: t('clubFinances.incomeBuzzDetail'),
-              effect: `${sponsorship.buzz.value} / 100`,
-              owned: true,
-            },
-          ]),
     ],
   };
 }
@@ -1209,31 +1197,6 @@ function clubSponsorshipViewModel(
         ),
     };
   });
-  const buzz =
-    state.season < 3
-      ? undefined
-      : {
-          value: state.clubBusiness.buzz.value,
-          pendingPayout: Math.round(
-            (actualMonthlyIncome * state.clubBusiness.buzz.value) / 100,
-          ),
-          nextPayoutLabel: t('clubFinances.buzzNextPayoutWeek', {
-            week: state.week <= 15 ? 15 : 30,
-          }),
-          ...(state.clubBusiness.buzz.lastSettlementSummary === undefined
-            ? {}
-            : {
-                lastSettlementLabel: t('clubFinances.buzzLastSettlementLabel', {
-                  reached:
-                    state.clubBusiness.buzz.lastSettlementSummary
-                      .prePayoutValue,
-                  amount: formatMoneyForCopy(
-                    t,
-                    state.clubBusiness.buzz.lastSettlementSummary.payout,
-                  ),
-                }),
-              }),
-        };
   return {
     managed,
     offerWindowOpen:
@@ -1249,7 +1212,6 @@ function clubSponsorshipViewModel(
     ...(sponsorPercent === 100 ? {} : { chairmanPercent: sponsorPercent }),
     slots,
     ...(weeklyChallenge === undefined ? {} : { weeklyChallenge }),
-    ...(buzz === undefined ? {} : { buzz }),
   };
 }
 
@@ -2396,24 +2358,13 @@ export function seasonEndViewModel(
     (sum, result) => sum + result.actualBonus,
     0,
   );
-  const buzzSummary = state.clubBusiness.buzz.lastSettlementSummary;
-  const seasonEndBuzz =
-    buzzSummary?.season === state.season && buzzSummary.half === 2
-      ? {
-          reached: buzzSummary.prePayoutValue,
-          actualPayout: buzzSummary.payout,
-          resetTo: buzzSummary.resetValue,
-        }
-      : undefined;
   const clubBusinessSettlement =
-    objectiveResults.length === 0 && seasonEndBuzz === undefined
+    objectiveResults.length === 0
       ? undefined
       : {
           objectiveResults,
           objectiveBonusTotal,
-          ...(seasonEndBuzz === undefined ? {} : { buzz: seasonEndBuzz }),
-          actualPayoutTotal:
-            objectiveBonusTotal + (seasonEndBuzz?.actualPayout ?? 0),
+          actualPayoutTotal: objectiveBonusTotal,
         };
 
   return {
@@ -4707,7 +4658,6 @@ export function postMatchViewModel(
   fixtureId: string,
   score: { homeGoals: number; awayGoals: number },
   highlights: PostMatchViewModel['highlights'] = [],
-  buzzPowerFiredPlayerIds?: readonly string[],
   t: CopyFn = englishCopy(),
 ): PostMatchViewModel {
   const leagueFixture = before.fixtures.find(
@@ -4777,17 +4727,6 @@ export function postMatchViewModel(
     outcomeLabel,
     t,
   );
-  const buzz =
-    buzzPowerFiredPlayerIds === undefined || before.season < 3
-      ? undefined
-      : postMatchBuzzViewModel(
-          before,
-          after,
-          outcomeLabel,
-          goalsFor,
-          buzzPowerFiredPlayerIds,
-        );
-
   return {
     result: {
       fixtureId,
@@ -4834,7 +4773,6 @@ export function postMatchViewModel(
     ),
     trainingPointsGained: after.trainingPoints - before.trainingPoints,
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
-    ...(buzz === undefined ? {} : { buzz }),
     highlights,
     updates: weekUpdates(before, after, t),
     ...(completedFacility === undefined
@@ -4842,54 +4780,6 @@ export function postMatchViewModel(
       : { facilityCompletion: completedFacility }),
     ...(reaction === undefined ? {} : { reaction }),
     ...(rivalMockery === undefined ? {} : { rivalMockery }),
-  };
-}
-
-function postMatchBuzzViewModel(
-  before: GameState,
-  after: GameState,
-  outcome: 'WIN' | 'DRAW' | 'LOSS',
-  goalsFor: number,
-  powerFiredPlayerIds: readonly string[],
-): NonNullable<PostMatchViewModel['buzz']> {
-  const win = outcome === 'WIN' ? BUZZ_WIN_POINTS : 0;
-  const goals = goalsFor;
-  const heroMoments = new Set(powerFiredPlayerIds).size * 2;
-  const rawEarned = win + goals + heroMoments;
-  const pendingBefore = before.clubBusiness.pendingUserMatchImpacts.reduce(
-    (sum, impact) =>
-      sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
-    0,
-  );
-  const valueBeforeThisMatch = Math.min(
-    100,
-    before.clubBusiness.buzz.value + pendingBefore,
-  );
-  const earned = Math.min(rawEarned, 100 - valueBeforeThisMatch);
-  const pendingAfter = after.clubBusiness.pendingUserMatchImpacts.reduce(
-    (sum, impact) =>
-      sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
-    0,
-  );
-  const valueAfter =
-    after.clubBusiness.pendingUserMatchImpacts.length > 0
-      ? Math.min(100, after.clubBusiness.buzz.value + pendingAfter)
-      : after.clubBusiness.buzz.value;
-  const previousSettlement = before.clubBusiness.buzz.lastSettlementSummary;
-  const settlement = after.clubBusiness.buzz.lastSettlementSummary;
-  const newSettlement =
-    settlement !== undefined &&
-    (previousSettlement === undefined ||
-      settlement.season !== previousSettlement.season ||
-      settlement.half !== previousSettlement.half);
-  return {
-    earned,
-    rawEarned,
-    valueAfter,
-    win,
-    goals,
-    heroMoments,
-    ...(newSettlement ? { payout: settlement.payout } : {}),
   };
 }
 

@@ -128,7 +128,6 @@ Research reports (source material, written by research agents):
 | Income sources | All four: sponsors, tickets/fans, prize money, player sales |
 | Supporters | Wins and heroes who actually appear add supporters; only the third and later consecutive losses cause slow decline, and a draw or win resets the streak |
 | Managed sponsors | D5 retains automatic income; 1/2/3 selectable slots unlock permanently at D4/D3/D2, with monthly payments and league objectives but no signing or unlock perks |
-| Buzz | Season 3 unlocks Buzz from wins, goals, and distinct hero power moments; it pays sponsor cash at Weeks 15 and 30, then resets |
 | Currencies | Money + Training Points (TP) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |
 | Superpower acquisition | Post-match awakening check whose chance climbs 5 points a week until it is guaranteed, one hero per season (3-match cooldown, wage stays locked until renewal) + rare expensive pre-powered signings; chance events never award powers *(corrected 2026-08-05 — this entry previously described the rejected risky-chance-event design; the flat 10% roll became the weekly climb on 2026-08-19)* |
