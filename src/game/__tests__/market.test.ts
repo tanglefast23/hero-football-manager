@@ -307,8 +307,8 @@ describe('deterministic scouting', () => {
         scoutOfficeLevel: 1,
         division,
       });
-      return resolveScoutMission(mission, mission.dueWeek, pool, 5).reports
-        .map((report) => report.playerId)
+      return resolveScoutMission(mission, mission.dueWeek, pool, 5)
+        .reports.map((report) => report.playerId)
         .sort();
     };
 
