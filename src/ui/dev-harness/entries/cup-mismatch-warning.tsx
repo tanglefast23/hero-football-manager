@@ -138,10 +138,10 @@ export function CupMismatchWarningReel({
         formationOptions={COACHING_FORMATION_IDS}
         onSelectFormation={() => {}}
         onOpenSettings={() => {}}
-      autoPowers={false}
-      onAutoPowersChange={() => {}}
-      autoSubs={false}
-      onAutoSubsChange={() => {}}
+        autoPowers={false}
+        onAutoPowersChange={() => {}}
+        autoSubs={false}
+        onAutoSubsChange={() => {}}
       />
       {visible ? (
         <BertBriefingWalkOn

@@ -380,10 +380,7 @@ function HeroPowerButton({
         ) : (
           <Text
             numberOfLines={1}
-            style={[
-              styles.label,
-              { fontSize: Math.round(layout.size * 0.17) },
-            ]}
+            style={[styles.label, { fontSize: Math.round(layout.size * 0.17) }]}
           >
             {t(
               cell.state === 'fire'
