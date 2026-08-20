@@ -1493,9 +1493,7 @@ function CoachDesk({
                   </Text>
                 ) : null}
                 <View
-                  className={
-                    compact ? 'gap-2' : 'flex-row justify-end gap-2'
-                  }
+                  className={compact ? 'gap-2' : 'flex-row justify-end gap-2'}
                 >
                   <SmallAction
                     label={t('market.hireAsHead')}

@@ -2035,9 +2035,7 @@ function IncomeGenerationSection({
             }`}
             className="min-h-11 border-b border-ink/10 px-3 py-2 last:border-b-0"
           >
-            <View
-              className={compact ? 'gap-1' : 'flex-row items-center'}
-            >
+            <View className={compact ? 'gap-1' : 'flex-row items-center'}>
               <View className={compact ? 'min-w-0' : 'min-w-0 flex-1 pr-3'}>
                 <Text
                   className={
