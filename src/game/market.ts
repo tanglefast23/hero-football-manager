@@ -68,7 +68,7 @@ export interface ScoutablePlayer {
   readonly power?: PowerId;
   readonly powerTier?: number;
   readonly contractSeasonsRemaining: number;
-  /** Transient source division used only to compare bargain value. */
+  /** Source division used for scout reach and bargain value. */
   readonly sellingClubDivision?: number;
 }
 
@@ -93,6 +93,8 @@ export interface ScoutMission {
   readonly region: ScoutRegion;
   readonly focus: ScoutFocus;
   readonly scoutOfficeLevel: number;
+  /** Club division when the search began. Missing legacy missions use D5. */
+  readonly division?: number;
   /** Same-role strength when the mission began, for Immediate Starter searches. */
   readonly starterScores?: Readonly<Partial<Record<Role, number>>>;
 }
@@ -112,10 +114,10 @@ export interface ScoutReport {
   readonly age: number;
   readonly statRanges: ScoutedAttributeRanges;
   readonly potentialRange: ScoutedRange;
-  /** Level 3 reports confirm a power; lower-level reports leave it unknown. */
+  /** Hero searches always reveal the exact power. */
   readonly power?: PowerId;
   readonly powerTier?: number;
-  /** A rare hero-focus hit without revealing the exact power below office level 3. */
+  /** A rare hit from a Hero search. */
   readonly rumoredHeroLead?: true;
   /** Saved by the career wrapper so reports from different missions can coexist. */
   readonly completedSeason?: number;
@@ -231,6 +233,7 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
     region: setup.region,
     focus: { ...setup.focus },
     scoutOfficeLevel: setup.scoutOfficeLevel,
+    division: setup.division,
     ...(setup.starterScores === undefined
       ? {}
       : { starterScores: { ...setup.starterScores } }),
@@ -279,6 +282,11 @@ export function resolveScoutMission(
     .filter(
       (candidate) =>
         candidate.region === mission.region &&
+        (candidate.sellingClubDivision === undefined ||
+          candidate.sellingClubDivision >=
+            Math.max(1, (mission.division ?? 5) - 2)) &&
+        (mission.focus.kind === 'RUMORED_HERO' ||
+          candidate.power === undefined) &&
         matchesScoutFocus(candidate, mission.focus),
     )
     .slice()
@@ -320,7 +328,7 @@ export function resolveScoutMission(
         5,
         mixSeed(mission.missionSeed, `${candidate.id}:potential`),
       ),
-      ...(mission.scoutOfficeLevel === 3 && candidate.power !== undefined
+      ...(candidate.power !== undefined
         ? { power: candidate.power, powerTier: candidate.powerTier ?? 1 }
         : {}),
       ...(mission.focus.kind === 'RUMORED_HERO' && candidate.power !== undefined
@@ -1834,6 +1842,7 @@ function validateScoutMission(mission: ScoutMission): void {
   }
   assertPositiveSafeInteger(mission.cost, 'scouting mission cost');
   validateScoutOfficeLevel(mission.scoutOfficeLevel);
+  if (mission.division !== undefined) validateDivision(mission.division);
   validateScoutFocus(mission.focus);
 }
 
