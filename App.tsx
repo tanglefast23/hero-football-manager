@@ -3825,9 +3825,7 @@ function GameApp() {
                 confirmLabel: t('confirm.sponsor.confirm'),
                 returnFocusId: `sponsor-slots-panel-${slot.slot}`,
                 onAfterConfirmDismiss: () => {
-                  if (Platform.OS !== 'web') {
-                    setSponsorSummaryFocusToken((token) => (token ?? 0) + 1);
-                  }
+                  setSponsorSummaryFocusToken((token) => (token ?? 0) + 1);
                 },
                 onConfirm: () => {
                   store.acceptSponsorOffer(offer.offerId);

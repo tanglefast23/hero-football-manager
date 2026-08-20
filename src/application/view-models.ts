@@ -4084,6 +4084,7 @@ export function matchDayViewModel(
   if (matchday === undefined)
     throw new Error('the current matchday has no user fixture');
   const fixture = matchday.fixture;
+  const sponsorChallenge = state.clubBusiness.sponsorship.weeklyChallenge;
 
   const lineup = state.lineups.find(
     (candidate) => candidate.clubId === state.userClubId,
@@ -4208,6 +4209,24 @@ export function matchDayViewModel(
       lineupPlayers.filter((player) => player.licensed).length <=
         careerHeroLimit(state),
     heroLicenseOffer: heroLicenseOfferViewModel(state, t),
+    ...(sponsorChallenge !== undefined &&
+    sponsorChallenge.outcome === undefined &&
+    sponsorChallenge.season === state.season &&
+    sponsorChallenge.fixtureId === fixture.id
+      ? {
+          sponsorChallenge: {
+            targetLabel: sponsorWeeklyChallengeTargetCopy(
+              t,
+              sponsorChallenge.kind,
+            ),
+            actualBonus: Math.round(
+              (sponsorChallenge.nominalBonus *
+                difficultyRules(state).sponsorIncomePercent) /
+                100,
+            ),
+          },
+        }
+      : {}),
   };
 }
 

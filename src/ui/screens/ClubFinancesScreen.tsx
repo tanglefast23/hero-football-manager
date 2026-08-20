@@ -647,6 +647,10 @@ export function ClubFinancesScreen({
     )
       return;
     handledSponsorFocusTokenRef.current = focusSponsorSummaryToken;
+    const nextSlot = viewModel.sponsorship?.slots.find(
+      (slot) => slot.provisional && slot.offers.length > 0,
+    );
+    if (nextSlot !== undefined) setSelectedSponsorSlot(nextSlot.slot);
     const frame = requestAnimationFrame(() => {
       scrollToTarget(
         scrollRef,
@@ -1348,7 +1352,7 @@ function SponsorBusinessSection({
 
       {sponsorship.weeklyChallenge === undefined ? null : (
         <PaperPanel
-          kicker={sponsorship.weeklyChallenge.sponsorName}
+          kicker={t('clubFinances.sponsorDesk')}
           title={t('clubFinances.sponsorSprintTitle')}
           stamp={
             sponsorship.weeklyChallenge.status === 'OFFER'
