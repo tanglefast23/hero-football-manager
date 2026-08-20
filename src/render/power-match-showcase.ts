@@ -427,7 +427,12 @@ export function initializePowerMatchShowcase(
     kind: 'zone',
     remainingTicks: ZONE_WINDOW_TICKS,
   };
-  match.events.push({ t: match.tick, kind: 'POWER_READY', player: hero });
+  match.events.push({
+    t: match.tick,
+    kind: 'POWER_READY',
+    player: hero,
+    power,
+  });
   return hero;
 }
 

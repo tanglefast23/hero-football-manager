@@ -2,11 +2,17 @@ import { hapticCueForEvent } from '../haptic-cues';
 
 describe('match haptic cues', () => {
   it('distinguishes controlled and rival hero moments for either side', () => {
-    expect(hapticCueForEvent({ t: 1, kind: 'POWER_READY', player: 4 }, 0)).toBe(
-      'zone',
-    );
     expect(
-      hapticCueForEvent({ t: 1, kind: 'POWER_READY', player: 15 }, 0),
+      hapticCueForEvent(
+        { t: 1, kind: 'POWER_READY', player: 4, power: 'FIRE_TORCH' },
+        0,
+      ),
+    ).toBe('zone');
+    expect(
+      hapticCueForEvent(
+        { t: 1, kind: 'POWER_READY', player: 15, power: 'FIRE_TORCH' },
+        0,
+      ),
     ).toBeNull();
     expect(
       hapticCueForEvent(

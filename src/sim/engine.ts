@@ -49,7 +49,9 @@ import {
   interruptWindup,
   isShadowMarked,
   powerActionBlocked,
+  powerActorAvailable,
   powerInteractionBlocked,
+  releaseKeeperSavePower,
   speedMultiplier,
   fireSuppressed,
   dribbleBonus,
@@ -202,15 +204,9 @@ function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
 }
 
+/** The shared rule, so the save roll and the power that feeds it cannot differ. */
 function isAvailable(state: MatchState, idx: number): boolean {
-  const p = playerAt(state, idx);
-  if (p === undefined) return false;
-  return (
-    p.outUntilTick <= state.tick &&
-    p.slideTackle === undefined &&
-    p.tackleRecoveryUntil <= state.tick &&
-    !powerInteractionBlocked(state, idx)
-  );
+  return powerActorAvailable(state, idx);
 }
 
 function isConscious(state: MatchState, idx: number): boolean {
@@ -2341,6 +2337,18 @@ export function shotFlightTick(state: MatchState): void {
   // Resolve a catch at the goalkeeper, not after the ball has already drawn in
   // the net. This removes the apparent "goal, then bounce out" sequence.
   if (onTarget && !b.keeperChecked && reachedKeeperPlane) {
+    // The shot is the keeper's whole moment, and it happens HERE — after
+    // powerTick has already run for this tick. A keeper whose power was only
+    // ever offered its context back in powerTick is bypassed entirely by a shot
+    // created and flown later in the same tick. Under MANUAL that reads as
+    // "I pressed the button and nothing happened", which is the one thing a
+    // control like this cannot survive. So the shot itself wakes the power.
+    //
+    // STRICTLY BEFORE `keeperChecked` is set. `enemyOnTargetShot` — which
+    // `beginPower` re-checks for the keeper powers — requires the flag to still
+    // be false, so setting it first made this whole rescue dead code that
+    // silently did nothing.
+    releaseKeeperSavePower(state, gkIdx, isAvailable(state, gkIdx));
     b.keeperChecked = true;
     if (isAvailable(state, gkIdx)) {
       const powerSaveBonus = keeperSaveBonus(state, gkIdx);

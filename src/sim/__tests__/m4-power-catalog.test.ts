@@ -1,6 +1,8 @@
 import { launchPass, movementTick, shotBonus } from '../engine';
 import { createMatch } from '../match';
 import {
+  armWindowTicks,
+  tapStrengthFor,
   activatePower,
   addGauge,
   dribbleBonus,
@@ -439,9 +441,16 @@ describe('M4 twelve-power catalog', () => {
 
     powerTick(match, [{ tick: match.tick, kind: 'POWER_TAP', player: hero }]);
 
+    // The window and the grade travel ON the armed state since m2.8, so the
+    // drain bar, the ring and both fire sites all read one number instead of
+    // five hardcoded copies of it. A save keeper's is five times longer,
+    // because their power waits on an event they cannot hurry.
     expect(match.players[hero].powerState).toEqual({
       kind: 'armed',
-      remainingTicks: 20,
+      remainingTicks: armWindowTicks(power),
+      windowTicks: armWindowTicks(power),
+      strength: tapStrengthFor(power),
+      sawShotOnTarget: false,
     });
     expect(match.events).not.toContainEqual(
       expect.objectContaining({ kind: 'POWER_FIRED', player: hero }),

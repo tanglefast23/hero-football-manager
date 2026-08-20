@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createMatch, tick } from '../../sim/match';
-import { ZONE_HEAT_THRESHOLD } from '../../sim/powers';
+import { ARM_WINDOW_TICKS, ZONE_HEAT_THRESHOLD } from '../../sim/powers';
 import { ROVERS, UNITED } from '../../sim/teams';
 import {
   CHARGE_BAND_WIDTH,
@@ -26,15 +26,15 @@ const meterSource = () =>
 
 describe('possession-card hero charge meter', () => {
   it('fills from banked Heat while the hero is building', () => {
-    expect(chargeMeter(0, { kind: 'idle' })).toEqual({
+    expect(chargeMeter(0, { kind: 'idle' }, 'MID')).toEqual({
       state: 'building',
       fill: 0,
     });
-    expect(chargeMeter(30, { kind: 'idle' })).toEqual({
+    expect(chargeMeter(30, { kind: 'idle' }, 'MID')).toEqual({
       state: 'building',
       fill: 0.5,
     });
-    expect(chargeMeter(ZONE_HEAT_THRESHOLD, { kind: 'idle' })).toEqual({
+    expect(chargeMeter(ZONE_HEAT_THRESHOLD, { kind: 'idle' }, 'MID')).toEqual({
       state: 'building',
       fill: 1,
     });
@@ -43,29 +43,43 @@ describe('possession-card hero charge meter', () => {
   it('reads full and ready for the whole Zone window even though the engine zeroed the gauge', () => {
     // The engine sets gauge = 0 at Zone entry, so this is the case a raw
     // heatFraction bar would get exactly backwards.
-    expect(chargeMeter(0, { kind: 'zone', remainingTicks: 70 })).toEqual({
-      state: 'ready',
-      fill: 1,
-    });
-    expect(chargeMeter(0, { kind: 'zone', remainingTicks: 1 })).toEqual({
+    expect(chargeMeter(0, { kind: 'zone', remainingTicks: 70 }, 'MID')).toEqual(
+      {
+        state: 'ready',
+        fill: 1,
+      },
+    );
+    expect(chargeMeter(0, { kind: 'zone', remainingTicks: 1 }, 'MID')).toEqual({
       state: 'ready',
       fill: 1,
     });
   });
 
   it('resets once the power is actually being used', () => {
-    expect(chargeMeter(0, { kind: 'armed', remainingTicks: 20 })).toEqual({
-      state: 'spent',
-      fill: 0,
-    });
     expect(
-      chargeMeter(0, { kind: 'winding', untilTick: 40, strength: 1 }),
+      chargeMeter(
+        0,
+        {
+          kind: 'armed',
+          remainingTicks: 20,
+          windowTicks: ARM_WINDOW_TICKS,
+          strength: 0.9,
+          sawShotOnTarget: false,
+        },
+        'MID',
+      ),
     ).toEqual({
       state: 'spent',
       fill: 0,
     });
     expect(
-      chargeMeter(0, { kind: 'active', untilTick: 90, strength: 1 }),
+      chargeMeter(0, { kind: 'winding', untilTick: 40, strength: 1 }, 'MID'),
+    ).toEqual({
+      state: 'spent',
+      fill: 0,
+    });
+    expect(
+      chargeMeter(0, { kind: 'active', untilTick: 90, strength: 1 }, 'MID'),
     ).toEqual({
       state: 'spent',
       fill: 0,
@@ -85,7 +99,7 @@ describe('possession-card hero charge meter', () => {
     for (let i = 0; i < 3000; i++) {
       tick(match);
       const hero = match.players[RIVAL];
-      const meter = chargeMeter(hero.gauge, hero.powerState);
+      const meter = chargeMeter(hero.gauge, hero.powerState, 'MID');
       states.add(meter.state);
       if (meter.state === 'ready') {
         expect(meter.fill).toBe(1);
@@ -151,16 +165,16 @@ describe('possession-card hero charge meter', () => {
 
   it('speaks the three states', () => {
     expect(
-      chargeMeterAccessibilityLabel(chargeMeter(30, { kind: 'idle' })),
+      chargeMeterAccessibilityLabel(chargeMeter(30, { kind: 'idle' }, 'MID')),
     ).toBe('Power charge 50%');
     expect(
       chargeMeterAccessibilityLabel(
-        chargeMeter(0, { kind: 'zone', remainingTicks: 70 }),
+        chargeMeter(0, { kind: 'zone', remainingTicks: 70 }, 'MID'),
       ),
     ).toBe('Power charged and ready');
     expect(
       chargeMeterAccessibilityLabel(
-        chargeMeter(0, { kind: 'active', untilTick: 9, strength: 1 }),
+        chargeMeter(0, { kind: 'active', untilTick: 9, strength: 1 }, 'MID'),
       ),
     ).toBe('Power in use, charge reset');
   });
@@ -169,9 +183,11 @@ describe('possession-card hero charge meter', () => {
     const source = matchSource();
 
     expect(source).toContain('{carrier.def.power ? (');
-    expect(source).toContain(
-      'meter={chargeMeter(carrier.gauge, carrier.powerState)}',
-    );
+    // The ROLE argument is the load-bearing part. Without it a goalkeeper on
+    // the ball reads about 8% while holding a full charge, because their Zone
+    // threshold is 5 and every bar used to divide by the outfield 60.
+    expect(source).toContain('meter={chargeMeter(');
+    expect(source).toContain('carrier.def.role,');
     expect(source).not.toContain('ENGINE_VERSION');
   });
 

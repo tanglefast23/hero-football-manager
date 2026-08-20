@@ -54,9 +54,9 @@ export interface FixtureMatchDayScreenProps {
   /**
    * Remembered between matches: heroes fire their own powers, or the boss does.
    *
-   * Goalkeepers are exempt in the engine whatever this says (m2.7) — their Zone
-   * opens early and its only useful moment is a shot already in flight, so a
-   * hand-fired keeper is a wasted keeper.
+   * Goalkeepers obey this too since m2.8. Their button has its own rules — it
+   * sleeps while the ball is upfield and its press opens a ten-second window
+   * rather than two — because their only useful moment is a shot in flight.
    */
   autoPowers: boolean;
   onAutoPowersChange: (autoPowers: boolean) => void;

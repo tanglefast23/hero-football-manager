@@ -1,4 +1,8 @@
-import { inUsefulContext, LATE_WINDOW_TICKS } from '../sim/powers';
+import {
+  inUsefulContext,
+  isShotSavePower,
+  LATE_WINDOW_TICKS,
+} from '../sim/powers';
 import type { MatchState } from '../sim/types';
 
 /**
@@ -13,10 +17,12 @@ export function shouldQueueWellTappedPower(
 ): boolean {
   const player = state.players[slot];
   if (player?.powerState.kind !== 'zone') return false;
-  // Since m2.7 a goalkeeper is always FIRE_WHEN_READY, so queueInput refuses a
-  // tap on one. Keyed on the role, matching firePolicyForRole — a keeper
-  // carrying GUST is exempt too.
-  if (player.def.role === 'GK') return false;
+  // Keepers are tappable since m2.8, so there is no role exclusion here any
+  // more. A save keeper's only useful context IS the shot, which `inUsefulContext`
+  // already answers for them — and their ten-second window means an attentive
+  // manager presses on the attack rather than on the shot, so the late-window
+  // fallback below would model a press that is always too late.
+  if (isShotSavePower(player.def.power)) return inUsefulContext(state, slot);
   if (inUsefulContext(state, slot)) return true;
   return player.powerState.remainingTicks <= LATE_WINDOW_TICKS;
 }

@@ -1,4 +1,4 @@
-import type { PowerState } from '../sim/types';
+import type { PlayerDef, PowerState } from '../sim/types';
 import { copyFor, type CopyFn } from '../i18n';
 import { heatFraction } from './match-rail';
 
@@ -40,10 +40,11 @@ export interface ChargeMeter {
 export function chargeMeter(
   gauge: number,
   powerState: PowerState,
+  role: PlayerDef['role'],
 ): ChargeMeter {
   if (powerState.kind === 'zone') return { state: 'ready', fill: 1 };
   if (powerState.kind === 'idle')
-    return { state: 'building', fill: heatFraction(gauge) };
+    return { state: 'building', fill: heatFraction(gauge, role) };
   return { state: 'spent', fill: 0 };
 }
 

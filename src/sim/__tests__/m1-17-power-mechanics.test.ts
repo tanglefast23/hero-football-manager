@@ -20,7 +20,6 @@ import {
   powerFinishShotProfile,
   powerTick,
   speedMultiplier,
-  zoneEntryContext,
 } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId, PowerState } from '../types';
@@ -79,7 +78,9 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[hero].pos = { x: 3400, y: 5000 };
     match.players[hero].gauge = 60;
 
-    expect(zoneEntryContext(match, hero)).toBe(true);
+    // m2.8: a full bar arms on its own. `inUsefulContext` staying false is the
+    // point — the hero is READY without the moment having arrived, and firing
+    // still waits for it.
     expect(inUsefulContext(match, hero)).toBe(false);
     powerTick(match);
     expect(match.players[hero].powerState.kind).toBe('zone');
@@ -814,11 +815,13 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[11].pos = { x: 3450, y: 6800 };
     match.players[hero].gauge = 60;
 
+    // m2.8 inverted this. The hero used to sit at full Heat with no Zone
+    // because Portal had no valid destination — a gate the manager could not
+    // see. Now the bar arms them and the LACK of a destination shows up where
+    // it belongs: the power holds instead of firing into nothing.
     expect(inUsefulContext(match, hero)).toBe(false);
-    expect(zoneEntryContext(match, hero)).toBe(false);
     powerTick(match);
-    expect(match.players[hero].powerState.kind).toBe('idle');
-    expect(match.players[hero].gauge).toBeGreaterThanOrEqual(60);
+    expect(match.players[hero].powerState.kind).toBe('zone');
     expect(match.ball).toEqual({ kind: 'held', by: carrier });
   });
 
@@ -836,7 +839,6 @@ describe('m1.18 authored one-moment powers', () => {
       match.players[idx].pos = { x: 600, y: 7000 };
     match.players[hero].gauge = 60;
 
-    expect(zoneEntryContext(match, hero)).toBe(true);
     powerTick(match);
     expect(match.players[hero].powerState.kind).toBe('zone');
     expect(match.ball).toEqual({ kind: 'held', by: carrier });
@@ -988,7 +990,6 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: 11 };
     match.players[hero].gauge = 60;
 
-    expect(zoneEntryContext(match, hero)).toBe(true);
     powerTick(match);
     expect(match.players[hero].powerState.kind).toBe('zone');
   });
@@ -1091,7 +1092,7 @@ describe('m1.18 authored one-moment powers', () => {
     ['WEB_TRAP', 2599, 2600],
     ['ICE_RINK', 2399, 2400],
   ] as const)(
-    '%s uses the same boundary for natural Zone entry and wind-up',
+    '%s uses the same boundary to decide firing, not arming',
     (power, inside, outside) => {
       function prepareAt(distance: number): MatchState {
         const { match, hero } = matchWith(power, 2);
@@ -1104,16 +1105,19 @@ describe('m1.18 authored one-moment powers', () => {
         return match;
       }
 
+      // m2.8 moved this boundary's job. It used to decide whether the hero
+      // ARMED at all; a full bar outside the range simply sat there. Now the
+      // bar arms them either way and the range decides whether the power
+      // FIRES — which is the question the range was always really answering.
       const insideMatch = prepareAt(inside);
-      expect(insideMatch.players[2].powerState.kind).toBe('zone');
-      powerTick(insideMatch);
       expect(insideMatch.players[2].powerState).toMatchObject({
         kind: 'winding',
         targetIdx: 11,
       });
 
       const outsideMatch = prepareAt(outside);
-      expect(outsideMatch.players[2].powerState.kind).toBe('idle');
+      expect(outsideMatch.players[2].powerState.kind).toBe('zone');
+      expect(inUsefulContext(outsideMatch, 2)).toBe(false);
     },
   );
 
@@ -1330,7 +1334,6 @@ describe('m1.18 authored one-moment powers', () => {
       const { match, hero } = matchWith(power, 0);
       match.players[20].pos = { x: 3400, y: 9000 };
       match.ball = { kind: 'held', by: 20 };
-      expect(zoneEntryContext(match, hero)).toBe(true);
       expect(inUsefulContext(match, hero)).toBe(false);
 
       for (const policy of ['FIRE_WHEN_READY', 'SAVE_FOR_TAP'] as const) {
@@ -1601,15 +1604,14 @@ describe('m1.18 authored one-moment powers', () => {
     for (let idx = 11; idx < 22; idx += 1)
       match.players[idx].pos = { x: 6000, y: 9000 };
 
-    expect(zoneEntryContext(match, hero)).toBe(false);
-    powerTick(match);
-    expect(match.players[hero].powerState.kind).toBe('idle');
-    expect(match.players[hero].gauge).toBeGreaterThanOrEqual(60);
-
-    match.players[12].pos = { x: 3200, y: 4100 };
-    expect(zoneEntryContext(match, hero)).toBe(true);
+    // m2.8: the full bar arms them with no blockers to pull yet. What the
+    // missing lane costs them is the FIRE, not the readiness.
     powerTick(match);
     expect(match.players[hero].powerState.kind).toBe('zone');
+    expect(inUsefulContext(match, hero)).toBe(false);
+
+    match.players[12].pos = { x: 3200, y: 4100 };
+    expect(inUsefulContext(match, hero)).toBe(true);
   });
 
   it('keeps every Gravity grade on the same non-harmful outward pulse', () => {

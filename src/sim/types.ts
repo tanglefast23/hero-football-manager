@@ -67,7 +67,26 @@ export interface TeamDef {
 export type PowerState =
   | { kind: 'idle' }
   | { kind: 'zone'; remainingTicks: number }
-  | { kind: 'armed'; remainingTicks: number }
+  | {
+      kind: 'armed';
+      remainingTicks: number;
+      /**
+       * The window this press opened, so the drain bar and the on-pitch ring
+       * read the right denominator. A save keeper's is five times an outfield
+       * hero's; a hardcoded 20 pinned their bar full then dumped it.
+       */
+      windowTicks: number;
+      /** What the press is worth if it lands. Read by BOTH fire sites. */
+      strength: number;
+      /**
+       * An on-target shot arrived at this keeper's goal during the window.
+       *
+       * Evidence, not inference. A reason computed at expiry would claim "no
+       * shot on net" about a match where a shot passed while the keeper was
+       * knocked down and the keeper recovered before the window lapsed.
+       */
+      sawShotOnTarget: boolean;
+    }
   | {
       kind: 'winding';
       untilTick: number;
@@ -339,7 +358,7 @@ export type MatchEvent =
        */
       assistedById?: string;
     }
-  | { t: number; kind: 'POWER_READY'; player: number }
+  | { t: number; kind: 'POWER_READY'; player: number; power: PowerId }
   | {
       t: number;
       kind: 'POWER_FIRED';
@@ -356,7 +375,14 @@ export type MatchEvent =
       target?: number;
     }
   | { t: number; kind: 'POWER_INTERRUPTED'; player: number }
-  | { t: number; kind: 'POWER_EXPIRED'; player: number }
+  | {
+      t: number;
+      kind: 'POWER_EXPIRED';
+      player: number;
+      power: PowerId;
+      /** `no-shot` gates the NO SHOT ON NET line; everything else is generic. */
+      reason: 'no-shot' | 'other';
+    }
   | {
       t: number;
       kind: 'DECOY_POP';

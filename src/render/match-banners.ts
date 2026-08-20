@@ -2,7 +2,15 @@
  * stacking beside it. A coaching tap shows its banner immediately, then the sim
  * confirms the same change a tick later; without replacement the player sees the
  * identical tile twice. */
-export type MatchBannerSubject = 'formation' | 'mentality' | 'energy';
+export type MatchBannerSubject =
+  | 'formation'
+  | 'mentality'
+  | 'energy'
+  /**
+   * A hero's charge lost for nothing. Subjected so a second loss REPLACES the
+   * first rather than stacking two double-height lines over the pitch.
+   */
+  | 'power-wasted';
 
 export interface SubjectedBanner {
   readonly subject?: MatchBannerSubject;

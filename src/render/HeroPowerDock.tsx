@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import { useCopy, usePixelStyles } from '../i18n';
-import { ARM_WINDOW_TICKS } from '../sim/powers';
 import { TICK_MS } from '../sim/geometry';
 import { powerCutInPresentation } from './power-cut-in';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
@@ -29,7 +28,15 @@ const STREAK_CYCLE_MS = 3000;
 const STREAK_RUN_MS = 720;
 /** Bar length as a share of the button edge. */
 const STREAK_LENGTH_SHARE = 0.4;
-const STREAK_THICKNESS = 2;
+/**
+ * Four, not two. FIRE is the only press that costs nothing, and at 44pt a
+ * two-pixel bar inside a two-pixel border read as part of the border.
+ */
+const STREAK_THICKNESS = 4;
+/** Half a flash cycle: up in this, down in this. ~1.4s a beat, a pulse not a strobe. */
+const FLASH_HALF_MS = 700;
+/** Peak white over the power colour. Enough to lift it, not enough to wash it out. */
+const FLASH_PEAK_OPACITY = 0.42;
 
 /** Below this a name under the button is too small to read, so it is dropped. */
 const NAME_MIN_BUTTON = 56;
@@ -85,6 +92,15 @@ const useStyles = () =>
       armedFill: { height: 3, backgroundColor: '#f4f1ea' },
       /** The travelling cue. Drawn just inside the border, never over it. */
       streak: { position: 'absolute', backgroundColor: '#ffffff' },
+      /** The FIRE beat. Fills the button under the streak and the label. */
+      flash: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#ffffff',
+      },
     }),
   );
 
@@ -226,14 +242,69 @@ function PressableStreak({
 }
 
 /**
+ * The FIRE beat: a white wash over the power colour, in and out every ~1.4s.
+ *
+ * Only while the authored moment is actually live. FIRE is the one press that
+ * costs nothing, so it gets a cue that carries across the pitch; ARM is a
+ * gamble and stays quiet, dashed and dimmed. The moment passing flips the cell
+ * back to ARM on the next tick, which unmounts this and the streak with it.
+ *
+ * Same native-driver bargain as PressableStreak — on web that is the JS thread,
+ * and it is accepted for the same reason: it runs only while a FIRE button is
+ * up, which is a few seconds a match. `reduceMotion` stops it entirely.
+ */
+function FireFlash({
+  style,
+}: {
+  style: { position: 'absolute'; backgroundColor: string };
+}) {
+  const beat = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(beat, {
+          toValue: 1,
+          duration: FLASH_HALF_MS,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(beat, {
+          toValue: 0,
+          duration: FLASH_HALF_MS,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [beat]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        style,
+        {
+          opacity: beat.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, FLASH_PEAK_OPACITY],
+          }),
+        },
+      ]}
+    />
+  );
+}
+
+/**
  * The manager's fire buttons, pinned to a bottom corner of the pitch opposite
  * the possession card.
  *
  * One button per hero holding a banked Zone, in the power's own authored
  * colour. It exists only in MANUAL: every slot is FIRE_WHEN_READY otherwise,
- * and goalkeepers are always FIRE_WHEN_READY (m2.7), so a keeper never appears
- * here — their Zone opens minutes before the shot it is for, and a hand-fired
- * keeper is a wasted keeper.
+ * Goalkeepers appear here too since m2.8, but their rules key on the POWER:
+ * a save keeper reads HOLD while the ball is upfield, never reads FIRE!, and
+ * their press opens a ten-second window worth full strength.
  *
  * FIRE and ARM are not decoration. A press in the authored moment fires at full
  * strength; a press outside it commits a two-second armed window that can
@@ -318,7 +389,9 @@ function HeroPowerButton({
         ? 'matchScreen.a11y.heroPowerArmed'
         : cell.state === 'down'
           ? 'matchScreen.a11y.heroPowerDown'
-          : 'matchScreen.a11y.heroPowerArm';
+          : cell.state === 'hold'
+            ? 'matchScreen.a11y.heroPowerHold'
+            : 'matchScreen.a11y.heroPowerArm';
   return (
     <>
       <Pressable
@@ -341,7 +414,9 @@ function HeroPowerButton({
             backgroundColor: presentation.color,
           },
           cell.state === 'arm' ? styles.buttonArm : null,
-          armed || cell.state === 'down' ? styles.buttonInert : null,
+          armed || cell.state === 'down' || cell.state === 'hold'
+            ? styles.buttonInert
+            : null,
           pressed ? { opacity: 0.7 } : null,
         ]}
       >
@@ -354,11 +429,15 @@ function HeroPowerButton({
         >
           ★
         </Text>
-        {/* The cue says "this can be pressed", so it runs on exactly the
-          states that accept a press — never on an armed or downed button,
-          which would invite a press that does nothing. */}
-        {pressable && !reduceMotion ? (
-          <PressableStreak size={layout.size} style={styles.streak} />
+        {/* Both cues belong to FIRE alone. ARM accepts a press too, but it is
+          a gamble that can cost a Zone — flashing it would read as "press me
+          now" and sell the wrong press. An armed or downed button never
+          animates either: pressing those does nothing at all. */}
+        {cell.state === 'fire' && !reduceMotion ? (
+          <>
+            <FireFlash style={styles.flash} />
+            <PressableStreak size={layout.size} style={styles.streak} />
+          </>
         ) : null}
         {armed ? (
           <View style={styles.armedTrack}>
@@ -370,7 +449,7 @@ function HeroPowerButton({
                     0,
                     Math.min(
                       100,
-                      (cell.armedTicksRemaining / ARM_WINDOW_TICKS) * 100,
+                      (cell.armedTicksRemaining / cell.armWindowTicks) * 100,
                     ),
                   )}%`,
                 },
@@ -385,7 +464,9 @@ function HeroPowerButton({
             {t(
               cell.state === 'fire'
                 ? 'matchScreen.heroPowerFire'
-                : 'matchScreen.heroPowerArm',
+                : cell.state === 'hold'
+                  ? 'matchScreen.heroPowerHold'
+                  : 'matchScreen.heroPowerArm',
             )}
           </Text>
         )}
