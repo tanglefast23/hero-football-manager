@@ -36,10 +36,7 @@ const harnessCopy = copyFor('en');
 /** Production Sponsor Desk states used for the required 375pt review matrix. */
 type ClubBusinessCaseId =
   | 'd5-locked'
-  | 'd5-buzz-0'
-  | 'd5-buzz-64'
-  | 'd5-buzz-100'
-  | 'd5-after-payout'
+  | 'd5-advertising'
   | 'd4-offers'
   | 'd4-continuity'
   | 'd3-offers'
@@ -59,27 +56,12 @@ const CASES: readonly {
   {
     id: 'd5-locked',
     label: 'D5 locked',
-    note: 'Season 2: no managed Sponsor Desk or Buzz.',
+    note: 'Season 2: managed Sponsor Desk is still locked.',
   },
   {
-    id: 'd5-buzz-0',
-    label: 'D5 Buzz 0',
+    id: 'd5-advertising',
+    label: 'D5 ads',
     note: 'Season 3 local advertising; managed offers stay locked.',
-  },
-  {
-    id: 'd5-buzz-64',
-    label: 'Buzz 64',
-    note: 'A useful mid-half payout estimate.',
-  },
-  {
-    id: 'd5-buzz-100',
-    label: 'Buzz 100',
-    note: 'The capped meter and maximum Buzz payout.',
-  },
-  {
-    id: 'd5-after-payout',
-    label: 'After pay',
-    note: 'Meter reset with the durable settlement summary.',
   },
   {
     id: 'd4-offers',
@@ -119,7 +101,7 @@ const CASES: readonly {
   {
     id: 'season-end-results',
     label: 'Season end',
-    note: 'Real Week 30 path: met and missed targets plus the second Buzz payday.',
+    note: 'Real Week 30 path: met and missed sponsor targets.',
   },
   {
     id: 'long-copy',
@@ -139,9 +121,7 @@ interface BusinessCase {
   readonly division: DivisionLevel;
   readonly highestDivisionReached: DivisionLevel;
   readonly difficulty: 'COZY' | 'CHAIRMAN';
-  readonly buzz: number;
   readonly signedSlots: number;
-  readonly afterPayout?: boolean;
   readonly seasonEnd?: boolean;
   readonly longCopy?: boolean;
 }
@@ -155,49 +135,16 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 5,
         highestDivisionReached: 5,
         difficulty: 'COZY',
-        buzz: 0,
         signedSlots: 0,
       };
-    case 'd5-buzz-0':
+    case 'd5-advertising':
       return {
         season: 3,
         week: 3,
         division: 5,
         highestDivisionReached: 5,
         difficulty: 'COZY',
-        buzz: 0,
         signedSlots: 0,
-      };
-    case 'd5-buzz-64':
-      return {
-        season: 3,
-        week: 12,
-        division: 5,
-        highestDivisionReached: 5,
-        difficulty: 'COZY',
-        buzz: 64,
-        signedSlots: 0,
-      };
-    case 'd5-buzz-100':
-      return {
-        season: 3,
-        week: 14,
-        division: 5,
-        highestDivisionReached: 5,
-        difficulty: 'COZY',
-        buzz: 100,
-        signedSlots: 0,
-      };
-    case 'd5-after-payout':
-      return {
-        season: 3,
-        week: 16,
-        division: 5,
-        highestDivisionReached: 5,
-        difficulty: 'COZY',
-        buzz: 0,
-        signedSlots: 0,
-        afterPayout: true,
       };
     case 'd4-continuity':
       return {
@@ -206,7 +153,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 4,
         highestDivisionReached: 4,
         difficulty: 'COZY',
-        buzz: 38,
         signedSlots: 0,
       };
     case 'd3-offers':
@@ -216,7 +162,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 3,
         highestDivisionReached: 3,
         difficulty: 'COZY',
-        buzz: 46,
         signedSlots: 0,
       };
     case 'd3-partial':
@@ -226,7 +171,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 3,
         highestDivisionReached: 3,
         difficulty: 'COZY',
-        buzz: 46,
         signedSlots: 1,
       };
     case 'd2-offers':
@@ -236,7 +180,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 2,
         highestDivisionReached: 2,
         difficulty: 'COZY',
-        buzz: 71,
         signedSlots: 0,
       };
     case 'd2-partial':
@@ -246,7 +189,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 2,
         highestDivisionReached: 2,
         difficulty: 'COZY',
-        buzz: 71,
         signedSlots: 2,
       };
     case 'chairman-d2':
@@ -256,7 +198,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 2,
         highestDivisionReached: 2,
         difficulty: 'CHAIRMAN',
-        buzz: 71,
         signedSlots: 2,
       };
     case 'season-end-results':
@@ -266,7 +207,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 3,
         highestDivisionReached: 3,
         difficulty: 'CHAIRMAN',
-        buzz: 64,
         signedSlots: 2,
         seasonEnd: true,
       };
@@ -277,7 +217,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 2,
         highestDivisionReached: 2,
         difficulty: 'CHAIRMAN',
-        buzz: 88,
         signedSlots: 0,
         longCopy: true,
       };
@@ -289,7 +228,6 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
         division: 4,
         highestDivisionReached: 4,
         difficulty: 'COZY',
-        buzz: 32,
         signedSlots: 0,
       };
   }
@@ -469,24 +407,6 @@ function businessCareer(caseId: ClubBusinessCaseId): GameState {
     clubBusiness: {
       ...withDivision.clubBusiness,
       sponsorship,
-      buzz: config.afterPayout
-        ? {
-            value: 0,
-            lastSettledSeason: config.season,
-            lastSettledHalf: 1,
-            lastSettlementSummary: {
-              season: config.season,
-              half: 1,
-              before: 52,
-              rawEarned: 12,
-              realizedEarned: 12,
-              prePayoutValue: 64,
-              payout: 1_280,
-              resetValue: 0,
-              impacts: [],
-            },
-          }
-        : { value: config.buzz },
       pendingUserMatchImpacts: [],
     },
   };
@@ -540,7 +460,6 @@ function prepareRealSeasonEnd(state: GameState): GameState {
           }),
         ),
       },
-      buzz: { value: state.clubBusiness.buzz.value },
       pendingUserMatchImpacts: [],
     },
   };
@@ -636,7 +555,7 @@ export const clubBusinessEntry: DevHarnessEntry = Object.freeze({
   id: 'club-business',
   group: 'Club',
   title: 'Club Business',
-  summary: 'Sponsor slots, offers, objectives, Buzz, and the signing question.',
+  summary: 'Sponsor slots, offers, objectives, and the signing question.',
   cases: Object.freeze(CASES),
   render: (caseId: string) =>
     caseId === 'season-end-results' ? (

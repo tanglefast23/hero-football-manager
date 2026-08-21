@@ -148,9 +148,6 @@ export interface PendingUserMatchImpact {
   readonly divisionScale: number;
   readonly supporterWinUnits: number;
   readonly supporterHeroUnits: number;
-  readonly buzzWin: number;
-  readonly buzzGoals: number;
-  readonly buzzHeroMoments: number;
 }
 
 export interface AppliedSupporterImpactSummary {
@@ -176,36 +173,8 @@ export interface SupporterBusinessState {
   readonly lastAppliedImpact?: SupporterWeekSummary;
 }
 
-export interface BuzzMatchSummary {
-  readonly fixtureId: string;
-  readonly win: number;
-  readonly goals: number;
-  readonly heroMoments: number;
-  readonly rawEarned: number;
-}
-
-export interface BuzzSettlementSummary {
-  readonly season: number;
-  readonly half: 1 | 2;
-  readonly before: number;
-  readonly rawEarned: number;
-  readonly realizedEarned: number;
-  readonly prePayoutValue: number;
-  readonly payout: number;
-  readonly resetValue: 0;
-  readonly impacts: BuzzMatchSummary[];
-}
-
-export interface BuzzState {
-  readonly value: number;
-  readonly lastSettledSeason?: number;
-  readonly lastSettledHalf?: 1 | 2;
-  readonly lastSettlementSummary?: BuzzSettlementSummary;
-}
-
 export interface ClubBusinessState {
   readonly supporters: SupporterBusinessState;
   readonly pendingUserMatchImpacts: PendingUserMatchImpact[];
   readonly sponsorship: SponsorshipState;
-  readonly buzz: BuzzState;
 }

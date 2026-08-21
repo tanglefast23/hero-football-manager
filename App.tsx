@@ -943,15 +943,19 @@ function GameApp() {
   );
   const selectFormationPreset = useCallback(
     (formation: FormationId) => {
+      const current = preferencesRef.current;
+      if (current.formationPresets[0] === formation) return;
       const market = useM1Store.getState().career?.market;
-      savePreferences(
-        setFormationPreset(
-          preferencesRef.current,
-          0,
-          formation,
-          market === undefined ? [] : careerCoachUnlockedFormationIds(market),
-        ),
+      const next = setFormationPreset(
+        current,
+        0,
+        formation,
+        market === undefined ? [] : careerCoachUnlockedFormationIds(market),
       );
+      if (next.formationPresets[0] === formation) {
+        useM1Store.getState().arrangeStartingLineup(formation);
+        savePreferences(next);
+      }
     },
     [savePreferences],
   );
@@ -3091,31 +3095,11 @@ function GameApp() {
           viewModel={matchday}
           onBack={() => store.setActiveTab('home')}
           onToggleHeroLicense={(playerId) => {
-            const hero = matchday.heroes.find(
-              (candidate) => candidate.playerId === playerId,
+            performManagementAction(
+              () => store.toggleHeroLicense(playerId),
+              'hero',
+              'hero',
             );
-            const willEnterLineup =
-              hero?.licensed === false &&
-              !matchday.lineup.some((player) => player.id === playerId);
-            const toggle = () =>
-              performManagementAction(
-                () => store.toggleHeroLicense(playerId),
-                'hero',
-                'hero',
-              );
-            if (!willEnterLineup || hero === undefined) {
-              toggle();
-              return;
-            }
-            requestConfirmation({
-              title: t('confirm.heroLicense.title'),
-              detail: t('confirm.heroLicense.detail', {
-                hero: hero.playerName,
-              }),
-              confirmLabel: t('confirm.heroLicense.confirm'),
-              tone: 'hero',
-              onConfirm: toggle,
-            });
           }}
           onBuyHeroLicense={() => {
             const offer = matchday.heroLicenseOffer;
@@ -3825,9 +3809,7 @@ function GameApp() {
                 confirmLabel: t('confirm.sponsor.confirm'),
                 returnFocusId: `sponsor-slots-panel-${slot.slot}`,
                 onAfterConfirmDismiss: () => {
-                  if (Platform.OS !== 'web') {
-                    setSponsorSummaryFocusToken((token) => (token ?? 0) + 1);
-                  }
+                  setSponsorSummaryFocusToken((token) => (token ?? 0) + 1);
                 },
                 onConfirm: () => {
                   store.acceptSponsorOffer(offer.offerId);

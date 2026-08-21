@@ -1,464 +1,379 @@
 ---
 title: 'HFM optimal browser playtest'
 type: qa-handoff
-date: 2026-08-14
-status: handoff
+date: 2026-08-21
+status: current
 ---
 
 # Hero Football Manager optimal browser playtest handoff
 
 ## Mission
 
-Play Hero Football Manager as an expert manager. Win the Hero Cup in the fewest
-seasons possible while testing balance, clarity, pacing, and fun.
+Play as an expert manager. Win D1 and the Hero Cup in the fewest seasons
+possible. Both trophies are required to complete the main journey.
 
-Continue the current saved career unless Joe explicitly asks for a new game.
-Do not reset, delete, or replace the save to make testing easier.
+Optimize the current saved career unless Joe asks for a new game. Never reset,
+delete, or replace a save to make the test easier.
+
+The test must also record:
+
+- bugs and reproduction steps;
+- balance problems;
+- what feels fun or boring;
+- what feels fair or unfair;
+- each season and division; and
+- anything that could improve the game.
 
 ## Start in the built-in browser
 
 1. Open Codex's built-in browser pane.
-2. Navigate to `https://hero-football-manager.vercel.app/`.
-3. Do not open external Chrome unless Joe explicitly asks.
-4. Mute the page immediately if the browser tool provides a mute guard.
-5. Open the game's Settings from the gear button.
-6. Set Master Volume to `0` before doing anything else.
-7. Confirm the volume is `0`, then return to the game.
-8. Confirm the visible season, division, week, cash, TP, and current objective.
-9. Record whether the career uses Cozy or Chairman difficulty.
+2. Use the URL Joe gives you. Otherwise use the current visible game tab.
+3. Keep the browser visible when Joe wants to watch.
+4. Mute the page immediately.
+5. Set Master Volume to `0` in Settings.
+6. Confirm season, division, week, difficulty, cash, TP, fans, and objective.
+7. Confirm the save is the intended career before changing anything.
 
-The game must stay silent. Do not take over Joe's mouse, keyboard, or focus.
-Use only the built-in browser controls for the playtest.
+Do not use Joe's mouse or keyboard. Do not open external Chrome unless Joe
+asks.
 
-## Before advancing a week
-
-Record the starting state:
-
-- season, division, and week;
-- league place and record;
-- Hero Cup round;
-- cash, TP, and fans;
-- current facilities and construction;
-- squad size and important player condition;
-- sponsor objective progress; and
-- any open player request, contract, transfer, or story decision.
-
-Never advance a week until every useful action has been considered.
-
-## Career checkpoints
-
-Record a full checkpoint in Weeks 1, 4, 19, and 30 of every season. These
-snapshots make season growth measurable instead of relying on memory.
-
-Each checkpoint must include:
-
-- full-squad strength;
-- Starting XI average rating;
-- every long-term player's role rating;
-- cash and TP;
-- facilities and active construction;
-- total weekly player wages;
-- squad size; and
-- the current difficulty.
-
-Use the Week 1 and Week 30 snapshots for season growth. Keep the Week 4 snapshot
-separate because transfer-window changes can otherwise look like training
-growth. If Week 1 was missed, label later growth as a conservative partial
-measurement rather than a full-season result.
-
-## Weekly optimal loop
+## The correct weekly loop
 
 Use this order every week:
 
-1. Read new inbox items, player requests, sponsor progress, and story choices.
-2. Check construction. Keep the one construction crew working whenever an
-   affordable improvement exists.
-3. Check scouting, transfers, contracts, and player sales. During every open
-   transfer-window week, open both Scouting and Deals before advancing.
-4. Recompute and save the strongest eligible Starting XI. Compare every starter
-   with every eligible bench player in the same role.
-5. Spend TP on focused training.
-6. Decide between Quick Result and a watched match.
-7. Read the post-match report and change the next week's priorities.
-8. Record bugs, copy problems, balance findings, and meaningful decisions.
+1. Read the inbox, requests, sponsor progress, stories, and contract warnings.
+2. Note the cash needed for known wages, renewals, and the next planned transfer.
+3. Start or upgrade every useful unlocked building that the remaining cash can
+   afford. Keep the construction crew working.
+4. During a transfer window, open Scouting and Deals. Check reports, bids,
+   contracts, expiring players, and dead weight.
+5. Rebuild the best legal Starting XI. Match players to their natural roles.
+6. If Green Bull is useful and affordable, book it before any drill.
+7. Spend useful TP. Rotate through all relevant players and attributes.
+8. Choose Quick Result or a watched match from the real risk of the fixture.
+9. Read the full result and financial report.
+10. Record findings and set the next week's training, transfer, and build goals.
 
-### Mandatory optimization gates
+The core rules are:
 
-Do not advance to a match until all four gates pass:
+- Spend useful TP every week.
+- Rotate through all relevant players and attributes.
+- Enter Green Bull with a small TP bank.
+- Upgrade every useful unlocked building.
+- Keep only enough cash for known wages, renewals, and the next planned transfer.
 
-1. **Lineup:** use the strongest legal XI after role, condition, promises, and
-   absences are considered. Never leave a stronger eligible bench player behind
-   a weaker starter without recording the tactical or condition reason.
-2. **Transfer window:** open Scouting and Deals during every open week, including
-   the first and final week. List dead weight early, inspect scout progress and
-   results, and buy only major Starting XI upgrades. Inbox items are not a
-   substitute for opening both screens.
-3. **Training Pitch:** after the early income engine is stable, inspect the
-   Training Pitch upgrade before starting any lower-priority building. Reserve
-   the Level 2 cost unless wages, an important renewal, or a major signing makes
-   that unsafe.
-4. **Checkpoint:** in Weeks 1, 4, 19, and 30, confirm the saved XI is the best
-   eligible XI, record transfer-window actions, and record whether the Training
-   Pitch is at the highest useful level currently allowed.
+Never hoard TP or cash without a named short-term purpose. Record that purpose
+and the amount reserved. If the purpose disappears, spend the reserve that week.
 
-If any gate is skipped, stop calling the run optimized. Correct it immediately
-when possible and record the deviation. Do not use that season as clean balance
-evidence for optimal play.
+## Optimization gates
 
-## Training strategy
+Do not advance until these checks pass:
 
-Concentrate TP on the best four or five players.
+- **TP:** no useful affordable drill remains, unless condition or an imminent
+  Green Bull booking gives a specific reason to wait.
+- **Cash:** no useful affordable building, drill-tier upgrade, coach upgrade, or
+  planned signing beats the known reserve needs.
+- **Lineup:** every starter is the best legal role fit after condition, promises,
+  licenses, injuries, and absences.
+- **Transfer window:** Scouting and Deals were both checked.
+- **Green Bull:** it was considered before the first drill in D3-D1.
+- **Match plan:** formation, energy, powers, and Quick Result choice fit the
+  opponent and sponsor goal.
 
-Prioritize players by:
+If a gate is skipped, mark that season as imperfect optimization. Correct it at
+the next safe chance. Do not use that season as clean balance evidence.
 
-1. potential;
-2. Starting XI importance;
-3. enough condition for the next important match;
-4. a weak attribute that directly affects their role; and
-5. a team weakness exposed by recent matches.
+## TP and training strategy
 
-Train a priority starter once per week by default. A second drill is allowed
-only when the player will rest from the next match or has a following week with
-no match. Check the displayed post-drill condition before confirming. Spread
-drills across any attributes that affect the player's position; do not lock a
-player to only two attributes over the career.
+TP exists to become player strength. A large bank is usually a play error.
 
-Role priorities:
+Train the long-term Starting XI, useful rotation players, and high-value youth.
+Do not spend on players marked for sale unless a short-term match need justifies
+it.
 
-- Goalkeepers: REF first, then PAS or PAC.
-- Forwards: SHO first, then PAC or TEC.
-- Midfielders: PAS and TEC first, then DEF, STA, or PAC.
-- Defenders: DEF first, then STA or PAC.
+Rotate drills across the attributes each player's role uses:
 
-Condition under 80 is not an automatic blocker. Move to the next suitable
-player when another drill would make the priority player a poor starter for the
-next important match. Do not spread TP evenly across reserves or irrelevant
-attributes.
+- GK: REF first when saves are weak, then PAC, PAS, and STA.
+- DEF: DEF first, then STA and PAS. Add PAC when recovery speed is weak.
+- MID: PAS and TEC first, then STA, DEF, PAC, or SHO for the player's job.
+- FWD: SHO first, then PAC and TEC. Add PAS, STA, or DEF when the role needs it.
 
-Do not train only the star striker forever. Season 2 showed that midfield and
-defense become the limiting units after promotion.
+Do not train only the created forward. The full career showed that midfield,
+defense, goalkeeping, and credible substitutes become the limits later.
 
-## Team Trip and Green Bull Training
+Use these training rules:
 
-Keep the automatic Team Trip in the early divisions:
+- Spend useful TP each week instead of waiting for a future perfect drill.
+- One drill per core player is a useful starting pattern, not a hard cap.
+- Use the batch picker when condition and the schedule allow it.
+- Use the displayed condition and injury preview. Do not reuse old fixed
+  condition thresholds.
+- Preserve condition for a close league match or Cup tie.
+- Use empty weeks to train prospects and weak supporting attributes.
+- Buy useful drill tiers when they unlock. Higher tiers are more TP-efficient.
+- Respect Training Priority promises before spending on anyone else.
+- Stop drilling a maxed or match-irrelevant attribute.
 
-- D5: +1 to every stored stat;
-- D4: +2.
+SUPER sessions are exciting variance. Record them, but do not treat a lucky
+player's growth as the normal pace.
 
-The whole squad loses 10 condition.
+## Team Trip and Green Bull
 
-The trip removes every banked TP but gives the same stat reward. Do not force
-extra drills just to empty the bank before Week 19. Accept the trip when broad
-squad growth is worth the TP and the squad can absorb the condition loss.
+### D5-D4 Team Trip
 
-From D3 onward, use the optional Green Bull Training button instead:
+The Week 19 Team Trip consumes all current TP, gives broad squad growth, and
+costs condition. It is optional when the choice screen allows refusal.
 
-- the first career use costs $50,000, then every later use costs $25,000 more;
-- it requires at least one full week's TP income;
-- it consumes all current TP;
-- it gives every player +2 to every stored stat;
-- it costs every player 10 condition; and
-- it can be used once per week.
+Normal weekly spending should leave a small TP bank before the trip. Do not
+save TP for it. Accept it when the broad gain beats the remaining TP and the
+next fixture can absorb the condition cost. Refuse it when that trade is poor.
 
-Green Bull Training must be the first training action of the week. Any
-individual drill greys out Green Bull until the following week. Book Green Bull
-before individual drills when broad squad growth is worth more than focused
-training and the next fixtures leave enough recovery time.
+Do not call the trip bad value because TP was hoarded before it.
 
-From D3 onward, book Green Bull Training whenever you believe the club has
-enough surplus cash after covering near-term wages, renewals, scouting, and
-more valuable facility or drill upgrades. Do not force it when the fee would
-leave the club short.
+### D3-D1 Green Bull
 
-This is an intentional, owner-approved optimization. Team Trip should feel like
-a fun, slightly overpowered midseason reward. Its growth is broad rather than
-focused, and many boosted players will eventually leave the club, so it does
-not replace deliberate training of the long-term core. Do not report the low-TP
-timing as a bug or remove it during a balance pass.
+Green Bull is the intended later-career money sink. It gives every player +2 to
+all stored stats, consumes current TP, costs 10 condition, and becomes more
+expensive after each use.
+
+Use it like this:
+
+1. End the prior week with little unused TP.
+2. Check Green Bull at the start of the new week.
+3. Book it before any individual drill when its broad gain is efficient.
+4. Keep enough cash only for known liabilities and the next planned transfer.
+5. After Green Bull, resume normal weekly drills when the rules allow them.
+
+Green Bull needs at least one full week of ambient TP at booking. Keep that
+minimum unspent during the booking week. A Training Pitch or coach upgrade
+raises the minimum immediately.
+
+Do not carry hundreds or thousands of TP into Green Bull. Its all-current-TP
+cost punishes hoarding and makes the test data misleading.
+
+Compare repeated Green Bull use with facilities, drill tiers, contracts, and
+transfers. Record the real choice. Do not assume that saving cash is optimal.
+
+Motivational Speeches also spend all current TP and must be bought before a
+drill. Buy one only for a planned watched match where its second-half boost can
+change an important result. Quick Result cannot use it.
 
 ## Facility and money strategy
 
-Complete tutorial-required facilities first.
+Cash exists to create growth, income, and wins. A rich club with idle
+construction is not optimized.
 
-Build the early income engine:
+Use this flexible order:
 
-1. Build all three Level 1 Stadium Stands.
-2. Build Level 1 Fan Shops where affordable.
-3. Prefer a useful new Level 1 building over a weak commercial upgrade.
-4. Upgrade commercial buildings only when the payback remains useful.
+1. Complete required onboarding facilities.
+2. Build the Training Pitch and Coaching Office TP engine.
+3. Build Stadium Stands and adjacent Fan Shops until home income is strong.
+4. Build enough Dorm recovery to support the training and rotation plan.
+5. Build or upgrade the facility for the weakest important unit.
+6. Upgrade the Scout Office before paying for high-value uncertain reports.
+7. Upgrade the Youth Field when youth can still enter the long-term squad.
+8. Upgrade every other useful unlocked building to its current maximum.
 
-Keep about $10,000 after optional D5 construction. Go below that only for the
-Training Pitch, a vital renewal, or a clear Starting XI upgrade. The first
-Portuguese run reached $1,890 after following the older build order, while the
-completed run was tight but safe with a $3,243 low point.
+The order may change for an urgent renewal, a major Starting XI transfer, or a
+clear condition problem. Record the reason. Do not use old fixed cash floors
+such as `$10,000` after the real liabilities are known.
 
-The third Stadium Stand is part of the optimal strategy. Do not cap the player
-at two during this playtest. The D4 club used all three and still finished
-fourth.
+At every construction decision:
 
-Once income is stable, convert cash into team strength immediately:
+- inspect all unlocked upgrades, not only empty plots;
+- check the Training Pitch and role-training facilities;
+- check every Stadium Stand and Fan Shop level;
+- keep the crew working when a useful project is affordable; and
+- revisit Level 1 buildings after promotion unlocks higher levels.
 
-1. Training Pitch;
-2. the facility supporting the current weakest unit;
-3. Tech Center for weak midfield PAS and TEC;
-4. Gym for PAC and STA;
-5. Shooting Range when finishing limits results;
-6. Keeper Court when goalkeeping limits results;
-7. medical and recovery facilities when condition blocks training or lineups;
-   and
-8. Youth Field after immediate performance needs are covered.
+Do not finish a season with large unused cash while useful upgrades remain.
 
-At every construction decision, select the Training Pitch on the grounds and
-review its next upgrade. Once the early income engine covers weekly costs, hold
-the upgrade money before building the Scout Office, Residence, or another
-lower-priority facility. In D5, Level 2 costs $20,000 and adds another 12 weekly
-TP. Delay it only for wages, an important renewal, or a major Starting XI
-signing, and record that reason.
+## Coaches, drills, and facilities as one plan
 
-Start Level 2 performance upgrades as soon as the division allows them. Level 3
-facilities remain locked until D2. Their upgrade prices are 50% higher than the
-earlier draft, while Level 2 prices stay unchanged. Drill upgrades cost $5,000
-for Tier 2, $15,000 for Tier 3, $30,000 for Tier 4, and $60,000 for Tier 5.
-Together with Green Bull Training, these are the approved later-career money
-sinks. Do not add another sink unless the live D3 career still piles up cash.
+Stack bonuses deliberately:
 
-Do not finish a season with a large unused balance while the construction crew
-is idle. That was the main optimization error in Season 2.
+- hire the best affordable head coach and assistant;
+- match coach specialties to the next training block;
+- improve the matching facility;
+- buy the matching drill tier; and
+- train several relevant players while the stack is useful.
 
-## Transfers and squad management
+Replace weak coaches when the new weekly TP and training bonus repay the wage
+and severance. A vacant staff slot is rarely optimal.
 
-Scout during every useful transfer window. Open Scouting and Deals in every
-week the window is active; do not rely on inbox reminders. On the first open
-week, list replaceable dead weight before spending transfer cash.
+## Scouting, transfers, and squad management
 
-Use the mission filters deliberately. Choose Immediate Starter for the weakest
-Starting XI position. Choose Young Prospect for a long-term rebuild, Specialist
-for one missing position attribute, or Bargain when cash is tight. Adding a
-position costs more and takes longer, so use it only when the squad has a clear
-need. The mission prioritizes that pool but never guarantees an upgrade.
+Open Scouting and Deals during every transfer-window week. Dispatch early
+enough for the report and contract to finish before the window closes.
 
-Check the exact duration before starting. The report must arrive with enough
-time to act inside the transfer window. Dismiss an irrelevant report at once.
-Buy a detailed potential report only when that uncertainty could change an
-important purchase. Do not let an old report stop the next mission.
+Use mission types deliberately:
 
-Buy only a major Starting XI improvement. Avoid expensive marginal upgrades.
-Repair the weakest unit before adding another star to an already strong unit.
+- Immediate Starter for the weakest current role.
+- Young Prospect for a long-term core player.
+- Specialist for a missing role attribute.
+- Bargain when cash is the real limit.
 
-List dead weight early. Do not wait for the roster to become full.
+Current playing strength should reach at most one division above the club.
+Potential may reach at most two divisions above. Record a balance bug when a
+scout breaks either limit.
 
-Keep enough cover for:
+Before signing:
 
-- a legal Starting XI;
-- a backup goalkeeper;
-- injuries;
-- player absences; and
-- automatic substitutions.
+- compare the player with the current starter in the same role;
+- include the transfer fee, wage, promise, and Hero License need;
+- confirm there is a legal roster slot;
+- confirm the exact report is current; and
+- prefer a major improvement over an expensive marginal one.
 
-Negotiate important renewals before the club loses leverage. Do not overpay a
-reserve who can be replaced cheaply.
+List dead weight early. Keep a backup goalkeeper and credible same-role cover.
+Do not keep weak filler only because the game added it automatically.
 
-Renewal asks rise with the late-game economy: D3 adds 15%, D2 adds 30%, and D1
-adds 45% to the existing calculated ask. D5 and D4 are unchanged.
+Create all needed academy roster slots before signing the first youth. Signing
+one youth may close the remaining offers.
 
-## Lineup and formation strategy
+Renew important players before leverage disappears. Later hero renewals are
+real costs, but a rich club should not carry a huge reserve without a specific
+contract due.
 
-Use the strongest legal players for the selected formation. Correct the saved
-XI when it retains a weaker player over a stronger available player.
+## Hero Licenses
 
-Useful patterns from the real career:
+Buy useful permits when they unlock and are affordable. License the heroes that
+most improve the real Starting XI.
 
-- `4-4-2 Balanced` is a reliable Quick Result default.
-- `3-4-3 Attack` is strong against weaker D5 clubs.
-- `3-4-3 Attack` is less reliable against strong D4 clubs.
-- `5-3-2 Deep Counter` is useful against elite opponents.
-- Start defensively against a stronger club, then switch to Attack when the
-  score requires it.
+Licensing and lineup selection are separate decisions:
 
-Avoid role mismatches unless the stronger player's advantage clearly exceeds
-the mismatch penalty.
+- licensing a benched hero must not force them into the XI;
+- unlicensing a starter may safely repair the XI;
+- restoring a license must work when capacity is free; and
+- a Starter promise must name and preview the exact license handoff.
+
+Do not accept a Starter promise without a valid permit plan. Awakening after the
+first story hero should not silently consume the remaining permit.
+
+Record the active licensed set before and after every handoff. A license bug can
+invalidate later match and balance evidence.
+
+## Lineup and tactics
+
+Use the strongest legal natural-role XI. The game has repeatedly kept players
+in old slots after a formation change. Audit every slot after changing shape or
+starting a new season.
+
+Useful defaults, not rigid rules:
+
+- `4-4-2 Balanced` is a stable Quick Result baseline.
+- Use `5-3-2 Deep Counter` against a much stronger club.
+- Use `3-4-3 Attack` when a weaker opponent can be pressured safely.
+- Change shape and playstyle when the score makes the original plan wrong.
+
+Do not start ordinary matches on All Out. Use Balanced or Save Energy first.
+Save All Out for a late need.
+
+Keep an energy mode selected until the manager changes it. Record a bug if a
+goal, power, halftime, or substitution resets it.
+
+In MANUAL power mode, press only a visible `FIRE` control. `ARMED` is status,
+not an allowed press. Quick Result always uses automatic powers.
 
 ## Quick Result or watched match
 
-Quick Result uses the same match engine. It is not inherently weaker. It runs
-the unattended plan and automatically replaces tired players, but it removes
-the manager's chance to change formation, playstyle, energy, or substitutions.
+Quick Result uses the same match engine and saves time. Use it when the club has
+a clear advantage and no live tactical decision is likely to matter.
 
-Use Quick Result when:
+Watch when:
 
-- the club has a clear strength advantage;
-- the default formation and energy plan should be enough;
-- no sponsor objective needs special behavior; and
-- condition management is straightforward.
-
-Watch live when:
-
-- it is an important Hero Cup tie;
 - the opponent is close or stronger;
-- promotion depends on the result;
-- a sponsor goal needs defensive or attacking behavior;
-- condition management matters; or
-- formation changes could rescue the result.
+- promotion, D1, or the Cup depends on the result;
+- a sponsor target needs a specific tactic;
+- condition and substitutions matter;
+- a Motivational Speech is planned; or
+- player-visible match behavior needs testing.
 
-Time-saving shortcuts are encouraged when they do not reduce win efficiency:
+Use `3x` speed when it preserves the evidence. Skip repeated presentations when
+the game allows it.
 
-- Tap outside a drill animation to skip it.
-- Use Quick Result for safe matches.
-- Run watched matches at `3×` by default. Match speed changes the presentation
-  clock, not the match rules or RNG, so it does not change the result.
-- Skip previously viewed presentation sequences when the game allows it.
+## Division lessons
 
-## Live-match tactics
+### D5
 
-Do not start ordinary matches on All Out.
+The early facility economy can create useful risk. TP must still be spent each
+week. A single scout far above the division can erase all competition, so check
+the one-division current-strength limit.
 
-All Out drains energy rapidly and can use every automatic substitution too
-early. Start on Balanced or Save Energy unless there is a specific reason not
-to.
+### D4
 
-During the match:
+Open formations became less reliable, which was a good difficulty step.
+Defensive ratings did not always produce defensive results. Compare sponsor
+goals with actual clean-sheet and scoring rates before judging them fair.
 
-1. Watch the score, energy, and opponent strength.
-2. Protect a lead when the opponent becomes dangerous.
-3. Increase pressure when trailing.
-4. Save All Out for a late emergency.
+### D3
 
-The strongest Season 2 example started `5-3-2 Deep Counter` with Save Energy
-against Garnet. A later switch to `3-4-3 Attack` turned a 0-2 deficit into a
-2-2 draw.
+Green Bull, higher drill tiers, better staff, and home income form the main
+growth loop. Use all of them. Measure whether the transfer market still matters
+after broad Green Bull growth.
 
-## Condition strategy
+### D2
 
-Each start costs 4 / 6 / 8 / 12 / 14 condition in D5 / D4 / D3 / D2 / D1
-before weekly recovery. Substitutes pay half: 2 / 3 / 4 / 6 / 7.
-Unused bench players pay nothing, and a player who appears twice pays twice.
-Computer clubs use the same costs, get division-appropriate Dorm recovery, and
-favor fresher same-role players. Confirm the Dorm helps without erasing the
-higher-division cost, and check whether Save Energy and rotation now matter.
+Money requests, renewals, facilities, permits, and Green Bull should compete for
+cash. Test the real trade instead of carrying a safety fortune. Watch Cup draws
+for extreme opponents and growth spikes.
 
-- Train a priority starter once per week by default.
-- Add a second drill only when that player will rest or has a match-free week.
-- Rotate a tired starter when the replacement is credible.
-- Preserve condition before Hero Cup weeks.
-- Do not use aggressive energy against weak opponents without a reason.
-- Account for Team Trip's -10 condition before Week 19.
-- Refuse an absence when it removes an essential starter before a major match.
+### D1
 
-When granting any timed absence, record the player's exact saved slot and
-whether it was a starting slot. On the return week, verify that the player is
-available and restored to that slot. The current occupant must move to the
-bench, even if several different replacements used the slot during the absence.
+The clean objective is both the D1 title and the Hero Cup. Optimize facilities,
+TP, Green Bull, staff, permits, contracts, and lineup before recommending weaker
+opponents or lower wages.
 
-## Player requests
+The previous long D1 run hoarded TP and cash. Its bugs and copy findings remain
+valid. Its career-speed, salary-pressure, and rival-strength conclusions are
+not clean optimal-play balance evidence.
 
-Accept a player request only when its cost does not damage an important plan.
+The current D1 growth rule is:
 
-Refuse when it would:
+- a D1 club with no league losses gets no offseason D1 growth;
+- after at least one league loss, Chairman growth is 3%; and
+- after at least one league loss, Cozy growth is 1%.
 
-- remove a key starter before a Cup or promotion match;
-- reduce training for a current priority player;
-- drain condition before a difficult fixture;
-- break positional cover; or
-- conflict with a sponsor objective.
+Focused transition tests cover perfect and one-loss seasons on both
+difficulties. Recheck it in a live D1 rollover. Do not infer it from points or
+draws.
 
-Judge the loyalty and morale loss against the football cost. Do not grant every
-request automatically.
+## Known regression checks
 
-Every unresolved request must remain in the inbox until a decision is made.
-Opening or reading it must not remove the inbox item. Record a bug if the item
-disappears early or the request cannot be reopened.
+Recheck these paths during normal play. Do not force extra seasons only to reach
+them.
 
-## Story interruptions
+- Drill and Quick Result atlases now free their temporary CanvasKit surfaces,
+  snapshots, and paints. Recheck a long web session for `Aborted()` errors. If
+  one still occurs, the error must not claim the save is unchanged unless the
+  action truly rolled back. Check the persisted state before retrying.
+- Save Energy and other energy modes must survive goals, halftime, powers, and
+  substitutions.
+- A formation change and season reset must select strong players in valid roles.
+- Season rollover must explain every added youth or filler player.
+- Scouting must submit the visible filter, price, and travel time. A detailed
+  report must reveal the promised detail.
+- Signing a scouted player must clear stale `came back short` copy.
+- A high transfer bid must either complete or explain the real blocker.
+- A Pitch Card is optional only when the offer can submit without selecting one.
+- Contract promise choices must use clear radio groups and show their effect.
+- Hero License capacity, handoffs, protected promises, and awakening must follow
+  the rules in the Hero Licenses section.
+- D4 sponsor goals must fit results that are realistically possible in D4.
+- D2 and D1 opponent, sponsor, and hero information must agree across screens.
+- From D2 onward, verify that money-based player requests use the intended
+  three-times cost and that Cup draws do not use opponents below D3.
+- The final penalty presentation must be skippable.
+- D1 must not say clubs earn promotion. A dominant perfect-season club must be
+  recognized in the season review.
 
-Check that each story's player wording matches its selection rule.
+## What to record
 
-- A hard claim such as fastest, youngest, or most popular must automatically
-  choose the matching player.
-- If several players tie, a seeded random tie-break may choose among them.
-- A general story may let the manager choose any eligible player.
-- The preview, result, and story copy must describe the same target.
-
-Record every mismatch across the full story catalog, not only the story that
-first revealed the problem.
-
-Check the five lasting stories closely. Trial Abroad must show only players age
-20 or younger, hide without one, keep the chosen player out for four weeks, and
-apply two sessions to their weakest position-relevant attribute on return. The
-midfielder tackling story must give four DEF sessions and remove two PAS. The
-veteran recovery story must use only older players and rest the chosen player
-for two weeks. The keeper and set-piece stories must enforce their role filters.
-
-Once per career, eight consecutive league wins plus six unique player departures
-schedule the facility-fire story one to four seeded weeks later. The due week
-may land in the next season. Check that the safe choice removes the two cheapest
-1x1 facilities. Check that the risky choice either saves everything or removes
-the highest-level Fan Shop, with the documented fallback when none exists.
-
-## Sponsors
-
-Choose the objective that best fits the squad or creates an affordable strategy
-change. Do not automatically choose the largest headline bonus.
-
-For the tactical objective design:
-
-- Iron Wall rewards clean sheets, GK/DEF training, and protecting leads.
-- Goal Rush rewards three-goal matches, attacking formations, and early
-  pressure.
-- Road Warriors rewards away points, away-match preparation, and protecting a
-  valuable away draw.
-
-Track whether the selected objective truly changes training, lineup, or live
-tactics. Record it as weak design if normal optimal play completes it without a
-meaningful decision.
-
-From Week 15 onward, Sponsor Desk offers one Sponsor Sprint per season for the
-next league match. Choose either three or more goals or a clean sheet. The offer
-must remain in the inbox until chosen. The accepted target must remain there
-until that exact match settles. Change the formation or energy plan to chase the
-one-match bonus; record it as weak if the choice does not affect strategy.
-
-## Hero Cup planning
-
-Hero Cup weeks are 10, 14, 18, 22, 26, and 29.
-
-Plan backward from each Cup week:
-
-- preserve condition;
-- avoid unnecessary All Out use;
-- delay nonessential player absences;
-- train likely starters;
-- finish useful construction before the tie; and
-- watch close ties live.
-
-League promotion matters, but Cup readiness takes priority when the mission is
-the fastest Hero Cup win.
-
-## What to record while playing
-
-Save every running problem immediately in:
+Keep the running record in:
 
 `docs/superpowers/reports/2026-08-13-optimal-career-playtest.md`
 
-Use that file as the single source of truth across future sessions. Do not keep
-bugs, typos, balance traps, or design ideas only in chat or memory.
-
-Record:
-
-- bugs and reproduction steps;
-- typos and unclear wording;
-- tutorial highlights that point at the wrong place;
-- stale cards or incorrect navigation;
-- UI inconsistencies;
-- balance traps;
-- dominant strategies;
-- systems that fail to change the optimal plan;
-- meaningful choices and why they mattered;
-- boring or repetitive weeks;
-- fun match moments;
-- final league, Cup, economy, facility, and squad results; and
-- how a casual player would likely perform differently.
-
-Separate each item into one of these states:
+Record each finding as one of:
 
 - observed and open;
 - recommendation only;
@@ -466,131 +381,62 @@ Separate each item into one of these states:
 - verified fixed; or
 - intentionally unchanged.
 
-Do not mark a finding fixed until the player-visible behavior is verified.
+For every bug, include the exact screen, action, expected result, actual result,
+and whether the save advanced. Never trust an error message that says the save
+did not change. Recheck season, week, cash, TP, training, scouting, and match
+results before retrying an action.
 
-Take a screenshot when a visual bug cannot be explained clearly with text.
+Record full checkpoints in Weeks 1, 4, 19, and 30:
 
-## Language pass (fix as you play)
+- league place and record;
+- Cup round;
+- cash, TP, fans, and weekly wages;
+- full-squad and Starting XI strength;
+- facilities, levels, and construction;
+- coaches and drill tiers;
+- squad size, roles, condition, heroes, and permits;
+- transfers, contracts, requests, and sponsor progress; and
+- TP and cash reserved, with the exact reason.
 
-When the playtest runs in a non-English locale, treat that locale as part of the
-deliverable. While playing, watch every screen for:
+## Season and division reports
 
-- untranslated English left in the UI (values as well as labels, and accessible
-  labels as well as visible text);
-- typos, missing accents, and wrong grammar or agreement;
-- translations that are literal but wrong for football or for the game's tone;
-- inconsistent terms for the same concept across screens; and
-- values shown in one style on one row and another style on the next
-  (`ON` / `OFF` next to `SIM` / `NÃO`, for example).
+At every season end, report:
 
-Unlike other findings, **language problems are fixed immediately, not just
-logged**. Fix the copy in the repo as you find it — chrome strings in
-`content/i18n/<locale>.json`, prose in `content/*.json`, and hardcoded English in
-the component or view-model that renders it. Keep every locale in sync: a new key
-ships in all seven catalogs in the same change. Still record each fix in the
-running report so the language pass is reviewable. The playtest itself continues
-on the deployed build, so a fix only reaches the running career after a deploy.
+- league record, goals, place, and Cup result;
+- ending cash, TP, wages, fans, and squad size;
+- all facility, staff, and drill upgrades;
+- Green Bull and Team Trip use;
+- training distribution and strongest players;
+- transfers, sales, contracts, permits, and sponsor result;
+- what was fun, boring, fair, or unfair;
+- bugs and balance findings; and
+- whether every optimization gate was followed.
 
-## Playtest discipline
+When leaving a division, also report:
 
-- Play the deployed build unless Joe asks for a local URL.
-- Do not edit code merely because a problem was observed.
-- Log findings first. Implement only when Joe asks.
-- If code changes deploy during the career, preserve the existing save and
-  verify whether migration reaches it.
-- After each deployment, record the tested commit or deployment identifier.
-  Reload the deployed page, reopen the same save, and confirm season, week,
-  division, cash, and TP before continuing.
-- Do not invent results when the browser cannot prove them.
-- Do not infer balance from one surprising match. Record the sample size.
-- Finish and report the current season before making another broad balance
-  change, unless a blocker makes later results misleading.
-- If the club stays in a division, test the repeat season before weakening its
-  strongest opponents. Player growth may turn the same division into a very
-  different challenge.
-- Keep the browser silent for the whole session.
-- Continue until the requested season ends, the Hero Cup is won, or Joe stops
-  the test.
+- seasons spent there;
+- squad and economy on arrival and departure;
+- the strategy that worked;
+- the strategy that stopped working;
+- difficulty for an optimal and likely casual player;
+- whether promotion pace felt fair; and
+- the division-specific changes worth making.
 
-## Mid-playtest balance blockers
+Separate observed evidence from recommendations.
 
-Do not continue collecting results after a bug or total imbalance makes the
-rest of the career misleading.
+## Playtest validity and stop rules
 
-1. Log the problem and the last trustworthy week in the running report.
-2. If a code fix can preserve the current save, implement and verify the fix.
-3. Ship the fix to the build being tested, refresh the built-in browser, load
-   the same saved career, confirm its season and week, then continue.
-4. If the broken feature is avoidable, skip that feature and keep testing the
-   rest of the game. Record exactly what was skipped and why.
-5. If neither path preserves useful results, stop before resetting the career
-   and ask Joe what to do.
+- Keep the browser silent and visible when Joe wants to watch.
+- Do not invent results that the browser cannot prove.
+- Do not call one lucky SUPER session or one strange score a balance trend.
+- Log a bug before fixing it. Implement only when Joe asks.
+- Preserve the same save after a compatible fix.
+- Verify player-visible behavior before marking a bug fixed.
+- Stop if a crash, save mutation, license blocker, or total imbalance makes later
+  evidence unreliable.
+- If a safe fix ships, reload the same save, confirm its state, and continue.
+- Continue until both D1 and the Hero Cup are won, or Joe stops the test.
 
-Never silently continue through a blocker that invalidates later balance data.
-Never reset the save merely to make the test easier.
-
-## Intended promotion pace
-
-- Every non-user club in the full pyramid grows each offseason: 2.5% on Cozy
-  and 5% on Chairman. This is fixed season growth, never scoreline or
-  user-strength rubber-banding.
-- The current Season 2 run has a conservative measured baseline of 59 squad
-  strength in Week 4 and 70 at the finish: +11, or 18.6%. Week 1 was not
-  captured, which is why future runs must use the checkpoint rules above.
-- An optimal manager may clear an early division in one season.
-- A casual manager should usually earn promotion within two seasons per
-  division. Two seasons is a fair progression grind, not a balance failure.
-- Difficulty should rise gradually as the club climbs.
-- D1 and the Hero Cup may take three seasons. This should be the longest final
-  challenge, not the normal pace for earlier divisions.
-- Narrow extreme scorelines without making the average opponent stronger. A
-  casual club may enter D4 later with a better squad than this test career had.
-
-## Season-end report
-
-At every season end, add a clearly titled `Season N review` section to the
-running report. Also give Joe the same concise report in chat.
-
-Report:
-
-- league position, wins, draws, losses, goals for, and goals against;
-- Hero Cup result;
-- ending cash, TP, fans, and squad size;
-- facilities built and upgraded;
-- transfers, sales, and important contracts;
-- strongest players and training distribution;
-- sponsor result;
-- requests that changed the optimal plan;
-- whether money remained meaningful;
-- whether the season was too easy for optimal and casual players;
-- whether each week offered enough to do; and
-- the most important bugs and balance recommendations.
-
-State what worked, what did not work, and what should change. Separate observed
-evidence from suggestions.
-
-## Division-end report
-
-When the club leaves a division, add a clearly titled `D# division review`
-section to the running report. Also give Joe the same concise report in chat.
-
-Report:
-
-- seasons spent in the division;
-- best and worst league finishes;
-- squad strength on arrival and promotion;
-- facilities and economy on arrival and promotion;
-- tactics and training plans that worked;
-- systems or strategies that stopped working;
-- difficulty for an optimal player and a likely casual player;
-- whether the intended promotion pace was met;
-- fun, variety, and repetition across the division; and
-- bugs, balance changes, and design suggestions specific to that division.
-
-## Separate work
-
-Penalty-shootout presentation has its own handoff:
-
-`docs/superpowers/plans/2026-08-14-penalty-shootout-handoff.md`
-
-Do not fold that implementation into a normal playtest session.
+Language problems are part of the playtest. Record untranslated text, wrong
+football terms, broken number agreement, clipped copy, and inconsistent labels.
+Keep all seven locale catalogs aligned when Joe asks for a copy fix.

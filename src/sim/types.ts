@@ -71,9 +71,8 @@ export type PowerState =
       kind: 'armed';
       remainingTicks: number;
       /**
-       * The window this press opened, so the drain bar and the on-pitch ring
-       * read the right denominator. A save keeper's is five times an outfield
-       * hero's; a hardcoded 20 pinned their bar full then dumped it.
+       * A save keeper's ten-second press window. The denominator drives the
+       * dock and on-pitch countdown bars.
        */
       windowTicks: number;
       /** What the press is worth if it lands. Read by BOTH fire sites. */
@@ -380,7 +379,7 @@ export type MatchEvent =
       kind: 'POWER_EXPIRED';
       player: number;
       power: PowerId;
-      /** `no-shot` gates the NO SHOT ON NET line; everything else is generic. */
+      /** Retained in replay payloads; presentation uses generic WASTED POWER. */
       reason: 'no-shot' | 'other';
     }
   | {

@@ -120,6 +120,7 @@ export interface LeagueTableRowViewModel {
 
 export interface LeagueTableViewModel {
   divisionLabel: string;
+  topDivision: boolean;
   seasonLabel: string;
   weekLabel: string;
   matchesPlayed: number;
@@ -273,6 +274,10 @@ export interface MatchDayViewModel {
   heroes: readonly HeroLicenseViewModel[];
   licenseReady: boolean;
   heroLicenseOffer: HeroLicenseOfferViewModel;
+  sponsorChallenge?: {
+    targetLabel: string;
+    actualBonus: number;
+  };
 }
 
 /**
@@ -493,16 +498,6 @@ export interface PostMatchViewModel {
   netAmount: number;
   trainingPointsGained: number;
   fanDelta: number;
-  /** Present from Season 3 when this was a production user match. */
-  buzz?: {
-    earned: number;
-    rawEarned: number;
-    valueAfter: number;
-    win: number;
-    goals: number;
-    heroMoments: number;
-    payout?: number;
-  };
   highlights: readonly HighlightViewModel[];
   updates: readonly WeekUpdateViewModel[];
   facilityCompletion?: FacilityCompletionViewModel;
@@ -541,6 +536,8 @@ export interface SquadPlayerViewModel {
   potentialGrade: PotentialGrade;
   /** Chance the next drill is a SUPER (1.5x) session, from the potential grade. */
   superChancePercent: number;
+  /** Runs without a SUPER before the pity rule guarantees one. */
+  drillsUntilGuaranteedSuper: number;
   /** Drills still owed under a TRAINING_PRIORITY promise; shown as the countdown badge. */
   priorityDrillsRemaining?: number;
   /** Tap-time injury gamble at current condition; 0 above the fatigue line. */
@@ -962,12 +959,6 @@ export interface ClubSponsorshipViewModel {
   chairmanPercent?: number;
   slots: readonly SponsorSlotViewModel[];
   weeklyChallenge?: SponsorWeeklyChallengeViewModel;
-  buzz?: {
-    value: number;
-    pendingPayout: number;
-    nextPayoutLabel: string;
-    lastSettlementLabel?: string;
-  };
 }
 
 export interface ClubFinancesViewModel {
@@ -1002,7 +993,7 @@ export interface ClubFinancesViewModel {
   facilities: ClubFacilityGridViewModel;
   trainingPointIncome: TrainingPointIncomeViewModel;
   incomeGeneration: IncomeGenerationViewModel;
-  /** Absent until D4 managed sponsorship or Season 3 Buzz becomes visible. */
+  /** Absent until D4 managed sponsorship becomes visible. */
   sponsorship?: ClubSponsorshipViewModel;
 }
 
@@ -1262,12 +1253,7 @@ export interface SeasonEndClubBusinessViewModel {
     actualBonus: number;
   }[];
   objectiveBonusTotal: number;
-  buzz?: {
-    reached: number;
-    actualPayout: number;
-    resetTo: 0;
-  };
-  /** Objective bonuses plus the season-end Buzz payment, using actual receipts. */
+  /** Objective bonuses using actual receipts. */
   actualPayoutTotal: number;
 }
 

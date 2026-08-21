@@ -213,7 +213,7 @@ describe('endless opponent growth', () => {
     expect(total(chairman)).toBeGreaterThan(total(cozy));
   });
 
-  it('gives only the weakest D1 rival a one-point offseason catch-up', () => {
+  it('holds perfect D1 clubs flat and grows a club after one loss', () => {
     const initial = initializeM2Career({
       careerSeed: 9182,
       userClub: USER_CLUB,
@@ -221,18 +221,39 @@ describe('endless opponent growth', () => {
     const divisionOne = initial.pyramid.divisions.find(
       (division) => division.level === 1,
     )!;
-    const ranked = [...divisionOne.clubs].sort(
-      (left, right) => left.squadStrength - right.squadStrength,
-    );
-    const weakest = ranked[0];
-    const nextWeakest = ranked[1];
-    const advanced = planEndlessCareerSeasonTransition(initial, 1).state;
+    const [perfect, beaten] = divisionOne.clubs;
+    const advanced = planEndlessCareerSeasonTransition(
+      initial,
+      1,
+      difficultyRules({ difficulty: 'CHAIRMAN' }),
+      { [perfect.id]: 0, [beaten.id]: 1 },
+    ).state;
+    const cozyAdvanced = planEndlessCareerSeasonTransition(
+      initial,
+      1,
+      difficultyRules({ difficulty: 'COZY' }),
+      { [perfect.id]: 0, [beaten.id]: 1 },
+    ).state;
+    const unknownAdvanced = planEndlessCareerSeasonTransition(
+      initial,
+      1,
+      difficultyRules({ difficulty: 'CHAIRMAN' }),
+    ).state;
     const advancedDivisionOne = advanced.pyramid.divisions.find(
       (division) => division.level === 1,
     )!;
     const advancedPlayer = (clubId: string) =>
       advancedDivisionOne.clubs.find((club) => club.id === clubId)!.squad[0];
+    const cozyPlayer = cozyAdvanced.pyramid.divisions
+      .find((division) => division.level === 1)!
+      .clubs.find((club) => club.id === beaten.id)!.squad[0];
 
+    expect(advancedPlayer(perfect.id).attrs).toEqual(perfect.squad[0].attrs);
+    expect(
+      unknownAdvanced.pyramid.divisions
+        .find((division) => division.level === 1)!
+        .clubs.find((club) => club.id === perfect.id)!.squad[0].attrs,
+    ).not.toEqual(perfect.squad[0].attrs);
     for (const attribute of [
       'pac',
       'sho',
@@ -242,15 +263,13 @@ describe('endless opponent growth', () => {
       'sta',
       'ref',
     ] as const) {
-      const weakestScaled = weakest.squad[0].attrs[attribute] * 1.025;
-      expect([
-        Math.floor(weakestScaled) + 1,
-        Math.ceil(weakestScaled) + 1,
-      ]).toContain(advancedPlayer(weakest.id).attrs[attribute]);
-
-      const nextScaled = nextWeakest.squad[0].attrs[attribute] * 1.025;
-      expect([Math.floor(nextScaled), Math.ceil(nextScaled)]).toContain(
-        advancedPlayer(nextWeakest.id).attrs[attribute],
+      const scaled = beaten.squad[0].attrs[attribute] * 1.03;
+      expect([Math.floor(scaled), Math.ceil(scaled)]).toContain(
+        advancedPlayer(beaten.id).attrs[attribute],
+      );
+      const cozyScaled = beaten.squad[0].attrs[attribute] * 1.01;
+      expect([Math.floor(cozyScaled), Math.ceil(cozyScaled)]).toContain(
+        cozyPlayer.attrs[attribute],
       );
     }
   });

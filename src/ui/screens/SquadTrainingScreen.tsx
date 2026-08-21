@@ -803,6 +803,9 @@ export function SquadTrainingScreen({
             playerLookId={selectedPlayer.lookId}
             options={viewModel.selectedPlayerStatOptions}
             superChancePercent={selectedPlayer.superChancePercent}
+            drillsUntilGuaranteedSuper={
+              selectedPlayer.drillsUntilGuaranteedSuper
+            }
             injuryRiskPercent={selectedPlayer.injuryRiskPercent}
             condition={selectedPlayer.condition}
             injuryWeeks={selectedPlayer.injuryWeeks}

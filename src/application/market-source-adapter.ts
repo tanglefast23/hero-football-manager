@@ -8,6 +8,7 @@ import {
 } from '../game/market-career';
 import {
   CAREER_CLUB_FAME_CEILING,
+  contractWageStep,
   renewalOpeningOfferWage,
   scoutMissionCost,
   startScoutMission,
@@ -231,7 +232,7 @@ export function careerMarketViewModelSource(
               `transfer talks ${talks.playerId} do not reference a transfer target`,
             );
           }
-          const wageStep = wageStepFor(player.weeklyWage);
+          const wageStep = contractWageStep(talks.negotiation.weeklyAsk);
           return {
             state: talks.negotiation,
             playerName: player.name,
@@ -575,12 +576,6 @@ function scoutOfficeLevel(state: GameState): number {
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {
   return (state.season - 1) * 30 + state.week;
-}
-
-function wageStepFor(weeklyWage: number): number {
-  if (weeklyWage >= 2500) return 250;
-  if (weeklyWage >= 1000) return 100;
-  return 50;
 }
 
 function cloneScoutMission(

@@ -120,6 +120,14 @@ export function reconcileBoardUltimatumCandidates(state: GameState): GameState {
     candidates.push(candidate);
     retainedIds.add(candidate.playerId);
   }
+  const eligibleRank = new Map(
+    eligible.map((candidate, index) => [candidate.playerId, index]),
+  );
+  candidates.sort(
+    (left, right) =>
+      (eligibleRank.get(left.playerId) ?? Number.MAX_SAFE_INTEGER) -
+      (eligibleRank.get(right.playerId) ?? Number.MAX_SAFE_INTEGER),
+  );
   const protectedPlayerId =
     ultimatum.protectedPlayerId !== undefined &&
     retainedIds.has(ultimatum.protectedPlayerId)
@@ -160,19 +168,24 @@ function eligibleBoardSaleCandidates(state: GameState): BoardSaleCandidate[] {
     .filter(
       (player) =>
         player.clubId === state.userClubId &&
+        player.id !== state.onboarding?.createdPlayerId &&
         player.contractSeasonsRemaining > 0 &&
         canLeaveWithoutBreakingLineup(state, player),
     )
-    .map((player) => candidateForPlayer(state, player, division))
+    .map((player) => ({
+      candidate: candidateForPlayer(state, player, division),
+      weeklyWage: player.weeklyWage,
+      starter: starters.has(player.id) ? 1 : 0,
+    }))
     .sort((left, right) => {
-      const leftStarter = starters.has(left.playerId) ? 1 : 0;
-      const rightStarter = starters.has(right.playerId) ? 1 : 0;
       return (
-        leftStarter - rightStarter ||
-        right.forcedSaleFee - left.forcedSaleFee ||
-        compareIds(left.playerId, right.playerId)
+        right.weeklyWage - left.weeklyWage ||
+        left.starter - right.starter ||
+        right.candidate.forcedSaleFee - left.candidate.forcedSaleFee ||
+        compareIds(left.candidate.playerId, right.candidate.playerId)
       );
-    });
+    })
+    .map(({ candidate }) => candidate);
 }
 
 /** Selects or changes the one player protected from a board-enforced sale. */
@@ -407,7 +420,7 @@ export function boardForcedSaleAtDeadline(
     if (buyer === undefined) continue;
     const fansLost = Math.min(
       userClub.fans,
-      Math.max(25, Math.floor(userClub.fans / 10)),
+      Math.max(25, Math.min(150, Math.floor(userClub.fans / 10))),
     );
     const replacement = createEmergencyYouthReplacement(
       state,

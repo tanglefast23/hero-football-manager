@@ -689,7 +689,6 @@ describe('validated M1 launch content', () => {
       'division-leaders',
       'sponsor-desk',
       'sponsor-desk-continuity',
-      'sponsor-buzz',
       'first-injury',
       'first-emergency-loan',
       'first-transfer-request',
@@ -756,7 +755,7 @@ describe('validated M1 launch content', () => {
     const m2Sequences = content.assistantGuide.sequences.filter(
       (sequence) => !screenDelivered.includes(sequence.id),
     );
-    expect(m2Sequences).toHaveLength(28);
+    expect(m2Sequences).toHaveLength(27);
     expect(
       m2Sequences.every(
         (sequence) =>
@@ -880,22 +879,6 @@ describe('validated M1 launch content', () => {
           focus: 'sponsor-summary',
           body: [
             'The club has already moved up in the divisions, boss. Your current sponsor income carries on this season. The new offers arrive next pre-season.',
-          ],
-        },
-      ],
-    });
-    expect(
-      content.assistantGuide.sequences.find(
-        (sequence) => sequence.id === 'sponsor-buzz',
-      ),
-    ).toMatchObject({
-      destination: 'club-finances',
-      pages: [
-        {
-          focus: 'sponsor-buzz',
-          objective: 'REVIEW THE BUZZ METER.',
-          body: [
-            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. It cashes out in Week 15 and Week 30 — a full meter pays a month's sponsor money on top.",
           ],
         },
       ],

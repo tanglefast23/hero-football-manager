@@ -6,6 +6,7 @@ import { compareIds } from './ordering';
 import { roleOverall } from './archetype-caps';
 import {
   CLUB_LEGEND_MIN_FAME,
+  DIVISION_STAR_FOCUS_RATINGS,
   DIVISION_SUPPORT_STRENGTHS,
   divisionTierLabel,
   type DivisionLevel,
@@ -68,7 +69,7 @@ export interface ScoutablePlayer {
   readonly power?: PowerId;
   readonly powerTier?: number;
   readonly contractSeasonsRemaining: number;
-  /** Transient source division used only to compare bargain value. */
+  /** Source division used for scout reach and bargain value. */
   readonly sellingClubDivision?: number;
 }
 
@@ -93,6 +94,8 @@ export interface ScoutMission {
   readonly region: ScoutRegion;
   readonly focus: ScoutFocus;
   readonly scoutOfficeLevel: number;
+  /** Club division when the search began. Missing legacy missions use D5. */
+  readonly division?: number;
   /** Same-role strength when the mission began, for Immediate Starter searches. */
   readonly starterScores?: Readonly<Partial<Record<Role, number>>>;
 }
@@ -112,10 +115,10 @@ export interface ScoutReport {
   readonly age: number;
   readonly statRanges: ScoutedAttributeRanges;
   readonly potentialRange: ScoutedRange;
-  /** Level 3 reports confirm a power; lower-level reports leave it unknown. */
+  /** Hero searches always reveal the exact power. */
   readonly power?: PowerId;
   readonly powerTier?: number;
-  /** A rare hero-focus hit without revealing the exact power below office level 3. */
+  /** A rare hit from a Hero search. */
   readonly rumoredHeroLead?: true;
   /** Saved by the career wrapper so reports from different missions can coexist. */
   readonly completedSeason?: number;
@@ -231,6 +234,7 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
     region: setup.region,
     focus: { ...setup.focus },
     scoutOfficeLevel: setup.scoutOfficeLevel,
+    division: setup.division,
     ...(setup.starterScores === undefined
       ? {}
       : { starterScores: { ...setup.starterScores } }),
@@ -275,10 +279,29 @@ export function resolveScoutMission(
   );
   for (const candidate of candidates) validateScoutablePlayer(candidate);
 
+  const currentStrengthDivision = Math.max(
+    1,
+    (mission.division ?? 5) - 1,
+  ) as DivisionLevel;
+  // Potential may reach two divisions up. Current strength stops one tier up.
+  const currentStrengthCeiling =
+    Math.ceil(
+      (DIVISION_SUPPORT_STRENGTHS[currentStrengthDivision] +
+        DIVISION_STAR_FOCUS_RATINGS[currentStrengthDivision]) /
+        2,
+    ) + 5;
+
   const eligible = candidates
     .filter(
       (candidate) =>
         candidate.region === mission.region &&
+        (candidate.sellingClubDivision === undefined ||
+          candidate.sellingClubDivision >=
+            Math.max(1, (mission.division ?? 5) - 2)) &&
+        roleOverall(candidate.role, candidate.attrs) <=
+          currentStrengthCeiling &&
+        (mission.focus.kind === 'RUMORED_HERO' ||
+          candidate.power === undefined) &&
         matchesScoutFocus(candidate, mission.focus),
     )
     .slice()
@@ -320,7 +343,7 @@ export function resolveScoutMission(
         5,
         mixSeed(mission.missionSeed, `${candidate.id}:potential`),
       ),
-      ...(mission.scoutOfficeLevel === 3 && candidate.power !== undefined
+      ...(candidate.power !== undefined
         ? { power: candidate.power, powerTier: candidate.powerTier ?? 1 }
         : {}),
       ...(mission.focus.kind === 'RUMORED_HERO' && candidate.power !== undefined
@@ -1291,6 +1314,12 @@ export function renewalOpeningOfferWage(
   return Math.max(wageStep, Math.ceil(weeklyAsk / 2), opening);
 }
 
+/** One percent of the original ask, rounded to $10, with the old $50 floor. */
+export function contractWageStep(weeklyAsk: number): number {
+  assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
+  return Math.max(50, Math.round(weeklyAsk / 1000) * 10);
+}
+
 export function submitContractOffer(
   negotiation: ContractNegotiation,
   offer: ContractOffer,
@@ -1834,6 +1863,7 @@ function validateScoutMission(mission: ScoutMission): void {
   }
   assertPositiveSafeInteger(mission.cost, 'scouting mission cost');
   validateScoutOfficeLevel(mission.scoutOfficeLevel);
+  if (mission.division !== undefined) validateDivision(mission.division);
   validateScoutFocus(mission.focus);
 }
 

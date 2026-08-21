@@ -418,6 +418,7 @@ export function MarketScreen({
   const coachDesk = coachSectionVisible ? (
     <CoachDesk
       viewModel={viewModel}
+      compact={layoutMode !== 'twoColumn'}
       onHireCoach={(coachId, role) =>
         guardTap(() => onHireCoach(coachId, role))
       }
@@ -1332,6 +1333,7 @@ function TransferDesk({
 
 function CoachDesk({
   viewModel,
+  compact,
   onHireCoach,
   guidanceNudgeTarget,
   guidanceNudgeToken,
@@ -1343,7 +1345,9 @@ function CoachDesk({
   | 'guidanceNudgeTarget'
   | 'guidanceNudgeToken'
   | 'reduceMotion'
->) {
+> & {
+  readonly compact: boolean;
+}) {
   const t = useCopy();
   const firstAvailableHeadCoachId = viewModel.coaches.find(
     (coach) => coach.headAvailable,
@@ -1488,7 +1492,9 @@ function CoachDesk({
                     {t('market.buildTheCoachingOffice')}
                   </Text>
                 ) : null}
-                <View className="flex-row justify-end gap-2">
+                <View
+                  className={compact ? 'gap-2' : 'flex-row justify-end gap-2'}
+                >
                   <SmallAction
                     label={t('market.hireAsHead')}
                     accessibilityLabel={t('market.a11y.hireAsHeadCoach', {
@@ -1664,6 +1670,9 @@ export function NegotiationPanel({
   // whose. Blocking the button is what stops the agent accepting a deal the
   // career would then refuse to complete.
   const reclaimChoice = selectedPerk?.heroLicenseReclaim;
+  const selectedReclaim = reclaimChoice?.options.find(
+    (option) => option.playerId === reclaimPlayerId,
+  );
   const reclaimUnchosen =
     reclaimChoice !== undefined &&
     !reclaimChoice.options.some(
@@ -1974,7 +1983,7 @@ export function NegotiationPanel({
                     <Pressable
                       key={holder.playerId}
                       accessibilityRole="radio"
-                      accessibilityLabel={`${holder.name}, ${holder.role}, ${holder.statusLabel}`}
+                      accessibilityLabel={`${holder.name}, ${holder.role}, ${holder.statusLabel}. ${holder.consequenceLabel}`}
                       accessibilityState={{
                         selected: reclaimPlayerId === holder.playerId,
                       }}
@@ -1994,9 +2003,11 @@ export function NegotiationPanel({
                     </Pressable>
                   ))}
                 </View>
-                <Text className="mt-2 text-sm leading-5 text-ink/60">
-                  {t('market.reclaimHeroLicenseWarning')}
-                </Text>
+                {selectedReclaim === undefined ? null : (
+                  <Text className="mt-2 text-sm font-bold leading-5 text-stamp">
+                    {selectedReclaim.consequenceLabel}
+                  </Text>
+                )}
               </View>
             )}
           </View>
@@ -2012,68 +2023,85 @@ export function NegotiationPanel({
                   detail={t('market.pitchCardsAreEarned')}
                 />
               ) : (
-                viewModel.cards.map((card) => {
-                  const selected = pitchCard === card.id;
-                  return (
-                    <Pressable
-                      key={card.id}
-                      accessibilityRole="radio"
-                      accessibilityLabel={t('market.a11y.cardLabelDetail', {
-                        label: card.label,
-                        detail: card.detail,
-                      })}
-                      accessibilityState={{ selected, disabled: card.used }}
-                      disabled={card.used}
-                      onPress={() =>
-                        setPitchCard((current) =>
-                          current === card.id ? undefined : card.id,
-                        )
-                      }
-                      className={
-                        card.used
-                          ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
-                          : selected
-                            ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
-                            : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'
-                      }
-                    >
-                      <View className="flex-row items-center justify-between gap-3">
-                        <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
-                          {card.label}
-                        </PixelText>
-                        {/* The loved/hated mapping has always been in the engine
+                <>
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityLabel={t('market.noPitchCard')}
+                    accessibilityState={{ selected: pitchCard === undefined }}
+                    onPress={() => setPitchCard(undefined)}
+                    className={
+                      pitchCard === undefined
+                        ? 'min-h-12 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                        : 'min-h-12 border-2 border-ink/30 bg-white px-3 py-2'
+                    }
+                  >
+                    <PixelText className="text-sm uppercase text-ink">
+                      {t('market.noPitchCard')}
+                    </PixelText>
+                  </Pressable>
+                  {viewModel.cards.map((card) => {
+                    const selected = pitchCard === card.id;
+                    return (
+                      <Pressable
+                        key={card.id}
+                        accessibilityRole="radio"
+                        accessibilityLabel={t('market.a11y.cardLabelDetail', {
+                          label: card.label,
+                          detail: card.detail,
+                        })}
+                        accessibilityState={{ selected, disabled: card.used }}
+                        disabled={card.used}
+                        onPress={() =>
+                          setPitchCard((current) =>
+                            current === card.id ? undefined : card.id,
+                          )
+                        }
+                        className={
+                          card.used
+                            ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
+                            : selected
+                              ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                              : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'
+                        }
+                      >
+                        <View className="flex-row items-center justify-between gap-3">
+                          <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
+                            {card.label}
+                          </PixelText>
+                          {/* The loved/hated mapping has always been in the engine
                           and never on screen, so a hated card cost 10% AND one
                           of only three rounds with no warning. Read as how the
                           player takes it, not as a rule being quoted at you. */}
-                        {card.used ||
-                        card.affinity === undefined ||
-                        card.affinity === 'NEUTRAL' ? null : (
-                          <Text
-                            className={
-                              card.affinity === 'LOVED'
-                                ? 'font-pixel text-sm uppercase text-pitch-ink'
-                                : 'font-pixel text-sm uppercase text-stamp'
-                            }
-                          >
-                            {card.affinity === 'LOVED'
-                              ? t('market.heLlLikeThis')
-                              : t('market.risky')}
+                          {card.used ||
+                          card.affinity === undefined ||
+                          card.affinity === 'NEUTRAL' ? null : (
+                            <Text
+                              className={
+                                card.affinity === 'LOVED'
+                                  ? 'font-pixel text-sm uppercase text-pitch-ink'
+                                  : 'font-pixel text-sm uppercase text-stamp'
+                              }
+                            >
+                              {card.affinity === 'LOVED'
+                                ? t('market.heLlLikeThis')
+                                : t('market.risky')}
+                            </Text>
+                          )}
+                          <Text className="font-pixel text-sm uppercase text-ink/50">
+                            {card.used
+                              ? t('market.played')
+                              : selected
+                                ? t('market.loaded')
+                                : t('market.card')}
                           </Text>
-                        )}
-                        <Text className="font-pixel text-sm uppercase text-ink/50">
-                          {card.used
-                            ? t('market.played')
-                            : selected
-                              ? t('market.loaded')
-                              : t('market.card')}
+                        </View>
+                        <Text className="mt-1 text-sm text-ink/60">
+                          {card.detail}
                         </Text>
-                      </View>
-                      <Text className="mt-1 text-sm text-ink/60">
-                        {card.detail}
-                      </Text>
-                    </Pressable>
-                  );
-                })
+                      </Pressable>
+                    );
+                  })}
+                </>
               )}
             </View>
           </View>

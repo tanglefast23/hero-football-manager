@@ -11,6 +11,7 @@ import {
   FACILITY_ADJACENCIES,
   activeCareerMatchday,
   addCreatedPlayer,
+  arrangeCareerLineupForFormation,
   applyCareerNegotiationConsequence,
   beginStoryOnboarding,
   beginCareerTransferTalks,
@@ -125,6 +126,7 @@ import {
 import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
 import { mulberry32 } from '../sim/rng';
+import type { FormationId } from '../sim/tactics';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type {
   ManagementTab,
@@ -607,6 +609,7 @@ interface M1Store {
   continueAfterEvent: () => void;
   skipUnavailableEvent: () => void;
   toggleHeroLicense: (playerId: string) => void;
+  arrangeStartingLineup: (formation: FormationId) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
   acceptSponsorOffer: (offerId: string) => void;
@@ -1804,7 +1807,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         fixture.id,
         userResult,
         [],
-        production.powerFiredPlayerIds,
         t,
       );
       const destination = awakening.awakened
@@ -2000,7 +2002,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         fixture.id,
         supplied,
         highlights,
-        production.powerFiredPlayerIds,
         t,
       );
       const destination = awakening.awakened
@@ -2535,46 +2536,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
         selected.push(playerId);
       }
 
-      let next = selectCareerLicensedHeroes(career, selected);
-      if (!player.licensed) {
-        const lineup = next.lineups.find(
-          (candidate) => candidate.clubId === next.userClubId,
-        );
-        if (lineup === undefined)
-          throw new Error('the user club has no lineup');
-        if (!lineup.playerIds.includes(playerId)) {
-          const playerById = new Map(
-            next.players.map((candidate) => [candidate.id, candidate]),
-          );
-          const outgoing =
-            lineup.playerIds
-              .map((id) => playerById.get(id))
-              .find(
-                (candidate) =>
-                  candidate?.power !== undefined &&
-                  !candidate.licensed &&
-                  candidate.role === player.role,
-              ) ??
-            lineup.playerIds
-              .map((id) => playerById.get(id))
-              .find(
-                (candidate) =>
-                  candidate?.power !== undefined &&
-                  !candidate.licensed &&
-                  candidate.role !== 'GK' &&
-                  player.role !== 'GK',
-              );
-          if (outgoing === undefined) {
-            throw new Error(
-              'bench an unlicensed hero in the same role before making this swap',
-            );
-          }
-          next = setCareerLineup(
-            next,
-            lineup.playerIds.map((id) => (id === outgoing.id ? playerId : id)),
-          );
-        }
-      }
+      const next = selectCareerLicensedHeroes(career, selected);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  arrangeStartingLineup(formation) {
+    guarded(set, () => {
+      const next = arrangeCareerLineupForFormation(
+        requireCareer(get()),
+        formation,
+      );
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

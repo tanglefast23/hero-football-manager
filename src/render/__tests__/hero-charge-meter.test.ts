@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createMatch, tick } from '../../sim/match';
-import { ARM_WINDOW_TICKS, ZONE_HEAT_THRESHOLD } from '../../sim/powers';
+import { ZONE_HEAT_THRESHOLD } from '../../sim/powers';
 import { ROVERS, UNITED } from '../../sim/teams';
 import {
   CHARGE_BAND_WIDTH,
@@ -55,23 +55,20 @@ describe('possession-card hero charge meter', () => {
     });
   });
 
-  it('resets once the power is actually being used', () => {
+  it('stays full through a keeper save window', () => {
     expect(
       chargeMeter(
         0,
         {
           kind: 'armed',
           remainingTicks: 20,
-          windowTicks: ARM_WINDOW_TICKS,
+          windowTicks: 20,
           strength: 0.9,
           sawShotOnTarget: false,
         },
         'MID',
       ),
-    ).toEqual({
-      state: 'spent',
-      fill: 0,
-    });
+    ).toEqual({ state: 'ready', fill: 1 });
     expect(
       chargeMeter(0, { kind: 'winding', untilTick: 40, strength: 1 }, 'MID'),
     ).toEqual({

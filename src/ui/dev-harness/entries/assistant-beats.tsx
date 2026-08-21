@@ -68,7 +68,6 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'division-leaders',
   'sponsor-desk',
   'sponsor-desk-continuity',
-  'sponsor-buzz',
   'scout-report-unaffordable',
   // The last eight are authored the same way but have no content sequence: they
   // are one-off remarks App.tsx hands him as a custom message, so the reel
@@ -118,7 +117,6 @@ const SEQUENCE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'board-protection': 'PROTECT',
   'sponsor-desk': 'DEALS',
   'sponsor-desk-continuity': 'SAFE',
-  'sponsor-buzz': 'BUZZ',
 });
 
 interface BeatGroup {
@@ -159,7 +157,6 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
       'facility-adjacency',
       'sponsor-desk',
       'sponsor-desk-continuity',
-      'sponsor-buzz',
     ],
   },
   {

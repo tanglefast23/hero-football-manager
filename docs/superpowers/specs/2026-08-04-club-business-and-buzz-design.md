@@ -1,7 +1,7 @@
 # Club Business, Supporters, and Buzz — design
 
 **Date:** 2026-08-04  
-**Status:** approved for implementation; Quick/Watch policy B confirmed 2026-08-05  
+**Status:** historical; Buzz was removed on 2026-08-20
 **Scope:** supporter growth, managed sponsors, Buzz, facility-upgrade rebalance,
 save migration, balance verification, and phone-width UX
 

@@ -27,7 +27,7 @@ function tickUntil(m: MatchState, pred: () => boolean, max: number): void {
 describe('M0 acceptance suite (Task 13)', () => {
   describe('GATE-2: moment quality', () => {
     const ATTACK_Y = Math.round(PITCH_H * 0.32); // attacking third — beyond the automatic close-range shot, but past the opposing forward line
-    const OWN_Y = Math.round(PITCH_H * 0.85); // deep in the defensive third
+    const TOO_CLOSE_Y = Math.round(PITCH_H * 0.15); // still useful, but too close for the full burst to create as many shots
 
     function shotsAfterSpeedTap(seed: number, attackingHalf: boolean): number {
       // SAVE_FOR_TAP: the tap is the instrument under test (m2.1 default flip).
@@ -37,7 +37,7 @@ describe('M0 acceptance suite (Task 13)', () => {
       m.ball = { kind: 'held', by: SPEEDSTER };
       m.players[SPEEDSTER].pos = {
         x: GOAL_CENTER_X,
-        y: attackingHalf ? ATTACK_Y : OWN_Y,
+        y: attackingHalf ? ATTACK_Y : TOO_CLOSE_Y,
       };
       m.players[SPEEDSTER].powerState = {
         kind: 'zone',
@@ -69,7 +69,7 @@ describe('M0 acceptance suite (Task 13)', () => {
         .length;
     }
 
-    it('SUPER_SPEED: tapping in the attacking half beats tapping deep in your own half (200 paired seeds, CI > 0)', () => {
+    it('SUPER_SPEED: tapping with runway beats tapping too close to goal (200 paired seeds, CI > 0)', () => {
       const N = 200;
       const diffs: number[] = new Array(N);
       for (let seed = 1; seed <= N; seed++) {

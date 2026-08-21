@@ -52,14 +52,6 @@
       "why": "Yang benar-benar tertulis di stadion."
     },
     {
-      "english": "Buzz",
-      "englishPattern": "\\bBuzz\\b",
-      "allowedForms": [
-        "Gaung"
-      ],
-      "why": "Gaung klub di kota — persis yang diukur meternya."
-    },
-    {
       "english": "Superpower",
       "englishPattern": "[Ss]uperpowers?",
       "allowedForms": [

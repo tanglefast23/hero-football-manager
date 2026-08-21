@@ -245,8 +245,6 @@ export function ClubFinancesScreen({
   const trainingGroundRef = useRef<View>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const sponsorDeskTargetRef = useRef<View>(null);
-  const sponsorBuzzTargetRef = useRef<View>(null);
-  const sponsorBuzzAccessibilityRef = useRef<View>(null);
   const handledSponsorFocusTokenRef = useRef<number | undefined>(undefined);
   const sponsorGuideHandledRef = useRef<string | null>(null);
   const {
@@ -611,29 +609,19 @@ export function ClubFinancesScreen({
   const revealSponsorGuideTarget = useCallback(() => {
     if (
       activeTab !== 'finances' ||
-      (guideFocus !== 'sponsor-desk' &&
-        guideFocus !== 'sponsor-summary' &&
-        guideFocus !== 'sponsor-buzz') ||
+      (guideFocus !== 'sponsor-desk' && guideFocus !== 'sponsor-summary') ||
       sponsorGuideHandledRef.current === guideFocus
     )
       return;
-    const scrollTarget =
-      guideFocus === 'sponsor-buzz'
-        ? sponsorBuzzTargetRef.current
-        : sponsorDeskTargetRef.current;
-    const focusTarget =
-      guideFocus === 'sponsor-buzz'
-        ? (sponsorBuzzAccessibilityRef.current ?? sponsorBuzzTargetRef.current)
-        : sponsorDeskTargetRef.current;
+    const scrollTarget = sponsorDeskTargetRef.current;
+    const focusTarget = sponsorDeskTargetRef.current;
     if (scrollTarget === null || focusTarget === null) return;
     sponsorGuideHandledRef.current = guideFocus;
     requestAnimationFrame(() => {
       scrollToTarget(
         scrollRef,
         scrollViewportRef,
-        guideFocus === 'sponsor-buzz'
-          ? sponsorBuzzTargetRef
-          : sponsorDeskTargetRef,
+        sponsorDeskTargetRef,
         latestScrollOffsetRef.current,
         12,
         !reduceMotion,
@@ -643,11 +631,7 @@ export function ClubFinancesScreen({
   }, [activeTab, guideFocus, reduceMotion]);
 
   useEffect(() => {
-    if (
-      guideFocus !== 'sponsor-desk' &&
-      guideFocus !== 'sponsor-summary' &&
-      guideFocus !== 'sponsor-buzz'
-    ) {
+    if (guideFocus !== 'sponsor-desk' && guideFocus !== 'sponsor-summary') {
       sponsorGuideHandledRef.current = null;
       return;
     }
@@ -663,6 +647,10 @@ export function ClubFinancesScreen({
     )
       return;
     handledSponsorFocusTokenRef.current = focusSponsorSummaryToken;
+    const nextSlot = viewModel.sponsorship?.slots.find(
+      (slot) => slot.provisional && slot.offers.length > 0,
+    );
+    if (nextSlot !== undefined) setSelectedSponsorSlot(nextSlot.slot);
     const frame = requestAnimationFrame(() => {
       scrollToTarget(
         scrollRef,
@@ -802,8 +790,6 @@ export function ClubFinancesScreen({
                 onChooseWeeklyChallenge={onChooseSponsorWeeklyChallenge}
                 guideFocus={guideFocus}
                 sponsorDeskTargetRef={sponsorDeskTargetRef}
-                sponsorBuzzTargetRef={sponsorBuzzTargetRef}
-                sponsorBuzzAccessibilityRef={sponsorBuzzAccessibilityRef}
                 onGuideTargetLayout={revealSponsorGuideTarget}
               />
             ),
@@ -836,7 +822,12 @@ export function ClubFinancesScreen({
       key: 'income-generation',
       weight: 3 + viewModel.incomeGeneration.rows.length,
       startsColumn: true,
-      node: <IncomeGenerationSection income={viewModel.incomeGeneration} />,
+      node: (
+        <IncomeGenerationSection
+          income={viewModel.incomeGeneration}
+          compact={layoutMode !== 'twoColumn'}
+        />
+      ),
     },
     // The mirror of the section above it: that one is where next week's money
     // comes from, this is where next week's TP comes from.
@@ -1276,8 +1267,6 @@ interface SponsorBusinessSectionProps {
   onChooseWeeklyChallenge?: (kind: SponsorWeeklyChallengeKindViewModel) => void;
   guideFocus?: AssistantGuideFocus;
   sponsorDeskTargetRef: RefObject<View | null>;
-  sponsorBuzzTargetRef: RefObject<View | null>;
-  sponsorBuzzAccessibilityRef: RefObject<View | null>;
   onGuideTargetLayout: () => void;
 }
 
@@ -1290,8 +1279,6 @@ function SponsorBusinessSection({
   onChooseWeeklyChallenge,
   guideFocus,
   sponsorDeskTargetRef,
-  sponsorBuzzTargetRef,
-  sponsorBuzzAccessibilityRef,
   onGuideTargetLayout,
 }: SponsorBusinessSectionProps) {
   const t = useCopy();
@@ -1303,18 +1290,12 @@ function SponsorBusinessSection({
 
   if (!sponsorship.managed) {
     return (
-      <View
-        className={
-          guideFocus === 'sponsor-buzz'
-            ? 'border-2 border-blue-dark bg-blue-light p-1'
-            : undefined
-        }
-      >
+      <View>
         <SponsorHeading
-          title={t('clubFinances.clubBuzz')}
-          eyebrow={t('clubFinances.socialFollowing')}
-          stamp={t('clubFinances.stampSeasonThree')}
-          targetRef={sponsorBuzzTargetRef}
+          title={t('clubFinances.localAdvertising')}
+          eyebrow={t('clubFinances.clubBusiness')}
+          stamp={t('clubFinances.stampLive')}
+          targetRef={sponsorDeskTargetRef}
           onLayout={onGuideTargetLayout}
         />
         <PaperPanel
@@ -1327,12 +1308,6 @@ function SponsorBusinessSection({
               amount: formatCurrency(t, sponsorship.actualMonthlyIncome),
             })}
           </Text>
-          {sponsorship.buzz === undefined ? null : (
-            <BuzzCard
-              buzz={sponsorship.buzz}
-              focusTargetRef={sponsorBuzzAccessibilityRef}
-            />
-          )}
         </PaperPanel>
       </View>
     );
@@ -1382,7 +1357,7 @@ function SponsorBusinessSection({
 
       {sponsorship.weeklyChallenge === undefined ? null : (
         <PaperPanel
-          kicker={sponsorship.weeklyChallenge.sponsorName}
+          kicker={t('clubFinances.sponsorDesk')}
           title={t('clubFinances.sponsorSprintTitle')}
           stamp={
             sponsorship.weeklyChallenge.status === 'OFFER'
@@ -1483,24 +1458,6 @@ function SponsorBusinessSection({
               ))}
             </View>
           )}
-        </View>
-      )}
-
-      {sponsorship.buzz === undefined ? null : (
-        <View
-          ref={sponsorBuzzTargetRef}
-          collapsable={false}
-          onLayout={onGuideTargetLayout}
-          className={
-            guideFocus === 'sponsor-buzz'
-              ? 'mt-4 border-2 border-blue-dark bg-blue-light p-1'
-              : 'mt-4'
-          }
-        >
-          <BuzzCard
-            buzz={sponsorship.buzz}
-            focusTargetRef={sponsorBuzzAccessibilityRef}
-          />
         </View>
       )}
     </View>
@@ -1697,57 +1654,6 @@ function SponsorOfferCard({
             onPress={() => onReview(offer, slot)}
           />
         </View>
-      )}
-    </View>
-  );
-}
-
-function BuzzCard({
-  buzz,
-  focusTargetRef,
-}: {
-  readonly buzz: NonNullable<ClubSponsorshipViewModel['buzz']>;
-  readonly focusTargetRef: RefObject<View | null>;
-}) {
-  const t = useCopy();
-  return (
-    <View className="mt-3 border-2 border-b-4 border-ink bg-gold-light p-4">
-      <View className="flex-row flex-wrap items-start justify-between gap-2">
-        <View className="min-w-0 flex-1">
-          <PixelText className="text-base uppercase text-ink">
-            {t('clubFinances.clubBuzz')}
-          </PixelText>
-          <Text className="mt-1 text-sm text-ink/70">
-            {t('clubFinances.nextPayout', { when: buzz.nextPayoutLabel })}
-          </Text>
-        </View>
-        <StatusChip label={`${buzz.value} / 100`} tone="hero" />
-      </View>
-      <View
-        ref={focusTargetRef}
-        collapsable={false}
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel={t('clubFinances.a11y.clubBuzzProgress')}
-        accessibilityValue={{
-          min: 0,
-          max: 100,
-          now: buzz.value,
-          text: `${buzz.value} of 100`,
-        }}
-        className="mt-3 h-6 overflow-hidden border-2 border-ink bg-white"
-      >
-        <View className="h-full bg-gold" style={{ width: `${buzz.value}%` }} />
-      </View>
-      <Text className="mt-3 font-mono text-base text-ink">
-        {t('clubFinances.atTodaysRate', {
-          amount: formatCurrency(t, buzz.pendingPayout),
-        })}
-      </Text>
-      {buzz.lastSettlementLabel === undefined ? null : (
-        <Text className="mt-2 text-sm leading-5 text-ink/70">
-          {t('clubFinances.lastPayout', { when: buzz.lastSettlementLabel })}
-        </Text>
       )}
     </View>
   );
@@ -2003,8 +1909,10 @@ function incomeHistoryEntryLabel(
 
 function IncomeGenerationSection({
   income,
+  compact,
 }: {
   readonly income: IncomeGenerationViewModel;
+  readonly compact: boolean;
 }) {
   const t = useCopy();
   return (
@@ -2028,8 +1936,8 @@ function IncomeGenerationSection({
             }`}
             className="min-h-11 border-b border-ink/10 px-3 py-2 last:border-b-0"
           >
-            <View className="flex-row items-center">
-              <View className="flex-1 pr-3">
+            <View className={compact ? 'gap-1' : 'flex-row items-center'}>
+              <View className={compact ? 'min-w-0' : 'min-w-0 flex-1 pr-3'}>
                 <Text
                   className={
                     row.owned ? 'text-base text-ink' : 'text-base text-ink/45'

@@ -7,7 +7,6 @@ import {
 import type { GameState } from './types';
 import { powerIsCompatibleWithRole } from './power-catalog';
 import { hasActiveCareerContractPromise } from './contract-promises';
-import { careerHeroLimit } from './squad';
 import { isAvailableForSelection } from './lineup';
 import { leagueWeekForRound } from './schedule';
 
@@ -99,10 +98,6 @@ export function resolvePostMatchAwakening(
   const alreadyThisSeason = awakeningsThisSeason(state);
   const matchesSinceLastAwakening =
     state.awakening.matchesSinceLastAwakening + 1;
-  const licensedCount = state.players.filter(
-    (candidate) => candidate.clubId === state.userClubId && candidate.licensed,
-  ).length;
-  const hasAvailableHeroLicense = licensedCount < careerHeroLimit(state);
   let playerId: string | undefined;
 
   if (firstHero) {
@@ -160,7 +155,7 @@ export function resolvePostMatchAwakening(
           powerIds.some((power) =>
             powerIsCompatibleWithRole(power, player.role),
           ) &&
-          canSafelyAwaken(state, id, hasAvailableHeroLicense),
+          canSafelyAwaken(state, id),
       ),
     );
     if (eligible.length === 0) return nextWithoutAwakening();
@@ -250,11 +245,14 @@ export function resolvePostMatchAwakening(
           ...candidate,
           power,
           powerTier: 1 as const,
-          licensed: hasAvailableHeroLicense,
+          // The campaign's first hero is a free story gift. Later awakenings
+          // create a hero, not a hidden permit decision: the manager assigns a
+          // license explicitly after the reveal.
+          licensed: firstHero,
         }
       : candidate,
   );
-  const nextLineups = hasAvailableHeroLicense
+  const nextLineups = firstHero
     ? state.lineups
     : benchUnlicensedAwakening(state, nextPlayers, playerId);
   const next: GameState = {
@@ -379,12 +377,7 @@ function validateTriggerIds(triggerIds: readonly string[]): void {
   }
 }
 
-function canSafelyAwaken(
-  state: GameState,
-  playerId: string,
-  hasAvailableHeroLicense: boolean,
-): boolean {
-  if (hasAvailableHeroLicense) return true;
+function canSafelyAwaken(state: GameState, playerId: string): boolean {
   const player = state.players.find((candidate) => candidate.id === playerId);
   if (player === undefined) return false;
   if (

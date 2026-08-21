@@ -225,26 +225,6 @@ describe('assistant guide application flow', () => {
     );
   });
 
-  test('queues Buzz on the first Season 3 management morning even while managed sponsors stay locked', () => {
-    const fresh = createCareer(createLaunchCareerSetup(9_803));
-    const seasonThreeD5: GameState = {
-      ...fresh,
-      season: 3,
-      week: 1,
-      phase: 'manage',
-    };
-
-    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).toContain(
-      'sponsor-buzz',
-    );
-    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).not.toContain(
-      'sponsor-desk',
-    );
-    expect(
-      dueAssistantInboxGuideSequences({ ...seasonThreeD5, phase: 'matchday' }),
-    ).not.toContain('sponsor-buzz');
-  });
-
   test('replaces an impossible Week 5 Sponsor Desk objective with continuity copy', () => {
     const migrated = managedSponsorCareer({
       season: 3,
@@ -282,7 +262,7 @@ describe('assistant guide application flow', () => {
     );
   });
 
-  test('forgets a premature Sponsor Desk delivery before D4 instead of releasing Buzz early', () => {
+  test('forgets a premature Sponsor Desk delivery before D4', () => {
     const fresh = createCareer(createLaunchCareerSetup(9_804));
     const exposed: GameState = {
       ...fresh,
@@ -291,7 +271,6 @@ describe('assistant guide application flow', () => {
         ...fresh.eventFlags,
         'guide:bert:inbox:queued:sponsor-desk',
         'guide:bert:inbox:delivered:s3:w1:guide:sponsor-desk',
-        'guide:bert:sponsor-desk:first-delivered:s3:w1:guide:sponsor-desk',
       ],
     };
     const repaired = reconcileSatisfiedAssistantGuideSequences(exposed);
@@ -312,9 +291,6 @@ describe('assistant guide application flow', () => {
     ).alerts;
     expect(alerts).toContainEqual(
       expect.objectContaining({ guideSequenceId: 'sponsor-desk' }),
-    );
-    expect(alerts).not.toContainEqual(
-      expect.objectContaining({ guideSequenceId: 'sponsor-buzz' }),
     );
   });
 

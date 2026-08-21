@@ -155,7 +155,7 @@ describe('the Hero License reclaim chooser', () => {
     // then refused to launch the next match on "must be licensed or benched".
     expect(market).toContainSource('reclaimChoice.prompt');
     expect(market).toContainSource('setReclaimPlayerId(holder.playerId)');
-    expect(market).toContainSource("t('market.reclaimHeroLicenseWarning')");
+    expect(market).toContainSource('selectedReclaim.consequenceLabel');
     // Sent with the offer, so the choice and the promise are applied together
     // or not at all — abandoned talks change no licence.
     expect(market).toContainSource(

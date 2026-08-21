@@ -576,26 +576,6 @@
       ]
     },
     {
-      "id": "sponsor-buzz",
-      "inbox": {
-        "title": "THE CLUB IS TRENDING",
-        "detail": "The team has a real following now, and it is starting to pay."
-      },
-      "destination": "club-finances",
-      "pages": [
-        {
-          "kicker": "A proper following",
-          "title": "People are talking",
-          "body": [
-            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. It cashes out in Week 15 and Week 30 — a full meter pays a month's sponsor money on top."
-          ],
-          "focus": "sponsor-buzz",
-          "objective": "REVIEW THE BUZZ METER.",
-          "buttonLabel": "Show me the noise."
-        }
-      ]
-    },
-    {
       "id": "first-injury",
       "inbox": {
         "title": "Your first injury",

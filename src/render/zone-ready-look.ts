@@ -1,22 +1,19 @@
 /**
- * How a hero who has banked his power reads on the pitch: a body that is 10%
- * bigger than a normal player, flushed red, and flashing.
+ * How a hero who has banked his power reads on the pitch: normal size, flushed
+ * red, and slowly flashing.
  *
- * The zone ring (WorkletMatchOverlays) already marks WHERE the hero is; this
- * marks that he is loaded even when the ring is behind another sprite.
+ * The foot oval marks WHERE the hero is; this tint marks that he is loaded
+ * even when the oval is behind another sprite.
  */
 
-/** Body growth while the power is banked. Applied to the snapped sprite scale. */
-export const ZONE_READY_GROWTH = 1.1;
-
 /**
- * One flash cycle, in sim ticks AT 1x SPEED. 8 ticks = 0.8s of wall clock.
+ * One flash cycle, in sim ticks AT 1x SPEED. 20 ticks = 2s of wall clock.
  *
  * The period is multiplied by the playback rate below, so 2x and 3x do not
  * divide it into a strobe: 3x would otherwise flash at 3.75Hz, past the 3-per-
  * second ceiling that photosensitivity guidance draws.
  */
-export const ZONE_READY_FLASH_TICKS = 8;
+export const ZONE_READY_FLASH_TICKS = 20;
 
 /**
  * Atlas tints are multiplied over the sprite (`colorBlendMode="modulate"`), so
@@ -39,30 +36,13 @@ export function zoneReadyTint(
 ): string {
   if (reduceMotion) return ZONE_READY_TINT_STEADY;
   const period = ZONE_READY_FLASH_TICKS * Math.max(1, Math.round(playbackRate));
-  const phase = ((tick % period) + period) % period;
-  return phase < period / 2 ? ZONE_READY_TINT_HOT : ZONE_READY_TINT_COOL;
-}
-
-/**
- * The grown sprite scale, landed back on whole device pixels — the same rule
- * the ball's apex growth follows, so a bigger hero is still a sharp hero.
- *
- * The `+ 1` floor is the whole point of the helper. A phone sprite is only a
- * handful of device pixels tall, and rounding 10% of 4 lands back on 4: the
- * hero would not grow at all on exactly the devices this ships to. So growth is
- * at least one whole device pixel, and 10% once the sprite is big enough for
- * 10% to be more than that.
- */
-export function zoneReadyPlayerScale(
-  playerScale: number,
-  devicePixelRatio: number,
-): number {
-  'worklet';
-  const dpr = Math.max(1, devicePixelRatio);
-  const devicePixels = Math.round(playerScale * dpr);
-  if (devicePixels <= 0) return 0;
-  return (
-    Math.max(devicePixels + 1, Math.round(devicePixels * ZONE_READY_GROWTH)) /
-    dpr
-  );
+  const phase = (((tick % period) + period) % period) / period;
+  const blend = (1 - Math.cos(phase * Math.PI * 2)) / 2;
+  const hot = [255, 143, 122];
+  const cool = [255, 208, 196];
+  const channel = (at: number) =>
+    Math.round(hot[at] + (cool[at] - hot[at]) * blend)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${channel(0)}${channel(1)}${channel(2)}`;
 }

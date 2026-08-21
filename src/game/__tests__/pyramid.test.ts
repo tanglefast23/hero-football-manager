@@ -367,6 +367,44 @@ describe('Hero Cup', () => {
     }
   });
 
+  it('gives a D2 user only a D3-or-higher Round of 32 opponent', () => {
+    for (let careerSeed = 1; careerSeed <= 25; careerSeed += 1) {
+      const pyramid = generateLeaguePyramid(careerSeed);
+      const divisionByClubId = Object.fromEntries(
+        pyramid.divisions.flatMap((division) =>
+          division.clubs.map((club) => [club.id, division.level] as const),
+        ),
+      );
+      const clubIds = Object.keys(divisionByClubId);
+      const playIn = createNationalCup(
+        clubIds,
+        1,
+        careerSeed,
+        divisionByClubId,
+      );
+      const protectedClubId = playIn.rounds[0].byeClubIds.find(
+        (clubId) => divisionByClubId[clubId] === 2,
+      )!;
+      const roundOf32 = advanceNationalCup(
+        playIn,
+        winResults(playIn),
+        protectedClubId,
+      ).rounds[1];
+      const fixture = roundOf32.fixtures.find(
+        (candidate) =>
+          candidate.homeClubId === protectedClubId ||
+          candidate.awayClubId === protectedClubId,
+      )!;
+      const opponentId =
+        fixture.homeClubId === protectedClubId
+          ? fixture.awayClubId
+          : fixture.homeClubId;
+
+      expect(divisionByClubId[opponentId]).toBeGreaterThanOrEqual(2);
+      expect(divisionByClubId[opponentId]).toBeLessThanOrEqual(3);
+    }
+  });
+
   it('accepts a named penalty winner after a draw and rejects contradictory results', () => {
     const clubIds = generateLeaguePyramid(4).divisions.flatMap((division) =>
       division.clubs.map((club) => club.id),

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createCareer, CUP_SETTLEMENT_WEEKS } from '../../game';
 import { createLaunchCareerSetup } from '../../application/launch';
 import {
@@ -43,6 +45,65 @@ describe('management UI truthfulness view models', () => {
     expect(user).toMatchObject({ position: 1, played: 1, won: 1, points: 3 });
     expect(viewModel.userPosition).toBe(1);
     expect(viewModel.leaderPoints).toBe(3);
+  });
+
+  it('marks only first place as a title place in Division 1', () => {
+    const initial = createCareer(createLaunchCareerSetup(413));
+    const pyramid = initial.m2!.pyramid;
+    const divisionOne = pyramid.divisions.find(
+      (division) => division.level === 1,
+    )!;
+    const divisionFive = pyramid.divisions.find(
+      (division) => division.level === 5,
+    )!;
+    const displaced = divisionOne.clubs[0];
+    const userClub = divisionFive.clubs.find(
+      (club) => club.id === initial.userClubId,
+    )!;
+    const career = {
+      ...initial,
+      m2: {
+        ...initial.m2!,
+        pyramid: {
+          ...pyramid,
+          divisions: pyramid.divisions.map((division) => {
+            if (division.level === 1) {
+              return {
+                ...division,
+                clubs: [
+                  userClub,
+                  ...division.clubs.filter((club) => club.id !== displaced.id),
+                ],
+              };
+            }
+            if (division.level === 5) {
+              return {
+                ...division,
+                clubs: division.clubs.map((club) =>
+                  club.id === initial.userClubId ? displaced : club,
+                ),
+              };
+            }
+            return division;
+          }),
+        },
+      },
+    };
+
+    const viewModel = leagueTableViewModel(career);
+
+    expect(viewModel.topDivision).toBe(true);
+    expect(
+      viewModel.rows
+        .filter((row) => row.inPromotionPlaces)
+        .map((row) => row.position),
+    ).toEqual([1]);
+    expect(
+      readFileSync(
+        join(process.cwd(), 'src/ui/screens/LeagueTableScreen.tsx'),
+        'utf8',
+      ),
+    ).toContain('!viewModel.topDivision && row.inPromotionPlaces');
   });
 
   it('only marks the fixture action ready during its actual matchday', () => {

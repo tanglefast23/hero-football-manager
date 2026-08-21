@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Text, View } from 'react-native';
 import { penaltyShootoutViewModel } from '../../../application/penalty-shootout';
 import type { PlayerDef, TeamDef } from '../../../sim/types';
 import { PenaltyShootout } from '../../DeferredSkiaSurfaces';
@@ -38,12 +40,21 @@ const shootout = penaltyShootoutViewModel({
 });
 
 function PenaltyShootoutReel({ reduced }: { readonly reduced: boolean }) {
+  const [complete, setComplete] = useState(false);
   if (shootout === null) return null;
+  if (complete)
+    return (
+      <View className="flex-1 items-center justify-center bg-ink">
+        <Text className="font-pixel text-base text-white">
+          SHOOTOUT COMPLETE
+        </Text>
+      </View>
+    );
   return (
     <PenaltyShootout
       shootout={shootout}
       reduceMotion={reduced}
-      onDone={() => undefined}
+      onDone={() => setComplete(true)}
     />
   );
 }
@@ -58,6 +69,6 @@ export const penaltyShootoutEntry: DevHarnessEntry = Object.freeze({
     Object.freeze({ id: 'reduced', label: 'Reduced motion' }),
   ]),
   render: (caseId: string) => (
-    <PenaltyShootoutReel reduced={caseId === 'reduced'} />
+    <PenaltyShootoutReel key={caseId} reduced={caseId === 'reduced'} />
   ),
 });

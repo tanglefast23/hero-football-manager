@@ -1,4 +1,5 @@
 import type { TeamDef } from '../sim/types';
+import { formationRoleForSlot, type FormationId } from '../sim/tactics';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { conditionedRatingD64 } from '../sim/contest';
 import { buildTeamDef, isAvailableForSelection } from './lineup';
@@ -649,6 +650,63 @@ export function setCareerLineup(
   const candidate = { ...state, lineups: nextLineups };
   buildCareerTeamDef(candidate, state.userClubId);
   return candidate;
+}
+
+/** Picks the strongest available natural-role lineup for the chosen formation. */
+export function arrangeCareerLineupForFormation(
+  state: GameState,
+  formation: FormationId,
+): GameState {
+  assertManagementChoicePhase(state, 'the lineup');
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined)
+    throw new Error(`missing lineup for club ${state.userClubId}`);
+  const remaining = state.players
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        isAvailableForSelection(player) &&
+        (player.power === undefined || player.licensed),
+    )
+    .sort(
+      (left, right) =>
+        conditionedRatingD64(
+          roleOverall(right.role, right.attrs),
+          right.condition ?? 100,
+        ) -
+          conditionedRatingD64(
+            roleOverall(left.role, left.attrs),
+            left.condition ?? 100,
+          ) || compareIds(left.id, right.id),
+    );
+  const arranged = lineup.playerIds.map((_, slot) => {
+    const role = formationRoleForSlot(formation, slot);
+    const match = remaining.findIndex((player) => player.role === role);
+    return match < 0 ? undefined : remaining.splice(match, 1)[0].id;
+  });
+  const playerIds = arranged.map((playerId, slot) => {
+    if (playerId !== undefined) return playerId;
+    const fallback = remaining.findIndex((player) =>
+      slot === 0 ? player.role === 'GK' : player.role !== 'GK',
+    );
+    return fallback < 0 ? undefined : remaining.splice(fallback, 1)[0].id;
+  });
+  if (playerIds.some((playerId) => playerId === undefined)) {
+    throw new Error('the squad cannot fill this formation');
+  }
+  const arrangedState = {
+    ...state,
+    lineups: state.lineups.map((candidate) =>
+      candidate.clubId === state.userClubId
+        ? { ...candidate, playerIds: playerIds as string[] }
+        : candidate,
+    ),
+  };
+  const restored = restoreCareerContractPromiseLineup(arrangedState);
+  buildCareerTeamDef(restored, state.userClubId);
+  return restored;
 }
 
 /**

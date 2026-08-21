@@ -32,7 +32,6 @@ export const TAP_STRENGTH = 1.0;
 const ARMED_STRENGTH = 0.9;
 export const CONTEXT_AUTO_STRENGTH = 0.85;
 const LAPSE_STRENGTH = 0.75;
-export const ARM_WINDOW_TICKS = 20;
 /**
  * A save keeper's press window: ten seconds, not two.
  *
@@ -111,8 +110,9 @@ export function zoneHeatThreshold(role: PlayerDef['role']): number {
 }
 
 /**
- * Heat handed back when a charge is lost rather than spent — an interrupted
- * wind-up, a lapsed armed window, a stale activation.
+ * Heat handed back when a charge is lost rather than spent — currently an
+ * interrupted wind-up. A stale tap keeps its Zone; a lapsed save window is
+ * spent and resets Heat to zero.
  *
  * Five sixths of that role's threshold, which is exactly the historical 50 for
  * an outfield hero and 4 for a keeper. A flat 50 was ten times a keeper's own
@@ -135,21 +135,35 @@ export function isShotSavePower(power: PowerId | undefined): boolean {
   return power === 'ELASTIC_KEEPER' || power === 'GIANT_GK';
 }
 
-/** The press window a power's tap opens. Save powers wait for a shot. */
-export function armWindowTicks(power: PowerId | undefined): number {
-  return isShotSavePower(power) ? GK_ARM_WINDOW_TICKS : ARM_WINDOW_TICKS;
+/** Whether a save-power keeper may start their ten-second manual window. */
+export function savePowerDangerPrompt(
+  state: MatchState,
+  keeperIdx: number,
+): boolean {
+  const keeper = playerAt(state, keeperIdx);
+  if (keeper === undefined || !isShotSavePower(keeper.def.power)) return false;
+  const ball = state.ball;
+  if (ball.kind === 'shot') {
+    const attackingTeam = playerAt(state, ball.by)?.team ?? null;
+    return attackingTeam !== null && attackingTeam !== keeper.team;
+  }
+  const attackingTeam =
+    ball.kind === 'held'
+      ? (playerAt(state, ball.by)?.team ?? null)
+      : ball.kind === 'pass'
+        ? (playerAt(state, ball.from)?.team ?? null)
+        : state.ballHolderTeam;
+  if (attackingTeam === null || attackingTeam === keeper.team) return false;
+  const y =
+    ball.kind === 'held'
+      ? (playerAt(state, ball.by)?.pos.y ?? PITCH_H / 2)
+      : ball.pos.y;
+  return keeper.team === 0 ? y >= (PITCH_H * 2) / 3 : y <= PITCH_H / 3;
 }
 
-/**
- * Strength a landed press is worth.
- *
- * A save keeper can never press "in context" — a shot in flight is far too
- * brief to react to — so their press would otherwise be capped at the armed
- * grade, making a manual keeper strictly worse than an automatic one and the
- * whole control pointless. Their committed press is worth full strength.
- */
-export function tapStrengthFor(power: PowerId | undefined): number {
-  return isShotSavePower(power) ? TAP_STRENGTH : ARMED_STRENGTH;
+/** The press window a power's tap opens. Only save powers open one. */
+export function armWindowTicks(power: PowerId | undefined): number {
+  return isShotSavePower(power) ? GK_ARM_WINDOW_TICKS : 0;
 }
 
 /** Power-authored states that suspend ordinary movement and interaction. */
@@ -233,6 +247,7 @@ export function expireSaveArm(state: MatchState): void {
     if (!isShotSavePower(p.def.power)) continue;
     if (p.powerState.remainingTicks > 0) continue;
     expirePower(state, idx, p.powerState.sawShotOnTarget ? 'other' : 'no-shot');
+    p.gauge = 0;
   }
 }
 
@@ -349,9 +364,8 @@ const STRENGTH_LAND_RANGE = 900;
  * targetless: a targetless fire is a stat smear, while a rival sitting on a
  * charge they cannot spend is a visible, playable threat (design ruling, Task
  * 12.2 follow-up). Since m1.27 the Zone no longer expires, so such a hero simply
- * holds; the late-window lapse (0.75) survives only on the POWER_TAP armed path,
- * as test instrumentation. Their fires come from a useful context — and a Super
- * Strength context inside STRENGTH_LOCK_RANGE guarantees the lock.
+ * holds. Their fires come from a useful context, and a Super Strength context
+ * inside STRENGTH_LOCK_RANGE guarantees the lock.
  */
 /**
  * Ticks left in the Zone below which the tap-policy audit counts the window as
@@ -364,10 +378,8 @@ export const LATE_WINDOW_TICKS = 20;
  * The low bar for auto-fire: "can this power do anything at all right now?", as
  * opposed to inUsefulContext's "is this the moment I would pick?".
  *
- * Auto holds out for the ideal context for most of the Zone, then late in the
- * window settles for a usable one rather than wasting the window. A manual tap
- * in the ideal moment fires at 100%; an early commitment instead places the
- * fixed two-second 90% arm window.
+ * Auto holds out for the ideal context. Manual outfield taps use
+ * `inUsefulContext` and never reach this fallback.
  *
  * Target-requiring powers may only settle when a target genuinely resolves;
  * web-trapping empty grass is a no-op, not a fallback.
@@ -819,9 +831,8 @@ export function powerTick(
       player.actionLockSourceIdx = undefined;
     }
   }
-  // A tap is a commitment, not extra Zone time. An already-good situation fires
-  // at full strength; an early tap places a fixed two-second armed window that
-  // fires at slightly reduced strength when its authored context appears.
+  // A tap is accepted only in a useful moment. Out-of-context taps remain in
+  // the replay log but do nothing; only save powers open a timed window.
   // match.tick owns the due-input partition so coaching and power inputs share
   // one ordered replay stream. This function handles only power taps.
   for (const input of dueInputs) {
@@ -834,25 +845,19 @@ export function powerTick(
     // keeper who counted as available here but not there would press the button
     // and watch nothing happen.
     const available = powerActorAvailable(state, input.player);
-    // A save keeper never fires instantly, because they can never press "in
-    // context" — the shot they exist for is far too brief to react to. Their
-    // press always opens the window, and the armed branch below fires it in
-    // this very tick if a shot is already on target.
-    if (
-      !isShotSavePower(power) &&
-      available &&
-      inUsefulContext(state, input.player)
-    ) {
+    if (!isShotSavePower(power)) {
+      if (!available || !inUsefulContext(state, input.player)) continue;
       beginPower(state, input.player, TAP_STRENGTH);
       continue;
     }
+    if (!available || !savePowerDangerPrompt(state, input.player)) continue;
     // The armed branch runs later in this same tick, so seed one extra count to
     // expose a full window of subsequent decision ticks.
     p.powerState = {
       kind: 'armed',
       remainingTicks: armWindowTicks(power) + 1,
       windowTicks: armWindowTicks(power),
-      strength: tapStrengthFor(power),
+      strength: TAP_STRENGTH,
       sawShotOnTarget: false,
     };
   }

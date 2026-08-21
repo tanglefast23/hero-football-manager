@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { loadLaunchContent } from '../../../content/load';
 import { matchDayViewModel } from '../../../application/view-models';
 import { activeCareerMatchday } from '../../../game/career';
+import { selectCareerLicensedHeroes } from '../../../game/squad';
 import type { GameState } from '../../../game/types';
 import { FixtureMatchDayScreen } from '../../screens/FixtureMatchDayScreen';
 import { COACHING_FORMATION_IDS } from '../../../sim/tactics';
@@ -13,6 +14,8 @@ interface ShopCase {
   readonly label: string;
   readonly note: string;
   readonly cash: number;
+  readonly sponsorChallenge?: boolean;
+  readonly permitFive?: boolean;
 }
 
 /**
@@ -32,6 +35,20 @@ const SHOP_CASES: readonly ShopCase[] = Object.freeze([
     label: 'Cannot pay',
     note: 'Same price, refused — the club is short',
     cash: 12_000,
+  },
+  {
+    id: 'sponsor-challenge',
+    label: 'Challenge',
+    note: 'Active Score 3+ goals challenge and $9,600 prize',
+    cash: 180_000,
+    sponsorChallenge: true,
+  },
+  {
+    id: 'permit-five',
+    label: 'Permit five',
+    note: 'D1 · four active permits · fifth hero starts on the bench',
+    cash: 1_000_000,
+    permitFive: true,
   },
 ]);
 
@@ -58,12 +75,27 @@ function matchdayCareer(): GameState {
  */
 function shopCareer(shopCase: ShopCase): GameState {
   const base = matchdayCareer();
+  const fixture = activeCareerMatchday(base)!.fixture;
   const squad = base.players.filter(
     (player) => player.clubId === base.userClubId,
   );
-  const heroIds = new Set(squad.slice(0, 2).map((player) => player.id));
+  const starterIds = new Set(
+    base.lineups.find((lineup) => lineup.clubId === base.userClubId)!.playerIds,
+  );
+  const permitFiveHeroes = [
+    ...squad
+      .filter((player) => starterIds.has(player.id) && player.role !== 'GK')
+      .slice(0, 4),
+    squad.find((player) => !starterIds.has(player.id) && player.role !== 'GK')!,
+  ];
+  const heroes = shopCase.permitFive ? permitFiveHeroes : squad.slice(0, 2);
+  const heroIds = new Set(heroes.map((player) => player.id));
+  const licensedIds = new Set(
+    heroes.slice(0, shopCase.permitFive ? 4 : 2).map((player) => player.id),
+  );
   return {
     ...base,
+    ...(shopCase.permitFive ? { purchasedHeroLicenseCap: 5 } : {}),
     clubs: base.clubs.map((club) =>
       club.id === base.userClubId ? { ...club, cash: shopCase.cash } : club,
     ),
@@ -72,17 +104,38 @@ function shopCareer(shopCase: ShopCase): GameState {
         ? {
             ...player,
             power: player.id === squad[0].id ? 'SUPER_SPEED' : 'THUNDER_STRIKE',
-            licensed: true,
+            licensed: licensedIds.has(player.id),
           }
         : player,
     ),
+    ...(shopCase.sponsorChallenge
+      ? {
+          clubBusiness: {
+            ...base.clubBusiness,
+            sponsorship: {
+              ...base.clubBusiness.sponsorship,
+              weeklyChallenge: {
+                id: `sponsor-sprint-s${base.season}`,
+                kind: 'SCORE_THREE' as const,
+                sponsorName: 'Sponsor Desk',
+                season: base.season,
+                chosenWeek: fixture.week,
+                fixtureId: fixture.id,
+                fixtureWeek: fixture.week,
+                nominalBonus: 9_600,
+              },
+            },
+          },
+        }
+      : {}),
   };
 }
 
 export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
   const shopCase = CASE_BY_ID.get(caseId) ?? SHOP_CASES[0];
   const content = useMemo(() => loadLaunchContent(), []);
-  const state = useMemo(() => shopCareer(shopCase), [shopCase]);
+  const [state, setState] = useState(() => shopCareer(shopCase));
+  useEffect(() => setState(shopCareer(shopCase)), [shopCase]);
   const viewModel = useMemo(
     () => matchDayViewModel(state, content),
     [content, state],
@@ -92,7 +145,22 @@ export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
     <FixtureMatchDayScreen
       viewModel={viewModel}
       onBack={() => {}}
-      onToggleHeroLicense={() => {}}
+      onToggleHeroLicense={(playerId) =>
+        setState((current) => {
+          const selected = current.players
+            .filter(
+              (player) =>
+                player.clubId === current.userClubId && player.licensed,
+            )
+            .map((player) => player.id);
+          return selectCareerLicensedHeroes(
+            current,
+            selected.includes(playerId)
+              ? selected.filter((id) => id !== playerId)
+              : [...selected, playerId],
+          );
+        })
+      }
       onBuyHeroLicense={() => {}}
       onSwapStartingPlayer={() => {}}
       onWatchMatch={() => {}}

@@ -822,6 +822,7 @@ export function createNationalCup(
 export function advanceNationalCup(
   cup: NationalCup,
   results: readonly NationalCupResult[],
+  protectedClubId?: string,
 ): NationalCup {
   validateSeason(cup.season);
   validateSeed(cup.careerSeed);
@@ -872,6 +873,7 @@ export function advanceNationalCup(
     current.number + 1,
     cup.careerSeed,
     cup.seedDivisionByClubId,
+    protectedClubId,
   );
   return { ...cup, rounds: [...rounds, nextRound] };
 }
@@ -1333,6 +1335,7 @@ function createCupRound(
   round: number,
   careerSeed: number,
   seedDivisionByClubId?: Readonly<Record<string, DivisionLevel>>,
+  protectedClubId?: string,
 ): NationalCupRound {
   const entrantsByRound = [50, 32, 16, 8, 4, 2] as const;
   const expectedEntrants = entrantsByRound[round - 1];
@@ -1360,7 +1363,11 @@ function createCupRound(
         round === 1
         ? unpairedClubIds
         : round === 2
-          ? roundOf32PairingOrder(unpairedClubIds, seedDivisionByClubId)
+          ? roundOf32PairingOrder(
+              unpairedClubIds,
+              seedDivisionByClubId,
+              protectedClubId,
+            )
           : highLowPairingOrder(unpairedClubIds);
   const fixtures: NationalCupFixture[] = [];
   for (let index = 0; index < playingClubIds.length; index += 2) {
@@ -1432,6 +1439,7 @@ function highLowPairingOrder(seededClubIds: readonly string[]): string[] {
 function roundOf32PairingOrder(
   seededClubIds: readonly string[],
   divisionByClubId: Readonly<Record<string, DivisionLevel>>,
+  protectedClubId?: string,
 ): string[] {
   const paired = highLowPairingOrder(seededClubIds);
   const d1D5Pairs: number[] = [];
@@ -1449,6 +1457,29 @@ function roundOf32PairingOrder(
     const d2D3 = d2D3Pairs[index];
     if (d2D3 === undefined) break;
     [paired[d1D5 + 1], paired[d2D3 + 1]] = [paired[d2D3 + 1], paired[d1D5 + 1]];
+  }
+  const protectedIndex =
+    protectedClubId === undefined ? -1 : paired.indexOf(protectedClubId);
+  if (protectedIndex >= 0 && (divisionByClubId[protectedClubId!] ?? 5) <= 2) {
+    const opponentIndex =
+      protectedIndex % 2 === 0 ? protectedIndex + 1 : protectedIndex - 1;
+    if ((divisionByClubId[paired[opponentIndex]] ?? 5) > 3) {
+      const strongerOpponentIndex = paired.reduce((best, clubId, index) => {
+        if (index === protectedIndex || index === opponentIndex) return best;
+        const division = divisionByClubId[clubId] ?? 5;
+        if (division > 3) return best;
+        if (best < 0 || division > (divisionByClubId[paired[best]] ?? 0)) {
+          return index;
+        }
+        return best;
+      }, -1);
+      if (strongerOpponentIndex >= 0) {
+        [paired[opponentIndex], paired[strongerOpponentIndex]] = [
+          paired[strongerOpponentIndex],
+          paired[opponentIndex],
+        ];
+      }
+    }
   }
   return paired;
 }

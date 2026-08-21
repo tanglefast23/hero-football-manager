@@ -887,6 +887,29 @@ export function FixtureMatchDayScreen({
           {t('fixtureMatchDay.licenseWarning', { limit: viewModel.heroLimit })}
         </PixelText>
       ) : null}
+      {viewModel.sponsorChallenge === undefined ? null : (
+        <PaperPanel
+          className="mt-6"
+          tone="attention"
+          kicker={t('clubFinances.sponsorDesk')}
+          title={t('clubFinances.sponsorSprintTitle')}
+          stamp={t('clubFinances.statusActive')}
+        >
+          <View className="border-l-4 border-red-dark pl-3">
+            <PixelText className="text-xl uppercase leading-7 text-ink">
+              {viewModel.sponsorChallenge.targetLabel}
+            </PixelText>
+            <PixelText className="mt-3 text-base uppercase text-red-dark">
+              {t('clubFinances.sponsorSprintBonus', {
+                amount: formatCurrency(
+                  t,
+                  viewModel.sponsorChallenge.actualBonus,
+                ),
+              })}
+            </PixelText>
+          </View>
+        </PaperPanel>
+      )}
     </View>
   );
 

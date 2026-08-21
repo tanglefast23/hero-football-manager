@@ -84,7 +84,13 @@ export interface InstantDrillResolution {
  * a bonus.
  */
 export type TrainingModifierKind =
-  'YOUTH' | 'VETERAN' | 'ROLE' | 'ARCHETYPE' | 'FACILITY' | 'COACH';
+  | 'YOUTH'
+  | 'VETERAN'
+  | 'ROLE'
+  | 'ARCHETYPE'
+  | 'FACILITY'
+  | 'COACH'
+  | 'ACTIVE_EFFECT';
 
 export interface TrainingModifier {
   /**
@@ -659,6 +665,7 @@ export function playerGrowthGrade(player: CareerPlayer): PotentialGrade {
   return POTENTIAL_GRADES[Math.round(blended * (POTENTIAL_GRADES.length - 1))];
 }
 
+/** @i18n-fallback labels accompany locale-neutral kinds for non-UI consumers. */
 function instantGrowthModifierLabels(
   state: GameState,
   player: CareerPlayer,
@@ -711,6 +718,17 @@ function instantGrowthModifierLabels(
         ];
   if (coachScale > 100)
     modifiers.push({ kind: 'COACH', label: 'Coach', helps: true });
+  const activeEffectScale = drillMultiplierPercent(
+    state.playerRequests?.effects ?? [],
+    player.id,
+  );
+  if (activeEffectScale !== 100) {
+    modifiers.push({
+      kind: 'ACTIVE_EFFECT',
+      label: 'Active effect',
+      helps: activeEffectScale > 100,
+    });
+  }
   return modifiers;
 }
 

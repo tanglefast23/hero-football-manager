@@ -216,13 +216,37 @@ describe('deterministic offers', () => {
         profile.bonusPercentByObjective?.[offer.objective.kind] ??
         profile.bonusPercent;
       expect(offer.objective.target).toBe(
-        definition.targets[levelByProfile[offer.profile]],
+        definition.targets[levelByProfile[offer.profile]] -
+          (offer.objective.kind === 'LEAGUE_CLEAN_SHEETS' ? 1 : 0),
       );
       expect(offer.objective.label).toContain(String(offer.objective.target));
       expect(offer.objective.nominalBonus).toBe(
         Math.round((4_000 * bonusPercent) / 100),
       );
     }
+  });
+
+  it('sets D4 clean-sheet goals one match below the authored target', () => {
+    const offers = Array.from(
+      { length: 50 },
+      (_, careerSeed) =>
+        createSeasonSponsorship(seasonContext({ careerSeed })).offers,
+    ).flat();
+    const cleanSheet = offers.find(
+      (offer) => offer.objective.kind === 'LEAGUE_CLEAN_SHEETS',
+    )!;
+    const level = {
+      STEADY: 'EASY',
+      BALANCED: 'NORMAL',
+      BOLD: 'HARD',
+    } as const;
+    const authored = RULES.objectives.find(
+      (objective) => objective.kind === 'LEAGUE_CLEAN_SHEETS',
+    )!;
+
+    expect(cleanSheet.objective.target).toBe(
+      authored.targets[level[cleanSheet.profile]] - 1,
+    );
   });
 
   it('tightens every Chairman target without changing the deterministic candidate identity', () => {

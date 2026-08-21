@@ -88,6 +88,61 @@ describe('management injury and lineup presentation', () => {
     ).toHaveLength(2);
   });
 
+  it('shows the active sponsor challenge only on its match day', () => {
+    const initial = createCareer(
+      createLaunchCareerSetup(20260820, undefined, content),
+    );
+    const fixture = initial.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === initial.userClubId ||
+        candidate.awayClubId === initial.userClubId,
+    )!;
+    const active: GameState = {
+      ...initial,
+      week: fixture.week,
+      phase: 'matchday',
+      clubBusiness: {
+        ...initial.clubBusiness,
+        sponsorship: {
+          ...initial.clubBusiness.sponsorship,
+          weeklyChallenge: {
+            id: 'sponsor-sprint-s1',
+            kind: 'SCORE_THREE',
+            sponsorName: 'Sponsor Desk',
+            season: initial.season,
+            chosenWeek: fixture.week,
+            fixtureId: fixture.id,
+            fixtureWeek: fixture.week,
+            nominalBonus: 9_600,
+          },
+        },
+      },
+    };
+
+    expect(matchDayViewModel(active, content).sponsorChallenge).toEqual({
+      targetLabel: 'Score 3+ goals',
+      actualBonus: 9_600,
+    });
+    expect(
+      matchDayViewModel(
+        {
+          ...active,
+          clubBusiness: {
+            ...active.clubBusiness,
+            sponsorship: {
+              ...active.clubBusiness.sponsorship,
+              weeklyChallenge: {
+                ...active.clubBusiness.sponsorship.weeklyChallenge!,
+                outcome: { met: false, actualBonus: 0 },
+              },
+            },
+          },
+        },
+        content,
+      ).sponsorChallenge,
+    ).toBeUndefined();
+  });
+
   it('shows active injuries on Home, in Squad, and on the match-day bench', () => {
     const initial = createCareer(
       createLaunchCareerSetup(20260720, undefined, content),
@@ -413,6 +468,19 @@ describe('management injury and lineup presentation', () => {
       nextSeason.financialSafety?.boardUltimatum?.candidates,
     ).not.toContainEqual(expect.objectContaining({ playerId: retiringId }));
     expect(() => homeViewModel(nextSeason)).not.toThrow();
+    expect(
+      nextSeason.players.some((player) =>
+        player.id.includes(`-academy-s${nextSeason.season}-`),
+      ),
+    ).toBe(true);
+    const withInbox = reconcileHomeAssistantInbox(nextSeason);
+    expect(
+      withInbox.eventFlags.some((flag) =>
+        flag.includes(
+          encodeURIComponent(`academy-promotion:s${nextSeason.season}`),
+        ),
+      ),
+    ).toBe(true);
   });
 
   it('renders an older save defensively when its protected board candidate is already stale', () => {

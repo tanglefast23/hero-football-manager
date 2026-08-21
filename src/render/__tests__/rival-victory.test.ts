@@ -11,7 +11,9 @@ describe('full-time rival presentation', () => {
     expect(source).not.toContain('victoryHero');
     expect(source).not.toContain('FULLTIME_RIVAL_VICTORY');
     expect(source).not.toContain('playRivalHeroLaugh');
-    expect(source).toContain('now + (reduceMotion ? 0 : FULLTIME_HOLD_MS)');
+    expect(source).toContain(
+      'reduceMotion && !wastedPowerPending ? 0 : FULLTIME_HOLD_MS',
+    );
   });
 
   it('cannot leave the result handoff frozen by a full-time pause', () => {

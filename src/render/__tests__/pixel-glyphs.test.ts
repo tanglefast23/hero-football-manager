@@ -5,6 +5,7 @@ import {
   GLYPH_WIDTH,
   MAX_NAME_CHARACTERS,
   foldToDrawable,
+  firstName,
   lastName,
   nameGlyph,
   nameplateBox,
@@ -50,6 +51,11 @@ describe('pixelGlyph', () => {
     expect(pixelGlyph('A€B').width).toBe(GLYPH_WIDTH * 2 + GLYPH_GAP);
     expect(pixelGlyph('€€').pixels).toEqual([]);
   });
+
+  it('draws the parentheses used by hero power labels', () => {
+    expect(pixelGlyph('(GUST)').pixels.length).toBeGreaterThan(0);
+    expect(render('(')).not.toEqual(render(')'));
+  });
 });
 
 describe('foldToDrawable', () => {
@@ -75,6 +81,11 @@ describe('nameGlyph', () => {
   it('takes the last word of a full name', () => {
     expect(lastName('Marco Van Basten')).toBe('BASTEN');
     expect(lastName('  Rossi ')).toBe('ROSSI');
+  });
+
+  it('takes the first word for the dock and pitch marker', () => {
+    expect(firstName('Bo Hedges')).toBe('Bo');
+    expect(firstName('  Pelé ')).toBe('Pelé');
   });
 
   it('draws a Vietnamese surname rather than mangling it', () => {

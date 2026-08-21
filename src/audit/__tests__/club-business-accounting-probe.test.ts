@@ -53,28 +53,13 @@ const OBJECTIVE_KINDS: readonly SponsorObjectiveKind[] = [
   'LEAGUE_AWAY_POINTS',
 ];
 const SAMPLE_CACHE = new Map<string, ClubBusinessBalanceResult[]>();
-const BUZZ_SAMPLE_CACHE = new Map<string, ClubBusinessBalanceResult[]>();
-const BUZZ_TUNING_CANDIDATES = [
-  { id: 'SHIPPED', label: 'win +4, no hero sub-cap' },
-  {
-    id: 'OLD_WIN_5',
-    label: 'former win +5, no hero sub-cap',
-    buzzWinPoints: 5,
-  },
-  {
-    id: 'OLD_HERO_CAP_6',
-    label: 'former win +5, hero Buzz capped at +6/match',
-    buzzWinPoints: 5,
-    buzzHeroMomentCap: 6,
-  },
-] as const;
 
 describe('Club Business frozen-outcome accounting probe', () => {
   it('conserves every dollar and reports each new-income source separately', () => {
     const lines = [
       '',
       `=== CLUB BUSINESS ACCOUNTING (${SEEDS} paired seeds per cell) ===`,
-      'cell              monthly   objective      Buzz      gate     merch     total',
+      'cell              monthly   objective      gate     merch     total',
     ];
 
     for (const cell of CELLS) {
@@ -91,7 +76,6 @@ describe('Club Business frozen-outcome accounting probe', () => {
           true,
         );
         expect(run.minimumFans).toBeGreaterThanOrEqual(0);
-        expect(run.buzzHalfValues).toHaveLength(2);
       }
 
       if (cell.division === 5) {
@@ -326,107 +310,6 @@ describe('Club Business frozen-outcome accounting probe', () => {
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
   });
-
-  it('measures simple Buzz earning candidates without changing payout terms', () => {
-    const violationsByCandidate = new Map<string, string[]>();
-    const lines = [
-      '',
-      `=== BUZZ EARNING SENSITIVITY (${SEEDS} careers per cell) ===`,
-      'candidate       cell             median   cap rate   mean payout Δ   new-income p25',
-    ];
-
-    for (const candidate of BUZZ_TUNING_CANDIDATES) {
-      const violations: string[] = [];
-      violationsByCandidate.set(candidate.id, violations);
-      for (const cell of CELLS) {
-        const runs = sampleBuzz(cell, candidate);
-        const halfValues = runs.flatMap((run) => [...run.buzzHalfValues]);
-        const medianBuzz = percentile(halfValues, 0.5);
-        const capRate =
-          halfValues.filter((value) => value === 100).length /
-          halfValues.length;
-        const shippedRuns = sampleBuzz(cell, BUZZ_TUNING_CANDIDATES[0]);
-        const meanPayoutDelta = mean(
-          runs.map(
-            (run, index) =>
-              run.attribution.buzzPayout -
-              shippedRuns[index].attribution.buzzPayout,
-          ),
-        );
-        const newIncomeP25 = percentile(
-          runs.map((run) => run.attribution.totalNewIncome),
-          0.25,
-        );
-        if (medianBuzz < 55 || medianBuzz > 85) {
-          violations.push(
-            `D${cell.division} ${cell.difficulty} median ${medianBuzz} is outside 55-85`,
-          );
-        }
-        if (capRate >= 0.25) {
-          violations.push(
-            `D${cell.division} ${cell.difficulty} cap rate ${(capRate * 100).toFixed(1)}% is not below 25%`,
-          );
-        }
-        if (cell.division === 5 && newIncomeP25 < 2_500) {
-          violations.push(
-            `D5 ${cell.difficulty} new-income P25 ${newIncomeP25} is below $2,500`,
-          );
-        }
-        lines.push(
-          `${candidate.id.padEnd(16)}` +
-            `${`D${cell.division} ${cell.difficulty}`.padEnd(17)}` +
-            `${String(medianBuzz).padStart(6)}` +
-            `${`${(capRate * 100).toFixed(1)}%`.padStart(11)}` +
-            `${money(Math.round(meanPayoutDelta)).padStart(16)}` +
-            `${money(newIncomeP25).padStart(17)}`,
-        );
-      }
-      if (violations.length > 0) {
-        lines.push(
-          `${candidate.id} violations:`,
-          ...violations.map((value) => `- ${value}`),
-        );
-      }
-    }
-
-    lines.push('SHIPPED frozen five-division sink/income:');
-    for (const difficulty of ['COZY', 'CHAIRMAN'] as const) {
-      const byDivision = ([5, 4, 3, 2, 1] as const).map((division) =>
-        sampleBuzz({ division, difficulty }, BUZZ_TUNING_CANDIDATES[0]),
-      );
-      const ratios = Array.from({ length: SEEDS }, (_, index) => {
-        const income = byDivision.reduce(
-          (total, runs) => total + runs[index].attribution.totalNewIncome,
-          0,
-        );
-        return (CLUB_BUSINESS_FACILITY_UPGRADE_UPLIFT / income) * 100;
-      });
-      lines.push(
-        `${difficulty}: ${[
-          percentile(ratios, 0.25),
-          percentile(ratios, 0.5),
-          percentile(ratios, 0.75),
-        ]
-          .map((value) => `${value.toFixed(1)}%`)
-          .join('/')}`,
-      );
-    }
-
-    // eslint-disable-next-line no-console
-    console.log(lines.join('\n'));
-    if (SEEDS >= 300) {
-      expect(violationsByCandidate.get('SHIPPED')).toEqual([]);
-    } else {
-      expect(
-        violationsByCandidate
-          .get('SHIPPED')
-          ?.every(
-            (violation) =>
-              violation.includes('median') || violation.includes('cap rate'),
-          ),
-      ).toBe(true);
-    }
-  });
 });
 
 function sample(
@@ -482,37 +365,6 @@ function sponsorContractStrata(
   return strata;
 }
 
-function sampleBuzz(
-  cell: (typeof CELLS)[number],
-  candidate: (typeof BUZZ_TUNING_CANDIDATES)[number],
-): ClubBusinessBalanceResult[] {
-  const cacheKey = [
-    candidate.id,
-    cell.division,
-    cell.difficulty,
-    SEED_OFFSET,
-    SEEDS,
-  ].join('/');
-  const cached = BUZZ_SAMPLE_CACHE.get(cacheKey);
-  if (cached !== undefined) return cached;
-  const runs = Array.from({ length: SEEDS }, (_, index) =>
-    runClubBusinessBalanceScenario({
-      seed: balanceSeed(SEED_OFFSET + index),
-      division: cell.division,
-      difficulty: cell.difficulty,
-      profile: 'BALANCED',
-      ...('buzzWinPoints' in candidate
-        ? { buzzWinPoints: candidate.buzzWinPoints }
-        : {}),
-      ...('buzzHeroMomentCap' in candidate
-        ? { buzzHeroMomentCap: candidate.buzzHeroMomentCap }
-        : {}),
-    }),
-  );
-  BUZZ_SAMPLE_CACHE.set(cacheKey, runs);
-  return runs;
-}
-
 function profileExpectedValues(
   cell: (typeof CELLS)[number],
   boldBonusPercent?: number,
@@ -550,7 +402,6 @@ function reportLine(
     `${`D${cell.division} ${cell.difficulty}`.padEnd(17)}` +
     `${money(median((run) => run.attribution.monthlySponsorDelta)).padStart(10)}` +
     `${money(median((run) => run.attribution.sponsorObjectiveBonus)).padStart(12)}` +
-    `${money(median((run) => run.attribution.buzzPayout)).padStart(10)}` +
     `${money(median((run) => run.attribution.supporterGateDelta)).padStart(10)}` +
     `${money(median((run) => run.attribution.supporterMerchDelta)).padStart(10)}` +
     `${money(median((run) => run.attribution.totalNewIncome)).padStart(10)}`

@@ -35,6 +35,7 @@ import {
   assistantTeaches,
   boardUltimatumConsequence,
   attributeAffectsPlay,
+  buildCareerMatchTeamDef,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
   commercialFacilitySummary,
@@ -61,6 +62,7 @@ import {
   isAssistantInboxProductPermanentlyDismissed,
   isFullyCappedPlayer,
   instantTrainingPreview,
+  SUPER_TRAINING_PITY_DRILLS,
   latestSeasonRecap,
   leagueStandings,
   homeGateIncome,
@@ -101,7 +103,6 @@ import {
   TRAINING_PATHS,
   TRAINING_PITCH_TP_PER_LEVEL,
   BASE_WEEKLY_TRAINING_POINTS,
-  BUZZ_WIN_POINTS,
   coachWeeklyTrainingPoints,
   facilityCloseRefund,
   actualSponsorPortfolioIncome,
@@ -187,7 +188,7 @@ import {
   promotionRewardsForDivision,
   trainingDrillTier,
 } from '../game/promotion-progression';
-import { renewalOpeningOfferWage } from '../game/market';
+import { contractWageStep, renewalOpeningOfferWage } from '../game/market';
 import {
   copyFor,
   formatIntegerForCopy,
@@ -211,8 +212,6 @@ function englishCopy(): CopyFn {
   return (englishCopyFn ??= copyFor('en'));
 }
 
-/** The negotiation panel's wage increment, and the grid the opening seed rounds to. */
-const RENEWAL_WAGE_STEP = 50;
 import { marketNegotiationViewModel } from './market-view-model';
 import { projectedSeasonEndContractPromiseHeroLimit } from './contract-promise-projection';
 import { leagueFixtureViewModel } from './m2-league-view-model';
@@ -652,17 +651,6 @@ function incomeGenerationViewModel(
               ...(sponsorHistory.length === 0
                 ? {}
                 : { history: sponsorHistory }),
-            },
-          ]),
-      ...(sponsorship?.buzz === undefined
-        ? []
-        : [
-            {
-              id: 'income-buzz',
-              label: 'Buzz',
-              detail: t('clubFinances.incomeBuzzDetail'),
-              effect: `${sponsorship.buzz.value} / 100`,
-              owned: true,
             },
           ]),
     ],
@@ -1209,31 +1197,6 @@ function clubSponsorshipViewModel(
         ),
     };
   });
-  const buzz =
-    state.season < 3
-      ? undefined
-      : {
-          value: state.clubBusiness.buzz.value,
-          pendingPayout: Math.round(
-            (actualMonthlyIncome * state.clubBusiness.buzz.value) / 100,
-          ),
-          nextPayoutLabel: t('clubFinances.buzzNextPayoutWeek', {
-            week: state.week <= 15 ? 15 : 30,
-          }),
-          ...(state.clubBusiness.buzz.lastSettlementSummary === undefined
-            ? {}
-            : {
-                lastSettlementLabel: t('clubFinances.buzzLastSettlementLabel', {
-                  reached:
-                    state.clubBusiness.buzz.lastSettlementSummary
-                      .prePayoutValue,
-                  amount: formatMoneyForCopy(
-                    t,
-                    state.clubBusiness.buzz.lastSettlementSummary.payout,
-                  ),
-                }),
-              }),
-        };
   return {
     managed,
     offerWindowOpen:
@@ -1249,7 +1212,6 @@ function clubSponsorshipViewModel(
     ...(sponsorPercent === 100 ? {} : { chairmanPercent: sponsorPercent }),
     slots,
     ...(weeklyChallenge === undefined ? {} : { weeklyChallenge }),
-    ...(buzz === undefined ? {} : { buzz }),
   };
 }
 
@@ -2364,7 +2326,12 @@ export function seasonEndViewModel(
         );
   const memorableEventTitle =
     memorableEvent === undefined
-      ? undefined
+      ? recap !== undefined &&
+        recap.won > 0 &&
+        recap.drawn === 0 &&
+        recap.lost === 0
+        ? t('seasonEnd.perfectLeagueSeason')
+        : undefined
       : copyOrEnglish(
           t,
           `event.${memorableEvent.id}.title`,
@@ -2396,24 +2363,13 @@ export function seasonEndViewModel(
     (sum, result) => sum + result.actualBonus,
     0,
   );
-  const buzzSummary = state.clubBusiness.buzz.lastSettlementSummary;
-  const seasonEndBuzz =
-    buzzSummary?.season === state.season && buzzSummary.half === 2
-      ? {
-          reached: buzzSummary.prePayoutValue,
-          actualPayout: buzzSummary.payout,
-          resetTo: buzzSummary.resetValue,
-        }
-      : undefined;
   const clubBusinessSettlement =
-    objectiveResults.length === 0 && seasonEndBuzz === undefined
+    objectiveResults.length === 0
       ? undefined
       : {
           objectiveResults,
           objectiveBonusTotal,
-          ...(seasonEndBuzz === undefined ? {} : { buzz: seasonEndBuzz }),
-          actualPayoutTotal:
-            objectiveBonusTotal + (seasonEndBuzz?.actualPayout ?? 0),
+          actualPayoutTotal: objectiveBonusTotal,
         };
 
   return {
@@ -2589,9 +2545,9 @@ export function seasonEndViewModel(
               lookId: expiredPlayer.lookId,
               openingWeeklyWage: renewalOpeningOfferWage(
                 renewalTalks.negotiation.weeklyAsk,
-                RENEWAL_WAGE_STEP,
+                contractWageStep(renewalTalks.negotiation.weeklyAsk),
               ),
-              wageStep: RENEWAL_WAGE_STEP,
+              wageStep: contractWageStep(renewalTalks.negotiation.weeklyAsk),
               maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
               playerAge: expiredPlayer.age ?? 24,
               contractPromiseContext: {
@@ -2789,6 +2745,13 @@ export function homeProductAlerts(
         player.retirementAnnouncementSeason === state.season - 2,
     )
     .sort((left, right) => left.name.localeCompare(right.name));
+  const academyPromotions = roster
+    .filter((player) => player.id.includes(`-academy-s${state.season}-`))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const academyPromotionAlertId = `academy-promotion:s${state.season}`;
+  const showAcademyPromotions =
+    academyPromotions.length > 0 &&
+    isAssistantInboxOneShotProductVisible(state, academyPromotionAlertId);
   const retirementFarewellAlertId = `retirement-farewell:s${state.season}`;
   const showRetirementFarewell =
     justRetired.length > 0 &&
@@ -2984,6 +2947,24 @@ export function homeProductAlerts(
           },
         ]
       : []),
+    ...(!showAcademyPromotions
+      ? []
+      : [
+          {
+            id: academyPromotionAlertId,
+            title: t('clubHome.newYouth'),
+            detail: t('clubHome.academyPromotionDetail', {
+              names: namesWithOverflow(
+                academyPromotions.map((player) => player.name),
+                t,
+              ),
+              n: academyPromotions.length,
+              count: academyPromotions.length,
+            }),
+            tone: 'info' as const,
+            readOnly: true as const,
+          },
+        ]),
     ...(expired.length > 0
       ? [
           {
@@ -3605,6 +3586,7 @@ export function isOneShotProductAlert(alertId: string): boolean {
   return (
     alertId.startsWith('board-resolution:') ||
     alertId.startsWith('training-cap:') ||
+    alertId.startsWith('academy-promotion:') ||
     alertId.startsWith('retirement-farewell:') ||
     // A heads-up, not a standing fact: once seen, the player card carries it.
     alertId.startsWith('retirement-considering-')
@@ -4073,6 +4055,8 @@ export function leagueTableViewModel(
   const seasonFixtures = state.fixtures.filter(
     (fixture) => fixture.season === state.season,
   );
+  const topDivision =
+    state.m2 !== undefined && currentUserDivision(state.m2) === 1;
   const userFixtures = seasonFixtures
     .filter(
       (fixture) =>
@@ -4089,6 +4073,7 @@ export function leagueTableViewModel(
 
   return {
     divisionLabel: careerDivisionLabel(state, t),
+    topDivision,
     seasonLabel: t('leagueTable.seasonLabel', { season: state.season }),
     weekLabel: t('leagueTable.weekLabel', { week: state.week }),
     matchesPlayed: seasonFixtures.filter(
@@ -4109,7 +4094,7 @@ export function leagueTableViewModel(
       goalDifference: row.goalDifference,
       points: row.points,
       isUserClub: row.clubId === state.userClubId,
-      inPromotionPlaces: row.position <= 2,
+      inPromotionPlaces: topDivision ? row.position === 1 : row.position <= 2,
     })),
     leagueFixtures: userFixtures.map((fixture) =>
       leagueFixtureViewModel(
@@ -4133,6 +4118,7 @@ export function matchDayViewModel(
   if (matchday === undefined)
     throw new Error('the current matchday has no user fixture');
   const fixture = matchday.fixture;
+  const sponsorChallenge = state.clubBusiness.sponsorship.weeklyChallenge;
 
   const lineup = state.lineups.find(
     (candidate) => candidate.clubId === state.userClubId,
@@ -4257,6 +4243,24 @@ export function matchDayViewModel(
       lineupPlayers.filter((player) => player.licensed).length <=
         careerHeroLimit(state),
     heroLicenseOffer: heroLicenseOfferViewModel(state, t),
+    ...(sponsorChallenge !== undefined &&
+    sponsorChallenge.outcome === undefined &&
+    sponsorChallenge.season === state.season &&
+    sponsorChallenge.fixtureId === fixture.id
+      ? {
+          sponsorChallenge: {
+            targetLabel: sponsorWeeklyChallengeTargetCopy(
+              t,
+              sponsorChallenge.kind,
+            ),
+            actualBonus: Math.round(
+              (sponsorChallenge.nominalBonus *
+                difficultyRules(state).sponsorIncomePercent) /
+                100,
+            ),
+          },
+        }
+      : {}),
   };
 }
 
@@ -4358,6 +4362,10 @@ export function squadTrainingViewModel(
         potentialGrade,
         superChancePercent: superTrainingChancePercent(
           playerPotentialGrade(player),
+        ),
+        drillsUntilGuaranteedSuper: Math.max(
+          1,
+          SUPER_TRAINING_PITY_DRILLS - (player.drillsSinceSuper ?? 0),
         ),
         ...((player.priorityDrillsRemaining ?? 0) > 0 &&
         hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
@@ -4707,7 +4715,6 @@ export function postMatchViewModel(
   fixtureId: string,
   score: { homeGoals: number; awayGoals: number },
   highlights: PostMatchViewModel['highlights'] = [],
-  buzzPowerFiredPlayerIds?: readonly string[],
   t: CopyFn = englishCopy(),
 ): PostMatchViewModel {
   const leagueFixture = before.fixtures.find(
@@ -4777,17 +4784,6 @@ export function postMatchViewModel(
     outcomeLabel,
     t,
   );
-  const buzz =
-    buzzPowerFiredPlayerIds === undefined || before.season < 3
-      ? undefined
-      : postMatchBuzzViewModel(
-          before,
-          after,
-          outcomeLabel,
-          goalsFor,
-          buzzPowerFiredPlayerIds,
-        );
-
   return {
     result: {
       fixtureId,
@@ -4834,7 +4830,6 @@ export function postMatchViewModel(
     ),
     trainingPointsGained: after.trainingPoints - before.trainingPoints,
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
-    ...(buzz === undefined ? {} : { buzz }),
     highlights,
     updates: weekUpdates(before, after, t),
     ...(completedFacility === undefined
@@ -4842,54 +4837,6 @@ export function postMatchViewModel(
       : { facilityCompletion: completedFacility }),
     ...(reaction === undefined ? {} : { reaction }),
     ...(rivalMockery === undefined ? {} : { rivalMockery }),
-  };
-}
-
-function postMatchBuzzViewModel(
-  before: GameState,
-  after: GameState,
-  outcome: 'WIN' | 'DRAW' | 'LOSS',
-  goalsFor: number,
-  powerFiredPlayerIds: readonly string[],
-): NonNullable<PostMatchViewModel['buzz']> {
-  const win = outcome === 'WIN' ? BUZZ_WIN_POINTS : 0;
-  const goals = goalsFor;
-  const heroMoments = new Set(powerFiredPlayerIds).size * 2;
-  const rawEarned = win + goals + heroMoments;
-  const pendingBefore = before.clubBusiness.pendingUserMatchImpacts.reduce(
-    (sum, impact) =>
-      sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
-    0,
-  );
-  const valueBeforeThisMatch = Math.min(
-    100,
-    before.clubBusiness.buzz.value + pendingBefore,
-  );
-  const earned = Math.min(rawEarned, 100 - valueBeforeThisMatch);
-  const pendingAfter = after.clubBusiness.pendingUserMatchImpacts.reduce(
-    (sum, impact) =>
-      sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
-    0,
-  );
-  const valueAfter =
-    after.clubBusiness.pendingUserMatchImpacts.length > 0
-      ? Math.min(100, after.clubBusiness.buzz.value + pendingAfter)
-      : after.clubBusiness.buzz.value;
-  const previousSettlement = before.clubBusiness.buzz.lastSettlementSummary;
-  const settlement = after.clubBusiness.buzz.lastSettlementSummary;
-  const newSettlement =
-    settlement !== undefined &&
-    (previousSettlement === undefined ||
-      settlement.season !== previousSettlement.season ||
-      settlement.half !== previousSettlement.half);
-  return {
-    earned,
-    rawEarned,
-    valueAfter,
-    win,
-    goals,
-    heroMoments,
-    ...(newSettlement ? { payout: settlement.payout } : {}),
   };
 }
 
@@ -5289,13 +5236,8 @@ function fixtureViewModel(
   // A rival hero is a named character, not only a warning count. Carry the
   // same identity and fixed look used by the intro and match sprite so the
   // team sheet can show who the manager is about to face.
-  const opponentHeroes = state.players
-    .filter(
-      (player) =>
-        player.clubId === opponentId &&
-        player.power !== undefined &&
-        player.licensed,
-    )
+  const opponentHeroes = buildCareerMatchTeamDef(state, opponentId)
+    .players.filter((player) => player.power !== undefined)
     .map((player) => ({
       id: player.id,
       name: player.name,

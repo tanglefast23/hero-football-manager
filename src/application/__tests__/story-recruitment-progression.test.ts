@@ -259,8 +259,17 @@ describe('story recruitment pacing', () => {
     expect(
       hasAssistantGuideSequenceCompleted(reconciled, 'transfer-negotiation'),
     ).toBe(true);
+    expect(
+      hasAssistantGuideSequenceCompleted(
+        reconciled,
+        'scout-report-unaffordable',
+      ),
+    ).toBe(true);
     expect(dueAssistantInboxGuideSequences(reconciled)).not.toContain(
       'transfer-negotiation',
+    );
+    expect(dueAssistantInboxGuideSequences(reconciled)).not.toContain(
+      'scout-report-unaffordable',
     );
   });
 

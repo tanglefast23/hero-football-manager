@@ -188,6 +188,11 @@ export function startNextFullCareerSeason(
     m2,
     state.season,
     difficultyRules(state),
+    activeDivision === 1
+      ? Object.fromEntries(
+          activeStandings.map((standing) => [standing.clubId, standing.lost]),
+        )
+      : {},
   );
   m2 = transition.state;
 

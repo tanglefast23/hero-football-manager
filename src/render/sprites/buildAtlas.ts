@@ -22,6 +22,8 @@ export interface SkiaRectLike {
 }
 export interface SkiaPaintLike {
   setColor(color: unknown): void;
+  delete?(): void;
+  dispose?(): void;
 }
 export interface SkiaCanvasLike {
   drawRect(rect: SkiaRectLike, paint: SkiaPaintLike): void;
@@ -35,11 +37,15 @@ export interface SkiaImageLike {
   // react-native-skia's own renderer/Offscreen.tsx applies to a
   // MakeOffscreen snapshot before handing it back for general use.
   makeNonTextureImage(): unknown;
+  delete?(): void;
+  dispose?(): void;
 }
 export interface SkiaSurfaceLike {
   getCanvas(): SkiaCanvasLike;
   flush(): void;
   makeImageSnapshot(): SkiaImageLike;
+  delete?(): void;
+  dispose?(): void;
 }
 export interface SkiaApi {
   Surface: {
@@ -64,6 +70,11 @@ function pixelRunRect(x: number, y: number, width: number): SkiaRectLike {
 export interface SpriteAtlas {
   image: unknown;
   rectFor: AtlasLayout['rectFor'];
+}
+
+function disposeSkiaObject(value: { delete?(): void; dispose?(): void }): void {
+  if (value.delete !== undefined) value.delete();
+  else value.dispose?.();
 }
 
 /**
@@ -150,48 +161,59 @@ export function buildSpriteAtlas(
     col: number,
   ): string | null | undefined => sheet.palette[line[col]];
 
-  for (const key of Object.keys(sheet.sprites)) {
-    const { x: originX, y: originY } = layout.rectFor(key);
-    const rows = sheet.sprites[key];
-    for (let row = 0; row < rows.length; row++) {
-      const line = rows[row];
-      let col = 0;
-      while (col < line.length) {
-        const color = colorAt(key, line, row, col);
-        // "." (or any null palette entry) is transparent — leave unpainted
-        if (!color) {
-          col += 1;
-          continue;
+  let snapshot: SkiaImageLike | undefined;
+  let retainedImage: unknown;
+  try {
+    for (const key of Object.keys(sheet.sprites)) {
+      const { x: originX, y: originY } = layout.rectFor(key);
+      const rows = sheet.sprites[key];
+      for (let row = 0; row < rows.length; row++) {
+        const line = rows[row];
+        let col = 0;
+        while (col < line.length) {
+          const color = colorAt(key, line, row, col);
+          // "." (or any null palette entry) is transparent — leave unpainted
+          if (!color) {
+            col += 1;
+            continue;
+          }
+          // Collapse a horizontal run of the same resolved colour into one rect.
+          // Sprite rows are mostly flat bands, so this is a ~4-5x cut in draw calls
+          // and produces byte-identical output.
+          let run = 1;
+          while (
+            col + run < line.length &&
+            colorAt(key, line, row, col + run) === color
+          )
+            run += 1;
+          canvas.drawRect(
+            pixelRunRect(originX + col, originY + row, run),
+            paintFor(color),
+          );
+          col += run;
         }
-        // Collapse a horizontal run of the same resolved colour into one rect.
-        // Sprite rows are mostly flat bands, so this is a ~4-5x cut in draw calls
-        // and produces byte-identical output.
-        let run = 1;
-        while (
-          col + run < line.length &&
-          colorAt(key, line, row, col + run) === color
-        )
-          run += 1;
-        canvas.drawRect(
-          pixelRunRect(originX + col, originY + row, run),
-          paintFor(color),
-        );
-        col += run;
       }
     }
-  }
 
-  surface.flush();
-  const built: SpriteAtlas = {
-    image: surface.makeImageSnapshot().makeNonTextureImage(),
-    rectFor: layout.rectFor,
-  };
-  if (atlasCache.size >= ATLAS_CACHE_LIMIT) {
-    const oldest = atlasCache.keys().next();
-    if (!oldest.done) atlasCache.delete(oldest.value);
+    surface.flush();
+    snapshot = surface.makeImageSnapshot();
+    retainedImage = snapshot.makeNonTextureImage();
+    const built: SpriteAtlas = {
+      image: retainedImage,
+      rectFor: layout.rectFor,
+    };
+    if (atlasCache.size >= ATLAS_CACHE_LIMIT) {
+      const oldest = atlasCache.keys().next();
+      if (!oldest.done) atlasCache.delete(oldest.value);
+    }
+    atlasCache.set(cacheKey, built);
+    return built;
+  } finally {
+    if (snapshot !== undefined && snapshot !== retainedImage)
+      disposeSkiaObject(snapshot);
+    for (const paint of paintByColor.values()) disposeSkiaObject(paint);
+    disposeSkiaObject(surface);
   }
-  atlasCache.set(cacheKey, built);
-  return built;
 }
 
 /**
@@ -213,11 +235,22 @@ export function buildFallbackAtlas(
   }
   const canvas = surface.getCanvas();
   const paint = Skia.Paint();
-  paint.setColor(Skia.Color('#ffffff'));
-  canvas.drawRect({ x: 0, y: 0, width: size, height: size }, paint);
-  surface.flush();
-  return {
-    image: surface.makeImageSnapshot().makeNonTextureImage(),
-    rectFor: () => ({ x: 0, y: 0, w: size, h: size }),
-  };
+  let snapshot: SkiaImageLike | undefined;
+  let retainedImage: unknown;
+  try {
+    paint.setColor(Skia.Color('#ffffff'));
+    canvas.drawRect({ x: 0, y: 0, width: size, height: size }, paint);
+    surface.flush();
+    snapshot = surface.makeImageSnapshot();
+    retainedImage = snapshot.makeNonTextureImage();
+    return {
+      image: retainedImage,
+      rectFor: () => ({ x: 0, y: 0, w: size, h: size }),
+    };
+  } finally {
+    if (snapshot !== undefined && snapshot !== retainedImage)
+      disposeSkiaObject(snapshot);
+    disposeSkiaObject(paint);
+    disposeSkiaObject(surface);
+  }
 }

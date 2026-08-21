@@ -215,6 +215,40 @@ describe('full-career retirement boundary', () => {
   });
 });
 
+describe('season review story', () => {
+  it('calls out a perfect league season when no event story exists', () => {
+    const content = loadLaunchContent();
+    const initial = createCareer(
+      createLaunchCareerSetup(24_683, undefined, content),
+    );
+    const state: GameState = {
+      ...initial,
+      phase: 'season-end',
+      seasonRecaps: [
+        {
+          season: initial.season,
+          division: 5,
+          finalPosition: 1,
+          played: 18,
+          won: 18,
+          drawn: 0,
+          lost: 0,
+          goalsFor: 54,
+          goalsAgainst: 0,
+          cashChange: 0,
+          closingCash: 100_000,
+          trainingCapsReached: 0,
+          cupResult: 'Champions',
+        },
+      ],
+    };
+
+    expect(
+      seasonEndViewModel(state, content, 1).recap?.memorableEventTitle,
+    ).toBe('Perfect league season');
+  });
+});
+
 describe('promotion reward presentation', () => {
   it('shows newly earned permanent systems once on the season review', () => {
     const content = loadLaunchContent();
