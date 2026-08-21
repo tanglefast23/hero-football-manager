@@ -535,6 +535,8 @@ export interface SquadPlayerViewModel {
   potentialGrade: PotentialGrade;
   /** Chance the next drill is a SUPER (1.5x) session, from the potential grade. */
   superChancePercent: number;
+  /** Runs without a SUPER before the pity rule guarantees one. */
+  drillsUntilGuaranteedSuper: number;
   /** Drills still owed under a TRAINING_PRIORITY promise; shown as the countdown badge. */
   priorityDrillsRemaining?: number;
   /** Tap-time injury gamble at current condition; 0 above the fatigue line. */

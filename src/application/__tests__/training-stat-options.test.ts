@@ -1,5 +1,6 @@
 import { loadLaunchContent } from '../../content';
 import { createCareer } from '../../game';
+import { SUPER_TRAINING_PITY_DRILLS } from '../../game/training';
 import { createLaunchCareerSetup } from '../launch';
 import { squadTrainingViewModel } from '../view-models';
 
@@ -99,6 +100,49 @@ describe('training stat options', () => {
         { label: 'All-Rounder', helps: true },
       ],
       fractionalBonusBanks: [{ label: 'Training bonus bank', hundredths: 8 }],
+    });
+  });
+
+  it('shows active drill effects and the SUPER pity countdown', () => {
+    const outfielder = roster.find((player) => player.role !== 'GK')!;
+    const affected = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === outfielder.id
+          ? {
+              ...player,
+              drillsSinceSuper: SUPER_TRAINING_PITY_DRILLS - 1,
+            }
+          : player,
+      ),
+      playerRequests: {
+        ...state.playerRequests!,
+        effects: [
+          {
+            kind: 'DRILL_PLAYER' as const,
+            playerId: outfielder.id,
+            weeksRemaining: 2,
+            multiplierPercent: 80,
+          },
+        ],
+      },
+    };
+    const viewModel = squadTrainingViewModel(
+      affected,
+      content,
+      outfielder.id,
+    );
+    const player = viewModel.players.find(
+      (candidate) => candidate.id === outfielder.id,
+    )!;
+    const sprints = viewModel.selectedPlayerStatOptions!.find(
+      (option) => option.pathId === 'sprints',
+    )!;
+
+    expect(player.drillsUntilGuaranteedSuper).toBe(1);
+    expect(sprints.trainingModifiers).toContainEqual({
+      label: 'Active effect',
+      helps: false,
     });
   });
 });

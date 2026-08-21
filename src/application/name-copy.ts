@@ -203,6 +203,8 @@ export function trainingModifierLabel(
       return t('trainingDrill.modifier.veteran');
     case 'COACH':
       return t('trainingDrill.modifier.coach');
+    case 'ACTIVE_EFFECT':
+      return t('trainingDrill.modifier.activeEffect');
     case 'ARCHETYPE':
       return modifier.token === undefined
         ? t('trainingDrill.modifier.archetype')
