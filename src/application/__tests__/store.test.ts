@@ -55,6 +55,78 @@ describe('M1 app store integration', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
+  it('uses a fifth permit without forcing a lineup swap and can restore a benched starter', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260821));
+    const lineup = initial.lineups.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const starterSet = new Set(lineup.playerIds);
+    const starters = initial.players.filter(
+      (player) =>
+        player.clubId === initial.userClubId &&
+        starterSet.has(player.id) &&
+        player.role !== 'GK',
+    );
+    const target = initial.players.find(
+      (player) =>
+        player.clubId === initial.userClubId &&
+        !starterSet.has(player.id) &&
+        player.role !== 'GK',
+    )!;
+    const licensedIds = starters.slice(0, 4).map((player) => player.id);
+    const career: GameState = {
+      ...initial,
+      purchasedHeroLicenseCap: 5,
+      m2: { ...initial.m2!, highestDivisionReached: 1 },
+      players: initial.players.map((player) =>
+        licensedIds.includes(player.id) || player.id === target.id
+          ? {
+              ...player,
+              power: 'SUPER_SPEED' as const,
+              powerTier: 1 as const,
+              licensed: licensedIds.includes(player.id),
+            }
+          : player,
+      ),
+    };
+    useM1Store.setState({ career, screen: 'matchday' });
+
+    useM1Store.getState().toggleHeroLicense(target.id);
+    const withFifth = useM1Store.getState().career!;
+    expect(careerHeroLimit(withFifth)).toBe(5);
+    expect(
+      withFifth.players.filter(
+        (player) => player.clubId === withFifth.userClubId && player.licensed,
+      ),
+    ).toHaveLength(5);
+    expect(
+      withFifth.lineups.find(
+        (candidate) => candidate.clubId === withFifth.userClubId,
+      )?.playerIds,
+    ).toEqual(lineup.playerIds);
+
+    const revokedId = licensedIds[0];
+    useM1Store.getState().toggleHeroLicense(revokedId);
+    const repairedIds = useM1Store
+      .getState()
+      .career!.lineups.find(
+        (candidate) =>
+          candidate.clubId === useM1Store.getState().career!.userClubId,
+      )!.playerIds;
+    expect(repairedIds).not.toContain(revokedId);
+
+    useM1Store.getState().toggleHeroLicense(revokedId);
+    const restored = useM1Store.getState().career!;
+    expect(
+      restored.players.find((player) => player.id === revokedId)?.licensed,
+    ).toBe(true);
+    expect(
+      restored.lineups.find(
+        (candidate) => candidate.clubId === restored.userClubId,
+      )?.playerIds,
+    ).toEqual(repairedIds);
+  });
+
   it('gives an unaffordable transfer tap the requested cash message', () => {
     expect(() => assertTransferCashAvailable(100, 101)).toThrow(
       'transfer fee exceeds current cash',

@@ -625,6 +625,7 @@ export function reconcileSatisfiedAssistantGuideSequences(
     )
   ) {
     next = completeAssistantGuideSequence(next, 'transfer-negotiation');
+    next = completeAssistantGuideSequence(next, 'scout-report-unaffordable');
   }
 
   const premature: AssistantInboxGuideSequenceId[] = [];

@@ -32,7 +32,7 @@ describe('national league two-column layout', () => {
     const summary = source.slice(
       source.indexOf('kicker={\n              summary.userDivision'),
       source.indexOf(
-        "summary.userDivision\n                ? t('m2League.youCurrentlyPlayHere')",
+        'summary.userDivision\n                ? t(\n                    topDivision',
       ),
     );
     expect(

@@ -1,7 +1,9 @@
 import {
+  buildFallbackAtlas,
   buildSpriteAtlas,
   clearSpriteAtlasCache,
   type SkiaApi,
+  type SkiaImageLike,
 } from '../buildAtlas';
 import { JERSEY_BAND, loadSpriteSheet } from '../loader';
 import { clubKitPlan, swatchById } from '../club-kit';
@@ -14,28 +16,64 @@ function countingSkia(): {
   api: SkiaApi;
   drawRects: () => number;
   paints: () => number;
+  frees: () => number;
+  retainedImageFrees: () => number;
 } {
   let drawRects = 0;
   let paints = 0;
+  let frees = 0;
+  let retainedImageFrees = 0;
+  const freed = new Set<string>();
+  const freeOnce = (id: string) => {
+    if (freed.has(id)) throw new Error(`double free: ${id}`);
+    freed.add(id);
+    frees += 1;
+  };
+  let paintId = 0;
+  let snapshotId = 0;
+  let surfaceId = 0;
   const api: SkiaApi = {
     Surface: {
-      MakeOffscreen: () => ({
+      MakeOffscreen: () => {
+        const currentSurface = `surface-${surfaceId++}`;
+        const currentSnapshot = `snapshot-${snapshotId++}`;
+        const retainedImage = {
+          delete: () => {
+            retainedImageFrees += 1;
+          },
+        };
+        return {
         getCanvas: () => ({
           drawRect: () => {
             drawRects += 1;
           },
         }),
         flush: () => undefined,
-        makeImageSnapshot: () => ({ makeNonTextureImage: () => ({}) }),
-      }),
+          makeImageSnapshot: () => ({
+            makeNonTextureImage: () => retainedImage,
+            delete: () => freeOnce(currentSnapshot),
+          }),
+          dispose: () => freeOnce(currentSurface),
+        };
+      },
     },
     Paint: () => {
       paints += 1;
-      return { setColor: () => undefined };
+      const currentPaint = `paint-${paintId++}`;
+      return {
+        setColor: () => undefined,
+        delete: () => freeOnce(currentPaint),
+      };
     },
     Color: (value: string) => value,
   } as unknown as SkiaApi;
-  return { api, drawRects: () => drawRects, paints: () => paints };
+  return {
+    api,
+    drawRects: () => drawRects,
+    paints: () => paints,
+    frees: () => frees,
+    retainedImageFrees: () => retainedImageFrees,
+  };
 }
 
 const LOOKS = ['r:f00', 'r:f01'] as const;
@@ -54,6 +92,46 @@ describe('sprite atlas build cost', () => {
     expect(skia.paints()).toBeGreaterThan(0);
     expect(skia.paints()).toBeLessThanOrEqual(24);
     expect(skia.drawRects()).toBeGreaterThan(skia.paints());
+  });
+
+  it('frees temporary CanvasKit objects after copying the atlas image', () => {
+    const skia = countingSkia();
+
+    buildSpriteAtlas(skia.api, LOOKS);
+
+    expect(skia.frees()).toBe(skia.paints() + 2);
+    expect(skia.retainedImageFrees()).toBe(0);
+  });
+
+  it('keeps an atlas image alive when Skia returns the snapshot itself', () => {
+    let snapshotFrees = 0;
+    let snapshot: (SkiaImageLike & { readonly marker: string }) | undefined;
+    const api: SkiaApi = {
+      Surface: {
+        MakeOffscreen: () => ({
+          getCanvas: () => ({ drawRect: () => undefined }),
+          flush: () => undefined,
+          makeImageSnapshot: () => {
+            snapshot = {
+              marker: 'snapshot',
+              makeNonTextureImage: () => snapshot!,
+              delete: () => {
+                snapshotFrees += 1;
+              },
+            };
+            return snapshot;
+          },
+          delete: () => undefined,
+        }),
+      },
+      Paint: () => ({ setColor: () => undefined, delete: () => undefined }),
+      Color: (value: string) => value,
+    };
+
+    expect(buildSpriteAtlas(api, ['r:f00']).image).toBe(snapshot);
+    expect(snapshotFrees).toBe(0);
+    expect(buildFallbackAtlas(api, 4).image).toBe(snapshot);
+    expect(snapshotFrees).toBe(0);
   });
 
   it('draws horizontal runs rather than individual pixels', () => {

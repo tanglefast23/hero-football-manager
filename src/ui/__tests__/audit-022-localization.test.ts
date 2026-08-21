@@ -27,6 +27,12 @@ describe('AUD-022 localization recovery', () => {
     }
   });
 
+  test('the crash recovery copy warns that the last action may have saved', () => {
+    expect(copyFor('en')('screenErrorBoundary.body')).toBe(
+      'Your last action may already be saved. Return to the title screen, continue, and check before you try it again.',
+    );
+  });
+
   test('selected German locale controls money grouping', () => {
     expect(formatMoneyForCopy(copyFor('de'), 12_400)).toBe('$12.400');
     expect(formatMoneyForCopy(copyFor('de'), 12_400, true)).toBe('+$12.400');

@@ -405,6 +405,7 @@ export function advanceM2NationalCup(
   const advanced = advanceNationalCup(
     state.nationalCups[activeCupIndex],
     results,
+    state.userClubId,
   );
   return {
     ...state,
@@ -526,20 +527,21 @@ export function resolveM2CareerPlayerLifecycle(
  */
 interface OpponentGrowthRules {
   opponentGrowthPercent: number;
+  d1OpponentGrowthPercent?: number;
   opponentGrowthAttributeCap: number;
 }
 
 const DEFAULT_OPPONENT_GROWTH: OpponentGrowthRules = {
   opponentGrowthPercent: 2.5,
+  d1OpponentGrowthPercent: 1,
   opponentGrowthAttributeCap: 700,
 };
-
-const WEAKEST_D1_CATCH_UP = 1;
 
 export function planEndlessCareerSeasonTransition(
   state: M2CareerState,
   completedSeason: number,
   growth: OpponentGrowthRules = DEFAULT_OPPONENT_GROWTH,
+  d1LeagueLossesByClubId: Readonly<Record<string, number>> = {},
 ): EndlessCareerSeasonTransitionPlan {
   validateStateIdentity(state);
   validateSeason(completedSeason);
@@ -556,21 +558,34 @@ export function planEndlessCareerSeasonTransition(
     ),
     pyramid: {
       ...state.pyramid,
-      divisions: catchUpWeakestD1Club(
-        state.pyramid.divisions.map((candidate) => ({
+      divisions: state.pyramid.divisions.map((candidate) => ({
           ...candidate,
           clubs: candidate.clubs.map((club) =>
             club.id === state.userClubId
               ? cloneClub(club)
-              : applyGrowth
-                ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
-                : cloneClub(club),
+              : !applyGrowth
+                ? cloneClub(club)
+                : candidate.level !== 1
+                  ? scaleOpponentClub(
+                      club,
+                      nextSeason,
+                      growth,
+                      state.careerSeed,
+                    )
+                  : (d1LeagueLossesByClubId[club.id] ?? 1) === 0
+                    ? cloneClub(club)
+                    : scaleOpponentClub(
+                        club,
+                        nextSeason,
+                        {
+                          ...growth,
+                          opponentGrowthPercent:
+                            growth.d1OpponentGrowthPercent ?? 1,
+                        },
+                        state.careerSeed,
+                      ),
           ),
         })),
-        state.userClubId,
-        applyGrowth,
-        growth.opponentGrowthAttributeCap,
-      ),
     },
   };
   const division = currentUserDivision(advancedState);
@@ -781,42 +796,6 @@ function scaleOpponentClub(
     squadStrength: clubSquadStrength(squad),
     squad,
   };
-}
-
-function catchUpWeakestD1Club(
-  divisions: LeaguePyramid['divisions'],
-  userClubId: string,
-  applyGrowth: boolean,
-  attributeCap: number,
-): LeaguePyramid['divisions'] {
-  if (!applyGrowth) return divisions;
-  const divisionOne = divisions.find((division) => division.level === 1)!;
-  const weakest = divisionOne.clubs
-    .filter((club) => club.id !== userClubId)
-    .sort(
-      (left, right) =>
-        left.squadStrength - right.squadStrength ||
-        compareIds(left.id, right.id),
-    )[0];
-  if (weakest === undefined) return divisions;
-  return divisions.map((division) => ({
-    ...division,
-    clubs: division.clubs.map((club) => {
-      if (club.id !== weakest.id) return club;
-      const squad = club.squad.map((player) => {
-        const attrs = { ...player.attrs };
-        for (const attribute of ATTR_KEYS) {
-          attrs[attribute] = Math.min(
-            MAX_PLAYER_ATTRIBUTE,
-            attributeCap,
-            player.attrs[attribute] + WEAKEST_D1_CATCH_UP,
-          );
-        }
-        return { ...player, attrs };
-      });
-      return { ...club, squad, squadStrength: clubSquadStrength(squad) };
-    }),
-  }));
 }
 
 function growOpponentAttrs(

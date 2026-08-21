@@ -377,6 +377,14 @@ export function resolveCareerScoutClock(
               report.playerId === detail.playerId
                 ? {
                     ...report,
+                    statRanges: Object.fromEntries(
+                      Object.entries(target.player.attrs).map(
+                        ([attribute, value]) => [
+                          attribute,
+                          { minimum: value, maximum: value },
+                        ],
+                      ),
+                    ) as ScoutReport['statRanges'],
                     potentialRange: {
                       minimum: target.player.potential ?? 3,
                       maximum: target.player.potential ?? 3,
@@ -505,11 +513,14 @@ export function startDetailedScoutReport(
   );
   if (report === undefined)
     throw new Error('the scouting report is unavailable');
-  if (report.potentialRange.minimum === report.potentialRange.maximum)
-    throw new Error('this report already confirms exact potential');
+  const reportIsExact =
+    report.potentialRange.minimum === report.potentialRange.maximum &&
+    Object.values(report.statRanges).every(
+      (range) => range.minimum === range.maximum,
+    );
+  if (reportIsExact)
+    throw new Error('this report already confirms exact player details');
   const officeLevel = scoutOfficeLevel(state);
-  if (officeLevel >= 3)
-    throw new Error('this Scout Office already confirms exact potential');
   const duration = officeLevel >= 2 ? 1 : 2;
   if (!reportSurvivesUntil(state, report, duration))
     throw new Error('the transfer window closes before this report can finish');
@@ -562,14 +573,28 @@ export function reportSurvivesUntil(
   return state.week + durationWeeks < expiryWeek;
 }
 
-/** Removes saved bids once they are older than the club can still honour. */
+/** Removes saved bids once they are too old or the buying club can no longer honour them. */
 export function expireCareerTransferListings(
-  state: Pick<GameState, 'season' | 'week'>,
+  state: Pick<GameState, 'season' | 'week' | 'clubs'>,
   market: CareerMarketState,
 ): CareerMarketState {
   const listings = market.transferListings ?? [];
-  const active = listings.filter((listing) => listingIsCurrent(state, listing));
-  if (active.length === listings.length) return market;
+  const cashByClub = new Map(state.clubs.map((club) => [club.id, club.cash]));
+  const active = listings
+    .filter((listing) => listingIsCurrent(state, listing))
+    .map((listing) => ({
+      ...listing,
+      bids: listing.bids.filter(
+        (bid) => (cashByClub.get(bid.buyerClubId) ?? 0) >= bid.quote.fee,
+      ),
+    }));
+  if (
+    active.length === listings.length &&
+    active.every(
+      (listing, index) => listing.bids.length === listings[index].bids.length,
+    )
+  )
+    return market;
   return { ...market, transferListings: active };
 }
 

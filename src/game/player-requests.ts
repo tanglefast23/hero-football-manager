@@ -6,6 +6,7 @@ import {
   deterministicCareerEventRoll,
 } from './event-clock';
 import { isAvailableForSelection } from './lineup';
+import { currentUserDivision } from './m2-career';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
 import { compareIds } from './ordering';
 import { CUP_SETTLEMENT_WEEKS } from './schedule';
@@ -267,6 +268,7 @@ export function totalAskerWeight(
 interface RequestPricingContext {
   readonly playerWeeklyWage: number;
   readonly squadWeeklyWageBill: number;
+  readonly division?: number;
 }
 
 /**
@@ -284,17 +286,23 @@ export function requestMoneyCost(
   cost: PlayerRequestCost,
   context: RequestPricingContext,
 ): number | undefined {
+  const divisionMultiplier = (context.division ?? 5) <= 2 ? 3 : 1;
   if (cost.kind === 'MONEY_PLAYER') {
     return Math.max(
       1,
-      Math.round(context.playerWeeklyWage * cost.wageMultiple),
+      Math.round(
+        context.playerWeeklyWage * cost.wageMultiple * divisionMultiplier,
+      ),
     );
   }
   if (cost.kind === 'MONEY_SQUAD') {
     return Math.max(
       1,
       Math.round(
-        (context.squadWeeklyWageBill * cost.billMultiplePercent) / 100,
+        (context.squadWeeklyWageBill *
+          cost.billMultiplePercent *
+          divisionMultiplier) /
+          100,
       ),
     );
   }
@@ -937,6 +945,7 @@ export function advancePlayerRequests(
   const costAmount = requestMoneyCost(definition.cost, {
     playerWeeklyWage: asker.weeklyWage,
     squadWeeklyWageBill: club.weeklyWages,
+    division: next.m2 === undefined ? 5 : currentUserDivision(next.m2),
   });
 
   return withRequests(next, {

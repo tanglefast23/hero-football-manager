@@ -6,6 +6,7 @@ import { compareIds } from './ordering';
 import { roleOverall } from './archetype-caps';
 import {
   CLUB_LEGEND_MIN_FAME,
+  DIVISION_STAR_FOCUS_RATINGS,
   DIVISION_SUPPORT_STRENGTHS,
   divisionTierLabel,
   type DivisionLevel,
@@ -278,6 +279,18 @@ export function resolveScoutMission(
   );
   for (const candidate of candidates) validateScoutablePlayer(candidate);
 
+  const currentStrengthDivision = Math.max(
+    1,
+    (mission.division ?? 5) - 1,
+  ) as DivisionLevel;
+  // Potential may reach two divisions up. Current strength stops one tier up.
+  const currentStrengthCeiling =
+    Math.ceil(
+      (DIVISION_SUPPORT_STRENGTHS[currentStrengthDivision] +
+        DIVISION_STAR_FOCUS_RATINGS[currentStrengthDivision]) /
+        2,
+    ) + 5;
+
   const eligible = candidates
     .filter(
       (candidate) =>
@@ -285,6 +298,8 @@ export function resolveScoutMission(
         (candidate.sellingClubDivision === undefined ||
           candidate.sellingClubDivision >=
             Math.max(1, (mission.division ?? 5) - 2)) &&
+        roleOverall(candidate.role, candidate.attrs) <=
+          currentStrengthCeiling &&
         (mission.focus.kind === 'RUMORED_HERO' ||
           candidate.power === undefined) &&
         matchesScoutFocus(candidate, mission.focus),

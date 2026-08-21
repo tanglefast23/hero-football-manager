@@ -1,4 +1,5 @@
 import { loadLaunchContent } from '../../content';
+import { formationRoleForSlot } from '../../sim/tactics';
 import {
   activeCareerMatchday,
   advanceWeek,
@@ -9,6 +10,7 @@ import {
 import {
   buildCareerMatchTeamDef,
   buildCareerTeamDef,
+  arrangeCareerLineupForFormation,
   matchFormPercent,
   rosterForClub,
   buildTrainingGround,
@@ -324,6 +326,39 @@ describe('career squad integration', () => {
     expect(() =>
       swapCareerLineupPlayer(injured, starterId, replacementId),
     ).toThrow('injured and unavailable');
+  });
+
+  it('auto-arranges the strongest available players into natural roles', () => {
+    const initial = career();
+    const reserveId = `${CLUB_IDS[0]}-p12`;
+    const withStrongReserve = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === reserveId
+          ? {
+              ...player,
+              role: 'DEF' as const,
+              attrs: { ...player.attrs, def: 90 },
+            }
+          : player,
+      ),
+    };
+
+    const arranged = arrangeCareerLineupForFormation(
+      withStrongReserve,
+      '4-4-2',
+    );
+    const ids = arranged.lineups.find(
+      (lineup) => lineup.clubId === arranged.userClubId,
+    )!.playerIds;
+
+    expect(ids).toContain(reserveId);
+    ids.forEach((playerId, slot) => {
+      const player = arranged.players.find(
+        (candidate) => candidate.id === playerId,
+      )!;
+      expect(player.role).toBe(formationRoleForSlot('4-4-2', slot));
+    });
   });
 
   it('trades formation slots when both players already start, never the keeper', () => {

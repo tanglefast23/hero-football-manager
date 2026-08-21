@@ -1670,6 +1670,9 @@ export function NegotiationPanel({
   // whose. Blocking the button is what stops the agent accepting a deal the
   // career would then refuse to complete.
   const reclaimChoice = selectedPerk?.heroLicenseReclaim;
+  const selectedReclaim = reclaimChoice?.options.find(
+    (option) => option.playerId === reclaimPlayerId,
+  );
   const reclaimUnchosen =
     reclaimChoice !== undefined &&
     !reclaimChoice.options.some(
@@ -1980,7 +1983,7 @@ export function NegotiationPanel({
                     <Pressable
                       key={holder.playerId}
                       accessibilityRole="radio"
-                      accessibilityLabel={`${holder.name}, ${holder.role}, ${holder.statusLabel}`}
+                      accessibilityLabel={`${holder.name}, ${holder.role}, ${holder.statusLabel}. ${holder.consequenceLabel}`}
                       accessibilityState={{
                         selected: reclaimPlayerId === holder.playerId,
                       }}
@@ -2000,9 +2003,11 @@ export function NegotiationPanel({
                     </Pressable>
                   ))}
                 </View>
-                <Text className="mt-2 text-sm leading-5 text-ink/60">
-                  {t('market.reclaimHeroLicenseWarning')}
-                </Text>
+                {selectedReclaim === undefined ? null : (
+                  <Text className="mt-2 text-sm font-bold leading-5 text-stamp">
+                    {selectedReclaim.consequenceLabel}
+                  </Text>
+                )}
               </View>
             )}
           </View>
@@ -2018,9 +2023,25 @@ export function NegotiationPanel({
                   detail={t('market.pitchCardsAreEarned')}
                 />
               ) : (
-                viewModel.cards.map((card) => {
-                  const selected = pitchCard === card.id;
-                  return (
+                <>
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityLabel={t('market.noPitchCard')}
+                    accessibilityState={{ selected: pitchCard === undefined }}
+                    onPress={() => setPitchCard(undefined)}
+                    className={
+                      pitchCard === undefined
+                        ? 'min-h-12 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                        : 'min-h-12 border-2 border-ink/30 bg-white px-3 py-2'
+                    }
+                  >
+                    <PixelText className="text-sm uppercase text-ink">
+                      {t('market.noPitchCard')}
+                    </PixelText>
+                  </Pressable>
+                  {viewModel.cards.map((card) => {
+                    const selected = pitchCard === card.id;
+                    return (
                     <Pressable
                       key={card.id}
                       accessibilityRole="radio"
@@ -2078,8 +2099,9 @@ export function NegotiationPanel({
                         {card.detail}
                       </Text>
                     </Pressable>
-                  );
-                })
+                    );
+                  })}
+                </>
               )}
             </View>
           </View>

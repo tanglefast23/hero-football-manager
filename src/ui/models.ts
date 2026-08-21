@@ -120,6 +120,7 @@ export interface LeagueTableRowViewModel {
 
 export interface LeagueTableViewModel {
   divisionLabel: string;
+  topDivision: boolean;
   seasonLabel: string;
   weekLabel: string;
   matchesPlayed: number;

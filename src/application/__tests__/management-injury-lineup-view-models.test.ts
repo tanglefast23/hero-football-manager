@@ -468,6 +468,19 @@ describe('management injury and lineup presentation', () => {
       nextSeason.financialSafety?.boardUltimatum?.candidates,
     ).not.toContainEqual(expect.objectContaining({ playerId: retiringId }));
     expect(() => homeViewModel(nextSeason)).not.toThrow();
+    expect(
+      nextSeason.players.some((player) =>
+        player.id.includes(`-academy-s${nextSeason.season}-`),
+      ),
+    ).toBe(true);
+    const withInbox = reconcileHomeAssistantInbox(nextSeason);
+    expect(
+      withInbox.eventFlags.some((flag) =>
+        flag.includes(
+          encodeURIComponent(`academy-promotion:s${nextSeason.season}`),
+        ),
+      ),
+    ).toBe(true);
   });
 
   it('renders an older save defensively when its protected board candidate is already stale', () => {

@@ -436,6 +436,19 @@ describe('career market view-model source adapter', () => {
     expect(
       starter?.heroLicenseReclaim?.options.map((option) => option.statusLabel),
     ).not.toContain('Starting XI');
+    for (const option of starter?.heroLicenseReclaim?.options ?? []) {
+      expect(option.consequenceLabel).toBe(
+        t(
+          option.statusLabel === t('market.reclaimHolderStarting')
+            ? 'market.reclaimHeroLicenseStartingPreview'
+            : 'market.reclaimHeroLicenseBenchPreview',
+          {
+          holder: option.name,
+          player: poweredTarget.name,
+          },
+        ),
+      );
+    }
   });
 
   it('disables starting promises with a translated reason when every license is promised', () => {

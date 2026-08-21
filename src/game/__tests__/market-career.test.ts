@@ -1343,6 +1343,35 @@ describe('career market integration', () => {
     ).toThrow('transfer bid has expired');
   });
 
+  test('removes a saved bid when its buying club can no longer pay it', () => {
+    const initial = createCareer(createLaunchCareerSetup(827));
+    const starters = new Set(initial.lineups[0].playerIds);
+    const reserve = initial.players.find(
+      (player) =>
+        player.clubId === initial.userClubId &&
+        !starters.has(player.id) &&
+        player.role !== 'GK',
+    )!;
+    const listed = listCareerPlayer(initial, initial.market!, reserve.id);
+    const bid = listed.transferListings![0].bids[0];
+    const unfunded = {
+      ...initial,
+      clubs: initial.clubs.map((club) =>
+        club.id === bid.buyerClubId ? { ...club, cash: 0 } : club,
+      ),
+    };
+
+    const reconciled = expireCareerTransferListings(unfunded, listed);
+
+    expect(
+      reconciled.transferListings?.flatMap((listing) => listing.bids),
+    ).not.toContainEqual(expect.objectContaining({ id: bid.id }));
+    expect(reconciled.transferListings).toHaveLength(1);
+    expect(reconciled.transferListings?.[0].bids).toHaveLength(
+      listed.transferListings![0].bids.length - 1,
+    );
+  });
+
   test('enforces coach eligibility and gates an assistant behind the Coaching Office', () => {
     const initial = createCareer(createLaunchCareerSetup(825));
     const market = createCareerMarketState(initial);
@@ -1711,6 +1740,63 @@ describe('career market integration', () => {
       minimum: target.potential,
       maximum: target.potential,
     });
+    expect(
+      Object.entries(resolved.scoutReports[0].statRanges).every(
+        ([attribute, exact]) =>
+          exact.minimum === target.attrs[attribute as keyof typeof target.attrs] &&
+          exact.maximum === target.attrs[attribute as keyof typeof target.attrs],
+      ),
+    ).toBe(true);
+  });
+
+  test('allows exact-stat detail when a level-three office already knows potential', () => {
+    const initial = { ...createCareer(createLaunchCareerSetup(286)), week: 1 };
+    const state: GameState = {
+      ...initial,
+      facilities: {
+        ...initial.facilities,
+        grid: {
+          ...initial.facilities.grid!,
+          nextBuildingId: 2,
+          buildings: [
+            {
+              id: 'scout-office-3',
+              type: 'scout-office',
+              level: 3,
+              capitalInvested: 27_000,
+              x: 0,
+              y: 0,
+            },
+          ],
+        },
+      },
+    };
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const range = { minimum: 40, maximum: 60 };
+    const market = {
+      ...state.market!,
+      scoutReports: [
+        {
+          playerId: target.id,
+          role: target.role,
+          age: target.age ?? 22,
+          statRanges: Object.fromEntries(
+            Object.keys(target.attrs).map((attribute) => [attribute, range]),
+          ) as never,
+          potentialRange: {
+            minimum: target.potential ?? 3,
+            maximum: target.potential ?? 3,
+          },
+          completedSeason: 1,
+          completedWeek: 1,
+        },
+      ],
+    };
+
+    expect(startDetailedScoutReport(state, market, target.id, 5).market)
+      .toMatchObject({ detailedScoutReport: { dueWeek: 2 } });
   });
 
   test('refuses a detailed report that would expire at season end', () => {

@@ -1,6 +1,7 @@
 import {
   CUP_SETTLEMENT_WEEKS,
   DEFAULT_CREATION_RATINGS,
+  buildCareerMatchTeamDef,
   createCareer,
   cupMismatchWarning,
   type GameState,
@@ -12,6 +13,8 @@ import { createMatch } from '../../sim/match';
 import { weeklySettlementAwardKeys } from '../../game/weekly-settlement-awards';
 import { useM1Store } from '../store';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
+import { loadLaunchContent } from '../../content';
+import { matchDayViewModel } from '../view-models';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
 
@@ -26,6 +29,24 @@ const TIED_CUP_MATCH_SEED = tiedCupMatchSeed();
 describe('Hero Cup app routing', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
+  });
+
+  test('reports the same cross-division heroes the Cup match fields', () => {
+    const career = prepareCupTie(1);
+    const fixture = activeUserCupFixture(career);
+    const opponentId =
+      fixture.homeClubId === career.userClubId
+        ? fixture.awayClubId
+        : fixture.homeClubId;
+    const expectedIds = buildCareerMatchTeamDef(career, opponentId)
+      .players.filter((player) => player.power !== undefined)
+      .map((player) => player.id);
+
+    expect(
+      matchDayViewModel(career, loadLaunchContent()).fixture.opponentHeroes.map(
+        (hero) => hero.id,
+      ),
+    ).toEqual(expectedIds);
   });
 
   test('routes from the league match through awakening into the playable cup tie', () => {

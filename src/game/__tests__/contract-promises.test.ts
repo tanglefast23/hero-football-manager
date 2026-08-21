@@ -355,6 +355,10 @@ describe('career contract promises', () => {
 
     test('benches the chosen holder and starts the newly promised hero', () => {
       const { state, heroIds, incoming } = fullLicenseCap(9413);
+      const originalLineup = state.lineups.find(
+        (candidate) => candidate.clubId === state.userClubId,
+      )!;
+      const reclaimedSlot = originalLineup.playerIds.indexOf(heroIds[0]);
       const promised = applyCareerContractPromise(
         state,
         incoming.id,
@@ -374,9 +378,65 @@ describe('career contract promises', () => {
       ).toBe(true);
       expect(lineup.playerIds).not.toContain(heroIds[0]);
       expect(lineup.playerIds).toContain(incoming.id);
+      expect(lineup.playerIds[reclaimedSlot]).toBe(incoming.id);
       expect(() =>
         buildCareerTeamDef(promised, promised.userClubId),
       ).not.toThrow();
+    });
+
+    test('reclaiming a bench license does not invent a second handoff', () => {
+      const { state, heroIds, incoming } = fullLicenseCap(9419);
+      const lineup = state.lineups.find(
+        (candidate) => candidate.clubId === state.userClubId,
+      )!;
+      const starterSet = new Set(lineup.playerIds);
+      const benchHolder = state.players.find(
+        (player) =>
+          player.clubId === state.userClubId &&
+          !starterSet.has(player.id) &&
+          player.id !== incoming.id &&
+          player.role !== 'GK',
+      )!;
+      const withBenchHolder: GameState = {
+        ...state,
+        players: state.players.map((player) => {
+          if (player.id === heroIds[0]) {
+            return { ...player, power: undefined, licensed: false };
+          }
+          return player.id === benchHolder.id
+            ? {
+                ...player,
+                power: 'SUPER_SPEED' as const,
+                powerTier: 1 as const,
+                licensed: true,
+              }
+            : player;
+        }),
+      };
+
+      const promised = applyCareerContractPromise(
+        withBenchHolder,
+        incoming.id,
+        'GUARANTEED_STARTER',
+        undefined,
+        benchHolder.id,
+      );
+      const promisedIds = promised.lineups.find(
+        (candidate) => candidate.clubId === promised.userClubId,
+      )!.playerIds;
+
+      expect(
+        promised.players.find((player) => player.id === benchHolder.id)
+          ?.licensed,
+      ).toBe(false);
+      expect(
+        promised.players.find((player) => player.id === heroIds[1])?.licensed,
+      ).toBe(true);
+      expect(promisedIds).toContain(heroIds[1]);
+      expect(promisedIds).toContain(incoming.id);
+      expect(promisedIds.filter((id) => !lineup.playerIds.includes(id))).toEqual(
+        [incoming.id],
+      );
     });
 
     test('refuses a promised holder as the source of the license', () => {

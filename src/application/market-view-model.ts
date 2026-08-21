@@ -362,14 +362,23 @@ function heroLicenseReclaimViewModel(
   const options = reclaimableHeroLicenseHolders(
     context.state,
     context.player,
-  ).map((holder) => ({
-    playerId: holder.id,
-    name: holder.name,
-    role: holder.role,
-    statusLabel: starters.has(holder.id)
-      ? t('market.reclaimHolderStarting')
-      : t('market.reclaimHolderBench'),
-  }));
+  ).map((holder) => {
+    const starting = starters.has(holder.id);
+    return {
+      playerId: holder.id,
+      name: holder.name,
+      role: holder.role,
+      statusLabel: starting
+        ? t('market.reclaimHolderStarting')
+        : t('market.reclaimHolderBench'),
+      consequenceLabel: t(
+        starting
+          ? 'market.reclaimHeroLicenseStartingPreview'
+          : 'market.reclaimHeroLicenseBenchPreview',
+        { holder: holder.name, player: context.player.name },
+      ),
+    };
+  });
   return options.length === 0
     ? undefined
     : {

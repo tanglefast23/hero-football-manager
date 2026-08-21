@@ -150,7 +150,7 @@ describe('division-scaled story money', () => {
 });
 
 describe('career event state', () => {
-  it('burns two cheap small buildings safely or the highest-level fan shop', () => {
+  it('burns two cheap small buildings safely or the most valuable facility', () => {
     const initial = createCareer(createLaunchCareerSetup());
     const grid = {
       ...initial.facilities.grid!,
@@ -209,7 +209,7 @@ describe('career event state', () => {
       applyCareerFacilityFire(state, 'PRIMARY').facilities.grid?.buildings.map(
         (building) => building.id,
       ),
-    ).toEqual(['gym', 'dorm', 'shop-low', 'stand']);
+    ).toEqual(['gym', 'dorm', 'shop-low', 'shop-high']);
   });
 
   it("holds an injured story starter's exact lineup slot for their return", () => {
