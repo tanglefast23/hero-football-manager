@@ -559,33 +559,28 @@ export function planEndlessCareerSeasonTransition(
     pyramid: {
       ...state.pyramid,
       divisions: state.pyramid.divisions.map((candidate) => ({
-          ...candidate,
-          clubs: candidate.clubs.map((club) =>
-            club.id === state.userClubId
+        ...candidate,
+        clubs: candidate.clubs.map((club) =>
+          club.id === state.userClubId
+            ? cloneClub(club)
+            : !applyGrowth
               ? cloneClub(club)
-              : !applyGrowth
-                ? cloneClub(club)
-                : candidate.level !== 1
-                  ? scaleOpponentClub(
+              : candidate.level !== 1
+                ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
+                : (d1LeagueLossesByClubId[club.id] ?? 1) === 0
+                  ? cloneClub(club)
+                  : scaleOpponentClub(
                       club,
                       nextSeason,
-                      growth,
+                      {
+                        ...growth,
+                        opponentGrowthPercent:
+                          growth.d1OpponentGrowthPercent ?? 1,
+                      },
                       state.careerSeed,
-                    )
-                  : (d1LeagueLossesByClubId[club.id] ?? 1) === 0
-                    ? cloneClub(club)
-                    : scaleOpponentClub(
-                        club,
-                        nextSeason,
-                        {
-                          ...growth,
-                          opponentGrowthPercent:
-                            growth.d1OpponentGrowthPercent ?? 1,
-                        },
-                        state.careerSeed,
-                      ),
-          ),
-        })),
+                    ),
+        ),
+      })),
     },
   };
   const division = currentUserDivision(advancedState);

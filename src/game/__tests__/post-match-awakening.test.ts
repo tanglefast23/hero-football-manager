@@ -545,9 +545,7 @@ describe('automatic post-match awakenings', () => {
       awakening: { matchesSinceLastAwakening: 2, usedTriggerIds: [] },
     };
     const licensedBefore = state.players
-      .filter(
-        (player) => player.clubId === state.userClubId && player.licensed,
-      )
+      .filter((player) => player.clubId === state.userClubId && player.licensed)
       .map((player) => player.id)
       .sort();
 

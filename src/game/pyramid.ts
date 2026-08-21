@@ -1460,10 +1460,7 @@ function roundOf32PairingOrder(
   }
   const protectedIndex =
     protectedClubId === undefined ? -1 : paired.indexOf(protectedClubId);
-  if (
-    protectedIndex >= 0 &&
-    (divisionByClubId[protectedClubId!] ?? 5) <= 2
-  ) {
+  if (protectedIndex >= 0 && (divisionByClubId[protectedClubId!] ?? 5) <= 2) {
     const opponentIndex =
       protectedIndex % 2 === 0 ? protectedIndex + 1 : protectedIndex - 1;
     if ((divisionByClubId[paired[opponentIndex]] ?? 5) > 3) {

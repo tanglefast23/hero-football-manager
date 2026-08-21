@@ -377,10 +377,7 @@ function validateTriggerIds(triggerIds: readonly string[]): void {
   }
 }
 
-function canSafelyAwaken(
-  state: GameState,
-  playerId: string,
-): boolean {
+function canSafelyAwaken(state: GameState, playerId: string): boolean {
   const player = state.players.find((candidate) => candidate.id === playerId);
   if (player === undefined) return false;
   if (

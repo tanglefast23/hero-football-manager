@@ -72,10 +72,7 @@ export interface SpriteAtlas {
   rectFor: AtlasLayout['rectFor'];
 }
 
-function disposeSkiaObject(value: {
-  delete?(): void;
-  dispose?(): void;
-}): void {
+function disposeSkiaObject(value: { delete?(): void; dispose?(): void }): void {
   if (value.delete !== undefined) value.delete();
   else value.dispose?.();
 }

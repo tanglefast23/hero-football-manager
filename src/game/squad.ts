@@ -1,8 +1,5 @@
 import type { TeamDef } from '../sim/types';
-import {
-  formationRoleForSlot,
-  type FormationId,
-} from '../sim/tactics';
+import { formationRoleForSlot, type FormationId } from '../sim/tactics';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { conditionedRatingD64 } from '../sim/contest';
 import { buildTeamDef, isAvailableForSelection } from './lineup';

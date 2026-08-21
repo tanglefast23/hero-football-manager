@@ -2042,63 +2042,63 @@ export function NegotiationPanel({
                   {viewModel.cards.map((card) => {
                     const selected = pitchCard === card.id;
                     return (
-                    <Pressable
-                      key={card.id}
-                      accessibilityRole="radio"
-                      accessibilityLabel={t('market.a11y.cardLabelDetail', {
-                        label: card.label,
-                        detail: card.detail,
-                      })}
-                      accessibilityState={{ selected, disabled: card.used }}
-                      disabled={card.used}
-                      onPress={() =>
-                        setPitchCard((current) =>
-                          current === card.id ? undefined : card.id,
-                        )
-                      }
-                      className={
-                        card.used
-                          ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
-                          : selected
-                            ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
-                            : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'
-                      }
-                    >
-                      <View className="flex-row items-center justify-between gap-3">
-                        <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
-                          {card.label}
-                        </PixelText>
-                        {/* The loved/hated mapping has always been in the engine
+                      <Pressable
+                        key={card.id}
+                        accessibilityRole="radio"
+                        accessibilityLabel={t('market.a11y.cardLabelDetail', {
+                          label: card.label,
+                          detail: card.detail,
+                        })}
+                        accessibilityState={{ selected, disabled: card.used }}
+                        disabled={card.used}
+                        onPress={() =>
+                          setPitchCard((current) =>
+                            current === card.id ? undefined : card.id,
+                          )
+                        }
+                        className={
+                          card.used
+                            ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
+                            : selected
+                              ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                              : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'
+                        }
+                      >
+                        <View className="flex-row items-center justify-between gap-3">
+                          <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
+                            {card.label}
+                          </PixelText>
+                          {/* The loved/hated mapping has always been in the engine
                           and never on screen, so a hated card cost 10% AND one
                           of only three rounds with no warning. Read as how the
                           player takes it, not as a rule being quoted at you. */}
-                        {card.used ||
-                        card.affinity === undefined ||
-                        card.affinity === 'NEUTRAL' ? null : (
-                          <Text
-                            className={
-                              card.affinity === 'LOVED'
-                                ? 'font-pixel text-sm uppercase text-pitch-ink'
-                                : 'font-pixel text-sm uppercase text-stamp'
-                            }
-                          >
-                            {card.affinity === 'LOVED'
-                              ? t('market.heLlLikeThis')
-                              : t('market.risky')}
+                          {card.used ||
+                          card.affinity === undefined ||
+                          card.affinity === 'NEUTRAL' ? null : (
+                            <Text
+                              className={
+                                card.affinity === 'LOVED'
+                                  ? 'font-pixel text-sm uppercase text-pitch-ink'
+                                  : 'font-pixel text-sm uppercase text-stamp'
+                              }
+                            >
+                              {card.affinity === 'LOVED'
+                                ? t('market.heLlLikeThis')
+                                : t('market.risky')}
+                            </Text>
+                          )}
+                          <Text className="font-pixel text-sm uppercase text-ink/50">
+                            {card.used
+                              ? t('market.played')
+                              : selected
+                                ? t('market.loaded')
+                                : t('market.card')}
                           </Text>
-                        )}
-                        <Text className="font-pixel text-sm uppercase text-ink/50">
-                          {card.used
-                            ? t('market.played')
-                            : selected
-                              ? t('market.loaded')
-                              : t('market.card')}
+                        </View>
+                        <Text className="mt-1 text-sm text-ink/60">
+                          {card.detail}
                         </Text>
-                      </View>
-                      <Text className="mt-1 text-sm text-ink/60">
-                        {card.detail}
-                      </Text>
-                    </Pressable>
+                      </Pressable>
                     );
                   })}
                 </>

@@ -254,7 +254,15 @@ describe('endless opponent growth', () => {
         .find((division) => division.level === 1)!
         .clubs.find((club) => club.id === perfect.id)!.squad[0].attrs,
     ).not.toEqual(perfect.squad[0].attrs);
-    for (const attribute of ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const) {
+    for (const attribute of [
+      'pac',
+      'sho',
+      'pas',
+      'def',
+      'tec',
+      'sta',
+      'ref',
+    ] as const) {
       const scaled = beaten.squad[0].attrs[attribute] * 1.03;
       expect([Math.floor(scaled), Math.ceil(scaled)]).toContain(
         advancedPlayer(beaten.id).attrs[attribute],

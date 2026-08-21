@@ -43,12 +43,12 @@ function countingSkia(): {
           },
         };
         return {
-        getCanvas: () => ({
-          drawRect: () => {
-            drawRects += 1;
-          },
-        }),
-        flush: () => undefined,
+          getCanvas: () => ({
+            drawRect: () => {
+              drawRects += 1;
+            },
+          }),
+          flush: () => undefined,
           makeImageSnapshot: () => ({
             makeNonTextureImage: () => retainedImage,
             delete: () => freeOnce(currentSnapshot),

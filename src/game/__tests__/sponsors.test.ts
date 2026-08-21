@@ -227,8 +227,10 @@ describe('deterministic offers', () => {
   });
 
   it('sets D4 clean-sheet goals one match below the authored target', () => {
-    const offers = Array.from({ length: 50 }, (_, careerSeed) =>
-      createSeasonSponsorship(seasonContext({ careerSeed })).offers,
+    const offers = Array.from(
+      { length: 50 },
+      (_, careerSeed) =>
+        createSeasonSponsorship(seasonContext({ careerSeed })).offers,
     ).flat();
     const cleanSheet = offers.find(
       (offer) => offer.objective.kind === 'LEAGUE_CLEAN_SHEETS',

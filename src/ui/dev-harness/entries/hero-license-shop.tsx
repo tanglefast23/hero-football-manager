@@ -86,16 +86,12 @@ function shopCareer(shopCase: ShopCase): GameState {
     ...squad
       .filter((player) => starterIds.has(player.id) && player.role !== 'GK')
       .slice(0, 4),
-    squad.find(
-      (player) => !starterIds.has(player.id) && player.role !== 'GK',
-    )!,
+    squad.find((player) => !starterIds.has(player.id) && player.role !== 'GK')!,
   ];
   const heroes = shopCase.permitFive ? permitFiveHeroes : squad.slice(0, 2);
   const heroIds = new Set(heroes.map((player) => player.id));
   const licensedIds = new Set(
-    heroes
-      .slice(0, shopCase.permitFive ? 4 : 2)
-      .map((player) => player.id),
+    heroes.slice(0, shopCase.permitFive ? 4 : 2).map((player) => player.id),
   );
   return {
     ...base,

@@ -434,9 +434,9 @@ describe('career contract promises', () => {
       ).toBe(true);
       expect(promisedIds).toContain(heroIds[1]);
       expect(promisedIds).toContain(incoming.id);
-      expect(promisedIds.filter((id) => !lineup.playerIds.includes(id))).toEqual(
-        [incoming.id],
-      );
+      expect(
+        promisedIds.filter((id) => !lineup.playerIds.includes(id)),
+      ).toEqual([incoming.id]);
     });
 
     test('refuses a promised holder as the source of the license', () => {

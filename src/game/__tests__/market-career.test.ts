@@ -1743,8 +1743,10 @@ describe('career market integration', () => {
     expect(
       Object.entries(resolved.scoutReports[0].statRanges).every(
         ([attribute, exact]) =>
-          exact.minimum === target.attrs[attribute as keyof typeof target.attrs] &&
-          exact.maximum === target.attrs[attribute as keyof typeof target.attrs],
+          exact.minimum ===
+            target.attrs[attribute as keyof typeof target.attrs] &&
+          exact.maximum ===
+            target.attrs[attribute as keyof typeof target.attrs],
       ),
     ).toBe(true);
   });
@@ -1795,8 +1797,9 @@ describe('career market integration', () => {
       ],
     };
 
-    expect(startDetailedScoutReport(state, market, target.id, 5).market)
-      .toMatchObject({ detailedScoutReport: { dueWeek: 2 } });
+    expect(
+      startDetailedScoutReport(state, market, target.id, 5).market,
+    ).toMatchObject({ detailedScoutReport: { dueWeek: 2 } });
   });
 
   test('refuses a detailed report that would expire at season end', () => {

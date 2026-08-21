@@ -50,8 +50,12 @@ describe('management UI truthfulness view models', () => {
   it('marks only first place as a title place in Division 1', () => {
     const initial = createCareer(createLaunchCareerSetup(413));
     const pyramid = initial.m2!.pyramid;
-    const divisionOne = pyramid.divisions.find((division) => division.level === 1)!;
-    const divisionFive = pyramid.divisions.find((division) => division.level === 5)!;
+    const divisionOne = pyramid.divisions.find(
+      (division) => division.level === 1,
+    )!;
+    const divisionFive = pyramid.divisions.find(
+      (division) => division.level === 5,
+    )!;
     const displaced = divisionOne.clubs[0];
     const userClub = divisionFive.clubs.find(
       (club) => club.id === initial.userClubId,
@@ -90,7 +94,9 @@ describe('management UI truthfulness view models', () => {
 
     expect(viewModel.topDivision).toBe(true);
     expect(
-      viewModel.rows.filter((row) => row.inPromotionPlaces).map((row) => row.position),
+      viewModel.rows
+        .filter((row) => row.inPromotionPlaces)
+        .map((row) => row.position),
     ).toEqual([1]);
     expect(
       readFileSync(

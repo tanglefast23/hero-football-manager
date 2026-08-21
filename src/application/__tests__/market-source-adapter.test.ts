@@ -443,8 +443,8 @@ describe('career market view-model source adapter', () => {
             ? 'market.reclaimHeroLicenseStartingPreview'
             : 'market.reclaimHeroLicenseBenchPreview',
           {
-          holder: option.name,
-          player: poweredTarget.name,
+            holder: option.name,
+            player: poweredTarget.name,
           },
         ),
       );
