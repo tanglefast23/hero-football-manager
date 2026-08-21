@@ -665,6 +665,7 @@ export function playerGrowthGrade(player: CareerPlayer): PotentialGrade {
   return POTENTIAL_GRADES[Math.round(blended * (POTENTIAL_GRADES.length - 1))];
 }
 
+/** @i18n-fallback labels accompany locale-neutral kinds for non-UI consumers. */
 function instantGrowthModifierLabels(
   state: GameState,
   player: CareerPlayer,

@@ -18,7 +18,7 @@ describe('repeat-training presentation contract', () => {
     expect(modal).not.toContainSource('repeatPickerWidth');
     expect(modal).toContainSource("t('trainingDrill.eachRunKeepsIts')");
     expect(loadCatalog('en').strings['trainingDrill.eachRunKeepsIts']).toBe(
-      'Each run keeps its own SUPER roll, injury roll and result reveal.',
+      'Each run has its own SUPER roll (1.5x gain) and injury roll. An injury stops the remaining drills.',
     );
     expect(modal).toContainSource('batch.remaining > 0');
     expect(modal).toContainSource('onTrainDrill(playerId, nextBatch.pathId);');
