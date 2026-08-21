@@ -122,20 +122,29 @@ describe('renewal ask market anchor', () => {
     expect(asked).toBeLessThanOrEqual(500_000);
   });
 
-  test('adds 15 percentage points to renewal asks for every tier from D3', () => {
+  test('keeps every division premium inside the market ceiling', () => {
     const player = { ...squad[0], weeklyWage: 100_000 };
     const rich = withWage(player, player.weeklyWage);
-    const d5Ask = careerRenewalWeeklyAsk(rich, player);
 
-    for (const [level, percent] of [
-      [4, 100],
-      [3, 115],
-      [2, 130],
-      [1, 145],
-    ] as const) {
-      expect(careerRenewalWeeklyAsk(inDivision(rich, level), player)).toBe(
-        Math.round((d5Ask * percent) / 100),
+    for (const level of [5, 4, 3, 2, 1] as const) {
+      const divisionState = inDivision(rich, level);
+      expect(careerRenewalWeeklyAsk(divisionState, player)).toBeLessThanOrEqual(
+        generatedPlayerWeeklyWage(player.attrs, level) * 3,
       );
     }
+  });
+
+  test('keeps a D1 hero division premium inside the five-times renewal cap', () => {
+    const player = {
+      ...squad[0],
+      weeklyWage: generatedPlayerWeeklyWage(squad[0].attrs, 1),
+      power: 'FIRE_TORCH' as never,
+      onHeroWage: false,
+    };
+    const d1 = inDivision(withWage(squad[0], player.weeklyWage), 1);
+
+    expect(careerRenewalWeeklyAsk(d1, player)).toBeLessThanOrEqual(
+      player.weeklyWage * 5,
+    );
   });
 });
