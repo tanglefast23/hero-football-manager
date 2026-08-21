@@ -135,6 +135,7 @@ export interface SettingsOverlayProps {
   privacySupportOpen: boolean;
   volume: DevVolume;
   reduceMotion: boolean;
+  quickMatchEnabled: boolean;
   hudSide: HudSide;
   hapticsEnabled: boolean;
   textScale: TextScale;
@@ -164,6 +165,7 @@ export interface SettingsOverlayProps {
   onOpenPrivacyPolicy: () => void;
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
+  onToggleQuickMatch: () => void;
   onToggleHudSide: () => void;
   onToggleHaptics: () => void;
   onCycleTextScale: () => void;
@@ -224,6 +226,7 @@ export function SettingsOverlay({
   privacySupportOpen,
   volume,
   reduceMotion,
+  quickMatchEnabled,
   hudSide,
   hapticsEnabled,
   textScale,
@@ -246,6 +249,7 @@ export function SettingsOverlay({
   onOpenPrivacyPolicy,
   onVolumeChange,
   onToggleReduceMotion,
+  onToggleQuickMatch,
   onToggleHudSide,
   onToggleHaptics,
   onCycleTextScale,
@@ -418,6 +422,24 @@ export function SettingsOverlay({
                   </Text>
                   <Text className="font-pixel text-base text-ink">
                     {t(reduceMotion ? 'settings.on' : 'settings.off')}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="switch"
+                  accessibilityLabel={t('settings.quickMatch.label')}
+                  accessibilityState={{ checked: quickMatchEnabled }}
+                  onPress={onToggleQuickMatch}
+                  className={
+                    quickMatchEnabled
+                      ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2'
+                      : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
+                  }
+                >
+                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
+                    {t('settings.quickMatch.label')}
+                  </Text>
+                  <Text className="font-pixel text-base text-ink">
+                    {t(quickMatchEnabled ? 'settings.on' : 'settings.off')}
                   </Text>
                 </Pressable>
                 {performanceLimited && onRetry3x !== undefined ? (

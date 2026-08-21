@@ -29,6 +29,7 @@ describe('fail-soft app preferences', () => {
     expect(result.preferences).toEqual({
       formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
       autoPowers: false,
+      quickMatchEnabled: false,
       masterVolume: 1,
       performanceLimit: null,
       reduceMotion: false,

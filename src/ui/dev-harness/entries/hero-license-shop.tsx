@@ -164,6 +164,8 @@ export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
       onBuyHeroLicense={() => {}}
       onSwapStartingPlayer={() => {}}
       onWatchMatch={() => {}}
+      onQuickMatch={() => {}}
+      quickMatchEnabled={false}
       formationOptions={COACHING_FORMATION_IDS}
       onSelectFormation={() => {}}
       onOpenSettings={() => {}}

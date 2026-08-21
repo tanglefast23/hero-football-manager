@@ -93,6 +93,7 @@ describe('SettingsButton', () => {
       privacySupportOpen: false,
       volume: 1,
       reduceMotion: false,
+      quickMatchEnabled: false,
       hudSide: 'left',
       hapticsEnabled: true,
       textScale: 1,
@@ -105,6 +106,7 @@ describe('SettingsButton', () => {
       saveError: 'Settings were not saved. Storage is unavailable.',
       onVolumeChange: jest.fn(),
       onToggleReduceMotion: jest.fn(),
+      onToggleQuickMatch: jest.fn(),
       onToggleHudSide: jest.fn(),
       onToggleHaptics: jest.fn(),
       onCycleTextScale: jest.fn(),
@@ -136,6 +138,7 @@ describe('SettingsButton', () => {
 
   it('only exposes Developer Mode when the Debug-build props are supplied', () => {
     const onToggleDeveloperMode = jest.fn();
+    const onToggleQuickMatch = jest.fn();
     const common = {
       open: true,
       glossary: { schemaVersion: 1 as const, categories: [] },
@@ -143,6 +146,7 @@ describe('SettingsButton', () => {
       privacySupportOpen: false,
       volume: 1 as const,
       reduceMotion: false,
+      quickMatchEnabled: false,
       hudSide: 'left' as const,
       hapticsEnabled: true,
       textScale: 1 as const,
@@ -153,6 +157,7 @@ describe('SettingsButton', () => {
       cutInMode: 'full' as const,
       onVolumeChange: jest.fn(),
       onToggleReduceMotion: jest.fn(),
+      onToggleQuickMatch,
       onToggleHudSide: jest.fn(),
       onToggleHaptics: jest.fn(),
       onCycleTextScale: jest.fn(),
@@ -175,6 +180,13 @@ describe('SettingsButton', () => {
         'Open privacy and support',
       ),
     ).toBeDefined();
+    const quickMatch = findByAccessibilityLabel(
+      SettingsOverlay(common),
+      'Quick Match',
+    );
+    expect(quickMatch?.props.accessibilityState).toEqual({ checked: false });
+    (quickMatch?.props.onPress as (() => void) | undefined)?.();
+    expect(onToggleQuickMatch).toHaveBeenCalledTimes(1);
 
     const debug = SettingsOverlay({
       ...common,
