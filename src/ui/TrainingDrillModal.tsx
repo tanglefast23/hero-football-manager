@@ -39,6 +39,7 @@ export interface TrainingDrillModalProps {
   playerLookId?: string;
   options: readonly TrainingSlotStatOption[];
   superChancePercent: number;
+  drillsUntilGuaranteedSuper: number;
   injuryRiskPercent: number;
   condition: number;
   injuryWeeks: number;
@@ -117,6 +118,7 @@ export function TrainingDrillModal({
   playerLookId,
   options,
   superChancePercent,
+  drillsUntilGuaranteedSuper,
   injuryRiskPercent,
   condition,
   injuryWeeks,
@@ -390,6 +392,14 @@ export function TrainingDrillModal({
         );
   const maximumSafeRuns = maximumSafeTrainingRuns(condition);
   const selectedRiskyRuns = riskyTrainingRunCount(condition, repeatCount);
+  const ordinaryBatchEstimate =
+    pendingConfirm === null
+      ? 0
+      : repeatCount *
+        (pendingConfirm.baseValueAfter -
+          pendingConfirm.currentValue +
+          pendingConfirm.trainingAdjustment);
+  const superGuaranteedInBatch = repeatCount >= drillsUntilGuaranteedSuper;
   const repeatOptions = Array.from(
     { length: maximumAffordableRuns },
     (_, index) => index + 1,
@@ -547,9 +557,11 @@ export function TrainingDrillModal({
                     typed inside the pixel string it flipped the face mid-word. */}
                 <Text className="text-sm text-ink">★</Text>
                 <Text className="font-pixel text-sm uppercase text-ink">
-                  {t('trainingDrill.superChancePercent', {
-                    percent: superChancePercent,
-                  })}
+                  {drillsUntilGuaranteedSuper === 1
+                    ? t('trainingDrill.superGuaranteed')
+                    : t('trainingDrill.superChancePercent', {
+                        percent: superChancePercent,
+                      })}
                 </Text>
               </View>
               {owedHere ? (
@@ -915,7 +927,8 @@ export function TrainingDrillModal({
                         of the net, so the summary and the detail can disagree —
                         a veteran with good archetypes reads red overall with two
                         green names inside it, which is the true story. */}
-                    {pendingConfirm.trainingModifiers.length > 0 ? (
+                    {pendingConfirm.trainingModifiers.length > 0 ||
+                    pendingConfirm.trainingAdjustment !== 0 ? (
                       // The fill is a tint rather than the full colour. At full
                       // strength a green label on the red box measured 1.9:1 and
                       // on the green box 2.5:1, against the 4.5:1 a body of text
@@ -959,6 +972,14 @@ export function TrainingDrillModal({
                         </Text>
                       </View>
                     ) : null}
+                    <View className="flex-row items-center justify-between border-2 border-blue-dark bg-blue-light px-3 py-2">
+                      <PixelText className="text-xs uppercase text-blue-dark">
+                        {t('trainingDrill.ordinaryBatchEstimate')}
+                      </PixelText>
+                      <Text className="font-pixel text-base text-blue-dark">
+                        ~+{ordinaryBatchEstimate}
+                      </Text>
+                    </View>
                     {pendingConfirm.fractionalBonusBanks.length > 0 ? (
                       <View className="border border-ink/20 bg-paper-dark px-3 py-2">
                         {pendingConfirm.fractionalBonusBanks.map((bank) => (
@@ -1044,9 +1065,11 @@ export function TrainingDrillModal({
                         {/* Glyph-only ★ node — not in Silkscreen, deliberate system fallback. */}
                         <Text className="text-sm text-gold-dark">★</Text>
                         <Text className="font-mono text-sm text-gold-dark">
-                          {t('trainingDrill.percentEach', {
-                            percent: superChancePercent,
-                          })}
+                          {superGuaranteedInBatch
+                            ? t('trainingDrill.superGuaranteedInBatch')
+                            : t('trainingDrill.percentEach', {
+                                percent: superChancePercent,
+                              })}
                         </Text>
                       </View>
                     </View>

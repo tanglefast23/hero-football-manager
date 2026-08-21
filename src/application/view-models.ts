@@ -61,6 +61,7 @@ import {
   isAssistantInboxProductPermanentlyDismissed,
   isFullyCappedPlayer,
   instantTrainingPreview,
+  SUPER_TRAINING_PITY_DRILLS,
   latestSeasonRecap,
   leagueStandings,
   homeGateIncome,
@@ -4326,6 +4327,10 @@ export function squadTrainingViewModel(
         potentialGrade,
         superChancePercent: superTrainingChancePercent(
           playerPotentialGrade(player),
+        ),
+        drillsUntilGuaranteedSuper: Math.max(
+          1,
+          SUPER_TRAINING_PITY_DRILLS - (player.drillsSinceSuper ?? 0),
         ),
         ...((player.priorityDrillsRemaining ?? 0) > 0 &&
         hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')

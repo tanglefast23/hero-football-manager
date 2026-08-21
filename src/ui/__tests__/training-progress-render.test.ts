@@ -101,6 +101,19 @@ describe('training stat option rendering', () => {
     );
     expect(source).toContainSource("{t('trainingDrill.bonus')}{' '}");
     expect(loadCatalog('en').strings['trainingDrill.bonus']).toBe('Bonus:');
+    expect(source).toContainSource('pendingConfirm.trainingAdjustment !== 0');
+    expect(source).toContainSource("t('trainingDrill.ordinaryBatchEstimate')");
+    expect(source).toContainSource('~+{ordinaryBatchEstimate}');
+    expect(
+      loadCatalog('en').strings['trainingDrill.ordinaryBatchEstimate'],
+    ).toBe('Approx. ordinary total');
+    expect(source).toContainSource("t('trainingDrill.superGuaranteedInBatch')");
+    expect(loadCatalog('en').strings['trainingDrill.superGuaranteed']).toBe(
+      'SUPER guaranteed',
+    );
+    expect(loadCatalog('en').strings['trainingDrill.eachRunKeepsIts']).toBe(
+      'Each run has its own SUPER roll (1.5x gain) and injury roll. An injury stops the remaining drills.',
+    );
     // Whole scores stay equal to the match engine. A separate one-decimal bank
     // shows the saved fraction, floored so 0.97 never promises a paid-out 1.0.
     expect(source).toContainSource('Math.floor(bank.hundredths / 10) / 10');
