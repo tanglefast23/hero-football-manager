@@ -49,8 +49,8 @@ The user should feel money pressure without fearing a game-over screen.
 1. **Season 1 safety net**: the league covers 50% of your wage bill in Season 1 ("new club subsidy" — Game Dev Story's proven tutorial-protection pattern, halved rather than total so wages still teach).
 2. **Negative balance** → board warning banner; transfers and construction locked.
 3. **4 weeks negative** (2 on Chairman) → one-time **emergency loan**, sized at max(20,000 — 10,000 on Chairman — or the deficit + 15,000) so it always clears the hole with a Stadium Stand's worth of cash left over; repaid at 10% interest over the next season.
-4. **Still sinking** → board ultimatum: the board sets a cash target and a 4-week deadline. You choose what to sell — the board proposes 3–4 sale candidates, and you may mark **one player as protected** (your hero, your academy kid — untouchable). Miss the deadline and the board sells from the unprotected list itself, at a discount, with a fan/morale hit. The pressure is real; the heartbreak is never random. (An auto-sale of your favorite player would violate the cozy pillar harder than a game-over screen.)
-5. There is no step 5. You can always limp on with youth players and rebuild.
+4. **Still sinking** → board ultimatum: the board sets a cash target and a 4-week deadline. You choose what to sell — the board proposes the 3–4 players whose departures cut wages most, excluding your created player, and you may mark **one player as protected**. Miss the deadline and the board sells from the unprotected list itself, at a discount, with a morale hit and at most 150 fans lost.
+5. The cash floor still keeps the save playable, but every board top-up becomes repayable debt. Repayments pause when that week's payment would cross the cash floor. You can limp on with youth players and rebuild, but the board never supplies free weekly income.
 
 ## Difficulty settings
 

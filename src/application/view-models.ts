@@ -186,7 +186,7 @@ import {
   promotionRewardsForDivision,
   trainingDrillTier,
 } from '../game/promotion-progression';
-import { renewalOpeningOfferWage } from '../game/market';
+import { contractWageStep, renewalOpeningOfferWage } from '../game/market';
 import {
   copyFor,
   formatIntegerForCopy,
@@ -210,8 +210,6 @@ function englishCopy(): CopyFn {
   return (englishCopyFn ??= copyFor('en'));
 }
 
-/** The negotiation panel's wage increment, and the grid the opening seed rounds to. */
-const RENEWAL_WAGE_STEP = 50;
 import { marketNegotiationViewModel } from './market-view-model';
 import { projectedSeasonEndContractPromiseHeroLimit } from './contract-promise-projection';
 import { leagueFixtureViewModel } from './m2-league-view-model';
@@ -2540,9 +2538,9 @@ export function seasonEndViewModel(
               lookId: expiredPlayer.lookId,
               openingWeeklyWage: renewalOpeningOfferWage(
                 renewalTalks.negotiation.weeklyAsk,
-                RENEWAL_WAGE_STEP,
+                contractWageStep(renewalTalks.negotiation.weeklyAsk),
               ),
-              wageStep: RENEWAL_WAGE_STEP,
+              wageStep: contractWageStep(renewalTalks.negotiation.weeklyAsk),
               maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
               playerAge: expiredPlayer.age ?? 24,
               contractPromiseContext: {

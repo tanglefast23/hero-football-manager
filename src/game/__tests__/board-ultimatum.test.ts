@@ -8,6 +8,7 @@ import {
   createBoardFacilityUltimatum,
   createBoardUltimatum,
   protectBoardUltimatumPlayer,
+  reconcileBoardUltimatumCandidates,
 } from '../board-ultimatum';
 import {
   activeCareerMatchday,
@@ -166,6 +167,71 @@ describe('board ultimatum domain', () => {
           candidate.forcedSaleFee < candidate.marketValue,
       ),
     ).toBe(true);
+  });
+
+  test('puts the largest wage relief first', () => {
+    const state = career(9501);
+    const starterIds = new Set(
+      state.lineups.find((lineup) => lineup.clubId === state.userClubId)!
+        .playerIds,
+    );
+    const reserve = state.players.find(
+      (player) =>
+        player.clubId === state.userClubId &&
+        !starterIds.has(player.id) &&
+        player.contractSeasonsRemaining > 0,
+    )!;
+    const inflated = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === reserve.id ? { ...player, weeklyWage: 99_999 } : player,
+      ),
+    };
+
+    expect(createBoardUltimatum(inflated)?.candidates[0].playerId).toBe(
+      reserve.id,
+    );
+  });
+
+  test('never puts the created player on the board sale list', () => {
+    const state = career(9501);
+    const createdPlayerId = createBoardUltimatum(state)!.candidates[0].playerId;
+    const inflated = {
+      ...state,
+      onboarding: { stage: 'complete' as const, createdPlayerId },
+      players: state.players.map((player) =>
+        player.id === createdPlayerId
+          ? { ...player, weeklyWage: 999_999 }
+          : player,
+      ),
+    };
+
+    expect(
+      createBoardUltimatum(inflated)?.candidates.map(
+        (candidate) => candidate.playerId,
+      ),
+    ).not.toContain(createdPlayerId);
+  });
+
+  test('reorders a saved ultimatum by current wage relief', () => {
+    const state = career(9501);
+    const ultimatum = createBoardUltimatum(state)!;
+    const saved = {
+      ...state,
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: {
+          ...ultimatum,
+          candidates: [...ultimatum.candidates].reverse(),
+        },
+      },
+    };
+
+    expect(
+      reconcileBoardUltimatumCandidates(saved).financialSafety?.boardUltimatum
+        ?.candidates,
+    ).toEqual(ultimatum.candidates);
   });
 
   test('protects exactly one visible candidate and never selects them at the deadline', () => {
@@ -358,6 +424,20 @@ describe('board ultimatum domain', () => {
     expect(clearedSafety).toMatchObject({
       latestBoardResolution: { kind: 'TARGET_MET', targetCash: 1_000 },
     });
+  });
+
+  test('caps one forced sale at 150 lost fans', () => {
+    const base = career(9504);
+    const state = {
+      ...base,
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, fans: 10_000 } : club,
+      ),
+    };
+
+    expect(
+      boardForcedSaleAtDeadline(state, createBoardUltimatum(state)!)?.fansLost,
+    ).toBe(150);
   });
 });
 

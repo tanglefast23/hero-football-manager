@@ -14,6 +14,7 @@ import {
   generateCoachMarket,
   isCoachCandidateEligible,
   isTransferWindowOpen,
+  MAX_RENEWAL_ASK_MULTIPLE,
   renewalContractAsk,
   renewalFamePercent,
   resolveScoutMission,
@@ -947,12 +948,10 @@ export function careerRenewalWeeklyAsk(
   player: CareerPlayer,
 ): number {
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  const marketWage = generatedPlayerWeeklyWage(player.attrs, division);
   const ask = renewalContractAsk(
     {
-      weeklyWage: Math.max(
-        player.weeklyWage,
-        generatedPlayerWeeklyWage(player.attrs, division),
-      ),
+      weeklyWage: Math.max(player.weeklyWage, marketWage),
       personality: marketPersonality(player.personality),
       ...(player.power === undefined ? {} : { power: player.power }),
       onHeroWage: player.onHeroWage,
@@ -966,7 +965,15 @@ export function careerRenewalWeeklyAsk(
       ),
     },
   );
-  return Math.round((ask * RENEWAL_DIVISION_PREMIUM_PERCENT[division]) / 100);
+  const divisionAsk = Math.round(
+    (ask * RENEWAL_DIVISION_PREMIUM_PERCENT[division]) / 100,
+  );
+  const marketCeiling = marketWage * (player.power === undefined ? 3 : 6);
+  return Math.min(
+    divisionAsk,
+    Math.max(player.weeklyWage, marketWage) * MAX_RENEWAL_ASK_MULTIPLE,
+    marketCeiling,
+  );
 }
 
 /**

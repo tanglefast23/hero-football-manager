@@ -1299,6 +1299,12 @@ export function renewalOpeningOfferWage(
   return Math.max(wageStep, Math.ceil(weeklyAsk / 2), opening);
 }
 
+/** One percent of the original ask, rounded to $10, with the old $50 floor. */
+export function contractWageStep(weeklyAsk: number): number {
+  assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
+  return Math.max(50, Math.round(weeklyAsk / 1000) * 10);
+}
+
 export function submitContractOffer(
   negotiation: ContractNegotiation,
   offer: ContractOffer,

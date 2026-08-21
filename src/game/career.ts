@@ -2002,6 +2002,7 @@ function resolveFinancialSafety(
     consecutiveNegativeWeeks: 0,
     emergencyLoanUsed: false,
   };
+  const rules = difficultyRules(state);
   const lines = [...baseLines];
   let loan = previous.loan === undefined ? undefined : { ...previous.loan };
   if (
@@ -2011,17 +2012,23 @@ function resolveFinancialSafety(
     state.season >= loan.repaymentStartsSeason
   ) {
     const repayment = Math.ceil(loan.remainingBalance / loan.remainingWeeks);
-    lines.push({
-      kind: 'loan-repayment',
-      label: 'Emergency loan repayment',
-      labelKey: 'ledger.emergencyLoanRepayment',
-      amount: -repayment,
-    });
-    loan = {
-      ...loan,
-      remainingBalance: loan.remainingBalance - repayment,
-      remainingWeeks: loan.remainingWeeks - 1,
-    };
+    const balanceBeforeRepayment = lines.reduce(
+      (total, line) => checkedAdd(total, line.amount, 'weekly ledger net'),
+      startingCash,
+    );
+    if (balanceBeforeRepayment - repayment >= rules.cashFloor) {
+      lines.push({
+        kind: 'loan-repayment',
+        label: 'Emergency loan repayment',
+        labelKey: 'ledger.emergencyLoanRepayment',
+        amount: -repayment,
+      });
+      loan = {
+        ...loan,
+        remainingBalance: loan.remainingBalance - repayment,
+        remainingWeeks: loan.remainingWeeks - 1,
+      };
+    }
   }
 
   const net = lines.reduce(
@@ -2048,7 +2055,6 @@ function resolveFinancialSafety(
         !previous.latestBoardResolution.id.startsWith(
           'board-facility-ultimatum-',
         )));
-  const rules = difficultyRules(state);
   if (previous.consecutiveNegativeWeeks > 0 && !emergencyLoanUsed) {
     // The first red week is the warning. Once it has been shown, the loan is a
     // board decision already in motion: it lands at the next settlement even
@@ -2077,14 +2083,21 @@ function resolveFinancialSafety(
     emergencyLoanUsed = true;
     consecutiveNegativeWeeks = balanceAfter < 0 ? consecutiveNegativeWeeks : 0;
     loan = {
-      originalAmount: amount,
-      remainingBalance: Math.ceil(amount * 1.1),
-      repaymentStartsSeason: checkedAdd(
-        state.season,
-        1,
-        'loan repayment season',
+      originalAmount: checkedAdd(
+        loan?.originalAmount ?? 0,
+        amount,
+        'emergency loan principal',
       ),
-      remainingWeeks: 30,
+      remainingBalance: checkedAdd(
+        loan?.remainingBalance ?? 0,
+        Math.ceil(amount * 1.1),
+        'emergency loan debt',
+      ),
+      repaymentStartsSeason: Math.min(
+        loan?.repaymentStartsSeason ?? Number.MAX_SAFE_INTEGER,
+        checkedAdd(state.season, 1, 'loan repayment season'),
+      ),
+      remainingWeeks: Math.max(loan?.remainingWeeks ?? 0, 30),
     };
   }
 
@@ -2232,12 +2245,8 @@ function resolveFinancialSafety(
     }
   }
 
-  // The floor is the last line and it never runs out. Everything above it —
-  // warnings, the one emergency loan, board-enforced sales — is finite, so a
-  // club that stalled used them all up and then fell forever. Topping back up
-  // to the floor keeps the debt bounded and keeps a rescue visible in the
-  // ledger every week it happens, which is the difference between "fail-soft"
-  // and "no consequence and no way back".
+  // The floor keeps the save playable, but each top-up becomes repayable debt.
+  // Insolvency stays fail-soft without turning the board into free income.
   if (balanceAfter < rules.cashFloor) {
     const rescue = checkedAdd(
       rules.cashFloor,
@@ -2250,6 +2259,32 @@ function resolveFinancialSafety(
       labelKey: 'ledger.boardRescuePackage',
       amount: rescue,
     });
+    loan =
+      loan === undefined
+        ? {
+            originalAmount: rescue,
+            remainingBalance: rescue,
+            repaymentStartsSeason: checkedAdd(
+              state.season,
+              1,
+              'board rescue repayment season',
+            ),
+            remainingWeeks: 30,
+          }
+        : {
+            ...loan,
+            originalAmount: checkedAdd(
+              loan.originalAmount,
+              rescue,
+              'board rescue principal',
+            ),
+            remainingBalance: checkedAdd(
+              loan.remainingBalance,
+              rescue,
+              'board rescue debt',
+            ),
+            remainingWeeks: Math.max(loan.remainingWeeks, 30),
+          };
     balanceAfter = rules.cashFloor;
   }
 

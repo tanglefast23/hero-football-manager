@@ -3,6 +3,7 @@ import {
   buyingTransferQuote,
   coachLevelAfterSeasons,
   contractOfferValue,
+  contractWageStep,
   dealPitchCards,
   DIVISION_TRANSFER_VALUE_ANCHORS,
   DIVISION_WEEKLY_WAGE_ANCHORS,
@@ -676,6 +677,12 @@ describe('contract negotiation', () => {
     expect(new Set(hand).size).toBe(3);
     expect(effectiveContractAsk(1000, -100)).toBe(800);
     expect(effectiveContractAsk(1000, 100)).toBe(1200);
+  });
+
+  it('scales contract wage taps from the original ask', () => {
+    expect(contractWageStep(1_000)).toBe(50);
+    expect(contractWageStep(63_631)).toBe(640);
+    expect(contractWageStep(176_472)).toBe(1_760);
   });
 
   it('lets a matching pitch, term, and perk close a fair deal without permitting a miracle', () => {

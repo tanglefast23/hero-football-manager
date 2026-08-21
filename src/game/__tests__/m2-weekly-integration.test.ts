@@ -187,12 +187,15 @@ describe('M2 weekly sidecars', () => {
         remainingWeeks: 30,
       },
     });
-    expect(state.ledgers.at(-1)?.lines).toContainEqual(
-      expect.objectContaining({
-        kind: 'emergency-loan',
-        label: 'Board emergency loan',
-        amount: state.financialSafety!.loan!.originalAmount,
-      }),
+    const emergencyLoan = state.ledgers
+      .at(-1)!
+      .lines.find((line) => line.kind === 'emergency-loan')!;
+    expect(emergencyLoan).toMatchObject({
+      label: 'Board emergency loan',
+      amount: expect.any(Number),
+    });
+    expect(state.financialSafety!.loan!.originalAmount).toBeGreaterThan(
+      emergencyLoan.amount,
     );
     // The property, not just the number: the week the loan lands the club can
     // afford the stand Bert points at and still keep an operating buffer.
@@ -321,6 +324,94 @@ describe('M2 weekly sidecars', () => {
     expect(
       state.ledgers.slice(-4).flatMap((ledger) => ledger.lines),
     ).not.toContainEqual(expect.objectContaining({ kind: 'emergency-loan' }));
+  });
+
+  test('records cash-floor top-ups as repayable debt', () => {
+    const base = fullCareer(5062);
+    let state: GameState = {
+      ...base,
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: -100_000 } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+      },
+    };
+
+    state = settleScheduledWeek(state);
+    const rescue = state.ledgers
+      .at(-1)!
+      .lines.find((line) => line.kind === 'board-rescue')!;
+
+    expect(rescue.amount).toBeGreaterThan(0);
+    expect(state.financialSafety?.loan).toMatchObject({
+      originalAmount: rescue.amount,
+      remainingBalance: rescue.amount,
+      repaymentStartsSeason: state.season + 1,
+      remainingWeeks: 30,
+    });
+  });
+
+  test('pauses repayment instead of borrowing again to fund it', () => {
+    const base = fullCareer(5063);
+    const state: GameState = {
+      ...base,
+      season: 2,
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: -100_000 } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        loan: {
+          originalAmount: 100_000,
+          remainingBalance: 100_000,
+          repaymentStartsSeason: 2,
+          remainingWeeks: 30,
+        },
+      },
+    };
+
+    const settled = settleScheduledWeek(state);
+
+    expect(settled.ledgers.at(-1)?.lines).not.toContainEqual(
+      expect.objectContaining({ kind: 'loan-repayment' }),
+    );
+    expect(settled.financialSafety?.loan).toMatchObject({
+      remainingWeeks: 30,
+    });
+    expect(settled.financialSafety!.loan!.remainingBalance).toBeGreaterThan(
+      100_000,
+    );
+  });
+
+  test('keeps an earlier repayment date when the emergency loan adds debt', () => {
+    const base = fullCareer(5064);
+    const state: GameState = {
+      ...base,
+      season: 2,
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: 100_000 } : club,
+      ),
+      financialSafety: {
+        consecutiveNegativeWeeks: 1,
+        emergencyLoanUsed: false,
+        loan: {
+          originalAmount: 1_000,
+          remainingBalance: 1_000,
+          repaymentStartsSeason: 1,
+          remainingWeeks: 30,
+        },
+      },
+    };
+
+    const settled = settleScheduledWeek(state);
+
+    expect(settled.ledgers.at(-1)?.lines).toContainEqual(
+      expect.objectContaining({ kind: 'emergency-loan' }),
+    );
+    expect(settled.financialSafety?.loan?.repaymentStartsSeason).toBe(1);
   });
 
   test('converts facilities once, then gives home matches four weeks before a forced sale', () => {

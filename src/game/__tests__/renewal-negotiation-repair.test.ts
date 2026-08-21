@@ -24,6 +24,7 @@ import {
 } from '../loyalty';
 import {
   contractPerkPercent,
+  generatedPlayerWeeklyWage,
   renewalContractAsk,
   renewalOpeningOfferWage,
   startContractNegotiation,
@@ -337,6 +338,42 @@ describe('careerRenewalWeeklyAsk (P1-5)', () => {
     const opened = beginCareerRenewalTalks(state, state.market!, player.id);
 
     expect(quoted).toBe(opened.renewalTalks!.negotiation.weeklyAsk);
+  });
+
+  it('brings an inflated late-career hero back to a market-anchored ask', () => {
+    const { state, player } = seasonEndWithExpired(9101);
+    const inflated: CareerPlayer = {
+      ...player,
+      weeklyWage: 176_472,
+      power: 'FIRE_TORCH' as never,
+      onHeroWage: true,
+    };
+    const ask = careerRenewalWeeklyAsk(state, inflated);
+    const marketWage = generatedPlayerWeeklyWage(
+      inflated.attrs,
+      currentUserDivision(state.m2!),
+    );
+
+    expect(ask).toBeLessThanOrEqual(marketWage * 6);
+    expect(ask).toBeLessThan(inflated.weeklyWage);
+  });
+
+  it('caps an inflated ordinary player at three times market wage', () => {
+    const { state, player } = seasonEndWithExpired(9101);
+    const inflated: CareerPlayer = {
+      ...player,
+      weeklyWage: 176_472,
+      power: undefined,
+      onHeroWage: false,
+    };
+    const marketWage = generatedPlayerWeeklyWage(
+      inflated.attrs,
+      currentUserDivision(state.m2!),
+    );
+
+    expect(careerRenewalWeeklyAsk(state, inflated)).toBeLessThanOrEqual(
+      marketWage * 3,
+    );
   });
 });
 
