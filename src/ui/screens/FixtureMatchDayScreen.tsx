@@ -44,12 +44,10 @@ export interface FixtureMatchDayScreenProps {
   onBuyHeroLicense: () => void;
   onSwapStartingPlayer: (starterId: string, replacementId: string) => void;
   onWatchMatch: () => void;
-  onQuickResult: () => void;
   /** Shapes this club may pick, in the same order Settings lists them. */
   formationOptions: readonly FormationId[];
   onSelectFormation: (formation: FormationId) => void;
   watchDisabled?: boolean;
-  quickResultDisabled?: boolean;
   onOpenSettings: () => void;
   /**
    * Remembered between matches: heroes fire their own powers, or the boss does.
@@ -287,11 +285,9 @@ export function FixtureMatchDayScreen({
   onBuyHeroLicense,
   onSwapStartingPlayer,
   onWatchMatch,
-  onQuickResult,
   formationOptions,
   onSelectFormation,
   watchDisabled = false,
-  quickResultDisabled = false,
   onOpenSettings,
   autoPowers,
   onAutoPowersChange,
@@ -348,13 +344,13 @@ export function FixtureMatchDayScreen({
     },
     [],
   );
-  const handOffFixture = (settle: () => void) => {
+  const playMatch = () => {
     if (handedOffRef.current) return;
     handedOffRef.current = true;
     setHandedOff(true);
-    settle();
+    onWatchMatch();
     // The store can refuse — a blocked save is reachable right here — and then
-    // nothing navigates away, leaving both buttons latched off for good with
+    // nothing navigates away, leaving the button latched off for good with
     // only Back as an escape. Still being mounted on the next turn of the loop
     // means the fixture never left, so the latch releases.
     if (reArmRef.current !== null) clearTimeout(reArmRef.current);
@@ -993,25 +989,12 @@ export function FixtureMatchDayScreen({
         >
           <View className="flex-1">
             <ActionButton
-              label={t('fixtureMatchDay.quickResult')}
-              accessibilityLabel={t(
-                'fixtureMatchDay.a11y.simulateThisMatchWithQuickResult',
-              )}
-              onPress={() => handOffFixture(onQuickResult)}
-              disabled={
-                quickResultDisabled || handedOff || !viewModel.licenseReady
-              }
-              variant="paper"
-            />
-          </View>
-          <View className="flex-1">
-            <ActionButton
               // The arrow stays out of the catalog: Silkscreen has no U+25B8
               // (measured), so a key containing it would fail gate 5. It draws
               // through the system fallback here, as it always has.
               label={`${wide ? t('fixtureMatchDay.playMatch') : t('fixtureMatchDay.play')}  ▸`}
               accessibilityLabel={t('fixtureMatchDay.a11y.playMatch')}
-              onPress={() => handOffFixture(onWatchMatch)}
+              onPress={playMatch}
               disabled={watchDisabled || handedOff || !viewModel.licenseReady}
             />
           </View>

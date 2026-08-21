@@ -64,8 +64,8 @@ describe('committing taps are guarded', () => {
   it('re-arms the match-day hand-off when the store refuses it', () => {
     const source = read('src/ui/screens/FixtureMatchDayScreen.tsx');
 
-    // A blocked save leaves the screen mounted; without the re-arm both Watch
-    // and Quick Result stayed dead for that fixture with only Back as a way out.
+    // A blocked save leaves the screen mounted; without the re-arm Play stays
+    // dead for that fixture with only Back as a way out.
     expect(source).toContainSource('reArmRef.current = setTimeout(');
     expect(source).toContainSource('handedOffRef.current = false;');
     expect(source).toContainSource(

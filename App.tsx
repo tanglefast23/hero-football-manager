@@ -3136,11 +3136,6 @@ function GameApp() {
           onAutoSubsChange={saveAutoSubs}
           formationOptions={matchdayFormationOptions}
           onSelectFormation={selectFormationPreset}
-          onQuickResult={() =>
-            store.quickResult({
-              initialFormation: preferencesRef.current.formationPresets[0],
-            })
-          }
           onOpenSettings={() => setGlobalSettingsOpen(true)}
         />
       );

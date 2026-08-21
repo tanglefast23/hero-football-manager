@@ -232,17 +232,21 @@ describe('player-facing acceptance audit regressions', () => {
     expect(home).toContainSource('VERTICAL_MARQUEE_BULBS');
   });
 
-  test('calls the active match option Play while retaining Quick Result', () => {
+  test('offers Play as the only match action', () => {
     const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
 
     // The copy moved to the catalog, so the guarantee is checked in two parts:
     // the screen asks for these keys, and the keys still say Play, not Watch.
     expect(matchDay).toContainSource("t('fixtureMatchDay.playMatch')");
-    expect(matchDay).toContainSource("t('fixtureMatchDay.quickResult')");
+    expect(matchDay).not.toContainSource('fixtureMatchDay.quickResult');
+    expect(matchDay).not.toContainSource('onQuickResult');
     const strings = loadCatalog('en').strings;
     expect(strings['fixtureMatchDay.playMatch']).toBe('Play match');
     expect(strings['fixtureMatchDay.play']).toBe('Play');
-    expect(strings['fixtureMatchDay.quickResult']).toBe('Quick result');
+    expect(strings['fixtureMatchDay.quickResult']).toBeUndefined();
+    expect(
+      strings['fixtureMatchDay.a11y.simulateThisMatchWithQuickResult'],
+    ).toBeUndefined();
     expect(strings['fixtureMatchDay.playMatch']).not.toMatchSource(/watch/i);
   });
 
@@ -258,8 +262,9 @@ describe('player-facing acceptance audit regressions', () => {
     );
     expect(app).toContainSource('onSelectFormation={selectFormationPreset}');
     expect(app).toContainSource(
-      'initialFormation: preferencesRef.current.formationPresets[0]',
+      'formationPresets={preferences.formationPresets}',
     );
+    expect(liveMatch).toContainSource('livePresets[0],');
     expect(liveMatch).toContainSource('onFormationChange?.(formation);');
   });
 

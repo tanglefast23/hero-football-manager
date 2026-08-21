@@ -1101,3 +1101,328 @@ selected match. This should reuse the existing match and sponsor screens.
   requested D2 wage was $5,606 per week. Negotiation settled at $4,350 for
   three seasons with a Starter promise. Promotion wages became a meaningful
   late-season cost without forcing the club to lose its star.
+
+## 2026-08-21 English Chairman career
+
+This is a new career on production commit `9bd5d79b`, played in the visible
+built-in browser with Master Volume at 0. The goal is the fastest efficient D1
+title while recording player-facing balance, pacing, clarity, fairness, and fun.
+
+### Start through Week 4
+
+- Created 18-year-old B-potential forward jobo. All 15 creation points went to
+  SHO, raising it from 50 to 65. Aiko Tanaka became head coach for SHO and DEF
+  training. Sibusiso Dlamini became assistant coach for PAS, TEC, PAC, and STA.
+- Built the Level 1 Training Pitch at column 1, row 1, then the Level 1 Coaching
+  Office at column 8, row 1. Signed 16-year-old C+ midfielder Finn Vale over the
+  slightly stronger Cal Hart because Finn's Anchor archetype fits midfield and
+  he has another development year.
+- Training used one session per priority player. Jobo trained SHO in Weeks 1-3.
+  He hit consecutive SUPER sessions in Weeks 2 and 3, each visibly awarding
+  +7 SHO, and reached 82 SHO. Sol Reed trained DEF twice and reached 42. Sam
+  Mitts trained REF once and reached 52.
+- Before the first match, the saved XI had 38-rated Nora Vale behind 37-rated
+  Sam Mitts and 46-rated Sol Reed behind 45-rated Ken Ash. Both were corrected.
+  Treat the new-career default as a player-facing optimization trap until the
+  intended current-strength-versus-potential choice is made clear.
+- Beat Quartz FC 2-1 in Week 3. Balanced produced a 1-0 lead by 18 minutes.
+  Save Energy protected a 2-1 lead, but four players were tired by minute 71.
+  Four manual substitutions raised team energy from 48% to 70% and held the
+  result. The tactical loop felt tense, fair, and useful.
+- Jobo awakened Fire Torch after full time. The three-beat reveal and match
+  example were clear and exciting. The accessibility tree repeated the same
+  goal and power announcement about twelve times during animated goal beats;
+  verify with a screen reader before grading severity.
+- Week 4 checkpoint: fourth in D5, 1W-0D-0L, +1 goal difference, 3 points,
+  $35,119, 27 TP, 505 fans, 16 players, $2,208 weekly player wages, Training
+  Pitch L1, Coaching Office L1, and strongest-XI average 43.9 on Chairman.
+
+### Observed open blocker outside this new career
+
+- The existing deployed career could not open. The screen reported
+  `Hero youth-s3-2 must be licensed or benched`. Its visible Back to title
+  button returned to the same error after both semantic and pointer-style
+  clicks. The save was not deleted or replaced.
+
+### Balance and fun watchlist
+
+- Consecutive 23% SUPER rolls made the created forward improve from 65 to 82
+  SHO in two weeks. The moments were fun and readable, but this career is now a
+  high-growth outlier. Measure whether it trivializes D5 before changing odds.
+- Save Energy no longer showed an active marker immediately after manual
+  substitutions. It was selected again before play continued. Reproduce before
+  calling this the previously reported persistence bug.
+
+### Weeks 4–10
+
+- Beat Harbor Comets 1-0 in a watched Week 4 match, Cedar Crown 2-0 by Quick
+  Result, Oakridge Owls 3-0 by Quick Result, and Meadow City 1-0 by Quick
+  Result. Bramble opened 5W-0D-0L with four clean sheets. Hero-free D5 matches
+  were good Quick Result candidates; they moved quickly without feeling free.
+- The first manual Fire Torch test happened before the current ARMED control
+  change was explained. Pressing ARMED produced `POWER WASTED`. This is known
+  work in progress and is not a new finding. In the later Thunder match, two
+  real `FIRE!` windows were pressed successfully. Both consumed the power, but
+  neither scored.
+- The Week 10 home tip still says `Powers fire on their own` and `There is no
+  button`, while the match-day sheet offers a remembered MANUAL setting and the
+  watched match exposes a FIRE button. This copy contradicts the current
+  manual-power contract.
+- The current condition rule rewards one drill per priority player. A single
+  drill costs 8 condition and normal weekly recovery usually restores it. Two
+  jobo drills in Week 5 left him at 84%, and he began Week 6 at 92%. Stacking
+  drills creates visible condition debt without making routine one-drill weeks
+  punitive. This is clearer and more usable than the old handoff rule.
+- The guaranteed Four Without Losing interview gave +6 squad morale and 105%
+  training for three weeks. It was better for an optimized run than the risky
+  55% option, whose failure applied 75% training for three weeks. The choice
+  had a real expected-value tradeoff without needing hidden math.
+- SUPER growth remained unusually strong. Sol Reed jumped from 52 to 58 PAS,
+  Sam Mitts jumped from 55 to 63 REF on a 5% roll, and Bo Hedges later gained
+  +7 DEF on a 7% roll. Sam replaced Nora Vale, kept three straight clean
+  sheets, and reached 81 REF by the Cup match. Bo reached 78 DEF. These spikes
+  were exciting, but they made focused training much stronger than spreading
+  sessions across the squad.
+- Facility order was Training Pitch L1, Coaching Office L1, Stadium Stand L1,
+  then Fan Shop L1 edge-adjacent to the Stand. The pairing visibly unlocked
+  +10% merchandise income. The Week 8 home statement clearly broke out a
+  $1,248 base gate at 200% for $2,496 and $251 merchandise plus adjacency for
+  $276. This explanation was excellent.
+- Started a second Stadium Stand in Week 8. Cash fell to $8,263, then the next
+  home win and monthly advertising lifted it to $12,110. The aggressive build
+  was risky but recoverable, so the early economy created a useful decision
+  instead of a fake choice.
+- Thunder Borough was far above the rest of D5. Bramble entered the Week 9
+  match 5-0-0 with +8 goal difference; Thunder entered 5-0-0 with +23. Larry
+  Alan's Super Speed scored the first equalizer, and Thunder won 3-1. Two other
+  Larry goals were normal match goals, so the hero did not single-handedly
+  create the whole margin.
+- The Hero Cup immediately rematched Bramble with Thunder in Week 10. A 5-3-2
+  Deep Counter, a natural fifth defender, and automatic Quick Result powers
+  still lost 2-0. Losing twice to the dominant D5 club was credible. Drawing
+  that same club in the no-second-chance Cup one week later felt harsh and
+  removed Cup play before the squad could make a meaningful adjustment.
+- Changing to 5-3-2 initially put natural midfielder Ravi Chan at DEF while
+  natural defender Mae Thorn stayed on the bench. The formation change keeps
+  existing starters rather than selecting a role-valid XI. This is another
+  player-facing optimization trap; the manager must inspect every position
+  after changing formation.
+
+### Weeks 11–19
+
+- Quick Result drew 2-2 with Neon and 2-2 with Moonlight, then later drew 0-0
+  with Quartz. Those results kept the D5 promotion race close despite a much
+  stronger trained core. Important run-in matches are now watched rather than
+  simulated.
+- Max Tanko awakened Super Strength after the Moonlight draw. The three-stage
+  reveal was clear, funny, and exciting. The second Hero License was assigned
+  immediately; the third permit cost $100,000, which was far outside the D5
+  economy.
+- The Week 13 leaders screen showed Larry Alan on 27 goals after eight league
+  matches. Thunder reached +39 goal difference after 11 matches. One extreme
+  club makes the title feel predetermined, but its wins against other clubs
+  can help a player racing for the second promotion place.
+- Beat Ferrous United 1-0 in a watched Week 15 match and Harbor Comets 1-0 in
+  Week 17. Fire Torch fired automatically and scored the Harbor winner at 77
+  minutes. Nine players were tired by full time even after three halftime
+  substitutions. A normal home match against a weak, hero-free club consumed
+  too much team energy.
+- Save Energy repeatedly lost its active state after goals, halftime, power
+  events, or substitutions. It had to be selected again during several
+  watched matches. The effect is visible enough to change match management.
+- Two Stadium Stands and two adjacent Fan Shops formed a strong, readable D5
+  economy. The Harbor home win paid $4,773 gate and $818 merchandise. Empty or
+  away weeks still lost about $600–$1,300, so the build order rewarded home
+  fixtures without removing cash pressure.
+- A Local immediate-starter FWD mission cost $2,750 and took three weeks. The
+  report arrived in the final transfer week. The timing was understandable,
+  but dispatching one week later would have made the paid report unusable.
+- The report generated 23-year-old Zane Lane with estimated minimums of 144
+  PAC, 133 SHO, and 134 TEC. His exact values were 158 PAC, 158 SHO, 158 TEC,
+  69 PAS, 60 DEF, and 69 STA: 112 OVR, B- potential, and 17% SUPER. This is a
+  severe D5 scouting balance outlier, not merely a lucky useful starter.
+- Funding Zane required selling Max Tanko to Thunder for $27,285, Dario Flint
+  to Quartz for $6,975, and Ravi Chan to Ferrous for $10,812. The roster floor
+  correctly blocked a third sale until another outfield player was signed.
+  Cheap scout result Kai Stone was signed for $5,591, then sold to Oakridge for
+  $7,066 after Zane arrived. This bridge-signing path is legal, profitable, and
+  gamey; Kai's unhappy departure line acknowledged the behavior well.
+- Contract talks label Pitch Card as optional. In Kai's second round, changing
+  wage and term did nothing when Make the offer was pressed. Selecting another
+  Pitch Card made the same offer submit. This looks like a validation or input
+  bug because no error explains why the optional control became required.
+- Week 19 still showed `The scout came back short` after Zane had been signed
+  from that shortlist. The bank-balance copy was stale and contradicted the
+  completed transfer.
+- A Week 19 team trip cost 34 TP and 10 condition per player for +1 to all six
+  stats on all 13 players. That is about 78 total stat points for the same TP
+  that buys four D5 drills. At 90% condition before a hero-free match, taking
+  the trip was an obvious decision rather than a tradeoff.
+- The saved 4-4-2 put Zane at DEF and natural MID Ken Ash at FWD. Changing to
+  3-4-3 kept Zane at DEF. A direct starter-to-starter tap correctly swapped
+  Zane and Ken, then Mae Thorn replaced Ken in defense. The feature works, but
+  the instruction only mentions tapping a starter and `the replacement`, so
+  the required starter-to-starter repair is not obvious.
+- Zane's first match ended Cedar 0-9 Bramble. Zane scored five and jobo scored
+  four while Save Energy was used for most of the match. One Local scout roll
+  changed a one-point promotion race into a likely walkover. This result is
+  decisive evidence that immediate-starter generation needs a division-aware
+  ceiling or price that a D5 club cannot reach through ordinary sales.
+
+### D5 finish and D4 opening
+
+- Bramble won D5 at 14-3-1 with 74 goals for and 10 against. The post-Zane
+  league results were 9-0, 8-0, 7-0, 8-0, 11-1, 10-0, and 5-1. Thunder had
+  beaten Bramble 3-1 before the transfer; Bramble beat Thunder 8-0 afterward.
+  Zane did not just improve the squad. He removed the division's competition.
+- jobo finished with 40 goals and won Player, Hero, and club Player of the
+  Season. His hero renewal ask was $910 per week. A rejected $500 offer and a
+  $550 follow-up produced a $707 counter for three seasons with a Starter
+  promise. The negotiation had a useful arc and a meaningful final cost.
+- Season rollover added Cal Ward, Cal Stone, and Gio Oak to the senior roster
+  without a decision, fee, or clear explanation. The squad rose from 13 to 16.
+  All three were age 17 with three-year contracts. This is generous and useful,
+  but it reads like unexplained save mutation rather than a club event.
+- Zane displayed B- potential in D5 and C+ at the D4 rollover. If potential is
+  recalculated with age, the grade change needs an explanation. Otherwise this
+  looks like state drift.
+- The academy then offered one more youth player at only $500. Cal Vale was
+  signed as goalkeeper succession cover, filling the 17-player cap. His Sniper
+  archetype boosts SHO, a stat a goalkeeper does not use. That is a weak and
+  confusing academy combination.
+- Built Dorm Level 1 for $6,000. Its +3 weekly recovery combines with the base
+  +8 to restore one drill's -8 condition every week. This lets every core player
+  drill once per week without long-term condition loss, making the Dorm an
+  unusually strong early facility.
+- Bought Defense and Stamina Tier 2 for $5,000 each. Defense drills on young
+  Anchor Cal Stone produced +8 gains after position, archetype, Training Pitch,
+  coach, and banked fractional bonuses. The detailed confirmation explains the
+  stack well, but these gains make focused players scale very fast.
+- A safe Week 2 story choice gave +55 fans and Training 105% for five weeks.
+  Its guaranteed training value was better than the risky choice's expected
+  training value, so the safe option was also the optimization choice.
+- D4 opened with a 4-2 Quick Result win, then a 4-3 away loss in 3-4-3. A
+  corrected 4-4-2 won the next match 2-1. The division immediately punished an
+  open formation, which was a welcome difficulty step after the D5 blowouts.
+- Switching 3-4-3 to 4-4-2 again kept player slots instead of natural roles.
+  Gio Oak started in midfield and Finn Vale in defense until both were replaced.
+  Formation changes require a full manual role audit every time.
+- Ed Stone asked for a massage therapist. Granting it cut all squad drills to
+  80% for two weeks; refusing cost only Ed 5 loyalty and 8 morale. Refusal was
+  the clear optimization choice, so the request did not create a close tradeoff.
+- The first D4 rival-hero match ended Orchard 1-8 Bramble in corrected 4-4-2.
+  Zane scored seven and jobo scored once with Fire Torch. The reported rival
+  hero did not create a visible highlight. Zane still overwhelms current-tier
+  opposition even after the formation is made more defensive.
+
+### D4 Season 2 finish
+
+- Bramble finished third at 12-1-5, with 70 goals for and 39 against. Dovewell
+  won with 51 points and Elm finished second with 48. The difficulty increase
+  was welcome after D5, but the same extreme scorer still produced a very high
+  goal total without securing promotion.
+- Thunderbolt's sponsor target required eight clean sheets. Bramble managed
+  only two despite four natural defenders with 93-108 DEF and a goalkeeper
+  with 108 REF. The target did not match the division's high-scoring match
+  model, so the sponsor paid nothing.
+- A South America report produced midfielders whose useful attributes reached
+  estimated ranges near 200. Their asking prices were roughly $360,000 to
+  $488,000. One weak player remained affordable. D4 scouting therefore felt
+  feast-or-famine instead of producing a credible upgrade ladder.
+- A $4,000 detailed report disabled its purchase button but left every ability
+  as a range. It did not reveal exact values or explain that no more detail was
+  available.
+- The game aborted twice during ordinary play. The first abort followed a
+  detailed-report purchase and a drill; the second followed a Thunder Quick
+  Result. Both actions had already persisted even though the recovery screen
+  said the save was unchanged. That message is unsafe and false for these
+  cases.
+- The season-end ceremony showed an award prize of $6,160. The review then
+  showed `Prize $9,000` and `Cash actually received $0`, while closing cash had
+  still increased by about $7,100. The accounting and copy disagree.
+- Gio Oak won Hero of the Season despite barely appearing. The award seems to
+  value owning a power more than using it or contributing in matches.
+
+### D4 Season 3 promotion
+
+- A rapid scout dispatch exposed stale selection state. The mission screen
+  showed `Immediate starter`, but Send charged the prior Bargain price of
+  $5,500 and used the prior three-week duration. The report returned after the
+  transfer window closed. Changing mission type must update the submitted
+  mission atomically.
+- Selling retiring Nora Vale did not clear her retirement inbox item. It
+  remained every week. `The scout came back short` also persisted through a
+  new season despite successful reports and more than $200,000 cash.
+- Gio Marsh awakened Rally Cry after a 6-2 win. The reveal abruptly described
+  CPR and chest compressions without an earlier health incident. It was
+  tonally severe and confusing for this game's style.
+- Awakening automatically benched Gio Marsh because he lacked a Hero License.
+  After Gio Oak was unlicensed, the screen showed 1/2 permits. Selecting Gio
+  Marsh offered `License and swap`, but confirming failed three times with
+  `That is not possible right now, boss.` The bug blocked the new hero and his
+  new power for the rest of D4.
+- The Rally Cry demo briefly showed a valid `FIRE` button, then auto-fired
+  before the browser could press it. During this run, ARMED was treated as
+  read-only and was never pressed. Only FIRE is considered an allowed manual
+  input while the manual-power changes are in progress.
+- A Week 19 team trip asked for 1,475 TP and 10 condition from every player for
+  +2 to all six attributes. TP had become abundant, but condition before a
+  match remained valuable. The scaling made refusal clearly optimal.
+- Quick Result variance was extreme with the same healthy 4-4-2: 6-2, 1-7,
+  7-0, 2-3, 12-0, 6-0, 5-5, and other large swings. A squad with four elite
+  defensive attributes still conceded 42 league goals. Defensive ratings do
+  not feel proportionate to outcomes.
+- One player request asked for a charter flight `before a cup tie` four weeks
+  after Bramble had already been eliminated. The gameplay effect was still
+  usable, but the context copy was stale.
+- Bramble earned promotion in second at 12-3-3, scoring 82 and conceding 42.
+  Yewtree won by eight points and beat Bramble 7-1 and 4-3. Yewtree felt like a
+  credible superior club, but the route to second was much easier than the
+  score volatility suggested.
+- Empty-week drills on academy midfielder Jae Ward raised him from 50 to 57
+  OVR. A final 7% SUPER roll gave +10 PAS. This was exciting, but 1,958 TP
+  remained at rollover. Condition, not TP, is the real training limit, so TP
+  income is far above useful spending.
+- Promotion unlocked Tier 3 drills, rumored-Hero scouting, a third Hero
+  License, and Level 3 coaches. These rewards clearly communicate the next
+  optimization targets.
+- Contract talks saved meaningful wages but repeatedly forced a Starter
+  counteroffer. Bo Hedges renewed for three years at $348 per week, Gio Marsh
+  at $701, and Zane Lane at $898. The negotiation is readable, but selecting a
+  promise did not make the submitted offer acceptable; the agent still moved
+  to a higher final wage with the same promise.
+
+### D3 Season 4 opening
+
+- Sponsor offer cards showed $2,400 and $2,376 per month, but the signing
+  messages called the contracts $3,000 and $2,970. The Chairman club then
+  received the smaller card values. The difficulty adjustment exists, but the
+  two displayed contract values make the deal unclear.
+- Green Bull's recurring Team Trip now asks for $50,000 and every current TP
+  for +2 to all six attributes and -10 condition per player. With more than
+  2,000 TP saved, its cost grows when the player saves well. Refusing it is
+  overwhelmingly optimal. Coach Speech has the same all-current-TP problem
+  for a single second-half +6 team boost.
+- Academy midfielder Remy Vale rose from 52 to 59 OVR in three early drills.
+  Two later batches raised him from 59 to 75 in three weeks: DEF 47 to 88,
+  SHO 41 to 66, and TEC 64 to 93. The batches cost only 78 TP. Multiple safe
+  drills plus youth, facility, coach, and SUPER bonuses make focused youth
+  growth extremely fast while the club still holds about 2,000 TP.
+- A D3 Bargain goalkeeper report produced a useful and affordable ladder.
+  Nico Knox cost $45,057 and signed for $516 per week with a Starter promise.
+  His exact REF was 158 and his OVR was 96, versus the previous starter's 41
+  OVR and 108 REF. This report felt far more useful than the D4 outlier report,
+  though one cheap scout mission still supplied a massive immediate upgrade.
+- The third Hero License still cannot be assigned cleanly to a benched hero.
+  Selecting Gio Oak at 2/3 permits says it will move him into the XI and bench
+  an `unlicensed hero`, even though both current starting heroes are licensed.
+  Cancelling is optimal because accepting risks weakening the starting XI.
+- The D3 opener was a watched 0-1 home loss to Quarry. Quarry's two heroes
+  visibly completed powers; the second power phase coincided with the only
+  goal. Neither licensed Bramble hero visibly completed a power. The next two
+  Quick Results were a 2-0 away win and a 2-2 home draw, so D3 immediately
+  felt more competitive than D4.
+- The first D3 home gate paid $38,116 after the three-stand multiplier. One
+  home match almost covered the $45,057 goalkeeper fee. Facilities make home
+  fixtures exciting, but the transfer budget is now much looser than the
+  weekly wage and away-match economy suggest.
