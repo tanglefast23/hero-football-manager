@@ -71,6 +71,27 @@ describe('assistant guide milestones', () => {
     expect(twice).toBe(once);
   });
 
+  test('records the hero power lesson only after completion', () => {
+    const state = {
+      ...createCareer(createLaunchCareerSetup(8_432)),
+      eventFlags: ['unrelated-event-flag'],
+    };
+    const once = completeAssistantGuideMilestone(
+      state,
+      'hero-power-tutorial-complete',
+    );
+    const twice = completeAssistantGuideMilestone(
+      once,
+      'hero-power-tutorial-complete',
+    );
+
+    expect(once.eventFlags).toEqual([
+      'unrelated-event-flag',
+      'guide:bert:hero-power-tutorial-complete',
+    ]);
+    expect(twice).toBe(once);
+  });
+
   test('offers the roster sort hint from Week 12 until any tap dismisses it forever', () => {
     const career = createCareer(createLaunchCareerSetup(8_431));
     const weekEleven = { ...career, season: 1, week: 11 };

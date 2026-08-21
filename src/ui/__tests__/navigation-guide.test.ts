@@ -43,7 +43,9 @@ describe('bottom navigation guide', () => {
     expect(walkOn).toContain('anchor={spotlightAnchor}');
   });
 
-  it('keeps the ring non-interactive so the whole screen stays the button', () => {
-    expect(ring).toContain('pointerEvents="none"');
+  it('keeps the ring inert and gives the spotlight optional blocking panes', () => {
+    expect(ring).toContain('pointerEvents="box-none"');
+    expect(ring).toContain("pointerEvents={blocking ? 'auto' : 'none'}");
+    expect(ring).toContain('onPress={onTargetPress}');
   });
 });

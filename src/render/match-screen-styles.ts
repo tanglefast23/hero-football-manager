@@ -66,6 +66,7 @@ const makeStyles = (faces: LocaleFaces) =>
       paddingTop: MATCH_RAIL_TOP_INSET,
       paddingBottom: MATCH_RAIL_GUTTER,
     },
+    desktopRailPane: { flexDirection: 'row' },
     desktopPitchPane: { alignItems: 'center', justifyContent: 'center' },
     presentationBody: {
       flex: 1,

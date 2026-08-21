@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 
 /**
@@ -12,15 +12,21 @@ export function TutorialSpotlight({
   anchor,
   viewportWidth,
   viewportHeight,
+  blocking = false,
+  onTargetPress,
 }: {
   anchor?: TutorialAnchorLayout | null;
   viewportWidth: number;
   viewportHeight: number;
+  /** Blocks the dim panes while leaving an empty cutout transparent. */
+  blocking?: boolean;
+  /** Optional dismiss-only target over the cutout. Never reaches its control. */
+  onTargetPress?: () => void;
 }) {
   if (!anchor) {
     return (
       <View
-        pointerEvents="none"
+        pointerEvents={blocking ? 'auto' : 'none'}
         style={[StyleSheet.absoluteFill, styles.dimPane]}
       />
     );
@@ -34,25 +40,45 @@ export function TutorialSpotlight({
   const spotlightHeight = Math.max(0, bottom - top);
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       <View
+        pointerEvents={blocking ? 'auto' : 'none'}
         style={[styles.dimPane, { left: 0, top: 0, right: 0, height: top }]}
       />
       <View
+        pointerEvents={blocking ? 'auto' : 'none'}
         style={[
           styles.dimPane,
           { left: 0, top, width: left, height: spotlightHeight },
         ]}
       />
       <View
+        pointerEvents={blocking ? 'auto' : 'none'}
         style={[
           styles.dimPane,
           { left: right, top, right: 0, height: spotlightHeight },
         ]}
       />
       <View
+        pointerEvents={blocking ? 'auto' : 'none'}
         style={[styles.dimPane, { left: 0, top: bottom, right: 0, bottom: 0 }]}
       />
+      {onTargetPress === undefined ? null : (
+        <Pressable
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          focusable={false}
+          tabIndex={-1}
+          onPress={onTargetPress}
+          style={{
+            position: 'absolute',
+            left,
+            top,
+            width: Math.max(0, right - left),
+            height: spotlightHeight,
+          }}
+        />
+      )}
     </View>
   );
 }

@@ -32,6 +32,8 @@ export type HeroPowerCellState = 'fire' | 'arm' | 'armed' | 'down';
 export interface HeroPowerCell {
   /** Player index. Stable for the life of the slot, so cells never reorder. */
   slot: number;
+  /** Stable player identity. A substitute may reuse the slot but not this ID. */
+  playerId: string;
   name: string;
   power: PowerId;
   /** Null while this hero has no Zone banked — the cell stays, empty. */
@@ -120,6 +122,7 @@ export function heroPowerDockCells(
     const { state, armedTicksRemaining } = cellState(match, slot);
     cells.push({
       slot,
+      playerId: player.def.id,
       name: player.def.name,
       power,
       state,
@@ -128,6 +131,31 @@ export function heroPowerDockCells(
     });
   }
   return cells;
+}
+
+export type HeroPowerTarget = Pick<
+  HeroPowerCell,
+  'slot' | 'playerId' | 'power'
+>;
+
+/** The first charged hero in the dock's stable slot order. */
+export function firstArmedHeroPowerCell(
+  cells: readonly HeroPowerCell[],
+): HeroPowerCell | undefined {
+  return cells.find((cell) => cell.state === 'arm');
+}
+
+/** Finds one exact hero. Slot reuse after a substitution cannot match. */
+export function findHeroPowerCell(
+  cells: readonly HeroPowerCell[],
+  target: HeroPowerTarget,
+): HeroPowerCell | undefined {
+  return cells.find(
+    (cell) =>
+      cell.slot === target.slot &&
+      cell.playerId === target.playerId &&
+      cell.power === target.power,
+  );
 }
 
 /**

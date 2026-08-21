@@ -20,23 +20,37 @@ export const liveMatchControlsEntry: DevHarnessEntry = {
       label: 'Keeper Window',
       note: 'Manual Elastic Keeper danger prompt and countdown',
     },
+    {
+      id: 'hero-power-tutorial',
+      label: 'Hero Power Tutorial',
+      note: 'First ARMED and FIRE pauses on the real control',
+    },
   ],
   render: (caseId) => (
-    <LiveMatchControlsReel keeper={caseId === 'keeper-window'} />
+    <LiveMatchControlsReel
+      keeper={caseId === 'keeper-window'}
+      tutorial={caseId === 'hero-power-tutorial'}
+    />
   ),
 };
 
-function LiveMatchControlsReel({ keeper }: { keeper: boolean }) {
+function LiveMatchControlsReel({
+  keeper,
+  tutorial,
+}: {
+  keeper: boolean;
+  tutorial: boolean;
+}) {
   const insets = useSafeAreaInsets();
+  const power = tutorial ? 'GUST' : 'ELASTIC_KEEPER';
 
   return (
     <View style={{ paddingTop: insets.top, flex: 1 }}>
       <MatchScreen
         seed={20260893}
-        home={keeper ? powerMatchShowcaseHome('ELASTIC_KEEPER') : undefined}
-        powerMatchQa={
-          keeper ? { power: 'ELASTIC_KEEPER', manual: true } : undefined
-        }
+        home={keeper || tutorial ? powerMatchShowcaseHome(power) : undefined}
+        powerMatchQa={keeper || tutorial ? { power, manual: true } : undefined}
+        heroPowerTutorial={tutorial}
         controlledTeam={0}
         onOpenSettings={() => {}}
         onDone={() => {}}
