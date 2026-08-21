@@ -15,7 +15,6 @@ import {
   RAIL_TIRED_ROWS,
   railHeroStatus,
 } from '../match-rail';
-import { ARM_WINDOW_TICKS } from '../../sim/powers';
 import { mentalityLabel } from '../match-mentality-ui';
 import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 
@@ -90,11 +89,11 @@ describe('desktop match control rail', () => {
       railHeroStatus({
         kind: 'armed',
         remainingTicks: 20,
-        windowTicks: ARM_WINDOW_TICKS,
+        windowTicks: 20,
         strength: 0.9,
         sawShotOnTarget: false,
       }),
-    ).toBe('firing');
+    ).toBe('armed');
     expect(
       railHeroStatus({ kind: 'winding', untilTick: 40, strength: 1 }),
     ).toBe('firing');

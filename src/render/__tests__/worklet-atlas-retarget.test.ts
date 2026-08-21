@@ -359,14 +359,12 @@ describe('worklet Atlas continuity retargeting', () => {
     );
 
     expect(screen).toContainSource(
-      'now + (reduceMotion ? 0 : FULLTIME_HOLD_MS)',
+      'reduceMotion && !wastedPowerPending ? 0 : FULLTIME_HOLD_MS',
     );
     expect(screen).toContainSource(
       "snap || pauseAfterPublish || s.phase === 'fulltime'",
     );
-    expect(screen).toContainSource(
-      '} else if (now >= fulltimeDeadlineRef.current) {',
-    );
+    expect(screen).toContainSource('now >= fulltimeDeadlineRef.current &&');
   });
 
   test('publishes and snaps a tutorial tick before pausing its UI animation', () => {

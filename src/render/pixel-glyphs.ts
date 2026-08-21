@@ -60,6 +60,8 @@ const GLYPH_ROWS: Readonly<Record<string, string>> = {
   "'": '010010000000000',
   '-': '000000111000000',
   '.': '000000000000010',
+  '(': '011100100100011',
+  ')': '110001001001110',
   ' ': '000000000000000',
 };
 
@@ -138,6 +140,11 @@ export const MAX_NAME_CHARACTERS = 10;
 export function lastName(name: string): string {
   const words = name.trim().split(/\s+/u);
   return foldToDrawable(words[words.length - 1] ?? '');
+}
+
+/** The first whitespace-separated word of an authored player name. */
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/u)[0] ?? '';
 }
 
 /**

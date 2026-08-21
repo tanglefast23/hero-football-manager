@@ -4,7 +4,6 @@ import { fullConditionMovementSpeed } from '../attributes';
 import {
   activatePower,
   addGauge,
-  ARM_WINDOW_TICKS,
   inUsefulContext,
   interruptWindup,
   knockOut,
@@ -221,26 +220,23 @@ describe('hero gauge and firing', () => {
     expect(fired.strength).toBe(1);
   });
 
-  it('an early tap commits to a fixed two-second arm window and fires later at reduced strength', () => {
+  it('an early tap is a no-op and a later useful tap fires at full strength', () => {
     const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: 5 };
     m.ball = { kind: 'held', by: 9 };
 
     powerTick(m, [{ tick: m.tick, kind: 'POWER_TAP', player: SPEEDSTER }]);
     expect(m.players[SPEEDSTER].powerState).toEqual({
-      kind: 'armed',
-      remainingTicks: 20,
-      windowTicks: ARM_WINDOW_TICKS,
-      strength: 0.9,
-      sawShotOnTarget: false,
+      kind: 'zone',
+      remainingTicks: 5,
     });
 
     m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
     m.ball = { kind: 'held', by: SPEEDSTER };
-    powerTick(m);
+    powerTick(m, [{ tick: m.tick, kind: 'POWER_TAP', player: SPEEDSTER }]);
     expect(m.players[SPEEDSTER].powerState).toMatchObject({
       kind: 'winding',
-      strength: 0.9,
+      strength: 1,
     });
   });
 
@@ -649,6 +645,8 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     tickUntil(m, () => m.players[SPEEDSTER].outUntilTick <= m.tick, 10);
     expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
     // Tapping the resumed window converts it into a fire, exactly as an un-interrupted Zone would.
+    m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
     tickUntil(
       m,
@@ -669,7 +667,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     ).toBe(true);
   });
 
-  it('a due press commits a downed hero to the fixed arm window without a spurious interrupt', () => {
+  it('a due press on a downed hero is a recorded no-op', () => {
     const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = {
       kind: 'zone',
@@ -680,11 +678,8 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
     tick(m);
     expect(m.players[SPEEDSTER].powerState).toEqual({
-      kind: 'armed',
-      remainingTicks: ARM_WINDOW_TICKS,
-      windowTicks: ARM_WINDOW_TICKS,
-      strength: 0.9,
-      sawShotOnTarget: false,
+      kind: 'zone',
+      remainingTicks: ZONE_WINDOW_TICKS,
     });
     expect(m.pendingInputs).toHaveLength(0);
     expect(
@@ -703,7 +698,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     ).toBe(false);
   });
 
-  it('places the arm window on its stamped tick during recovery instead of deferring the input', () => {
+  it('a tap during tackle recovery is a recorded no-op', () => {
     const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = {
       kind: 'zone',
@@ -714,99 +709,11 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
 
     tick(m);
     expect(m.players[SPEEDSTER].powerState).toEqual({
-      kind: 'armed',
-      remainingTicks: ARM_WINDOW_TICKS,
-      windowTicks: ARM_WINDOW_TICKS,
-      strength: 0.9,
-      sawShotOnTarget: false,
+      kind: 'zone',
+      remainingTicks: ZONE_WINDOW_TICKS,
     });
     expect(m.pendingInputs).toHaveLength(0);
   });
-
-  it('expires exactly 20 ticks after placement even when recovery outlasts the arm window', () => {
-    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
-    m.players[SPEEDSTER].powerState = {
-      kind: 'zone',
-      remainingTicks: ZONE_WINDOW_TICKS,
-    };
-    m.players[SPEEDSTER].tackleRecoveryUntil = 100;
-    queueInput(m, { tick: 1, kind: 'POWER_TAP', player: SPEEDSTER });
-
-    tick(m); // placement tick: the next 20 ticks are the armed window
-    for (let elapsed = 1; elapsed < ARM_WINDOW_TICKS; elapsed++) tick(m);
-    expect(m.tick).toBe(ARM_WINDOW_TICKS);
-    expect(m.players[SPEEDSTER].powerState).toEqual({
-      kind: 'armed',
-      remainingTicks: 1,
-      windowTicks: ARM_WINDOW_TICKS,
-      strength: 0.9,
-      sawShotOnTarget: false,
-    });
-    expect(m.events).not.toContainEqual(
-      expect.objectContaining({ kind: 'POWER_EXPIRED', player: SPEEDSTER }),
-    );
-
-    tick(m);
-    expect(m.tick).toBe(ARM_WINDOW_TICKS + 1);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
-    expect(m.events).toContainEqual(
-      expect.objectContaining({
-        t: ARM_WINDOW_TICKS + 1,
-        kind: 'POWER_EXPIRED',
-        player: SPEEDSTER,
-      }),
-    );
-  });
-
-  it.each(['out', 'sliding'] as const)(
-    'continues the armed countdown while %s',
-    (state) => {
-      const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
-      const player = m.players[SPEEDSTER];
-      player.powerState = {
-        kind: 'armed',
-        remainingTicks: ARM_WINDOW_TICKS,
-        windowTicks: ARM_WINDOW_TICKS,
-        strength: 0.9,
-        sawShotOnTarget: false,
-      };
-      if (state === 'out') {
-        player.outUntilTick = 100;
-        player.outReason = 'ko';
-      } else {
-        player.slideTackle = {
-          targetIdx: 11,
-          startTick: 0,
-          untilTick: 100,
-          direction: { x: 1, y: 0 },
-          remainingDistance: 1000,
-          previousPos: { ...player.pos },
-          targetPreviousPos: { ...m.players[11].pos },
-        };
-      }
-
-      for (let elapsed = 1; elapsed < ARM_WINDOW_TICKS; elapsed++) {
-        m.tick++;
-        powerTick(m);
-      }
-      expect(player.powerState).toEqual({
-        kind: 'armed',
-        remainingTicks: 1,
-        windowTicks: ARM_WINDOW_TICKS,
-        strength: 0.9,
-        sawShotOnTarget: false,
-      });
-
-      m.tick++;
-      powerTick(m);
-      expect(player.powerState.kind).toBe('idle');
-      expect(m.events.at(-1)).toMatchObject({
-        t: ARM_WINDOW_TICKS,
-        kind: 'POWER_EXPIRED',
-        player: SPEEDSTER,
-      });
-    },
-  );
 });
 
 describe('frozen-team bug: knockOut clears an active/winding power instead of freezing the team', () => {

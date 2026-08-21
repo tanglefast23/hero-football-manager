@@ -101,8 +101,7 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'rally-drums': require('../../assets/audio/sfx/rally-drums.m4a'),
   'zone-enter': require('../../assets/audio/sfx/zone-enter.m4a'),
   // Procedural .wav: this cue has no supplied replacement, like the other
-  // catalog fixtures. It was wired, then unreachable from m1.27, and is
-  // reachable again now that a manual tap can arm a window that lapses.
+  // catalog fixtures. It is used when a pressed save window lapses.
   'zone-expire': require('../../assets/audio/sfx/zone-expire.wav'),
   // The shipped "you cannot do that" cue, layered under a lost charge so the
   // loss lands as a loss rather than as an ambiguous noise.
@@ -301,8 +300,8 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'EXTINGUISHED':
       return ['extinguisher-spray'];
     case 'POWER_FIRED':
-      // Powers always fire automatically in a watched match, so there is no
-      // tap-confirm layer — every activation gets just the power's own sound.
+      // The control already confirms a manual press visually. Every activation
+      // gets just the power's own sound, with no second tap-confirm layer.
       return POWER_AUDIO[e.power].activation;
     case 'POWER_IMPACT':
       return POWER_AUDIO[e.power].impact;
@@ -320,12 +319,8 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['decoy-pop'];
     case 'IGNITED':
       return ['flame-hit']; // a defender catches fire (distinct from the caster's flame-up)
-    // Reachable again since the manual tap came back (2026-08-20). A tap
-    // outside the authored context arms a 20-tick window, and when that window
-    // lapses the hero loses one of only three Zones. Silence there is the
-    // worst outcome for trust: the manager sees a charge they earned vanish
-    // with no explanation. Unreachable, and deliberately unwired, between
-    // m1.27 and now.
+    // A lapsed save window loses one of only three Zones. Silence there would
+    // make the spent charge look like a bug.
     case 'POWER_EXPIRED':
       return ['zone-expire', 'negative'];
     // RECOVERED (a player getting back up) has no matching asset — deliberately

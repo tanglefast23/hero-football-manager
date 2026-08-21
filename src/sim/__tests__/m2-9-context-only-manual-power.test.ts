@@ -1,4 +1,4 @@
-import { createMatch, ENGINE_VERSION, queueInput, tick } from '../match';
+import { createMatch, ENGINE_VERSION, tick } from '../match';
 import {
   armWindowTicks,
   GK_ARM_WINDOW_TICKS,
@@ -6,13 +6,16 @@ import {
   inUsefulContext,
   isShotSavePower,
   powerTick,
+  savePowerDangerPrompt,
   zoneHeatThreshold,
 } from '../powers';
 import { ROVERS, UNITED } from '../teams';
+import { PITCH_H } from '../geometry';
 import type { PowerId, TeamDef } from '../types';
 
 /**
- * Engine m2.8 — a full Heat bar arms the hero, full stop.
+ * Engine m2.9 — a full Heat bar arms the hero, and manual presses are accepted
+ * only when useful. Save powers use the defending-third danger prompt.
  *
  * The defect this replaces: Zone entry consulted `zoneEntryContext`, the
  * power's own authored setup, on top of the Heat threshold. A manager could
@@ -42,9 +45,16 @@ function manualMatch(power: PowerId, slot: number) {
   });
 }
 
-describe('m2.8 — a full bar arms the hero', () => {
+function pressKeeperInDanger(match: ReturnType<typeof manualMatch>): void {
+  match.players[11].pos.y = (PITCH_H * 2) / 3;
+  match.ball = { kind: 'held', by: 11 };
+  match.ballHolderTeam = 1;
+  powerTick(match, [{ tick: match.tick, kind: 'POWER_TAP', player: 0 }]);
+}
+
+describe('m2.9 — a full bar arms the hero', () => {
   it('bumped the engine version, because every hero in the league changed', () => {
-    expect(ENGINE_VERSION).toBe('m2.8');
+    expect(ENGINE_VERSION).toBe('m2.9');
   });
 
   it('arms with nothing at all happening on the pitch', () => {
@@ -111,7 +121,7 @@ describe('m2.8 — a full bar arms the hero', () => {
   });
 });
 
-describe('m2.8 — the Heat bar is read against the role', () => {
+describe('m2.9 — the Heat bar is read against the role', () => {
   it('gives a keeper a far lower threshold than an outfield hero', () => {
     expect(zoneHeatThreshold('GK')).toBe(5);
     expect(zoneHeatThreshold('DEF')).toBe(60);
@@ -128,21 +138,21 @@ describe('m2.8 — the Heat bar is read against the role', () => {
   });
 });
 
-describe('m2.8 — keepers are hand-fireable, by power not by role', () => {
+describe('m2.9 — keepers are hand-fireable, by power not by role', () => {
   it('hands the goalkeeper their team policy like anyone else', () => {
     const match = manualMatch('ELASTIC_KEEPER', 0);
     expect(match.players[0].firePolicy).toBe('SAVE_FOR_TAP');
   });
 
-  it('gives a save keeper ten seconds and an outfield hero two', () => {
+  it('gives only save powers a ten-second window', () => {
     expect(armWindowTicks('ELASTIC_KEEPER')).toBe(GK_ARM_WINDOW_TICKS);
     expect(armWindowTicks('GIANT_GK')).toBe(GK_ARM_WINDOW_TICKS);
-    expect(armWindowTicks('SUPER_SPEED')).toBe(20);
+    expect(armWindowTicks('SUPER_SPEED')).toBe(0);
     // GUST sits in ROLE_POOL.GK but is not a save power. Keying these rules on
     // the ROLE would leave a GUST keeper's button dead through exactly the
     // build-up their power exists for.
     expect(isShotSavePower('GUST')).toBe(false);
-    expect(armWindowTicks('GUST')).toBe(20);
+    expect(armWindowTicks('GUST')).toBe(0);
   });
 
   it('opens a window on a keeper press rather than firing into nothing', () => {
@@ -151,8 +161,7 @@ describe('m2.8 — keepers are hand-fireable, by power not by role', () => {
     powerTick(match, []);
     expect(match.players[0].powerState.kind).toBe('zone');
 
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: 0 });
-    tick(match);
+    pressKeeperInDanger(match);
 
     // A shot in flight is far too brief to press on, so the press is a
     // commitment, not a reflex.
@@ -167,14 +176,92 @@ describe('m2.8 — keepers are hand-fireable, by power not by role', () => {
     }
   });
 
-  it('lets a lapsed keeper window say NO SHOT ON NET only when it is true', () => {
+  it('keeps a pre-danger keeper tap as a recorded no-op', () => {
+    const match = manualMatch('ELASTIC_KEEPER', 0);
+    match.players[0].powerState = { kind: 'zone', remainingTicks: 70 };
+    match.players[11].pos.y = 2000;
+    match.ball = { kind: 'held', by: 11 };
+    match.ballHolderTeam = 1;
+
+    powerTick(match, [{ tick: match.tick, kind: 'POWER_TAP', player: 0 }]);
+
+    expect(match.players[0].powerState).toEqual({
+      kind: 'zone',
+      remainingTicks: 70,
+    });
+  });
+
+  it('uses inclusive defending thirds in both team directions', () => {
+    const home = manualMatch('GIANT_GK', 0);
+    home.players[11].pos.y = (PITCH_H * 2) / 3;
+    home.ball = { kind: 'held', by: 11 };
+    expect(savePowerDangerPrompt(home, 0)).toBe(true);
+
+    const away = createMatch(4242, UNITED, teamWith('GIANT_GK', 0), {
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'SAVE_FOR_TAP',
+      controlledTeam: 1,
+    });
+    away.players[0].pos.y = PITCH_H / 3;
+    away.ball = { kind: 'held', by: 0 };
+    expect(savePowerDangerPrompt(away, 11)).toBe(true);
+  });
+
+  it('keeps pass and loose-ball danger, and wakes for an enemy shot anywhere', () => {
+    const match = manualMatch('ELASTIC_KEEPER', 0);
+    // Pass and shot ownership comes from their actor, even if this cached
+    // loose-ball value still names the defending team.
+    match.ballHolderTeam = 0;
+    match.ball = {
+      kind: 'pass',
+      pos: { x: 3400, y: 8000 },
+      from: 11,
+      fromPlayerId: match.players[11].def.id,
+      to: 12,
+      willSucceed: true,
+      interceptor: -1,
+      z: 0,
+      vz: 0,
+      speed: 100,
+    };
+    expect(savePowerDangerPrompt(match, 0)).toBe(true);
+
+    match.ballHolderTeam = 1;
+    match.ball = {
+      kind: 'loose',
+      pos: { x: 3400, y: 8000 },
+      vel: { x: 0, y: 0 },
+      z: 0,
+      vz: 0,
+    };
+    expect(savePowerDangerPrompt(match, 0)).toBe(true);
+
+    match.ballHolderTeam = 0;
+    match.ball = {
+      kind: 'shot',
+      pos: { x: 3400, y: 1000 },
+      vel: { x: 0, y: 100 },
+      by: 20,
+      shooterId: match.players[20].def.id,
+      shotStrengthD64: 0,
+      power: 40,
+      targetX: 3400,
+      z: 0,
+      vz: 0,
+      trajectory: 'driven',
+      keeperChecked: false,
+    };
+    expect(savePowerDangerPrompt(match, 0)).toBe(true);
+  });
+
+  it('spends a lapsed keeper window at zero Heat', () => {
     const match = manualMatch('ELASTIC_KEEPER', 0);
     match.players[0].gauge = zoneHeatThreshold('GK');
     powerTick(match, []);
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: 0 });
+    pressKeeperInDanger(match);
 
-    // Nothing comes. Run the window out.
-    for (let step = 0; step < GK_ARM_WINDOW_TICKS + 5; step += 1) tick(match);
+    // Nothing comes. Stop on the exact expiry tick, before new Heat can build.
+    while (match.players[0].powerState.kind === 'armed') tick(match);
 
     const expired = match.events.filter((e) => e.kind === 'POWER_EXPIRED');
     expect(expired).toHaveLength(1);
@@ -183,10 +270,9 @@ describe('m2.8 — keepers are hand-fireable, by power not by role', () => {
       power: 'ELASTIC_KEEPER',
       reason: 'no-shot',
     });
-    // The Zone is spent, and the refund leaves them under their own line rather
-    // than instantly re-armed.
+    // The Zone is spent. New Heat starts from zero.
     expect(match.players[0].zonesOpened).toBe(1);
-    expect(match.players[0].gauge).toBeLessThan(zoneHeatThreshold('GK'));
+    expect(match.players[0].gauge).toBe(0);
   });
 });
 
@@ -199,7 +285,7 @@ describe('m2.8 — keepers are hand-fireable, by power not by role', () => {
  * (`shotFlightTick`), so a keeper offered their context only in `powerTick` is
  * bypassed by any shot that is born and arrives inside one tick.
  */
-describe('m2.8 — a shot wakes the keeper it is aimed at', () => {
+describe('m2.9 — a shot wakes the keeper it is aimed at', () => {
   /** Puts an on-target shot one tick from the keeper's plane. */
   function shotAtKeeper(match: ReturnType<typeof manualMatch>) {
     const keeper = match.players[0];
@@ -223,8 +309,7 @@ describe('m2.8 — a shot wakes the keeper it is aimed at', () => {
     const match = manualMatch('ELASTIC_KEEPER', 0);
     match.players[0].gauge = zoneHeatThreshold('GK');
     powerTick(match, []);
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: 0 });
-    tick(match);
+    pressKeeperInDanger(match);
     expect(match.players[0].powerState.kind).toBe('armed');
 
     shotAtKeeper(match);
@@ -243,8 +328,7 @@ describe('m2.8 — a shot wakes the keeper it is aimed at', () => {
     const match = manualMatch('ELASTIC_KEEPER', 0);
     match.players[0].gauge = zoneHeatThreshold('GK');
     powerTick(match, []);
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: 0 });
-    tick(match);
+    pressKeeperInDanger(match);
 
     // Burn the window down to its final tick.
     while (
@@ -288,12 +372,11 @@ describe('m2.8 — a shot wakes the keeper it is aimed at', () => {
     ).toBe(true);
   });
 
-  it('never claims NO SHOT ON NET when a shot passed while the keeper was down', () => {
+  it('records a shot that passed while the keeper was down', () => {
     const match = manualMatch('ELASTIC_KEEPER', 0);
     match.players[0].gauge = zoneHeatThreshold('GK');
     powerTick(match, []);
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: 0 });
-    tick(match);
+    pressKeeperInDanger(match);
 
     // Flattened for the whole window, so they cannot act on the shot at all.
     match.players[0].outUntilTick = match.tick + GK_ARM_WINDOW_TICKS + 50;
@@ -310,8 +393,8 @@ describe('m2.8 — a shot wakes the keeper it is aimed at', () => {
 
     const expired = match.events.filter((e) => e.kind === 'POWER_EXPIRED');
     expect(expired).toHaveLength(1);
-    // A shot DID come. The Zone was still wasted, but the message must say so
-    // honestly rather than blaming an attack that never happened.
+    // A shot did come. The Zone was still wasted, but the replay reason stays
+    // honest even though presentation now uses one generic ticker line.
     expect(expired[0]).toMatchObject({ player: 0, reason: 'other' });
   });
 });

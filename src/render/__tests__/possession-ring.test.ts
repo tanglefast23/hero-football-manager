@@ -13,9 +13,12 @@ const overlays = readFileSync(
   join(renderDir, 'WorkletMatchOverlays.tsx'),
   'utf8',
 );
+const heroMarkers = readFileSync(join(renderDir, 'HeroPowerRings.tsx'), 'utf8');
 
 const constant = (name: string) => {
-  const match = overlays.match(new RegExp(`const ${name} = ([\\d.]+);`, 'u'));
+  const match = overlays.match(
+    new RegExp(`(?:export )?const ${name} = ([\\d.]+);`, 'u'),
+  );
   expect(match).not.toBeNull();
   return Number(match![1]);
 };
@@ -57,5 +60,22 @@ describe('ball-carrier ring', () => {
     // Sized off the sprite's own scale, so desktop and camera zoom track it.
     expect(worklet).toMatch(/spriteScale/u);
     expect(worklet).not.toMatch(/Skia\./u);
+  });
+});
+
+describe('hero power marker', () => {
+  it('reuses the solid possession oval and hides the yellow oval underneath', () => {
+    expect(heroMarkers).toContain('POSSESSION_RING_RX_PX');
+    expect(heroMarkers).toContain('POSSESSION_RING_RY_PX');
+    expect(heroMarkers).toContain('builder.addOval');
+    expect(heroMarkers).not.toContain('DashPathEffect');
+    expect(screen).toContain('hiddenMask={');
+  });
+
+  it('draws before the player Atlas so the oval wraps the feet', () => {
+    const marker = screen.indexOf('<HeroPowerRings');
+    const atlas = screen.indexOf('sprites={sprites}');
+    expect(marker).toBeGreaterThan(-1);
+    expect(marker).toBeLessThan(atlas);
   });
 });

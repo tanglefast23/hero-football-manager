@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createMatch, queueInput } from '../../sim/match';
-import { ARM_WINDOW_TICKS, GK_ARM_WINDOW_TICKS } from '../../sim/powers';
+import { GK_ARM_WINDOW_TICKS } from '../../sim/powers';
 import { ROVERS, UNITED } from '../../sim/teams';
 import type { TeamDef } from '../../sim/types';
 import {
@@ -52,9 +52,11 @@ describe('hero power dock cells', () => {
   it('reads FIRE or ARM off the authored context once a Zone is banked', () => {
     const match = manual();
     match.players[9].powerState = { kind: 'zone', remainingTicks: 70 };
+    match.players[9].pos = { x: 3400, y: 3000 };
+    match.ball = { kind: 'held', by: 9 };
 
     const cell = heroPowerDockCells(match, 0).find((c) => c.slot === 9);
-    expect(cell?.state === 'fire' || cell?.state === 'arm').toBe(true);
+    expect(cell?.state).toBe('fire');
     expect(heroPowerPressable(cell?.state ?? null)).toBe(true);
   });
 
@@ -68,12 +70,24 @@ describe('hero power dock cells', () => {
     expect(heroPowerPressable('down')).toBe(false);
   });
 
+  it('refuses FIRE while the engine blocks the hero from acting', () => {
+    const match = manual();
+    match.players[9].powerState = { kind: 'zone', remainingTicks: 70 };
+    match.players[9].pos = { x: 3400, y: 3000 };
+    match.players[9].webbedUntilTick = match.tick + 30;
+    match.ball = { kind: 'held', by: 9 };
+
+    const cell = heroPowerDockCells(match, 0).find((c) => c.slot === 9);
+    expect(cell?.state).toBe('down');
+    expect(heroPowerPressable(cell?.state ?? null)).toBe(false);
+  });
+
   it('shows the armed window as status, never as another press', () => {
     const match = manual();
     match.players[9].powerState = {
       kind: 'armed',
       remainingTicks: 14,
-      windowTicks: ARM_WINDOW_TICKS,
+      windowTicks: 20,
       strength: 0.9,
       sawShotOnTarget: false,
     };
@@ -220,59 +234,63 @@ describe('hero power rings', () => {
     expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: 0 });
   });
 
-  it('dashes a hero whose button is live, in both FIRE and ARM', () => {
+  it('marks a hero while a Zone is banked', () => {
     const match = manual();
     match.players[9].powerState = { kind: 'zone', remainingTicks: 70 };
 
-    const cell = heroPowerDockCells(match, 0).find((c) => c.slot === 9);
-    expect(heroPowerPressable(cell?.state ?? null)).toBe(true);
     expect(heroPowerRingMasks(match, 0)).toEqual({
       dashed: bit(9),
       solid: 0,
     });
   });
 
-  it('goes solid once the press lands, and for the power playing out', () => {
+  it('keeps a save window marked, then drops the marker when the power fires', () => {
     const match = manual();
-    match.players[9].powerState = {
+    match.players[0].powerState = {
       kind: 'armed',
-      remainingTicks: 20,
-      windowTicks: ARM_WINDOW_TICKS,
-      strength: 0.9,
+      remainingTicks: GK_ARM_WINDOW_TICKS,
+      windowTicks: GK_ARM_WINDOW_TICKS,
+      strength: 1,
       sawShotOnTarget: false,
     };
-    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: bit(9) });
+    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: bit(0) });
 
-    match.players[9].powerState = {
+    match.players[0].powerState = {
       kind: 'winding',
       untilTick: 99,
       strength: 1,
     };
-    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: bit(9) });
+    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: 0 });
 
-    match.players[9].powerState = {
+    match.players[0].powerState = {
       kind: 'active',
       untilTick: 99,
       strength: 1,
     };
-    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: bit(9) });
+    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: 0 });
   });
 
-  it('drops the ring when the power ends, and never rings a hero who is down', () => {
+  it('drops the ring when the power ends and keeps it while the charged hero is down', () => {
     const match = manual();
     match.players[9].powerState = { kind: 'idle' };
     expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: 0 });
 
     match.players[9].powerState = { kind: 'zone', remainingTicks: 70 };
     match.players[9].outUntilTick = match.tick + 30;
-    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: 0 });
+    expect(heroPowerRingMasks(match, 0)).toEqual({
+      dashed: bit(9),
+      solid: 0,
+    });
   });
 
-  it('never rings the goalkeeper, who fires automatically whatever is set', () => {
+  it('marks a manual goalkeeper like every other charged hero', () => {
     const match = manual();
     match.players[0].powerState = { kind: 'zone', remainingTicks: 70 };
 
-    expect(heroPowerRingMasks(match, 0)).toEqual({ dashed: 0, solid: 0 });
+    expect(heroPowerRingMasks(match, 0)).toEqual({
+      dashed: bit(0),
+      solid: 0,
+    });
   });
 });
 
@@ -293,62 +311,58 @@ describe('the goalkeeper button', () => {
   const cellFor = (match: ReturnType<typeof keeperMatch>) =>
     heroPowerDockCells(match, 0).find((cell) => cell.slot === 0);
 
-  it('sleeps as HOLD while the ball is up the other end', () => {
+  it('shows disabled ARMED before an enemy attack enters the danger third', () => {
     const match = keeperMatch('ELASTIC_KEEPER');
     // Team 0 defends the high-y goal, so a low y is the opponent's half.
-    match.ball = {
-      kind: 'loose',
-      pos: { x: 3400, y: 1000 },
-      vel: { x: 0, y: 0 },
-      z: 0,
-      vz: 0,
-    };
-
-    const cell = cellFor(match);
-    expect(cell?.state).toBe('hold');
-    // HOLD is its own state precisely so it is NOT `down`, whose screen-reader
-    // line announces "{player} is down". A keeper waiting out a goal kick is
-    // perfectly healthy.
-    expect(heroPowerPressable(cell?.state ?? null)).toBe(false);
-  });
-
-  it('wakes once the ball is in their own half', () => {
-    const match = keeperMatch('ELASTIC_KEEPER');
-    match.ball = {
-      kind: 'loose',
-      pos: { x: 3400, y: 9000 },
-      vel: { x: 0, y: 0 },
-      z: 0,
-      vz: 0,
-    };
+    match.players[11].pos.y = 1000;
+    match.ball = { kind: 'held', by: 11 };
 
     const cell = cellFor(match);
     expect(cell?.state).toBe('arm');
+    expect(heroPowerPressable(cell?.state ?? null)).toBe(false);
+  });
+
+  it('shows pressable FIRE at the inclusive danger-third line', () => {
+    const match = keeperMatch('ELASTIC_KEEPER');
+    match.players[11].pos.y = 7000;
+    match.ball = { kind: 'held', by: 11 };
+
+    const cell = cellFor(match);
+    expect(cell?.state).toBe('fire');
     expect(heroPowerPressable(cell?.state ?? null)).toBe(true);
   });
 
-  it('never reads FIRE, because a shot is too brief to react to', () => {
+  it('keeps the keeper disabled just outside the danger third', () => {
+    const match = keeperMatch('ELASTIC_KEEPER');
+    match.players[11].pos.y = 6999;
+    match.ball = { kind: 'held', by: 11 };
+
+    expect(cellFor(match)?.state).toBe('arm');
+  });
+
+  it('shows FIRE for an enemy shot from anywhere', () => {
     const match = keeperMatch('GIANT_GK');
+    match.ballHolderTeam = 1;
     match.ball = {
-      kind: 'loose',
-      pos: { x: 3400, y: 9000 },
-      vel: { x: 0, y: 0 },
+      kind: 'shot',
+      pos: { x: 3400, y: 1000 },
+      vel: { x: 0, y: 100 },
+      by: 20,
+      shooterId: match.players[20].def.id,
+      shotStrengthD64: 0,
+      power: 40,
+      targetX: 3400,
       z: 0,
       vz: 0,
+      trajectory: 'driven',
+      keeperChecked: false,
     };
 
-    expect(cellFor(match)?.state).not.toBe('fire');
+    expect(cellFor(match)?.state).toBe('fire');
   });
 
   it('carries the ten-second window, not the outfield two', () => {
     const match = keeperMatch('ELASTIC_KEEPER');
-    match.ball = {
-      kind: 'loose',
-      pos: { x: 3400, y: 9000 },
-      vel: { x: 0, y: 0 },
-      z: 0,
-      vz: 0,
-    };
 
     // The drain bar and the on-pitch ring both divide by this. A hardcoded 20
     // pinned a keeper's bar full for eight seconds and then dumped it.
@@ -356,7 +370,7 @@ describe('the goalkeeper button', () => {
     expect(
       heroPowerDockCells(match, 0).find((cell) => cell.slot === 9)
         ?.armWindowTicks,
-    ).toBe(ARM_WINDOW_TICKS);
+    ).toBe(0);
   });
 
   it('gives a GUST keeper the ordinary outfield contract', () => {
@@ -364,16 +378,10 @@ describe('the goalkeeper button', () => {
     // is enemy possession anywhere. Keying the keeper rules on the ROLE would
     // leave this button dead through exactly the build-up it exists for.
     const match = keeperMatch('GUST');
-    match.ball = {
-      kind: 'loose',
-      pos: { x: 3400, y: 1000 },
-      vel: { x: 0, y: 0 },
-      z: 0,
-      vz: 0,
-    };
+    match.ball = { kind: 'held', by: 11 };
 
     const cell = cellFor(match);
-    expect(cell?.state).not.toBe('hold');
-    expect(cell?.armWindowTicks).toBe(ARM_WINDOW_TICKS);
+    expect(cell?.state).toBe('fire');
+    expect(cell?.armWindowTicks).toBe(0);
   });
 });

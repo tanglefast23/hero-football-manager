@@ -8,6 +8,7 @@ import {
   tick,
 } from '../match';
 import { ROVERS, UNITED } from '../teams';
+import { inUsefulContext, powerActorAvailable } from '../powers';
 import type { MatchInput, MatchResult, MatchState } from '../types';
 
 // M0 acceptance suite (Task 13), split from the original parity.test.ts so jest
@@ -33,6 +34,23 @@ function fingerprintAt(m: MatchState) {
   }));
 }
 
+function firstUsefulTap(seed: number): MatchInput | undefined {
+  const match = createMatch(seed, ROVERS, UNITED, TAP_HOME);
+  while (match.phase !== 'fulltime') {
+    const player = match.players.findIndex(
+      (candidate, index) =>
+        candidate.team === 0 &&
+        candidate.powerState.kind === 'zone' &&
+        powerActorAvailable(match, index) &&
+        inUsefulContext(match, index),
+    );
+    if (player !== -1)
+      return { tick: match.tick + 1, kind: 'POWER_TAP', player };
+    tick(match);
+  }
+  return undefined;
+}
+
 describe('M0 acceptance suite (Task 13)', () => {
   describe('parity', () => {
     it('two fully automatic zero-input runs are byte-identical', () => {
@@ -48,16 +66,9 @@ describe('M0 acceptance suite (Task 13)', () => {
       let evidence = '';
       for (let seed = 1; seed <= 60 && !causal; seed++) {
         const base = runMatch(seed, ROVERS, UNITED, [], TAP_HOME);
-        const ready = base.events.find(
-          (e) =>
-            e.kind === 'POWER_READY' && (e as { player: number }).player < 11,
-        ) as { t: number; player: number } | undefined;
-        if (!ready) continue;
-        // Taps are only honored while that hero is in the Zone (powerTick), so
-        // one tick after zone entry is the earliest legal, well-timed tap.
-        const taps: MatchInput[] = [
-          { tick: ready.t + 1, kind: 'POWER_TAP', player: ready.player },
-        ];
+        const usefulTap = firstUsefulTap(seed);
+        if (!usefulTap) continue;
+        const taps: MatchInput[] = [usefulTap];
         const tapped = runMatch(seed, ROVERS, UNITED, taps, TAP_HOME);
         if (
           tapped.score[0] !== base.score[0] ||
@@ -83,17 +94,9 @@ describe('M0 acceptance suite (Task 13)', () => {
       // replay: the envelope only carries seed + teams + inputs + opts, never
       // ad hoc state mutation, so the taped match must be produced entirely
       // through the replayable pathway (createMatch + queueInput + tick).
-      const discovery = runMatch(42, ROVERS, UNITED, [], TAP_HOME);
-      const ready = discovery.events.find(
-        (e) =>
-          e.kind === 'POWER_READY' && (e as { player: number }).player < 11,
-      ) as { t: number; player: number } | undefined;
-      expect(ready).toBeDefined();
-      const scriptedTap: MatchInput = {
-        tick: ready!.t + 1,
-        kind: 'POWER_TAP',
-        player: ready!.player,
-      };
+      const scriptedTap = firstUsefulTap(42);
+      expect(scriptedTap).toBeDefined();
+      if (!scriptedTap) throw new Error('seed 42 produced no useful tap');
 
       const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
       queueInput(m, scriptedTap);

@@ -23,7 +23,6 @@ import {
 } from './animation';
 import { ballHeightScale, ballVisualOffset } from './ball-flight-visuals';
 import { snapDevicePixels } from './pixel-grid';
-import { zoneReadyPlayerScale } from './zone-ready-look';
 import { HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
 
 const PLAYER_COUNT = RENDER_PLAYER_COUNT;
@@ -688,17 +687,8 @@ export function useWorkletAtlasFrame(
       const sourceHeight = usesActionCell
         ? actionCell.height
         : playerCell.height;
-      // A hero holding a banked power is drawn 10% bigger, so the loaded body
-      // reads even where the zone ring is hidden behind another sprite. Gated
-      // on zoneFraction, not status: a slide, a knockdown or a tackle recovery
-      // outranks 'zone' in the status enum but does not spend the power, so the
-      // loaded look has to survive them.
       const playerScale =
-        nextVisibility.value[index] !== 1
-          ? 0
-          : zoneFractions.value[index] > 0
-            ? zoneReadyPlayerScale(scale * playerDrawScale, devicePixelRatio)
-            : scale * playerDrawScale;
+        nextVisibility.value[index] !== 1 ? 0 : scale * playerDrawScale;
       const scos = Math.cos(poseRotation) * playerScale;
       const ssin = Math.sin(poseRotation) * playerScale;
       xf.set(

@@ -89,7 +89,7 @@ import type {
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.8';
+export const ENGINE_VERSION = 'm2.9';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -181,15 +181,9 @@ function makePlayers(
       gauge: 0,
       zonesOpened: 0,
       powerState: { kind: 'idle' as const },
-      // Goalkeepers ALWAYS fire automatically, whatever the team asked for.
-      // Their Zone opens at a Heat threshold of 5 and their only useful moment
-      // is an enemy shot already in flight — a few ticks. A manual keeper is
-      // therefore either never fired or tapped into a 2-second armed window
       // Every slot takes its team's policy, goalkeepers included. The m2.7
-      // keeper exemption is retired (m2.8): a keeper's press is now a real
-      // control, held to a ten-second window and woken by the shot itself, so
-      // the reason for exempting them — a hand-fired keeper is a wasted keeper
-      // — no longer holds.
+      // keeper exemption is retired. A save-power press is a real control with
+      // a ten-second window; a keeper carrying GUST keeps ordinary rules.
       firePolicy:
         team === 0
           ? (opts.homePolicy ?? 'FIRE_WHEN_READY')

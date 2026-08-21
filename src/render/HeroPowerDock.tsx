@@ -3,9 +3,10 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import { useCopy, usePixelStyles } from '../i18n';
 import { TICK_MS } from '../sim/geometry';
+import { isShotSavePower } from '../sim/powers';
 import { powerCutInPresentation } from './power-cut-in';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
-import { lastName } from './pixel-glyphs';
+import { firstName, lastName } from './pixel-glyphs';
 import {
   heroPowerPressable,
   type HeroPowerCell,
@@ -38,9 +39,6 @@ const FLASH_HALF_MS = 700;
 /** Peak white over the power colour. Enough to lift it, not enough to wash it out. */
 const FLASH_PEAK_OPACITY = 0.42;
 
-/** Below this a name under the button is too small to read, so it is dropped. */
-const NAME_MIN_BUTTON = 56;
-
 const useStyles = () =>
   usePixelStyles((faces) =>
     StyleSheet.create({
@@ -67,10 +65,10 @@ const useStyles = () =>
         borderRadius: 3,
         // backgroundColor is the power's authored colour, applied inline.
       },
-      /** The gamble: the moment is not here, so a press may cost the Zone. */
+      /** Charged but waiting: visible, faded, and not pressable. */
       buttonArm: { opacity: 0.72, borderStyle: 'dashed' },
       buttonInert: { opacity: 0.45 },
-      star: { color: KIT_PANEL_TEXT_COLOR },
+      heroName: { color: KIT_PANEL_TEXT_COLOR },
       label: {
         fontFamily: faces.display,
         color: KIT_PANEL_TEXT_COLOR,
@@ -302,14 +300,8 @@ function FireFlash({
  *
  * One button per hero holding a banked Zone, in the power's own authored
  * colour. It exists only in MANUAL: every slot is FIRE_WHEN_READY otherwise,
- * Goalkeepers appear here too since m2.8, but their rules key on the POWER:
- * a save keeper reads HOLD while the ball is upfield, never reads FIRE!, and
- * their press opens a ten-second window worth full strength.
- *
- * FIRE and ARM are not decoration. A press in the authored moment fires at full
- * strength; a press outside it commits a two-second armed window that can
- * expire and cost one of the hero's three Zones for the match. The label says
- * which press the manager is about to make.
+ * Goalkeepers appear here too, but their rules key on the POWER. A save keeper
+ * reads ARMED before danger and FIRE! when an enemy attack reaches the third.
  *
  * Its own component rather than more JSX inside MatchScreen: the screen's
  * hot-path guard forbids a bare `style={{` anywhere after the Skia canvas, and
@@ -381,16 +373,19 @@ function HeroPowerButton({
   const presentation = powerCutInPresentation(cell.power, t);
   const pressable = heroPowerPressable(cell.state);
   const armed = cell.state === 'armed';
+  const savePower = isShotSavePower(cell.power);
   const seconds = Math.ceil((cell.armedTicksRemaining * TICK_MS) / 1000);
   const a11yKey =
     cell.state === 'fire'
-      ? 'matchScreen.a11y.heroPowerFire'
+      ? savePower
+        ? 'matchScreen.a11y.heroPowerKeeperFire'
+        : 'matchScreen.a11y.heroPowerFire'
       : armed
         ? 'matchScreen.a11y.heroPowerArmed'
         : cell.state === 'down'
           ? 'matchScreen.a11y.heroPowerDown'
-          : cell.state === 'hold'
-            ? 'matchScreen.a11y.heroPowerHold'
+          : savePower
+            ? 'matchScreen.a11y.heroPowerKeeperArm'
             : 'matchScreen.a11y.heroPowerArm';
   return (
     <>
@@ -414,20 +409,18 @@ function HeroPowerButton({
             backgroundColor: presentation.color,
           },
           cell.state === 'arm' ? styles.buttonArm : null,
-          armed || cell.state === 'down' || cell.state === 'hold'
-            ? styles.buttonInert
-            : null,
+          armed || cell.state === 'down' ? styles.buttonInert : null,
           pressed ? { opacity: 0.7 } : null,
         ]}
       >
-        {/* Glyph-only node: the star is in neither Silkscreen weight, so it
-          draws through the system fallback — the same deliberate exception the
-          training modal and the title screen already make. No font family
-          here on purpose. */}
         <Text
-          style={[styles.star, { fontSize: Math.round(layout.size * 0.42) }]}
+          numberOfLines={1}
+          style={[
+            styles.heroName,
+            { fontSize: Math.round(layout.size * 0.22) },
+          ]}
         >
-          ★
+          {firstName(cell.name)}
         </Text>
         {/* Both cues belong to FIRE alone. ARM accepts a press too, but it is
           a gamble that can cost a Zone — flashing it would read as "press me
@@ -464,22 +457,17 @@ function HeroPowerButton({
             {t(
               cell.state === 'fire'
                 ? 'matchScreen.heroPowerFire'
-                : cell.state === 'hold'
-                  ? 'matchScreen.heroPowerHold'
-                  : 'matchScreen.heroPowerArm',
+                : 'matchScreen.heroPowerArm',
             )}
           </Text>
         )}
       </Pressable>
-      {/* Only where there is room to read it. */}
-      {layout.size >= NAME_MIN_BUTTON ? (
-        <Text
-          numberOfLines={1}
-          style={[styles.name, { fontSize: desktop ? 9 : 8 }]}
-        >
-          {lastName(cell.name)}
-        </Text>
-      ) : null}
+      <Text
+        numberOfLines={1}
+        style={[styles.name, { fontSize: desktop ? 9 : 8 }]}
+      >
+        {lastName(cell.name)}
+      </Text>
     </>
   );
 }
