@@ -2547,7 +2547,6 @@ export function seasonEndViewModel(
                 renewalTalks.negotiation.weeklyAsk,
                 contractWageStep(renewalTalks.negotiation.weeklyAsk),
               ),
-              wageStep: contractWageStep(renewalTalks.negotiation.weeklyAsk),
               maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
               playerAge: expiredPlayer.age ?? 24,
               contractPromiseContext: {

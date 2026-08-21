@@ -24,7 +24,6 @@ const view = (negotiation: ContractNegotiation) =>
     state: negotiation,
     playerName: 'Jobo',
     openingWeeklyWage: 600,
-    wageStep: 50,
   });
 
 /** Counters twice, which is what puts the agent in his closing round. */

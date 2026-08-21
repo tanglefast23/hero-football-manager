@@ -1,5 +1,6 @@
 import {
   buyingTransferQuote,
+  contractWageStep,
   isCoachCandidateEligible,
   isTransferWindowOpen,
   insultingOfferFloor,
@@ -139,7 +140,6 @@ export interface NegotiationViewSource {
   readonly lookId?: string;
   /** The visible starting number, normally current wage or the previous offer. */
   readonly openingWeeklyWage: number;
-  readonly wageStep?: number;
   /**
    * Longest term this player will sign. Optional and defaulting to the full
    * three seasons so every existing caller keeps working; the two career
@@ -1060,7 +1060,7 @@ export function marketNegotiationViewModel(
   const lastOffer = negotiation.history.at(-1)?.offer;
   const previousOffer = lastOffer?.weeklyWage;
   const mood = moodPresentation(negotiation.mood, t);
-  const wageStep = source.wageStep ?? 50;
+  const wageStep = contractWageStep(negotiation.weeklyAsk);
   const maxTermSeasons = source.maxTermSeasons ?? 3;
   const leverage = negotiation.pitchInfluencePercent;
   const lastOutcome = negotiation.history.at(-1)?.outcome;

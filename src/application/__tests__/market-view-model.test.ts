@@ -336,7 +336,6 @@ describe('marketViewModel', () => {
         state: countered,
         playerName: 'Milo Vale',
         openingWeeklyWage: 600,
-        wageStep: 50,
       },
     });
 
@@ -351,6 +350,25 @@ describe('marketViewModel', () => {
     expect(viewModel.negotiation?.cards).toHaveLength(3);
     expect(viewModel.negotiation?.perks).toHaveLength(4);
     expect(viewModel.negotiation).not.toHaveProperty('weeklyAsk');
+  });
+
+  it('uses a percentage wage step for every high-value negotiation', () => {
+    const viewModel = marketViewModel({
+      ...baseSource(),
+      negotiation: {
+        state: startContractNegotiation({
+          careerSeed: 56,
+          negotiationId: 'talks-high-value',
+          playerId: 'target-2',
+          personality: 'PROFESSIONAL',
+          weeklyAsk: 176_472,
+        }),
+        playerName: 'Remy Vale',
+        openingWeeklyWage: 123_200,
+      },
+    });
+
+    expect(viewModel.negotiation?.wageStep).toBe(1_760);
   });
 
   describe('youth prospect stats', () => {

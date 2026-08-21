@@ -242,7 +242,6 @@ export function careerMarketViewModelSource(
               talks.negotiation.weeklyAsk,
               wageStep,
             ),
-            wageStep,
             // Signing, not renewal: the window is open mid-season, so week 30 will
             // still decrement this contract once before the season ends and the
             // term has to cover the season in progress too.
