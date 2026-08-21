@@ -18,6 +18,7 @@ import type { CareerPlayer, GameState } from '../../game/types';
 import { playerGrowthGrade } from '../../game/training';
 import {
   cheapestScoutMissionCost,
+  contractWageStep,
   renewalOpeningOfferWage,
 } from '../../game/market';
 import { careerContractPromiseHeroLimit } from '../../game/contract-promises';
@@ -331,11 +332,10 @@ describe('career market view-model source adapter', () => {
       playerName: target.name,
       state: { id: market.transferTalks?.negotiation.id, playerId: target.id },
     });
-    expect(source.negotiation?.wageStep).toBeGreaterThan(0);
     expect(source.negotiation?.openingWeeklyWage).toBe(
       renewalOpeningOfferWage(
         market.transferTalks!.negotiation.weeklyAsk,
-        source.negotiation!.wageStep!,
+        contractWageStep(market.transferTalks!.negotiation.weeklyAsk),
       ),
     );
     expect(source.negotiation!.openingWeeklyWage).toBeGreaterThan(
@@ -346,6 +346,7 @@ describe('career market view-model source adapter', () => {
       playerName: target.name,
       status: 'OPEN',
       roundLabel: 'Round 1 of 3',
+      wageStep: contractWageStep(market.transferTalks!.negotiation.weeklyAsk),
     });
     expect(visible.coaches[0]).toMatchObject({
       headWeeklyWage: source.coachCandidates[0].weeklyWage,
