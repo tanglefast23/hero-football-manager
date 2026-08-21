@@ -399,8 +399,7 @@ export function TrainingDrillModal({
         (pendingConfirm.baseValueAfter -
           pendingConfirm.currentValue +
           pendingConfirm.trainingAdjustment);
-  const superGuaranteedInBatch =
-    repeatCount >= drillsUntilGuaranteedSuper;
+  const superGuaranteedInBatch = repeatCount >= drillsUntilGuaranteedSuper;
   const repeatOptions = Array.from(
     { length: maximumAffordableRuns },
     (_, index) => index + 1,

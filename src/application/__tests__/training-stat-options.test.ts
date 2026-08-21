@@ -127,11 +127,7 @@ describe('training stat options', () => {
         ],
       },
     };
-    const viewModel = squadTrainingViewModel(
-      affected,
-      content,
-      outfielder.id,
-    );
+    const viewModel = squadTrainingViewModel(affected, content, outfielder.id);
     const player = viewModel.players.find(
       (candidate) => candidate.id === outfielder.id,
     )!;

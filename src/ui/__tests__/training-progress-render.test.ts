@@ -101,19 +101,13 @@ describe('training stat option rendering', () => {
     );
     expect(source).toContainSource("{t('trainingDrill.bonus')}{' '}");
     expect(loadCatalog('en').strings['trainingDrill.bonus']).toBe('Bonus:');
-    expect(source).toContainSource(
-      'pendingConfirm.trainingAdjustment !== 0',
-    );
-    expect(source).toContainSource(
-      "t('trainingDrill.ordinaryBatchEstimate')",
-    );
+    expect(source).toContainSource('pendingConfirm.trainingAdjustment !== 0');
+    expect(source).toContainSource("t('trainingDrill.ordinaryBatchEstimate')");
     expect(source).toContainSource('~+{ordinaryBatchEstimate}');
     expect(
       loadCatalog('en').strings['trainingDrill.ordinaryBatchEstimate'],
     ).toBe('Approx. ordinary total');
-    expect(source).toContainSource(
-      "t('trainingDrill.superGuaranteedInBatch')",
-    );
+    expect(source).toContainSource("t('trainingDrill.superGuaranteedInBatch')");
     expect(loadCatalog('en').strings['trainingDrill.superGuaranteed']).toBe(
       'SUPER guaranteed',
     );
