@@ -3060,6 +3060,17 @@ function GameApp() {
           careerTeaches &&
           isFirstOnboardingFixture(store.career, store.watchedMatch.fixture.id)
         }
+        heroPowerTutorial={
+          careerTeaches &&
+          !preferences.autoPowers &&
+          !hasAssistantGuideMilestone(
+            store.career,
+            'hero-power-tutorial-complete',
+          )
+        }
+        onHeroPowerTutorialComplete={() =>
+          store.completeGuideMilestone('hero-power-tutorial-complete')
+        }
         cupRoundLabel={store.watchedMatch.cupRoundLabel}
         motivationalSpeech={motivationalSpeech}
         onOpenSettings={() => setGlobalSettingsOpen(true)}

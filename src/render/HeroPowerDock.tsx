@@ -1,7 +1,19 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, type RefObject } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  findNodeHandle,
+  useWindowDimensions,
+} from 'react-native';
 import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import { useCopy, usePixelStyles } from '../i18n';
+import type { TutorialAnchorLayout } from '../ui/tutorial-cue-position';
+import { useGuideAnchor } from '../ui/use-guide-anchor';
 import { TICK_MS } from '../sim/geometry';
 import { isShotSavePower } from '../sim/powers';
 import { powerCutInPresentation } from './power-cut-in';
@@ -11,6 +23,7 @@ import {
   heroPowerPressable,
   type HeroPowerCell,
   type HeroPowerDockLayout,
+  type HeroPowerTarget,
 } from './hero-power-dock';
 
 export interface HeroPowerDockProps {
@@ -20,6 +33,9 @@ export interface HeroPowerDockProps {
   side: 'left' | 'right';
   desktop: boolean;
   reduceMotion: boolean;
+  guideTarget?: HeroPowerTarget;
+  guideStep?: 'armed' | 'waiting-fire' | 'fire';
+  onGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
   onFire: (slot: number, pressable: boolean) => void;
 }
 
@@ -314,10 +330,43 @@ export function HeroPowerDock({
   side,
   desktop,
   reduceMotion,
+  guideTarget,
+  guideStep,
+  onGuideAnchorChange,
   onFire,
 }: HeroPowerDockProps) {
   const styles = useStyles();
   const t = useCopy();
+  const { width: viewportWidth, height: viewportHeight } =
+    useWindowDimensions();
+  const { anchorRef, scheduleMeasurement } = useGuideAnchor(
+    guideTarget !== undefined,
+    onGuideAnchorChange,
+  );
+  const guideVisible = cells.some(
+    (cell) =>
+      cell.state !== null &&
+      cell.slot === guideTarget?.slot &&
+      cell.playerId === guideTarget.playerId &&
+      cell.power === guideTarget.power,
+  );
+  useEffect(() => {
+    if (guideTarget !== undefined && !guideVisible) onGuideAnchorChange?.(null);
+  }, [guideTarget, guideVisible, onGuideAnchorChange]);
+  useEffect(() => {
+    if (guideVisible) scheduleMeasurement();
+  }, [
+    desktop,
+    guideVisible,
+    layout.gap,
+    layout.perRow,
+    layout.rows,
+    layout.size,
+    scheduleMeasurement,
+    side,
+    viewportHeight,
+    viewportWidth,
+  ]);
   // Nothing banked: no dock at all, rather than a row of empty cells over the
   // grass for the whole first half.
   if (cells.length === 0 || cells.every((cell) => cell.state === null)) {
@@ -344,6 +393,20 @@ export function HeroPowerDock({
               reduceMotion={reduceMotion}
               styles={styles}
               t={t}
+              tutorialTarget={
+                guideTarget?.slot === cell.slot &&
+                guideTarget.playerId === cell.playerId &&
+                guideTarget.power === cell.power
+              }
+              guideStep={guideStep}
+              guideRef={
+                guideTarget?.slot === cell.slot &&
+                guideTarget.playerId === cell.playerId &&
+                guideTarget.power === cell.power
+                  ? anchorRef
+                  : undefined
+              }
+              onGuideLayout={scheduleMeasurement}
               onFire={onFire}
             />
           )}
@@ -360,6 +423,10 @@ function HeroPowerButton({
   reduceMotion,
   styles,
   t,
+  tutorialTarget,
+  guideStep,
+  guideRef,
+  onGuideLayout,
   onFire,
 }: {
   cell: HeroPowerCell;
@@ -368,12 +435,20 @@ function HeroPowerButton({
   reduceMotion: boolean;
   styles: ReturnType<typeof useStyles>;
   t: ReturnType<typeof useCopy>;
+  tutorialTarget: boolean;
+  guideStep?: 'armed' | 'waiting-fire' | 'fire';
+  guideRef?: RefObject<View | null>;
+  onGuideLayout: () => void;
   onFire: (slot: number, pressable: boolean) => void;
 }) {
   const presentation = powerCutInPresentation(cell.power, t);
   const pressable = heroPowerPressable(cell.state);
   const armed = cell.state === 'armed';
   const savePower = isShotSavePower(cell.power);
+  const tutorialPaused = guideStep === 'armed' || guideStep === 'fire';
+  const available =
+    pressable && (!tutorialPaused || (tutorialTarget && guideStep === 'fire'));
+  const hiddenFromTutorial = tutorialPaused && !tutorialTarget;
   const seconds = Math.ceil((cell.armedTicksRemaining * TICK_MS) / 1000);
   const a11yKey =
     cell.state === 'fire'
@@ -387,20 +462,55 @@ function HeroPowerButton({
           : savePower
             ? 'matchScreen.a11y.heroPowerKeeperArm'
             : 'matchScreen.a11y.heroPowerArm';
+  const a11yLabel = t(a11yKey, {
+    player: cell.name,
+    power: presentation.name,
+    seconds,
+  });
+  const tutorialFireHint =
+    tutorialTarget && guideStep === 'fire'
+      ? t('matchScreen.a11y.heroPowerTutorialFireHint')
+      : undefined;
+  useEffect(() => {
+    if (!tutorialTarget || guideStep !== 'fire') return undefined;
+    const frame = requestAnimationFrame(() => {
+      const target = guideRef?.current;
+      if (target === null || target === undefined) return;
+      if (Platform.OS === 'web') {
+        (target as unknown as { focus?: (options?: object) => void }).focus?.({
+          preventScroll: true,
+        });
+        return;
+      }
+      const handle = findNodeHandle(target);
+      if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [guideRef, guideStep, tutorialTarget]);
   return (
     <>
       <Pressable
+        ref={guideRef}
+        collapsable={false}
+        onLayout={tutorialTarget ? onGuideLayout : undefined}
         accessibilityRole="button"
-        accessibilityLabel={t(a11yKey, {
-          player: cell.name,
-          power: presentation.name,
-          seconds,
-        })}
-        accessibilityState={{ disabled: !pressable }}
-        disabled={!pressable}
+        accessibilityLabel={
+          Platform.OS === 'web' && tutorialFireHint !== undefined
+            ? `${a11yLabel} ${tutorialFireHint}`
+            : a11yLabel
+        }
+        accessibilityHint={Platform.OS === 'web' ? undefined : tutorialFireHint}
+        accessibilityElementsHidden={hiddenFromTutorial}
+        importantForAccessibility={
+          hiddenFromTutorial ? 'no-hide-descendants' : 'auto'
+        }
+        focusable={!hiddenFromTutorial}
+        tabIndex={hiddenFromTutorial ? -1 : undefined}
+        accessibilityState={{ disabled: !available }}
+        disabled={!available}
         immediatePress
         pressSfx="match-control"
-        onPress={() => onFire(cell.slot, pressable)}
+        onPress={() => onFire(cell.slot, available)}
         style={({ pressed }) => [
           styles.button,
           {

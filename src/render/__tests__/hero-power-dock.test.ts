@@ -6,6 +6,8 @@ import { ROVERS, UNITED } from '../../sim/teams';
 import type { TeamDef } from '../../sim/types';
 import {
   HERO_POWER_BUTTON_MIN,
+  findHeroPowerCell,
+  firstArmedHeroPowerCell,
   heroPowerDockCells,
   heroPowerDockIsEmpty,
   heroPowerDockLayout,
@@ -47,6 +49,21 @@ describe('hero power dock cells', () => {
     // reflow the row the moment one fired, moving the rest under the thumb.
     expect(cells.every((cell) => cell.state === null)).toBe(true);
     expect(heroPowerDockIsEmpty(cells)).toBe(true);
+    expect(cells[0]?.playerId).toBe(manual().players[0].def.id);
+  });
+
+  it('selects the first ARMED hero and keeps identity across state changes', () => {
+    const match = manual();
+    match.players[9].powerState = { kind: 'zone', remainingTicks: 70 };
+    match.players[10].powerState = { kind: 'zone', remainingTicks: 70 };
+    const cells = heroPowerDockCells(match, 0);
+    const first = firstArmedHeroPowerCell(cells)!;
+
+    expect(first.slot).toBe(9);
+    expect(findHeroPowerCell(cells, first)).toBe(first);
+    expect(
+      findHeroPowerCell(cells, { ...first, playerId: 'replacement-player' }),
+    ).toBeUndefined();
   });
 
   it('reads FIRE or ARM off the authored context once a Zone is banked', () => {

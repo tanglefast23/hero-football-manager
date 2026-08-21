@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
+  Platform,
   StyleSheet,
   Text as RNText,
   View,
@@ -247,8 +248,10 @@ import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import { SettingsButton } from '../ui/SettingsOverlay';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
 import { TutorialSpotlight } from '../ui/TutorialSpotlight';
+import { hasHoverPointer } from '../ui/pointer-capability';
 import {
   tutorialCuePositionAbove,
+  TUTORIAL_TAP_CUE_WIDTH,
   type TutorialAnchorLayout,
 } from '../ui/tutorial-cue-position';
 import { playUiClickSfx } from './management-sfx';
@@ -302,6 +305,11 @@ import {
   heroPowerTapBlocked,
 } from './hero-power-dock';
 import { HeroPowerDock } from './HeroPowerDock';
+import {
+  advanceHeroPowerTutorial,
+  dismissHeroPowerTutorialArmed,
+  type HeroPowerTutorialAttempt,
+} from './hero-power-tutorial';
 import { HeroPowerRings } from './HeroPowerRings';
 import { firstName } from './pixel-glyphs';
 import { HeroChargeMeter } from './HeroChargeMeter';
@@ -647,6 +655,32 @@ function scoreCode(team: TeamDef): string {
   return source.slice(0, 3).toUpperCase();
 }
 
+/** Remove paused tutorial background controls from pointer, keyboard, and AX. */
+function heroPowerTutorialBackgroundProps(blocked: boolean): object {
+  if (!blocked) return {};
+  if (Platform.OS === 'web') return { inert: true, 'aria-hidden': true };
+  return {
+    accessibilityElementsHidden: true,
+    importantForAccessibility: 'no-hide-descendants',
+  };
+}
+
+function heroPowerTutorialDialogProps(open: boolean): object {
+  if (!open) return {};
+  if (Platform.OS === 'web') return { role: 'dialog', 'aria-modal': true };
+  return { accessibilityViewIsModal: true };
+}
+
+function heroPowerTutorialFallbackCue(
+  viewportWidth: number,
+  viewportHeight: number,
+) {
+  return {
+    left: Math.max(8, (viewportWidth - TUTORIAL_TAP_CUE_WIDTH) / 2),
+    top: Math.max(24, viewportHeight * 0.35),
+  };
+}
+
 export function MatchScreen({
   seed,
   home = ROVERS,
@@ -664,6 +698,8 @@ export function MatchScreen({
   clubKit,
   pausedExternally = false,
   firstMatchTutorial = false,
+  heroPowerTutorial = false,
+  onHeroPowerTutorialComplete,
   motivationalSpeech,
   autoSubs: initialAutoSubs = false,
   onAutoSubsChange,
@@ -707,6 +743,9 @@ export function MatchScreen({
   clubKit?: ClubKitChoice;
   pausedExternally?: boolean;
   firstMatchTutorial?: boolean;
+  /** Once-per-career lesson for the first watched MANUAL hero power. */
+  heroPowerTutorial?: boolean;
+  onHeroPowerTutorialComplete?: () => void;
   /**
    * Set only when the head coach is holding a speech for this match. Half time
    * then stops play and asks whether to spend it; `boost` is what each stored
@@ -1061,6 +1100,22 @@ export function MatchScreen({
   const firstMatchTutorialStepRef = useRef<
     'tired-modal' | 'tired-swap-cue' | 'tired-player-cue' | null
   >(null);
+  const [heroPowerTutorialAttempt, setHeroPowerTutorialAttempt] =
+    useState<HeroPowerTutorialAttempt | null>(null);
+  const heroPowerTutorialAttemptRef = useRef<HeroPowerTutorialAttempt | null>(
+    null,
+  );
+  const heroPowerTutorialStartedThisMatchRef = useRef(false);
+  const [heroPowerTutorialAnchor, setHeroPowerTutorialAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
+  const onHeroPowerTutorialCompleteRef = useRef(onHeroPowerTutorialComplete);
+  onHeroPowerTutorialCompleteRef.current = onHeroPowerTutorialComplete;
+  const updateHeroPowerTutorialAnchor = useCallback(
+    (anchor: TutorialAnchorLayout | null) => {
+      setHeroPowerTutorialAnchor(anchor);
+    },
+    [],
+  );
   /** Stable identity shared by the card, Swap cue, and substitution-board cue. */
   const firstMatchTiredPlayerRef = useRef<number | null>(null);
   // The half-time speech sheet. The ref is what the RAF loop reads, the state
@@ -1124,6 +1179,8 @@ export function MatchScreen({
   const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>(() =>
     powerCutInQaActive ? [...powerCutInQaEntries] : [],
   );
+  const powerCutInsRef = useRef(powerCutIns);
+  powerCutInsRef.current = powerCutIns;
   const powerShowcaseCompletedRef = useRef(false);
   /** Whether the clip has already handed the manager their REPLAY/CONTINUE card. */
   const powerShowcaseCardShownRef = useRef(false);
@@ -2162,6 +2219,51 @@ export function MatchScreen({
           }
         }
 
+        const currentHeroTutorialAttempt = heroPowerTutorialAttemptRef.current;
+        const tutorialPresentationBlocked =
+          firstMatchTutorialStepRef.current !== null ||
+          (firstMatchTutorial &&
+            !firstMatchPromptsSeenRef.current.tiredPlayer) ||
+          automaticPauseReasonsRef.current.size > 0 ||
+          powerCutInsRef.current.length > 0 ||
+          s.events
+            .slice(eventsBefore)
+            .some((event) => event.kind === 'POWER_FIRED') ||
+          (currentHeroTutorialAttempt?.step === 'waiting-fire' &&
+            heroPowerTapBlocked(s, currentHeroTutorialAttempt.target.slot));
+        const heroTutorialResult = advanceHeroPowerTutorial(
+          currentHeroTutorialAttempt,
+          heroPowerDockCells(s, controlledTeam),
+          s.tick,
+          heroPowerTutorial &&
+            !autoPowers &&
+            !presentationOnly &&
+            (currentHeroTutorialAttempt !== null ||
+              !heroPowerTutorialStartedThisMatchRef.current) &&
+            !s.events
+              .slice(tickEventsBefore)
+              .some((event) => event.kind === 'FULL_TIME'),
+          tutorialPresentationBlocked,
+        );
+        if (
+          currentHeroTutorialAttempt === null &&
+          heroTutorialResult.attempt !== null
+        ) {
+          heroPowerTutorialStartedThisMatchRef.current = true;
+        }
+        if (
+          heroTutorialResult.attempt !== heroPowerTutorialAttemptRef.current
+        ) {
+          heroPowerTutorialAttemptRef.current = heroTutorialResult.attempt;
+          setHeroPowerTutorialAttempt(heroTutorialResult.attempt);
+        }
+        if (heroTutorialResult.pause) {
+          automaticPauseReasonsRef.current.add('tutorial');
+          pauseAfterPublish = true;
+          acc = 0;
+          break;
+        }
+
         acc -= TICK_MS;
       }
 
@@ -2875,7 +2977,8 @@ export function MatchScreen({
       if (
         advanced &&
         firstMatchTutorial &&
-        firstMatchTutorialStepRef.current === null
+        firstMatchTutorialStepRef.current === null &&
+        heroPowerTutorialAttemptRef.current === null
       ) {
         const prompt = nextFirstMatchCoachingPrompt(
           s,
@@ -3076,13 +3179,16 @@ export function MatchScreen({
       resetJuice();
     };
   }, [
+    autoPowers,
     controlledTeam,
     cutInMode,
     firstMatchTutorial,
+    heroPowerTutorial,
     home,
     matchVfxQa,
     onDone,
     powerMatchQa,
+    presentationOnly,
     publishAtlasFrame,
     reduceMotion,
     resumeAtlasFrame,
@@ -4002,6 +4108,17 @@ export function MatchScreen({
       return false;
     }
   };
+  const dismissHeroPowerArmedLesson = () => {
+    const next = dismissHeroPowerTutorialArmed(
+      heroPowerTutorialAttemptRef.current,
+      match.tick,
+    );
+    if (next === heroPowerTutorialAttemptRef.current) return;
+    heroPowerTutorialAttemptRef.current = next;
+    setHeroPowerTutorialAttempt(next);
+    automaticPauseReasonsRef.current.delete('tutorial');
+    syncPauseReasons();
+  };
   /**
    * Fires one hero's banked power by hand.
    *
@@ -4015,12 +4132,32 @@ export function MatchScreen({
    */
   const firePower = (slot: number, pressable: boolean) => {
     if (!pressable) return;
+    const tutorialAttempt = heroPowerTutorialAttemptRef.current;
+    const player = match.players[slot];
+    const tutorialTargetPressed =
+      tutorialAttempt !== null &&
+      tutorialAttempt.target.slot === slot &&
+      player?.def.id === tutorialAttempt.target.playerId &&
+      player.def.power === tutorialAttempt.target.power;
+    if (tutorialAttempt?.step === 'fire' && !tutorialTargetPressed) return;
     if (heroPowerTapBlocked(match, slot)) return;
-    recordCoachingInput({
+    const recorded = recordCoachingInput({
       tick: match.tick + 1,
       kind: 'POWER_TAP',
       player: slot,
     });
+    if (!recorded) return;
+    if (tutorialAttempt?.step === 'waiting-fire' && tutorialTargetPressed) {
+      heroPowerTutorialAttemptRef.current = null;
+      setHeroPowerTutorialAttempt(null);
+      return;
+    }
+    if (tutorialAttempt?.step !== 'fire' || !tutorialTargetPressed) return;
+    heroPowerTutorialAttemptRef.current = null;
+    setHeroPowerTutorialAttempt(null);
+    automaticPauseReasonsRef.current.delete('tutorial');
+    onHeroPowerTutorialCompleteRef.current?.();
+    syncPauseReasons();
   };
   // Re-picking what is already selected is not a coaching decision: it would
   // record a redundant replay input and flash a banner announcing no change.
@@ -4160,6 +4297,9 @@ export function MatchScreen({
   const railClockLine = `${t(
     match.half === 1 ? 'matchScreen.firstHalf' : 'matchScreen.secondHalf',
   )} · ${minute}'${stoppage ? '+' : ''}${paused ? ` · ${t('matchScreen.paused')}` : ''}`;
+  const heroPowerTutorialPaused =
+    heroPowerTutorialAttempt?.step === 'armed' ||
+    heroPowerTutorialAttempt?.step === 'fire';
 
   return (
     <Animated.View
@@ -4172,6 +4312,8 @@ export function MatchScreen({
       {/* Desktop replaces this bar with the rail scoreboard card. */}
       {railLayout || presentationOnly ? null : (
         <Pressable
+          {...heroPowerTutorialBackgroundProps(heroPowerTutorialPaused)}
+          pointerEvents={heroPowerTutorialPaused ? 'none' : 'auto'}
           immediatePress
           accessibilityRole="button"
           accessibilityLabel={
@@ -4237,41 +4379,47 @@ export function MatchScreen({
         }
       >
         {railLayout ? (
-          <MatchControlRail
-            homeCode={homeCode}
-            homeScore={hud.score[0]}
-            homeColor={homeKitColor}
-            awayCode={awayCode}
-            awayScore={hud.score[1]}
-            awayColor={awayKitColor}
-            clockLine={railClockLine}
-            scoreFlash={hud.scoreFlash}
-            paused={paused}
-            speed={speed}
-            maximumSpeed={effectiveMaximumSpeed}
-            onSelectSpeed={applySpeed}
-            onTogglePause={toggleUserPause}
-            onOpenSettings={onOpenSettings}
-            formations={liveFormationOptions}
-            formation={displayedFormation}
-            onSelectFormation={selectFormation}
-            mentality={displayedMentality}
-            onSelectMentality={selectMentality}
-            coachingDisabled={coachingDisabled}
-            substitutionsRemaining={substitutionsRemaining}
-            tiredPlayers={railTiredPlayers}
-            swapDisabled={swapDisabled}
-            guideSwap={guideSwapButton}
-            guideSwapAnchorRef={swapGuideTargetRef}
-            onGuideSwapLayout={scheduleSwapGuideMeasurement}
-            onSwap={openSwap}
-            teamEnergy={teamEnergy}
-            tiredCount={tiredCount}
-            energyUse={displayedEnergyUse}
-            onSelectEnergyUse={selectEnergyUse}
-            heroTiles={railHeroTiles}
-            powerTakeover={powerTakeover}
-          />
+          <View
+            style={styles.desktopRailPane}
+            {...heroPowerTutorialBackgroundProps(heroPowerTutorialPaused)}
+            pointerEvents={heroPowerTutorialPaused ? 'none' : 'auto'}
+          >
+            <MatchControlRail
+              homeCode={homeCode}
+              homeScore={hud.score[0]}
+              homeColor={homeKitColor}
+              awayCode={awayCode}
+              awayScore={hud.score[1]}
+              awayColor={awayKitColor}
+              clockLine={railClockLine}
+              scoreFlash={hud.scoreFlash}
+              paused={paused}
+              speed={speed}
+              maximumSpeed={effectiveMaximumSpeed}
+              onSelectSpeed={applySpeed}
+              onTogglePause={toggleUserPause}
+              onOpenSettings={onOpenSettings}
+              formations={liveFormationOptions}
+              formation={displayedFormation}
+              onSelectFormation={selectFormation}
+              mentality={displayedMentality}
+              onSelectMentality={selectMentality}
+              coachingDisabled={coachingDisabled}
+              substitutionsRemaining={substitutionsRemaining}
+              tiredPlayers={railTiredPlayers}
+              swapDisabled={swapDisabled}
+              guideSwap={guideSwapButton}
+              guideSwapAnchorRef={swapGuideTargetRef}
+              onGuideSwapLayout={scheduleSwapGuideMeasurement}
+              onSwap={openSwap}
+              teamEnergy={teamEnergy}
+              tiredCount={tiredCount}
+              energyUse={displayedEnergyUse}
+              onSelectEnergyUse={selectEnergyUse}
+              heroTiles={railHeroTiles}
+              powerTakeover={powerTakeover}
+            />
+          </View>
         ) : null}
         <View style={railLayout ? styles.desktopPitchPane : null}>
           <View style={pitchFrameStyle}>
@@ -4756,6 +4904,9 @@ export function MatchScreen({
               side={hudSide === 'left' ? 'right' : 'left'}
               desktop={railLayout}
               reduceMotion={reduceMotion}
+              guideTarget={heroPowerTutorialAttempt?.target}
+              guideStep={heroPowerTutorialAttempt?.step}
+              onGuideAnchorChange={updateHeroPowerTutorialAnchor}
               onFire={firePower}
             />
           </View>
@@ -4763,6 +4914,8 @@ export function MatchScreen({
       </View>
       {performanceNotice ? (
         <Pressable
+          {...heroPowerTutorialBackgroundProps(heroPowerTutorialPaused)}
+          pointerEvents={heroPowerTutorialPaused ? 'none' : 'auto'}
           accessibilityRole="button"
           accessibilityLabel={t('matchScreen.performance.dismiss')}
           onPress={() => setPerformanceNotice(false)}
@@ -4778,6 +4931,8 @@ export function MatchScreen({
       {presentationOnly ? null : railLayout ? null : powerTakeover !==
         undefined ? (
         <View
+          {...heroPowerTutorialBackgroundProps(heroPowerTutorialPaused)}
+          pointerEvents={heroPowerTutorialPaused ? 'none' : 'auto'}
           style={[
             styles.coachingDock,
             compactHeight ? styles.coachingDockCompact : null,
@@ -4792,6 +4947,8 @@ export function MatchScreen({
         </View>
       ) : (
         <View
+          {...heroPowerTutorialBackgroundProps(heroPowerTutorialPaused)}
+          pointerEvents={heroPowerTutorialPaused ? 'none' : 'auto'}
           style={[
             styles.coachingDock,
             compactHeight ? styles.coachingDockCompact : null,
@@ -5034,6 +5191,60 @@ export function MatchScreen({
             style={tutorialCuePositionAbove(swapGuideAnchor, width, height)}
           />
         </>
+      ) : null}
+      {heroPowerTutorialPaused && heroPowerTutorialAttempt !== null ? (
+        <View
+          {...heroPowerTutorialDialogProps(
+            heroPowerTutorialAttempt.step === 'armed',
+          )}
+          pointerEvents="box-none"
+          style={[StyleSheet.absoluteFill, styles.firstMatchGuideOverlay]}
+        >
+          {heroPowerTutorialAttempt.step === 'armed' ||
+          heroPowerTutorialAnchor !== null ? (
+            <TutorialSpotlight
+              anchor={heroPowerTutorialAnchor}
+              viewportWidth={width}
+              viewportHeight={height}
+              blocking
+              onTargetPress={
+                heroPowerTutorialAttempt.step === 'armed' &&
+                heroPowerTutorialAnchor !== null
+                  ? dismissHeroPowerArmedLesson
+                  : undefined
+              }
+            />
+          ) : null}
+          <TutorialTapCue
+            label={
+              heroPowerTutorialAttempt.step === 'armed'
+                ? t('matchScreen.heroPowerTutorialReady')
+                : hasHoverPointer()
+                  ? t('matchScreen.heroPowerTutorialClickNow')
+                  : t('matchScreen.heroPowerTutorialTapNow')
+            }
+            detail={
+              heroPowerTutorialAttempt.step === 'armed'
+                ? t('matchScreen.heroPowerTutorialArmed')
+                : t('matchScreen.heroPowerFire')
+            }
+            reduceMotion={reduceMotion}
+            onDismiss={
+              heroPowerTutorialAttempt.step === 'armed'
+                ? dismissHeroPowerArmedLesson
+                : undefined
+            }
+            style={
+              heroPowerTutorialAnchor === null
+                ? heroPowerTutorialFallbackCue(width, height)
+                : tutorialCuePositionAbove(
+                    heroPowerTutorialAnchor,
+                    width,
+                    height,
+                  )
+            }
+          />
+        </View>
       ) : null}
       {swapOpen ? (
         <SubstitutionBoard

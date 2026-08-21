@@ -1000,9 +1000,7 @@ export function FixtureMatchDayScreen({
                 accessibilityLabel={t('fixtureMatchDay.a11y.quickMatch')}
                 onPress={quickMatch}
                 variant="paper"
-                disabled={
-                  watchDisabled || handedOff || !viewModel.licenseReady
-                }
+                disabled={watchDisabled || handedOff || !viewModel.licenseReady}
               />
             </View>
           ) : null}

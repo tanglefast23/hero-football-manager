@@ -66,6 +66,8 @@ export type AssistantGuideMilestone =
   | 'condition-warning-seen'
   /** Bert explains the first Below Peak starter on matchday once per career. */
   | 'match-condition-warning-seen'
+  /** The first watched MANUAL power lesson, completed only after its guided FIRE. */
+  | 'hero-power-tutorial-complete'
   /** The Quick Train lesson: tap an attribute to train it. Shown once. */
   | 'quick-train-seen'
   /** The Week 12 roster lesson: tap a column header to sort. Shown once. */
@@ -162,6 +164,7 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'first-week-advanced': 'guide:bert:first-week-advanced',
   'condition-warning-seen': 'guide:bert:condition-warning-seen',
   'match-condition-warning-seen': 'guide:bert:match-condition-warning-seen',
+  'hero-power-tutorial-complete': 'guide:bert:hero-power-tutorial-complete',
   'quick-train-seen': 'guide:bert:quick-train-seen',
   'squad-sort-seen': 'guide:bert:squad-sort-seen',
   'transfer-window-seen': 'guide:bert:transfer-window-seen',
