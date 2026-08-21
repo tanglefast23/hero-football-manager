@@ -56,6 +56,7 @@ describe('app preferences repository', () => {
         '3-4-3',
       ],
       autoPowers: true,
+      quickMatchEnabled: true,
       masterVolume: 0.5 as const,
       reduceMotion: true,
       hudSide: 'right' as const,
@@ -317,6 +318,7 @@ describe('app preferences repository', () => {
     const preferences = await repository.load();
 
     expect(preferences.climbCompleted).toBe(false);
+    expect(preferences.quickMatchEnabled).toBe(false);
     expect('managerTipsEnabled' in preferences).toBe(false);
   });
 
@@ -397,6 +399,23 @@ describe('app preferences repository', () => {
     expect(loaded.hudSide).toBe('right');
     expect(loaded.textScale).toBe(1.3);
     expect(database.preferencesRow?.schema_version).toBe(10);
+  });
+
+  it('keeps Quick Match off when an older version 10 row has no toggle', async () => {
+    const database = new FakePersistenceDatabase();
+    database.preferencesRow = {
+      schema_version: 10,
+      preferences_json: JSON.stringify({
+        ...V9_ROW_LITERAL,
+        language: 'en',
+        languageOffered: true,
+        performanceLimit: null,
+      }),
+    };
+
+    const repository = await createPreferencesRepository(database);
+
+    expect((await repository.load()).quickMatchEnabled).toBe(false);
   });
 
   it('keeps a migrated row in memory when the disk refuses the rewrite', async () => {

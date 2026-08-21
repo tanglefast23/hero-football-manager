@@ -846,6 +846,13 @@ function GameApp() {
     const current = preferencesRef.current;
     savePreferences({ ...current, reduceMotion: !current.reduceMotion });
   }, [savePreferences]);
+  const toggleQuickMatch = useCallback(() => {
+    const current = preferencesRef.current;
+    savePreferences({
+      ...current,
+      quickMatchEnabled: !current.quickMatchEnabled,
+    });
+  }, [savePreferences]);
   const toggleHudSide = useCallback(() => {
     const current = preferencesRef.current;
     savePreferences({
@@ -2910,6 +2917,7 @@ function GameApp() {
         onCycleVolume={cycleVolume}
         onCycleFormation={cycleFormationPreset}
         onToggleReduceMotion={toggleReduceMotion}
+        onToggleQuickMatch={toggleQuickMatch}
         onToggleHudSide={toggleHudSide}
         onToggleHaptics={toggleHaptics}
         onCycleTextScale={cycleTextScale}
@@ -3130,6 +3138,12 @@ function GameApp() {
             )
           }
           onWatchMatch={store.watchMatch}
+          onQuickMatch={() =>
+            store.quickResult({
+              initialFormation: preferencesRef.current.formationPresets[0],
+            })
+          }
+          quickMatchEnabled={preferences.quickMatchEnabled}
           autoPowers={preferences.autoPowers}
           onAutoPowersChange={saveAutoPowers}
           autoSubs={preferences.autoSubs}
@@ -4189,6 +4203,7 @@ function GameApp() {
                 privacySupportOpen={globalPrivacySupportOpen}
                 volume={devVolume}
                 reduceMotion={preferences.reduceMotion}
+                quickMatchEnabled={preferences.quickMatchEnabled}
                 hudSide={preferences.hudSide}
                 hapticsEnabled={preferences.hapticsEnabled}
                 textScale={preferences.textScale}
@@ -4228,6 +4243,7 @@ function GameApp() {
                 saveError={settingsSaveError}
                 onVolumeChange={setVolume}
                 onToggleReduceMotion={toggleReduceMotion}
+                onToggleQuickMatch={toggleQuickMatch}
                 onToggleHudSide={toggleHudSide}
                 onToggleHaptics={toggleHaptics}
                 onCycleTextScale={cycleTextScale}

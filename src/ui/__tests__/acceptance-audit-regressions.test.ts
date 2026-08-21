@@ -232,21 +232,21 @@ describe('player-facing acceptance audit regressions', () => {
     expect(home).toContainSource('VERTICAL_MARQUEE_BULBS');
   });
 
-  test('offers Play as the only match action', () => {
+  test('keeps Quick Match hidden unless its setting is on', () => {
     const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
+    const app = source('App.tsx');
 
-    // The copy moved to the catalog, so the guarantee is checked in two parts:
-    // the screen asks for these keys, and the keys still say Play, not Watch.
     expect(matchDay).toContainSource("t('fixtureMatchDay.playMatch')");
-    expect(matchDay).not.toContainSource('fixtureMatchDay.quickResult');
-    expect(matchDay).not.toContainSource('onQuickResult');
+    expect(matchDay).toContainSource('quickMatchEnabled ? (');
+    expect(matchDay).toContainSource("t('fixtureMatchDay.quickMatch')");
+    expect(app).toContainSource(
+      'quickMatchEnabled={preferences.quickMatchEnabled}',
+    );
+    expect(app).toContainSource('store.quickResult({');
     const strings = loadCatalog('en').strings;
     expect(strings['fixtureMatchDay.playMatch']).toBe('Play match');
     expect(strings['fixtureMatchDay.play']).toBe('Play');
-    expect(strings['fixtureMatchDay.quickResult']).toBeUndefined();
-    expect(
-      strings['fixtureMatchDay.a11y.simulateThisMatchWithQuickResult'],
-    ).toBeUndefined();
+    expect(strings['fixtureMatchDay.quickMatch']).toBe('Quick Match');
     expect(strings['fixtureMatchDay.playMatch']).not.toMatchSource(/watch/i);
   });
 

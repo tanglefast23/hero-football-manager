@@ -134,6 +134,8 @@ export function CupMismatchWarningReel({
         onBuyHeroLicense={() => {}}
         onSwapStartingPlayer={() => {}}
         onWatchMatch={() => {}}
+        onQuickMatch={() => {}}
+        quickMatchEnabled={false}
         formationOptions={COACHING_FORMATION_IDS}
         onSelectFormation={() => {}}
         onOpenSettings={() => {}}

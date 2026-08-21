@@ -55,6 +55,8 @@ export interface MatchPerformanceLimit {
 export interface AppPreferences {
   formationPresets: [FormationId, FormationId, FormationId];
   autoPowers: boolean;
+  /** Shows the instant Quick Match action before kickoff. */
+  quickMatchEnabled: boolean;
   masterVolume: MasterVolume;
   reduceMotion: boolean;
   hudSide: HudSide;
@@ -94,6 +96,7 @@ export interface AppPreferences {
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   formationPresets: [...DEFAULT_FORMATION_PRESETS],
   autoPowers: false,
+  quickMatchEnabled: false,
   masterVolume: 1,
   reduceMotion: false,
   hudSide: 'left',
@@ -198,6 +201,7 @@ const V9PreferencesSchema = z.strictObject({
  * `DEFAULT_APP_PREFERENCES`, so the fixtures quietly acquire the new field too.
  */
 const PreferencesSchema = V9PreferencesSchema.extend({
+  quickMatchEnabled: z.boolean().default(false),
   language: z.enum(LOCALES),
   /**
    * `.default()`, not a bare boolean, and that distinction is the whole point.
@@ -339,6 +343,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           reduceMotion: DEFAULT_APP_PREFERENCES.reduceMotion,
           hudSide: DEFAULT_APP_PREFERENCES.hudSide,
           hapticsEnabled: DEFAULT_APP_PREFERENCES.hapticsEnabled,
@@ -367,6 +372,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           hapticsEnabled: DEFAULT_APP_PREFERENCES.hapticsEnabled,
           textScale: DEFAULT_APP_PREFERENCES.textScale,
           highContrast: DEFAULT_APP_PREFERENCES.highContrast,
@@ -393,6 +399,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
@@ -414,6 +421,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
@@ -436,6 +444,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...carried,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
@@ -458,6 +467,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...carried,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
@@ -479,6 +489,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...carried,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort:
             legacy.data.squadSort === null
@@ -502,6 +513,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort:
             legacy.data.squadSort === null
@@ -524,6 +536,7 @@ export async function createPreferencesRepository(
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
+          quickMatchEnabled: DEFAULT_APP_PREFERENCES.quickMatchEnabled,
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort:
             legacy.data.squadSort === null

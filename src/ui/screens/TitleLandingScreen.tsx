@@ -275,6 +275,7 @@ export interface TitleSettingsScreenProps {
   onCycleVolume: () => void;
   onCycleFormation: (slot: number) => void;
   onToggleReduceMotion: () => void;
+  onToggleQuickMatch: () => void;
   onToggleHudSide: () => void;
   onToggleHaptics: () => void;
   onCycleTextScale: () => void;
@@ -296,6 +297,7 @@ export function TitleSettingsScreen({
   onCycleVolume,
   onCycleFormation,
   onToggleReduceMotion,
+  onToggleQuickMatch,
   onToggleHudSide,
   onToggleHaptics,
   onCycleTextScale,
@@ -450,6 +452,12 @@ export function TitleSettingsScreen({
             )}
           </Text>
         </Pressable>
+        <AccessibilityToggle
+          label={t('settings.quickMatch.label')}
+          detail={t('titleLanding.showsAQuickMatchButton')}
+          enabled={preferences.quickMatchEnabled}
+          onPress={onToggleQuickMatch}
+        />
         <AccessibilityToggle
           label={t('titleLanding.haptics')}
           detail={t('titleLanding.turnsAllTouchFeedback')}

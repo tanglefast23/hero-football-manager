@@ -54,6 +54,15 @@ describe("manager's tips", () => {
     }
   });
 
+  it('tells managers where to turn on Quick Match', () => {
+    const tip = content.tips.tips.find(
+      (candidate) => candidate.id === 'quick-result-is-the-same-match',
+    );
+
+    expect(tip?.title).toContain('Quick Match');
+    expect(tip?.body).toContain('Turn it on in Settings');
+  });
+
   it('has a real title and body translation for every remaining tip', async () => {
     for (const locale of ENABLED_LOCALES.filter((item) => item !== 'en')) {
       await ensureCatalog(locale);

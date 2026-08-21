@@ -44,6 +44,8 @@ export interface FixtureMatchDayScreenProps {
   onBuyHeroLicense: () => void;
   onSwapStartingPlayer: (starterId: string, replacementId: string) => void;
   onWatchMatch: () => void;
+  onQuickMatch: () => void;
+  quickMatchEnabled: boolean;
   /** Shapes this club may pick, in the same order Settings lists them. */
   formationOptions: readonly FormationId[];
   onSelectFormation: (formation: FormationId) => void;
@@ -285,6 +287,8 @@ export function FixtureMatchDayScreen({
   onBuyHeroLicense,
   onSwapStartingPlayer,
   onWatchMatch,
+  onQuickMatch,
+  quickMatchEnabled,
   formationOptions,
   onSelectFormation,
   watchDisabled = false,
@@ -344,11 +348,11 @@ export function FixtureMatchDayScreen({
     },
     [],
   );
-  const playMatch = () => {
+  const handOffFixture = (action: () => void) => {
     if (handedOffRef.current) return;
     handedOffRef.current = true;
     setHandedOff(true);
-    onWatchMatch();
+    action();
     // The store can refuse — a blocked save is reachable right here — and then
     // nothing navigates away, leaving the button latched off for good with
     // only Back as an escape. Still being mounted on the next turn of the loop
@@ -360,6 +364,8 @@ export function FixtureMatchDayScreen({
       setHandedOff(false);
     }, 0);
   };
+  const playMatch = () => handOffFixture(onWatchMatch);
+  const quickMatch = () => handOffFixture(onQuickMatch);
 
   const swapWithBenchPlayer = (replacementId: string) => {
     if (selectedStarter === undefined) return;
@@ -987,6 +993,19 @@ export function FixtureMatchDayScreen({
               : 'flex-row gap-2'
           }
         >
+          {quickMatchEnabled ? (
+            <View className="flex-1">
+              <ActionButton
+                label={t('fixtureMatchDay.quickMatch')}
+                accessibilityLabel={t('fixtureMatchDay.a11y.quickMatch')}
+                onPress={quickMatch}
+                variant="paper"
+                disabled={
+                  watchDisabled || handedOff || !viewModel.licenseReady
+                }
+              />
+            </View>
+          ) : null}
           <View className="flex-1">
             <ActionButton
               // The arrow stays out of the catalog: Silkscreen has no U+25B8
