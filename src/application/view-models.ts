@@ -35,6 +35,7 @@ import {
   assistantTeaches,
   boardUltimatumConsequence,
   attributeAffectsPlay,
+  buildCareerMatchTeamDef,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
   commercialFacilitySummary,
@@ -2325,7 +2326,12 @@ export function seasonEndViewModel(
         );
   const memorableEventTitle =
     memorableEvent === undefined
-      ? undefined
+      ? recap !== undefined &&
+        recap.won > 0 &&
+        recap.drawn === 0 &&
+        recap.lost === 0
+        ? t('seasonEnd.perfectLeagueSeason')
+        : undefined
       : copyOrEnglish(
           t,
           `event.${memorableEvent.id}.title`,
@@ -2739,6 +2745,13 @@ export function homeProductAlerts(
         player.retirementAnnouncementSeason === state.season - 2,
     )
     .sort((left, right) => left.name.localeCompare(right.name));
+  const academyPromotions = roster
+    .filter((player) => player.id.includes(`-academy-s${state.season}-`))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const academyPromotionAlertId = `academy-promotion:s${state.season}`;
+  const showAcademyPromotions =
+    academyPromotions.length > 0 &&
+    isAssistantInboxOneShotProductVisible(state, academyPromotionAlertId);
   const retirementFarewellAlertId = `retirement-farewell:s${state.season}`;
   const showRetirementFarewell =
     justRetired.length > 0 &&
@@ -2934,6 +2947,24 @@ export function homeProductAlerts(
           },
         ]
       : []),
+    ...(!showAcademyPromotions
+      ? []
+      : [
+          {
+            id: academyPromotionAlertId,
+            title: t('clubHome.newYouth'),
+            detail: t('clubHome.academyPromotionDetail', {
+              names: namesWithOverflow(
+                academyPromotions.map((player) => player.name),
+                t,
+              ),
+              n: academyPromotions.length,
+              count: academyPromotions.length,
+            }),
+            tone: 'info' as const,
+            readOnly: true as const,
+          },
+        ]),
     ...(expired.length > 0
       ? [
           {
@@ -3555,6 +3586,7 @@ export function isOneShotProductAlert(alertId: string): boolean {
   return (
     alertId.startsWith('board-resolution:') ||
     alertId.startsWith('training-cap:') ||
+    alertId.startsWith('academy-promotion:') ||
     alertId.startsWith('retirement-farewell:') ||
     // A heads-up, not a standing fact: once seen, the player card carries it.
     alertId.startsWith('retirement-considering-')
@@ -4023,6 +4055,8 @@ export function leagueTableViewModel(
   const seasonFixtures = state.fixtures.filter(
     (fixture) => fixture.season === state.season,
   );
+  const topDivision =
+    state.m2 !== undefined && currentUserDivision(state.m2) === 1;
   const userFixtures = seasonFixtures
     .filter(
       (fixture) =>
@@ -4039,6 +4073,7 @@ export function leagueTableViewModel(
 
   return {
     divisionLabel: careerDivisionLabel(state, t),
+    topDivision,
     seasonLabel: t('leagueTable.seasonLabel', { season: state.season }),
     weekLabel: t('leagueTable.weekLabel', { week: state.week }),
     matchesPlayed: seasonFixtures.filter(
@@ -4059,7 +4094,7 @@ export function leagueTableViewModel(
       goalDifference: row.goalDifference,
       points: row.points,
       isUserClub: row.clubId === state.userClubId,
-      inPromotionPlaces: row.position <= 2,
+      inPromotionPlaces: topDivision ? row.position === 1 : row.position <= 2,
     })),
     leagueFixtures: userFixtures.map((fixture) =>
       leagueFixtureViewModel(
@@ -5201,13 +5236,8 @@ function fixtureViewModel(
   // A rival hero is a named character, not only a warning count. Carry the
   // same identity and fixed look used by the intro and match sprite so the
   // team sheet can show who the manager is about to face.
-  const opponentHeroes = state.players
-    .filter(
-      (player) =>
-        player.clubId === opponentId &&
-        player.power !== undefined &&
-        player.licensed,
-    )
+  const opponentHeroes = buildCareerMatchTeamDef(state, opponentId)
+    .players.filter((player) => player.power !== undefined)
     .map((player) => ({
       id: player.id,
       name: player.name,

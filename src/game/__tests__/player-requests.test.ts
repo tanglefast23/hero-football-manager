@@ -343,6 +343,21 @@ describe('requestMoneyCost', () => {
     ).toBe(10000);
   });
 
+  it('triples every money ask in D2 and D1', () => {
+    expect(
+      requestMoneyCost(
+        { kind: 'MONEY_PLAYER', wageMultiple: 3 },
+        { ...context, division: 2 },
+      ),
+    ).toBe(12600);
+    expect(
+      requestMoneyCost(
+        { kind: 'MONEY_SQUAD', billMultiplePercent: 50 },
+        { ...context, division: 1 },
+      ),
+    ).toBe(30000);
+  });
+
   it('is undefined for a cost that is not money', () => {
     expect(
       requestMoneyCost({ kind: 'ABSENCE', weeks: 2 }, context),

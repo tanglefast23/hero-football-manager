@@ -213,6 +213,8 @@ export interface HeroLicenseReclaimViewModel {
     readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
     /** "Starting XI" or "Bench", so the cost of the choice is on the row. */
     readonly statusLabel: string;
+    /** Exact result if this holder is selected. */
+    readonly consequenceLabel: string;
   }[];
 }
 

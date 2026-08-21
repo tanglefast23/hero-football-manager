@@ -932,11 +932,15 @@ function objectiveTarget(
   kind: SponsorObjectiveKind,
   authoredTarget: number,
   chairmanDelta: number,
-  context: Pick<SponsorOfferGenerationContext, 'difficulty'>,
+  context: Pick<SponsorOfferGenerationContext, 'difficulty' | 'division'>,
 ): number {
   validatePositiveInteger(authoredTarget, 'sponsor objective target');
-  if (context.difficulty !== 'CHAIRMAN') return authoredTarget;
-  const adjusted = authoredTarget + chairmanDelta;
+  const divisionTarget =
+    context.division === 4 && kind === 'LEAGUE_CLEAN_SHEETS'
+      ? Math.max(1, authoredTarget - 1)
+      : authoredTarget;
+  if (context.difficulty !== 'CHAIRMAN') return divisionTarget;
+  const adjusted = divisionTarget + chairmanDelta;
   return kind === 'LEAGUE_FINISH' ? Math.max(1, adjusted) : adjusted;
 }
 

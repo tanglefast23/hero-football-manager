@@ -121,6 +121,36 @@ describe('automatic post-match awakenings', () => {
     expect(third.awakened).toBe(true);
   });
 
+  it('leaves a later awakening unlicensed even when a permit is free', () => {
+    const initial = playedUserFixture(
+      createCareer(createLaunchCareerSetup(20260821)),
+    );
+    const targetId = userLineup(initial)[2];
+    const state: GameState = {
+      ...initial,
+      awakening: { matchesSinceLastAwakening: 2, usedTriggerIds: [] },
+    };
+
+    const result = resolvePostMatchAwakening(
+      state,
+      userFixture(state).id,
+      [targetId],
+      POWERS,
+      TRIGGERS,
+      {
+        weeklyChanceStepPercent: 100,
+        maxPerSeason: 99,
+        minimumMatchesBetween: 3,
+      },
+    );
+
+    expect(result.awakened).toBe(true);
+    expect(
+      result.state.players.find((player) => player.id === targetId),
+    ).toMatchObject({ power: expect.any(String), licensed: false });
+    expect(userLineup(result.state)).not.toContain(targetId);
+  });
+
   it('uses one stable roll and always grants a power when it triggers', () => {
     const base = createCareer(createLaunchCareerSetup(1));
     const fixtureId = userFixture(base).id;
@@ -514,6 +544,10 @@ describe('automatic post-match awakenings', () => {
       ),
       awakening: { matchesSinceLastAwakening: 2, usedTriggerIds: [] },
     };
+    const licensedBefore = state.players
+      .filter((player) => player.clubId === state.userClubId && player.licensed)
+      .map((player) => player.id)
+      .sort();
 
     const result = resolvePostMatchAwakening(
       state,
@@ -535,6 +569,15 @@ describe('automatic post-match awakenings', () => {
       licensed: false,
     });
     expect(userLineup(result.state)).not.toContain(targetId);
+    expect(
+      result.state.players
+        .filter(
+          (player) =>
+            player.clubId === result.state.userClubId && player.licensed,
+        )
+        .map((player) => player.id)
+        .sort(),
+    ).toEqual(licensedBefore);
     expect(() =>
       buildCareerTeamDef(result.state, result.state.userClubId),
     ).not.toThrow();

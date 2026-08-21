@@ -133,6 +133,9 @@ export function M2LeagueScreen({
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const summary = viewModel.selectedDivisionSummary;
+  const topDivision = viewModel.divisions.some(
+    (division) => division.userDivision && division.level === 1,
+  );
   const layoutMode = useLayoutMode();
   const [selectedSubTab, setSelectedSubTab] =
     useState<M2LeagueSubTab>('league');
@@ -249,7 +252,11 @@ export function M2LeagueScreen({
             </View>
             <Text className="mt-3 text-sm leading-5 text-ink/60">
               {summary.userDivision
-                ? t('m2League.youCurrentlyPlayHere')
+                ? t(
+                    topDivision
+                      ? 'm2League.youCurrentlyPlayHereD1'
+                      : 'm2League.youCurrentlyPlayHere',
+                  )
                 : t('m2League.previewOnly', {
                     division: viewModel.activeTable.divisionLabel,
                   })}
@@ -301,12 +308,20 @@ export function M2LeagueScreen({
               {LEAGUE_TABLE_HEADERS.map((header) => (
                 <InfoTip
                   key={header.key}
-                  text={t(LEAGUE_COLUMN_EXPLAINER_KEY[header.column])}
+                  text={t(
+                    topDivision && header.column === 'points'
+                      ? 'm2League.explainer.pointsD1'
+                      : LEAGUE_COLUMN_EXPLAINER_KEY[header.column],
+                  )}
                   align="right"
                   style={leagueColumns[header.column]}
                   accessibilityLabel={t('m2League.a11y.columnExplainer', {
                     name: t(header.nameKey),
-                    explainer: t(LEAGUE_COLUMN_EXPLAINER_KEY[header.column]),
+                    explainer: t(
+                      topDivision && header.column === 'points'
+                        ? 'm2League.explainer.pointsD1'
+                        : LEAGUE_COLUMN_EXPLAINER_KEY[header.column],
+                    ),
                   })}
                 >
                   <Text

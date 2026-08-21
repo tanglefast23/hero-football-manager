@@ -187,6 +187,32 @@ describe('match tactics', () => {
     expect(match.tactics[0].energyUse).toBe('SAVE_ENERGY');
   });
 
+  it('keeps Save Energy selected after a substitution', () => {
+    const replacement: PlayerDef = {
+      id: 'bench-mid-save-energy',
+      name: 'Mae Thorn',
+      role: 'MID',
+      attrs: { pac: 55, sho: 45, pas: 58, def: 47, tec: 56, sta: 64, ref: 10 },
+    };
+    const match = createMatch(42, { ...ROVERS, bench: [replacement] }, UNITED, {
+      controlledTeam: 0,
+    });
+    queueInput(match, {
+      tick: 1,
+      kind: 'SET_ENERGY_USE',
+      energyUse: 'SAVE_ENERGY',
+    });
+    queueInput(match, {
+      tick: 1,
+      kind: 'SUBSTITUTE',
+      player: 6,
+      replacementId: replacement.id,
+    });
+    tick(match);
+
+    expect(match.tactics[0].energyUse).toBe('SAVE_ENERGY');
+  });
+
   it('makes the same player drain Save Energy < Balanced < All Out', () => {
     const match = createMatch(42, ROVERS, UNITED);
     const saved = {

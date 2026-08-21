@@ -175,10 +175,21 @@ export function LeagueTableScreen({
       node: (
         <View>
           <SectionLabel
-            eyebrow={t('leagueTable.promotionRace')}
+            eyebrow={t(
+              viewModel.topDivision
+                ? 'leagueTable.titleRace'
+                : 'leagueTable.promotionRace',
+            )}
             title={t('leagueTable.fullLeagueTable')}
             right={
-              <StatusChip label={t('leagueTable.topTwoGoUp')} tone="success" />
+              <StatusChip
+                label={t(
+                  viewModel.topDivision
+                    ? 'leagueTable.firstWinsTitle'
+                    : 'leagueTable.topTwoGoUp',
+                )}
+                tone="success"
+              />
             }
           />
           {viewModel.rows.length === 0 ? (
@@ -211,12 +222,20 @@ export function LeagueTableScreen({
                 {TABLE_HEADERS.map((header) => (
                   <InfoTip
                     key={header.key}
-                    text={t(TABLE_COLUMN_EXPLAINER_KEY[header.column])}
+                    text={t(
+                      viewModel.topDivision && header.column === 'points'
+                        ? 'leagueTable.explainer.pointsD1'
+                        : TABLE_COLUMN_EXPLAINER_KEY[header.column],
+                    )}
                     align="right"
                     style={tableColumns[header.column]}
                     accessibilityLabel={t('leagueTable.a11y.columnExplainer', {
                       name: t(header.nameKey),
-                      explainer: t(TABLE_COLUMN_EXPLAINER_KEY[header.column]),
+                      explainer: t(
+                        viewModel.topDivision && header.column === 'points'
+                          ? 'leagueTable.explainer.pointsD1'
+                          : TABLE_COLUMN_EXPLAINER_KEY[header.column],
+                      ),
                     })}
                   >
                     <Text
@@ -277,7 +296,7 @@ export function LeagueTableScreen({
                         >
                           {row.clubName}
                         </Text>
-                        {row.inPromotionPlaces ? (
+                        {!viewModel.topDivision && row.inPromotionPlaces ? (
                           <Text
                             className={
                               row.isUserClub
@@ -348,7 +367,11 @@ export function LeagueTableScreen({
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-pitch-light" />
               <Text className="text-sm text-ink/60">
-                {t('leagueTable.promotionPlace')}
+                {t(
+                  viewModel.topDivision
+                    ? 'leagueTable.leadingPlace'
+                    : 'leagueTable.promotionPlace',
+                )}
               </Text>
             </View>
           </View>

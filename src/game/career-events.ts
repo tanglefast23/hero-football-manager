@@ -114,23 +114,18 @@ export function careerFacilityFireTargets(
       )
       .slice(0, 2);
   }
-  const fanShops = candidates.filter(
-    (building) => building.type === 'fan-shop',
-  );
-  const pool = fanShops.length > 0 ? fanShops : candidates;
-  return pool
+  return candidates
     .sort((left, right) => {
       const leftFootprint = FACILITY_CATALOG[left.type].footprint;
       const rightFootprint = FACILITY_CATALOG[right.type].footprint;
       const leftArea = leftFootprint.width * leftFootprint.height;
       const rightArea = rightFootprint.width * rightFootprint.height;
-      return fanShops.length > 0
-        ? right.level - left.level ||
-            right.capitalInvested - left.capitalInvested ||
-            compareIds(left.id, right.id)
-        : rightArea - leftArea ||
-            right.capitalInvested - left.capitalInvested ||
-            compareIds(left.id, right.id);
+      return (
+        right.capitalInvested - left.capitalInvested ||
+        rightArea - leftArea ||
+        right.level - left.level ||
+        compareIds(left.id, right.id)
+      );
     })
     .slice(0, 1);
 }

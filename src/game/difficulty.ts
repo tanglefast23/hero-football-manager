@@ -19,6 +19,8 @@ export interface DifficultyRules {
   emergencyLoanAmount: number;
   /** Annual percentage applied independently to all seven rival attributes. */
   opponentGrowthPercent: number;
+  /** D1 annual growth after that club records at least one league loss. */
+  d1OpponentGrowthPercent: number;
   /** Hard attribute ceiling for generated rivals in endless careers. */
   opponentGrowthAttributeCap: number;
   /**
@@ -54,6 +56,7 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 20_000,
     opponentGrowthPercent: 2.5,
+    d1OpponentGrowthPercent: 1,
     opponentGrowthAttributeCap: 700,
     cashFloor: -15_000,
   },
@@ -67,6 +70,7 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 10_000,
     opponentGrowthPercent: 5,
+    d1OpponentGrowthPercent: 3,
     opponentGrowthAttributeCap: 800,
     // Chairman is allowed to sink twice as deep before the board steps in, so
     // the danger zone lasts longer and the ultimatums bite harder. It is still
