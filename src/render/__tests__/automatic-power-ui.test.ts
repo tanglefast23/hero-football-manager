@@ -115,7 +115,7 @@ describe('automatic superpower presentation', () => {
     // The dock is the only thing that may queue a tap, and it refuses one on
     // any cell that is not a live Zone.
     expect(dock).toContain('heroPowerPressable(cell.state)');
-    expect(dock).toContain('disabled={!pressable}');
+    expect(dock).toContain('disabled={!available}');
     expect(existsSync(join(process.cwd(), 'src/render/autoPower.ts'))).toBe(
       false,
     );
