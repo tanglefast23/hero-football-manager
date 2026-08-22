@@ -720,10 +720,7 @@ export function SquadTrainingScreen({
         ]}
         scrollEventThrottle={16}
         onContentSizeChange={() => {
-          if (
-            initialScrollY === undefined ||
-            initialScrollAppliedRef.current
-          )
+          if (initialScrollY === undefined || initialScrollAppliedRef.current)
             return;
           initialScrollAppliedRef.current = true;
           scrollRef.current?.scrollTo({ y: initialScrollY, animated: false });

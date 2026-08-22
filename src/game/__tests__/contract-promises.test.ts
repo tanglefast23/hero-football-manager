@@ -576,7 +576,7 @@ describe('career contract promises', () => {
     ] as const)(
       'names the active %s promise when its Hero License cannot be removed',
       (perk, keySuffix) => {
-      const { state, heroIds } = fullLicenseCap(9419);
+        const { state, heroIds } = fullLicenseCap(9419);
         const promised = {
           ...state,
           players: state.players.map((player) =>

@@ -497,13 +497,7 @@ describe('one-match sponsor challenge', () => {
       'SCORE_THREE',
     );
     expect(
-      settleSponsorWeeklyChallenge(
-        accepted,
-        [prior, scheduled],
-        'user',
-        3,
-        80,
-      ),
+      settleSponsorWeeklyChallenge(accepted, [prior, scheduled], 'user', 3, 80),
     ).toEqual({ sponsorship: accepted });
 
     const played = {

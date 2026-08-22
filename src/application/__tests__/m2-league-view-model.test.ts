@@ -169,7 +169,10 @@ describe('m2LeagueViewModel', () => {
   });
 
   it('marks the two lowest rivals for relegation while the player club stays', () => {
-    const initial = initializeM2Career({ careerSeed: 552, userClub: USER_CLUB });
+    const initial = initializeM2Career({
+      careerSeed: 552,
+      userClub: USER_CLUB,
+    });
     const divisionFive = initial.pyramid.divisions.find(
       (division) => division.level === 5,
     )!;

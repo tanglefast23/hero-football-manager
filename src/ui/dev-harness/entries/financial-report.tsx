@@ -416,7 +416,9 @@ export function FinancialReportCase({
           className="mb-3 self-start border-2 border-b-4 border-ink bg-white px-3 py-2"
           style={{ minHeight: 44 }}
         >
-          <Text className="font-pixel text-sm uppercase text-ink">Replay ▸</Text>
+          <Text className="font-pixel text-sm uppercase text-ink">
+            Replay ▸
+          </Text>
         </Pressable>
       )}
       <FinancialReportBody

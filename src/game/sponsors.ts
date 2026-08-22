@@ -504,9 +504,7 @@ export function sponsorWeeklyChallengeOptions(
     )[0];
   if (fixture === undefined) return [];
   const opponentId =
-    fixture.homeClubId === userClubId
-      ? fixture.awayClubId
-      : fixture.homeClubId;
+    fixture.homeClubId === userClubId ? fixture.awayClubId : fixture.homeClubId;
   if (leagueTableFromFixtures(fixtures, season)[0]?.clubId === opponentId) {
     return [];
   }

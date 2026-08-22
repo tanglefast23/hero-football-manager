@@ -103,10 +103,7 @@ export function awardCeremonyLookIds(
  */
 function targetDivision(recap: SeasonRecap): number {
   const division = clampDivision(recap.division);
-  return Math.min(
-    division,
-    divisionAfterFinish(division, recap.finalPosition),
-  );
+  return Math.min(division, divisionAfterFinish(division, recap.finalPosition));
 }
 
 function clampDivision(division: number): 1 | 2 | 3 | 4 | 5 {

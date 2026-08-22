@@ -582,9 +582,7 @@ export function marketViewModel(
             : !exactValues &&
                 source.cash < detailedScoutReportCost(source.division)
               ? {
-                  detailedReportBlockedReason: t(
-                    'market.scoutNotEnoughMoney',
-                  ),
+                  detailedReportBlockedReason: t('market.scoutNotEnoughMoney'),
                 }
               : !exactValues &&
                   !reportSurvivesUntil(

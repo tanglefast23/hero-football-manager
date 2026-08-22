@@ -1029,10 +1029,7 @@ export function ClubFinancesScreen({
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
         onContentSizeChange={() => {
-          if (
-            initialScrollY === undefined ||
-            initialScrollAppliedRef.current
-          )
+          if (initialScrollY === undefined || initialScrollAppliedRef.current)
             return;
           initialScrollAppliedRef.current = true;
           scrollRef.current?.scrollTo({ y: initialScrollY, animated: false });
