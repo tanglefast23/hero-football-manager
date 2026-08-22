@@ -140,7 +140,6 @@ if (coachArrows) {
   drawArrow(W * 0.3, W * 0.18, dockTargetY);
   drawArrow(W * 0.43, W * 0.5, dockTargetY);
   drawArrow(W * 0.58, W * 0.82, dockTargetY);
-  drawArrow(W * 0.72, W * 0.84, H * (W / H < 0.6 ? 0.925 : 0.95));
   arrowPaint.delete();
 }
 
