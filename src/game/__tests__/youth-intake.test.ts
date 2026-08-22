@@ -224,10 +224,8 @@ describe('pre-season youth intake', () => {
         expect(
           POSITION_TRAINING_ATTRIBUTES[offer.player.role].some(
             (attribute) =>
-              archetypeTrainingBonusPercent(
-                offer.player.archetype,
-                attribute,
-              ) > 0,
+              archetypeTrainingBonusPercent(offer.player.archetype, attribute) >
+              0,
           ),
         ).toBe(true);
       }

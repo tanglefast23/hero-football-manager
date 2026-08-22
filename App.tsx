@@ -3154,6 +3154,7 @@ function GameApp() {
               initialFormation: preferencesRef.current.formationPresets[0],
             })
           }
+          watchDisabled={store.saving || store.saveBlocked}
           quickMatchEnabled={preferences.quickMatchEnabled}
           autoPowers={preferences.autoPowers}
           onAutoPowersChange={saveAutoPowers}

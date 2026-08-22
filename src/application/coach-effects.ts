@@ -1,7 +1,8 @@
 import {
+  cappedCoachBoost,
   coachMotivatorBonusPercent,
   coachTrainingBonusPercent,
-  coachWeeklyTrainingPoints,
+  coachWeeklyTrainingPointsWithBoosts,
 } from '../game/coach-weekly';
 import type { CoachCandidate, CoachSpecialty } from '../game/market';
 import type { CareerCoachRole } from '../game/market-career';
@@ -25,12 +26,18 @@ const TRAINING_LABELS: Readonly<
 
 /** Player-facing numbers shared by the coach market and employed-staff cards. */
 export function coachRoleEffectLabels(
-  coach: Pick<CoachCandidate, 'level' | 'specialties'>,
+  coach: Pick<CoachCandidate, 'level' | 'specialties' | 'boosts'>,
   role: CareerCoachRole,
   t: CopyFn = englishCopy(),
 ): string[] {
-  const trainingBonusPercent = coachTrainingBonusPercent(coach.level, role);
-  const motivatorBonusPercent = coachMotivatorBonusPercent(coach.level, role);
+  const trainingBonusPercent =
+    coachTrainingBonusPercent(coach.level, role) +
+    cappedCoachBoost(coach.boosts, 'trainingPercent');
+  const motivatorBonusPercent = Math.max(
+    0,
+    coachMotivatorBonusPercent(coach.level, role) +
+      cappedCoachBoost(coach.boosts, 'motivatorHalfLevels') * 2.5,
+  );
   return [
     ...coach.specialties.map((specialty) =>
       specialty === 'MOTIVATOR'
@@ -39,15 +46,19 @@ export function coachRoleEffectLabels(
           })
         : t('coachStaff.effectTraining', {
             stats: TRAINING_LABELS[specialty],
-            percent: formatPercent(trainingBonusPercent),
+            percent: formatSignedPercent(trainingBonusPercent),
           }),
     ),
     t('coachStaff.effectTpWeekly', {
-      points: coachWeeklyTrainingPoints(coach.level, role),
+      points: coachWeeklyTrainingPointsWithBoosts(coach, role),
     }),
   ];
 }
 
 function formatPercent(value: number): string {
   return `${Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)}%`;
+}
+
+function formatSignedPercent(value: number): string {
+  return `${value > 0 ? '+' : ''}${formatPercent(value)}`;
 }

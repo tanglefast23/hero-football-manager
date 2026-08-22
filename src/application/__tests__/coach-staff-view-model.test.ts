@@ -67,4 +67,32 @@ describe('Club coaching-staff view model', () => {
       ],
     });
   });
+
+  it('includes permanent story boosts in the employed coach effects', () => {
+    const initial = createCareer(
+      createLaunchCareerSetup(20260723, undefined, content),
+    );
+    const coach = {
+      ...initial.market!.coachCandidates[0],
+      level: 1,
+      specialties: ['ATTACK', 'MOTIVATOR'] as const,
+      boosts: {
+        trainingPercent: 5,
+        motivatorHalfLevels: 1,
+        weeklyTp: 2,
+      },
+    };
+    const state = {
+      ...initial,
+      market: { ...initial.market!, headCoach: coach },
+    };
+
+    expect(clubFinancesViewModel(state).coachingStaff[0]).toMatchObject({
+      effectLabels: [
+        'SHO training +12%',
+        'Morale loss -6.5% · Hero Gauge +6.5%',
+        '+7 TP weekly',
+      ],
+    });
+  });
 });

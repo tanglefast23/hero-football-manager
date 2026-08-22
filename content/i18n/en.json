@@ -763,7 +763,7 @@
     "coachStaff.coachLine": "{role} · Age {age} · Level {level}",
     "coachStaff.effectMotivator": "Morale loss -{percent} · Hero Gauge +{percent}",
     "coachStaff.effectTpWeekly": "+{points} TP weekly",
-    "coachStaff.effectTraining": "{stats} training +{percent}",
+    "coachStaff.effectTraining": "{stats} training {percent}",
     "coachStaff.headCoach": "Head coach",
     "coachStaff.keepCurrentCoach": "Keep current coach",
     "coachStaff.kickerBoardroomDecision": "Boardroom decision",

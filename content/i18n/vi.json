@@ -1186,7 +1186,7 @@
     "coachStaff.coachLine": "{role} · {age} tuổi · Cấp {level}",
     "coachStaff.effectMotivator": "Mất tinh thần -{percent} · Đồng Hồ Anh Hùng +{percent}",
     "coachStaff.effectTpWeekly": "+{points} ĐT mỗi tuần",
-    "coachStaff.effectTraining": "Tập {stats} +{percent}",
+    "coachStaff.effectTraining": "Tập {stats} {percent}",
     "coachStaff.headCoach": "HLV trưởng",
     "coachStaff.keepCurrentCoach": "Giữ HLV hiện tại",
     "coachStaff.kickerBoardroomDecision": "Ban lãnh đạo quyết",

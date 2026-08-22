@@ -531,7 +531,7 @@ describe('career contract promises', () => {
 
       expect(() =>
         selectCareerLicensedHeroes(promised, heroIds.slice(1)),
-      ).toThrow("starting promise needs this Hero License");
+      ).toThrow('starting promise needs this Hero License');
     });
 
     test('repairs a legacy save that already strands an unlicensed starter', () => {

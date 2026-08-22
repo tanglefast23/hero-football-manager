@@ -242,6 +242,9 @@ describe('player-facing acceptance audit regressions', () => {
     expect(app).toContainSource(
       'quickMatchEnabled={preferences.quickMatchEnabled}',
     );
+    expect(app).toContainSource(
+      'watchDisabled={store.saving || store.saveBlocked}',
+    );
     expect(app).toContainSource('store.quickResult({');
     const strings = loadCatalog('en').strings;
     expect(strings['fixtureMatchDay.playMatch']).toBe('Play match');

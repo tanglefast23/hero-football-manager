@@ -36,6 +36,7 @@ for this game and that no third-party visual assets were used.
 | Rival-introduction hip-hop theme | `assets/audio/music/rival-intro-theme.m4a`, a 37.16-second loop cut from the owner-supplied `Hip_Hop__BPM155.webm` | Cleared by owner confirmation (2026-08-08) |
 | Rival-introduction laughs | `assets/audio/sfx/rival-laugh-*.m4a`, one normalized derivative of each of the five owner-supplied laugh WAV files | Cleared by owner confirmation (2026-08-08) |
 | Cues added after the 2026-08-09 review | `speech-gospel.m4a`, `speech-thunder.m4a`, `awards-celebration.m4a`, `ball-flight-whoosh.m4a`, `coach-voice.m4a`, `fireworks.m4a`, `drill-complete-heavy.wav`, `facility-start-work.wav`, `goal-net-hit.wav`, `midseason-footsteps-loop.wav`, `shot-scorch.wav`, and the re-cut `negative.m4a`. All twelve ship in the Release binary and **none is reproducible from the checked-in synthesis scripts** — they appear only in `scripts/audio/levels.json`, so they are supplied recordings despite five carrying a `.wav` extension | Cleared by owner confirmation (2026-08-17) |
+| Supplied match cues added after the 2026-08-17 review | `goal-confetti.m4a` and `pass-combo.m4a` ship today. `pass-combo-surge.m4a` and `pass-combo-epic.m4a` are unused source assets. Joe confirms commercial App Store use is authorized for all four | Cleared by owner confirmation (2026-08-22) |
 
 ## Third-party software asset
 
@@ -48,7 +49,7 @@ for this game and that no third-party visual assets were used.
 
 Run against the built Release app, not the source tree.
 
-- **90 audio files** ship, matching `npm run audio:levels:check`.
+- **93 audio files** ship, matching `npm run audio:levels:check`.
 - **7 images** ship; the rest of the art is drawn programmatically, as recorded
   above.
 - **Fonts:** `HFMSilkscreen_400Regular.ttf`, `HFMSilkscreen_700Bold.ttf`, and

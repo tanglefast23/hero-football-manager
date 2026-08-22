@@ -352,9 +352,7 @@ export function careerMarketScoutOptions(
   const currentDivision =
     state.m2 === undefined ? 5 : currentUserDivision(state.m2);
   const unlockedDivision =
-    state.m2 === undefined
-      ? 5
-      : state.m2.highestDivisionReached ?? 5;
+    state.m2 === undefined ? 5 : (state.m2.highestDivisionReached ?? 5);
 
   const roles = [undefined, 'GK', 'DEF', 'MID', 'FWD'] as const;
   const profiles = [

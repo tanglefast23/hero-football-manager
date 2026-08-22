@@ -82,9 +82,7 @@ describe('awakening cutscene framing', () => {
     expect(source).toContainSource(
       'accessibilityLabel={viewModel.continueLabel}',
     );
-    expect(source).toContainSource(
-      "label={t('powerAcquiredDemo.continue')}",
-    );
+    expect(source).toContainSource("label={t('powerAcquiredDemo.continue')}");
     expect(source).toContainSource(
       '{beat === 3 && advanceReady ? (\n              <View style={styles.heroFooter}>',
     );

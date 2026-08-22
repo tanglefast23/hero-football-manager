@@ -1,6 +1,6 @@
 # Current App Store release risks
 
-Last checked: 2026-08-17
+Last checked: 2026-08-22
 
 This is the short, active list of traps found while carrying out the App Store
 readiness work. It is not a substitute for the full submission runbook.
@@ -20,20 +20,37 @@ readiness work. It is not a substitute for the full submission runbook.
 3. ~~**Create the App Store Connect app record.**~~ **Closed.** The record
    exists: Apple ID `6799600157`, bundle ID `com.tanglefast.herofootballmanager`,
    SKU `com.tanglefast.hero-football-manager`, primary language English (U.S.).
-4. **Make a signed archive from the final release commit.** The current local
-   unsigned Release simulator build succeeds, contains its JS bundle, icons,
-   privacy manifest, and iPhone+iPad metadata, but it is not an uploadable
-   archive and the game is not content-frozen yet.
-5. **Capture final screenshots from that archive.** Current screenshots are QA
-   evidence only. Capture the required iPhone and 13-inch iPad sets after final
-   copy, art, layout, and onboarding are frozen.
-6. **Recheck Apple Business immediately before submission.** Free/Paid Apps,
-   banking, tax, and compliance are Active today, but the displayed agreement
-   term ends August 11, 2026.
-7. **Complete the current age-rating questionnaire.** App Store Connect now
-   calls out added social-media questions. The current offline single-player
-   build appears to have no social media or user-generated content, but answers
-   must be made from the final archive.
+4. ~~**Accept the updated Apple Developer Program agreement.**~~ **Closed
+   2026-08-22.** Joe accepted it. The warning disappeared from both Apple
+   Developer and App Store Connect after reload.
+5. **Make a signed archive from the final green release commit.** The regenerated
+   unsigned Release simulator app builds and passes `release:inspect`, but it is
+   not uploadable.
+6. **Upload and attach the build.** Apple's API reports zero builds for Apple ID
+   `6799600157`. Build number `1` is unused as of 2026-08-22.
+7. **Capture final screenshots from that archive.** Apple's API reports no
+   screenshot sets. Capture the required iPhone and 13-inch iPad sets after the
+   final copy, art, layout, and onboarding are frozen.
+
+## Rechecked 2026-08-22
+
+- `npx expo prebuild --platform ios --clean` removed the stale background-audio
+  declaration. The rebuilt Release app has no `UIBackgroundModes` key.
+- The unsigned Release simulator build succeeded. `release:inspect` found the
+  privacy manifest, both Silkscreen fonts, their OFL notice, and the correct
+  no-non-exempt-encryption declaration.
+- The built app reports all seven locales and contains 93 audio files. The four
+  newly reviewed supplied match cues are recorded in the asset-rights ledger.
+- The French copy gate, the five formatting failures, the match-day save lock,
+  and boosted coach-effect labels are fixed in the 2026-08-22 release change.
+  Local focused tests, TypeScript, formatting, release checks, and the web
+  first-load budget pass.
+- The App Store Connect API reports version `1.0.0` in Prepare for Submission,
+  zero uploaded builds, and no screenshot sets.
+- Steam remains post-launch scope. There is no desktop wrapper, Steamworks
+  integration, App ID, or depot in this repository.
+- Post-match/week-review resume and live iPad transition performance remain
+  measured follow-up items. They are not proven release regressions.
 
 ## Found 2026-08-17
 

@@ -1186,7 +1186,7 @@
     "coachStaff.coachLine": "{role} · {age} tahun · Level {level}",
     "coachStaff.effectMotivator": "Turun mental -{percent} · Meter Pahlawan +{percent}",
     "coachStaff.effectTpWeekly": "+{points} PL/mg",
-    "coachStaff.effectTraining": "Latihan {stats} +{percent}",
+    "coachStaff.effectTraining": "Latihan {stats} {percent}",
     "coachStaff.headCoach": "Pelatih",
     "coachStaff.keepCurrentCoach": "Pertahankan pelatih",
     "coachStaff.kickerBoardroomDecision": "Putusan pengurus",

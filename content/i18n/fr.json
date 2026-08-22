@@ -1186,7 +1186,7 @@
     "coachStaff.coachLine": "{role} · {age} ans · Niveau {level}",
     "coachStaff.effectMotivator": "Perte de moral -{percent} · Jauge de Héros +{percent}",
     "coachStaff.effectTpWeekly": "+{points} PE par semaine",
-    "coachStaff.effectTraining": "Entraînement {stats} +{percent}",
+    "coachStaff.effectTraining": "Entraînement {stats} {percent}",
     "coachStaff.headCoach": "Entraîneur",
     "coachStaff.keepCurrentCoach": "Garder le coach",
     "coachStaff.kickerBoardroomDecision": "Décision de la direction",

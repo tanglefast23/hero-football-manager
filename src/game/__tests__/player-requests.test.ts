@@ -765,12 +765,10 @@ describe('resolvePlayerRequest', () => {
       ),
     };
 
-    expect(() =>
-      resolvePlayerRequest(broke, CATALOG, 'GRANTED'),
-    ).toThrow('cannot afford');
-    expect(() =>
-      resolvePlayerRequest(broke, CATALOG, 'REFUSED'),
-    ).not.toThrow();
+    expect(() => resolvePlayerRequest(broke, CATALOG, 'GRANTED')).toThrow(
+      'cannot afford',
+    );
+    expect(() => resolvePlayerRequest(broke, CATALOG, 'REFUSED')).not.toThrow();
   });
 
   it('throws when there is nothing pending', () => {
