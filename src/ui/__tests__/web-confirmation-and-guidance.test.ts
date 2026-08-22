@@ -32,6 +32,16 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     );
   });
 
+  it('warns before a scout trip returns after registration closes', () => {
+    const start = appSource.indexOf('const handleStartScoutMission');
+    const end = appSource.indexOf('\n\n  const handleTransferAction', start);
+    const handler = appSource.slice(start, end);
+
+    expect(handler).toContainSource('choice?.returnsAfterFinalWindow');
+    expect(handler).toContainSource('requestConfirmation({');
+    expect(handler).toContainSource("t('confirm.lateScout.detail')");
+  });
+
   it('keeps a blocking Bert briefing outside an inert web and Android background', () => {
     const bert = readFileSync(
       join(process.cwd(), 'src/ui/BertBriefingWalkOn.tsx'),

@@ -964,7 +964,6 @@ function GameApp() {
   const selectFormationPreset = useCallback(
     (formation: FormationId) => {
       const current = preferencesRef.current;
-      if (current.formationPresets[0] === formation) return;
       const market = useM1Store.getState().career?.market;
       const next = setFormationPreset(
         current,
@@ -973,8 +972,10 @@ function GameApp() {
         market === undefined ? [] : careerCoachUnlockedFormationIds(market),
       );
       if (next.formationPresets[0] === formation) {
+        const beforeCareer = useM1Store.getState().career;
         useM1Store.getState().arrangeStartingLineup(formation);
-        savePreferences(next);
+        if (useM1Store.getState().career === beforeCareer) return;
+        if (next !== current) savePreferences(next);
       }
     },
     [savePreferences],
@@ -2693,6 +2694,31 @@ function GameApp() {
     [store.setActiveTab],
   );
 
+  const handleStartScoutMission = (optionId: string) => {
+    if (store.career?.market === undefined) return;
+    const choice = marketViewModel(
+      careerMarketViewModelSource(store.career, undefined, t),
+      t,
+    ).scouting.choices.find((candidate) => candidate.id === optionId);
+    const start = () =>
+      performManagementAction(
+        () => useM1Store.getState().startScoutMission(optionId),
+        'dispatch',
+        'commit',
+      );
+    if (choice?.returnsAfterFinalWindow !== true) {
+      start();
+      return;
+    }
+    requestConfirmation({
+      title: t('confirm.lateScout.title'),
+      detail: t('confirm.lateScout.detail'),
+      confirmLabel: t('confirm.lateScout.confirm'),
+      cancelLabel: t('confirm.lateScout.cancel'),
+      onConfirm: start,
+    });
+  };
+
   const handleTransferAction = (
     playerId: string,
     direction: 'BUY' | 'SELL',
@@ -3341,7 +3367,7 @@ function GameApp() {
         onPrimaryAction={() =>
           season.sliceComplete
             ? store.setActiveTab('home')
-            : store.advanceCareer()
+            : store.advanceCareer(preferencesRef.current.formationPresets[0])
         }
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onExpiredContractVisible={markExpiredContractReached}
@@ -3876,13 +3902,7 @@ function GameApp() {
             guidanceNudgeTarget={guidanceNudgeTarget}
             guidanceNudgeToken={guidanceNudgeToken}
             reduceMotion={reduceMotion}
-            onStartScoutMission={(optionId) =>
-              performManagementAction(
-                () => store.startScoutMission(optionId),
-                'dispatch',
-                'commit',
-              )
-            }
+            onStartScoutMission={handleStartScoutMission}
             onOpenScoutReport={(playerId) => {
               store.openScoutReport(playerId);
               if (useM1Store.getState().error === null) setConciergeFocus(null);

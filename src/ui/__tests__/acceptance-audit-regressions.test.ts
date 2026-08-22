@@ -269,6 +269,24 @@ describe('player-facing acceptance audit regressions', () => {
     );
     expect(liveMatch).toContainSource('livePresets[0],');
     expect(liveMatch).toContainSource('onFormationChange?.(formation);');
+    const selectorStart = app.indexOf('const selectFormationPreset');
+    const selectorEnd = app.indexOf(
+      '\n  const rememberMatchFormation',
+      selectorStart,
+    );
+    const selector = app.slice(selectorStart, selectorEnd);
+    expect(selector).toContainSource(
+      'useM1Store.getState().arrangeStartingLineup(formation)',
+    );
+    expect(selector).toContainSource(
+      'if (useM1Store.getState().career === beforeCareer) return;',
+    );
+    expect(selector).not.toContainSource(
+      'if (current.formationPresets[0] === formation) return',
+    );
+    expect(app).toContainSource(
+      'store.advanceCareer(preferencesRef.current.formationPresets[0])',
+    );
   });
 
   test('offers every owned formation live, not just the three presets', () => {

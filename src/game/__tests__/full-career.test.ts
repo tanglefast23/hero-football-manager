@@ -247,7 +247,7 @@ describe('full M2 career clock', () => {
     );
   });
 
-  test('records a promotion permanently after a later relegation', () => {
+  test('keeps the player club in its highest reached division after a bottom finish', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(78_001) });
     const promoted = startNextSeason(completeSeasonForUser(initial, 'win'));
 
@@ -268,12 +268,12 @@ describe('full M2 career clock', () => {
           : player,
       ),
     };
-    const relegated = startNextSeason(
+    const stayedUp = startNextSeason(
       completeSeasonForUser(contractsReady, 'loss'),
     );
 
-    expect(currentUserDivision(relegated.m2!)).toBe(5);
-    expect(relegated.m2?.highestDivisionReached).toBe(4);
+    expect(currentUserDivision(stayedUp.m2!)).toBe(4);
+    expect(stayedUp.m2?.highestDivisionReached).toBe(4);
   });
 
   test('applies new-contract wage clauses on promotion but not for staying put', () => {

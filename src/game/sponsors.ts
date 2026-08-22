@@ -503,6 +503,13 @@ export function sponsorWeeklyChallengeOptions(
         compareIds(left.id, right.id),
     )[0];
   if (fixture === undefined) return [];
+  const opponentId =
+    fixture.homeClubId === userClubId
+      ? fixture.awayClubId
+      : fixture.homeClubId;
+  if (leagueTableFromFixtures(fixtures, season)[0]?.clubId === opponentId) {
+    return [];
+  }
   const sponsor = [...sponsorship.activeContracts].sort(
     (left, right) =>
       left.slot - right.slot || compareIds(left.contractId, right.contractId),

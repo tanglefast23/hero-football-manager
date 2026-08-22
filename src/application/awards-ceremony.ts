@@ -98,13 +98,14 @@ export function awardCeremonyLookIds(
 
 /**
  * The division the club is ABOUT to enter, which is what the prize is sized
- * against. Read from the completed season's own finish so it agrees with the
- * transition, which resolves promotion from the same rule.
+ * against. Promotion raises the prize tier. A low finish cannot lower it,
+ * because the player club is never relegated.
  */
 function targetDivision(recap: SeasonRecap): number {
-  return divisionAfterFinish(
-    clampDivision(recap.division),
-    recap.finalPosition,
+  const division = clampDivision(recap.division);
+  return Math.min(
+    division,
+    divisionAfterFinish(division, recap.finalPosition),
   );
 }
 

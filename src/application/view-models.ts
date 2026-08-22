@@ -2209,14 +2209,13 @@ export function seasonEndViewModel(
     throw new Error('the user club has no final standing');
   const sliceComplete = state.phase === 'complete';
   const division = careerDivision(state);
-  const outcomeLabel =
+  const outcomeLabel = (
     user.position === 1 && division === 1
       ? ('CHAMPIONS' as const)
       : user.position <= 2 && division > 1
         ? ('PROMOTED' as const)
-        : user.position >= 9 && division < 5
-          ? ('RELEGATED' as const)
-          : ('SAFE' as const);
+        : ('SAFE' as const)
+  ) as SeasonEndViewModel['outcomeLabel'];
   const expiredPlayers = sliceComplete
     ? []
     : rosterForClub(state, state.userClubId)
@@ -4162,7 +4161,7 @@ export function matchDayViewModel(
     tactics: [
       {
         id: 'balanced',
-        label: 'Balanced',
+        label: t('fixtureMatchDay.balancedTacticLabel'),
         detail: t('fixtureMatchDay.balancedTacticDetail'),
       },
     ],
