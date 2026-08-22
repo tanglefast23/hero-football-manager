@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ScrollView,
   Text,
@@ -165,6 +165,7 @@ export function CharacterCreationScreen({
   const compactRosterLabel = useWindowDimensions().width < 430;
   const [name, setName] = useState('');
   const [clubName, setClubName] = useState(defaultClubName);
+  const clubNameInputRef = useRef<TextInput>(null);
   const [rosterNames, setRosterNames] = useState<
     Readonly<Record<string, string>>
   >({});
@@ -418,6 +419,15 @@ export function CharacterCreationScreen({
           placeholderTextColor="#6b6675"
           autoCapitalize="words"
           autoCorrect={false}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => {
+            if (clubNameInputRef.current !== null) {
+              clubNameInputRef.current.focus();
+            } else if (typeof document !== 'undefined') {
+              document.getElementById(CLUB_FIELD_ID)?.focus();
+            }
+          }}
           maxLength={TYPED_NAME_MAX_LENGTH}
           className="min-h-14 border-2 border-ink bg-paper-dark px-3 py-3 text-xl font-bold text-ink"
         />
@@ -438,6 +448,7 @@ export function CharacterCreationScreen({
             {t('characterCreation.teamName')}
           </PixelText>
           <TextInput
+            ref={clubNameInputRef}
             id={CLUB_FIELD_ID}
             accessibilityLabel={t('characterCreation.a11y.teamName')}
             value={clubName}
@@ -448,6 +459,8 @@ export function CharacterCreationScreen({
             placeholderTextColor="#6b6675"
             autoCapitalize="words"
             autoCorrect={false}
+            returnKeyType="done"
+            submitBehavior="blurAndSubmit"
             maxLength={TYPED_NAME_MAX_LENGTH}
             className="mt-2 min-h-12 border-2 border-ink bg-paper-dark px-3 py-2 text-base font-bold text-ink"
           />
@@ -723,6 +736,8 @@ export function CharacterCreationScreen({
 
       <ScrollView
         className="flex-1"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
       >
         {wide ? (

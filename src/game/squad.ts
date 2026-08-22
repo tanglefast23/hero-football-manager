@@ -795,7 +795,9 @@ export function arrangeCareerLineupForFormation(
       )[0];
     if (fallback !== undefined) assign(slot, fallback);
   });
-  if (arranged.some((playerId) => playerId === undefined)) return state;
+  if (arranged.some((playerId) => playerId === undefined)) {
+    throw new Error('the squad cannot fill the selected formation');
+  }
   const playerIds = arranged as string[];
   const arrangedState = {
     ...state,

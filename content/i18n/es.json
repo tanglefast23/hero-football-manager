@@ -3983,6 +3983,7 @@
     "confirm.transferList.title": "¿Anunciar a {player}?",
     "ledger.leaguePlacePrize": "Premio de liga · #{position}",
     "store.actionUnavailable": "Eso no se puede hacer ahora mismo, jefe.",
+    "store.formationCannotBeFilled": "Esta plantilla no puede cubrir esa formación, jefe.",
     "store.chooseBidFirst": "Elige la oferta de un club antes de aceptar, jefe.",
     "store.coachUnavailable": "Ese técnico ya no está disponible, jefe.",
     "store.heroesOnlyLicense": "Solo los héroes pueden tener licencia, jefe.",

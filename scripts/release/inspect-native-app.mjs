@@ -42,10 +42,8 @@ if (backgroundModes !== undefined) {
   );
 }
 
-const privacyManifest = files.find(
-  (file) => basename(file) === 'PrivacyInfo.xcprivacy',
-);
-if (privacyManifest === undefined) {
+const privacyManifest = join(app, 'PrivacyInfo.xcprivacy');
+if (!files.includes(privacyManifest)) {
   throw new Error('Release app does not contain PrivacyInfo.xcprivacy');
 }
 

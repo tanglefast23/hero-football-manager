@@ -173,6 +173,7 @@ export function SfxPressable({
         return [
           tip !== undefined ? hoverTipAnchor : undefined,
           resolved,
+          minimumTapTarget,
           pressed && !setsOpacity(resolved) ? { opacity: 0.7 } : undefined,
           // The press has to be felt, not just seen dimmer. Dimming alone reads
           // as "this went away"; moving the surface under the finger reads as
@@ -250,6 +251,7 @@ const hoverLift: ViewStyle = { transform: [{ translateY: -1 }] };
 const pressDepress: ViewStyle = {
   transform: [{ translateY: 1 }, { scale: 0.97 }],
 };
+const minimumTapTarget: ViewStyle = { minWidth: 44, minHeight: 44 };
 const hoverTipAnchor: ViewStyle = { position: 'relative' };
 // Raise the host, not only the absolute bubble. A child's z-index is trapped in
 // its parent's paint order, which is why later roster text appeared over tips.

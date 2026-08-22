@@ -218,8 +218,13 @@ import {
  */
 let storeCopyFn: CopyFn | undefined;
 
+/** Returns the same active catalog used by store errors and notices. */
+export function currentStoreCopy(): CopyFn {
+  return (storeCopyFn ??= copyFor('en'));
+}
+
 function t(key: string, params?: CopyParams): string {
-  return (storeCopyFn ??= copyFor('en'))(key, params);
+  return currentStoreCopy()(key, params);
 }
 
 /** Points the store's notices, errors and warnings at a language. */
@@ -4259,6 +4264,10 @@ type RefusalRule = readonly [
 ];
 
 const PLAYER_REACHABLE_REFUSALS: readonly RefusalRule[] = [
+  [
+    /^the squad cannot fill the selected formation$/,
+    'store.formationCannotBeFilled',
+  ],
   [/^unknown coach candidate /, 'store.coachUnavailable'],
   [/^choose a club bid before accepting the transfer$/, 'store.chooseBidFirst'],
   [/^Scouting unlocks in Week /, 'store.scoutingLocked'],

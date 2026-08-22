@@ -18,6 +18,7 @@ import {
   queueControlledAutoSubstitution,
 } from '../../game/match-policy';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
+import { formationRoleForSlot } from '../../sim/tactics';
 import {
   buildCareerFacility,
   careerHeroLimit,
@@ -125,6 +126,27 @@ describe('M1 app store integration', () => {
         (candidate) => candidate.clubId === restored.userClubId,
       )?.playerIds,
     ).toEqual(repairedIds);
+  });
+
+  it('explains why an unavailable goalkeeper blocks a formation', () => {
+    startCreatedCareer(20260822);
+    const career = useM1Store.getState().career!;
+    const unavailable = {
+      ...career,
+      players: career.players.map((player) =>
+        player.clubId === career.userClubId && player.role === 'GK'
+          ? { ...player, injuryWeeks: 3 }
+          : player,
+      ),
+    };
+    useM1Store.setState({ career: unavailable, error: null });
+
+    useM1Store.getState().arrangeStartingLineup('4-4-2');
+
+    expect(useM1Store.getState().career).toBe(unavailable);
+    expect(useM1Store.getState().error).toBe(
+      'This squad cannot fill that formation, boss.',
+    );
   });
 
   it('gives an unaffordable transfer tap the requested cash message', () => {
@@ -1405,7 +1427,22 @@ describe('M1 app store integration', () => {
               player.contractSeasonsRemaining === 0,
           );
           if (expired !== undefined) current.renewPlayer(expired.id, 1);
-          else current.advanceCareer();
+          else {
+            current.advanceCareer('4-4-2');
+            const started = useM1Store.getState().career!;
+            const playerById = new Map(
+              started.players.map((player) => [player.id, player]),
+            );
+            const playerIds = started.lineups.find(
+              (lineup) => lineup.clubId === started.userClubId,
+            )!.playerIds;
+            playerIds.forEach((playerId, slot) => {
+              expect(playerById.get(playerId)?.role).toBe(
+                formationRoleForSlot('4-4-2', slot),
+              );
+            });
+            // The relaunch checkpoint below proves this arranged state saved.
+          }
         } else {
           break;
         }

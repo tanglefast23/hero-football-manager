@@ -361,6 +361,22 @@ describe('career squad integration', () => {
     });
   });
 
+  it('refuses a formation the available squad cannot fill', () => {
+    const initial = career();
+    const withoutKeeper = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.clubId === initial.userClubId && player.role === 'GK'
+          ? { ...player, injuryWeeks: 3 }
+          : player,
+      ),
+    };
+
+    expect(() =>
+      arrangeCareerLineupForFormation(withoutKeeper, '4-4-2'),
+    ).toThrow('the squad cannot fill the selected formation');
+  });
+
   it('uses condition, then a licensed-hero tie, with a stable result', () => {
     const initial = career();
     const regular = {

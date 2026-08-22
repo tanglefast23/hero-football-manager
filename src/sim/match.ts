@@ -423,8 +423,7 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
     const first = team * 11;
     for (let index = first; index < first + 11; index += 1) {
       const player = state.players[index];
-      // Not a blanket assignment: the keeper exemption has to survive a
-      // mid-match flip too, or the goalkeeper silently becomes tappable.
+      // The m2.8 policy applies to the whole side, including the goalkeeper.
       player.firePolicy = policy;
     }
     return;

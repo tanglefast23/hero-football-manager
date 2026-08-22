@@ -3983,6 +3983,7 @@
     "confirm.transferList.title": "{player} anbieten?",
     "ledger.leaguePlacePrize": "Ligaprämie · Platz {position}",
     "store.actionUnavailable": "Das geht gerade nicht, Chef.",
+    "store.formationCannotBeFilled": "Dieser Kader kann diese Formation nicht besetzen, Chef.",
     "store.chooseBidFirst": "Wähl erst das Gebot eines Vereins, dann nimm an, Chef.",
     "store.coachUnavailable": "Dieser Trainer ist nicht mehr verfügbar, Chef.",
     "store.heroesOnlyLicense": "Nur Helden können eine Lizenz haben, Chef.",

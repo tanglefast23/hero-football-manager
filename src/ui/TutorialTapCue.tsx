@@ -77,7 +77,11 @@ export function TutorialTapCue({
     <Animated.View
       style={[styles.cue, { transform: [{ translateY: travel }] }]}
     >
-      {direction === 'up' ? <Text style={styles.arrow}>▲</Text> : null}
+      {direction === 'up' ? (
+        <Text allowFontScaling={false} style={styles.arrow}>
+          ▲
+        </Text>
+      ) : null}
       <View
         style={[
           styles.labelShadow,
@@ -87,15 +91,25 @@ export function TutorialTapCue({
         ]}
       >
         <View style={styles.labelFrame}>
-          <Text className="text-center font-pixel text-sm uppercase text-white">
+          <Text
+            maxFontSizeMultiplier={1.3}
+            className="text-center font-pixel text-sm uppercase text-white"
+          >
             {cueLabel}
           </Text>
-          <Text className="mt-1 text-center font-mono text-[10px] uppercase text-white/90">
+          <Text
+            maxFontSizeMultiplier={1.3}
+            className="mt-1 text-center font-mono text-[10px] uppercase text-white/90"
+          >
             {detail}
           </Text>
         </View>
       </View>
-      {direction === 'down' ? <Text style={styles.arrow}>▼</Text> : null}
+      {direction === 'down' ? (
+        <Text allowFontScaling={false} style={styles.arrow}>
+          ▼
+        </Text>
+      ) : null}
     </Animated.View>
   );
 

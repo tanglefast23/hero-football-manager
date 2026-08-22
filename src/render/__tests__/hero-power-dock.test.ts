@@ -155,6 +155,16 @@ describe('the pressable cue', () => {
     'utf8',
   );
 
+  it('clamps all three fixed-layout labels at accessibility text sizes', () => {
+    expect(dock.match(/maxFontSizeMultiplier=\{1\.3\}/g)).toHaveLength(3);
+    const tutorial = readFileSync(
+      join(process.cwd(), 'src/ui/TutorialTapCue.tsx'),
+      'utf8',
+    );
+    expect(tutorial.match(/maxFontSizeMultiplier=\{1\.3\}/g)).toHaveLength(2);
+    expect(tutorial.match(/allowFontScaling=\{false\}/g)).toHaveLength(2);
+  });
+
   it('runs on FIRE alone — the one press that cannot cost a Zone', () => {
     // Not on ARM: that press is a gamble that can burn a Zone, and a flashing
     // button reads as "press me now". Not on armed or downed either, where a

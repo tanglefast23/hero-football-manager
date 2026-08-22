@@ -221,15 +221,23 @@ describe('first-hire screen copy', () => {
     expect(source).toContainSource('hasTouchPointer() ||');
     expect(source).toContainSource('!wide ||');
     expect(source).not.toContainSource("Platform.OS !== 'web' || !wide");
-    // Focused by id, not by ref: NativeWind's wrapper never hands a ref down to
-    // the input, so ref.current stays null and the caret never lands.
-    // `id`, not the legacy `nativeID` — react-native-web drops the latter and
-    // the input rendered with no id at all, so getElementById found nothing.
+    // Initial desktop focus stays on the DOM id so `preventScroll` can keep the
+    // masthead visible. `id`, not the legacy `nativeID` — react-native-web drops
+    // the latter and getElementById would find nothing.
     expect(source).toContainSource('id={NAME_FIELD_ID}');
     expect(source).not.toContainSource('nativeID={NAME_FIELD_ID}');
     expect(source).toContainSource(
       'document.getElementById(NAME_FIELD_ID)?.focus({ preventScroll: true })',
     );
+  });
+
+  it('keeps taps active above the keyboard and advances through both names', () => {
+    expect(source).toContainSource('automaticallyAdjustKeyboardInsets');
+    expect(source).toContainSource('keyboardShouldPersistTaps="handled"');
+    expect(source).toContainSource('returnKeyType="next"');
+    expect(source).toContainSource('returnKeyType="done"');
+    expect(source).toContainSource('ref={clubNameInputRef}');
+    expect(source).toContainSource('clubNameInputRef.current.focus();');
   });
 
   it('shows the blocked commit as blocked instead of fully live', () => {
