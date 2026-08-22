@@ -2718,9 +2718,12 @@ export function homeProductAlerts(
       .filter((player) => player.power !== undefined)
       .map((player) => player.id),
   );
+  const rosterIds = new Set(roster.map((player) => player.id));
   const retirementAnnouncements = (state.retirementAnnouncements ?? [])
     .filter(
-      (announcement) => announcement.announcedInSeason === state.season - 1,
+      (announcement) =>
+        announcement.announcedInSeason === state.season - 1 &&
+        rosterIds.has(announcement.playerId),
     )
     .sort((left, right) => left.playerName.localeCompare(right.playerName));
   // The last-chance notice. The announcement is a whole season old by the time

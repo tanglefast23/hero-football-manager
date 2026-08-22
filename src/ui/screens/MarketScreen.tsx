@@ -939,18 +939,22 @@ function ScoutingDesk({
                   {report.aboveHundredNote}
                 </Text>
               ) : null}
-              <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">
-                {t('market.fullReportRangesShown')}
-              </Text>
+              {report.exactValues ? null : (
+                <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">
+                  {t('market.fullReportRangesShown')}
+                </Text>
+              )}
               <View className="mt-3 flex-row flex-wrap justify-end gap-2">
-                <SmallAction
-                  label={report.detailedReportLabel}
-                  disabled={!report.detailedReportAvailable}
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    onBuyDetailedScoutReport(report.playerId);
-                  }}
-                />
+                {report.exactValues ? null : (
+                  <SmallAction
+                    label={report.detailedReportLabel}
+                    disabled={!report.detailedReportAvailable}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      onBuyDetailedScoutReport(report.playerId);
+                    }}
+                  />
+                )}
                 <SmallAction
                   label={t('market.dismissReport')}
                   disabled={!report.dismissAvailable}

@@ -59,8 +59,8 @@
     },
     {
       "id": "powers-fire-themselves",
-      "title": "Powers fire on their own",
-      "body": "There is no button. A hero builds Heat, banks it, then fires when the moment arrives. You control the eleven, the formation, the playstyle and the energy."
+      "title": "AUTO and MANUAL use powers differently",
+      "body": "AUTO fires powers when their useful moment arrives. MANUAL shows ARMED while it waits; press FIRE! only when it becomes available. Quick Match always uses AUTO."
     },
     {
       "id": "scout-office-narrows-the-range",

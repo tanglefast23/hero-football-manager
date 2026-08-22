@@ -1,7 +1,9 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
 import {
+  archetypeTrainingBonusPercent,
   developmentPotentialCeiling,
+  POSITION_TRAINING_ATTRIBUTES,
   potentialTierForDivision,
 } from './archetype-caps';
 import { nextDistinctPlayerLook } from './player-appearance';
@@ -483,6 +485,11 @@ function createOffer(
   const potential = potentialTierForDivision(division, potentialRoll);
   const age = integerRoll(random, 16, 17);
   const retirementAge = 33 + integerRoll(random, 0, 5);
+  const compatibleArchetypes = ARCHETYPES.filter((archetype) =>
+    POSITION_TRAINING_ATTRIBUTES[role].some(
+      (attribute) => archetypeTrainingBonusPercent(archetype, attribute) > 0,
+    ),
+  );
   const player: CareerPlayer = {
     id,
     clubId: state.userClubId,
@@ -497,7 +504,10 @@ function createOffer(
     morale: 65,
     injuryWeeks: 0,
     age,
-    archetype: ARCHETYPES[integerRoll(random, 0, ARCHETYPES.length - 1)],
+    archetype:
+      compatibleArchetypes[
+        integerRoll(random, 0, compatibleArchetypes.length - 1)
+      ],
     potential,
     potentialCeiling: developmentPotentialCeiling({
       id,

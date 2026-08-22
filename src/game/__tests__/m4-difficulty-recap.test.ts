@@ -270,4 +270,52 @@ describe('M4 difficulty and season recap', () => {
     expect(recap.youngPlayer?.playerId).toBe(youngPlayer.id);
     expect(recap.heroOfSeason?.playerId).toBe(heroOfSeason.id);
   });
+
+  it('gives Hero of the Season to the hero who contributed', () => {
+    const initial = career('COZY');
+    const roster = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const unusedStar = roster[0];
+    const contributor = roster[1];
+    const playerOfSeason = roster[2];
+    const recap = buildSeasonRecap({
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === unusedStar.id
+          ? {
+              ...player,
+              age: 24,
+              power: 'THUNDER_STRIKE',
+              licensed: true,
+              attrs: {
+                pac: 150,
+                sho: 150,
+                pas: 150,
+                def: 150,
+                tec: 150,
+                sta: 150,
+                ref: 150,
+              },
+            }
+          : player.id === contributor.id
+            ? {
+                ...player,
+                age: 24,
+                power: 'BLINK_RUN',
+                licensed: true,
+              }
+            : player,
+      ),
+      seasonStatLines: [
+        statLine(playerOfSeason.id, playerOfSeason.clubId, 'league', 50),
+        {
+          ...statLine(contributor.id, contributor.clubId, 'league', 0),
+          passesCompleted: 12,
+        },
+      ],
+    });
+
+    expect(recap.heroOfSeason?.playerId).toBe(contributor.id);
+  });
 });

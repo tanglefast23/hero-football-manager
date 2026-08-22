@@ -50,11 +50,21 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
   // cup goals before stat lines were split by competition. Only the division
   // board is league-only.
   const goalsByPlayer = new Map<string, number>();
+  const contributionByPlayer = new Map<string, number>();
   for (const line of state.seasonStatLines ?? []) {
     if (line.season !== state.season) continue;
     goalsByPlayer.set(
       line.playerId,
       (goalsByPlayer.get(line.playerId) ?? 0) + line.goals,
+    );
+    contributionByPlayer.set(
+      line.playerId,
+      (contributionByPlayer.get(line.playerId) ?? 0) +
+        line.goals * 30 +
+        line.assists * 10 +
+        line.tacklesWon * 2 +
+        line.saves * 2 +
+        line.passesCompleted,
     );
   }
   const sortedScorers = roster
@@ -85,9 +95,19 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
   const young =
     youngPlayers.find((player) => player.id !== playerOfSeason?.id) ??
     youngPlayers[0];
-  const heroes = sortedPlayers.filter(
-    (player) => player.power !== undefined && player.licensed,
-  );
+  const heroes = sortedPlayers
+    .filter(
+      (player) =>
+        player.power !== undefined &&
+        player.licensed &&
+        (contributionByPlayer.get(player.id) ?? 0) > 0,
+    )
+    .sort(
+      (left, right) =>
+        (contributionByPlayer.get(right.id) ?? 0) -
+          (contributionByPlayer.get(left.id) ?? 0) ||
+        compareIds(left.id, right.id),
+    );
   const hero =
     heroes.find(
       (player) => player.id !== playerOfSeason?.id && player.id !== young?.id,

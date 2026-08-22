@@ -13,6 +13,8 @@ import { applyLowMoraleToStat } from './pyramid';
 import { assertContractTermFitsCareer } from './retirement';
 import {
   assertCareerLineupHonorsContractPromises,
+  ContractPromiseBlockedError,
+  hasActiveCareerContractPromise,
   restoreCareerContractPromiseLineup,
 } from './contract-promises';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
@@ -794,6 +796,21 @@ export function selectCareerLicensedHeroes(
 ): GameState {
   assertManagementChoicePhase(state, 'hero licenses');
   const userRoster = rosterForClub(state, state.userClubId);
+  const selectedIds = new Set(selectedPlayerIds);
+  const protectedHero = userRoster.find(
+    (player) =>
+      player.licensed &&
+      !selectedIds.has(player.id) &&
+      (hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') ||
+        hasActiveCareerContractPromise(player, 'CAPTAINCY')),
+  );
+  if (protectedHero !== undefined) {
+    throw new ContractPromiseBlockedError({
+      text: `${protectedHero.name}'s starting promise needs this Hero License.`,
+      key: 'store.heroLicensePromiseRequired',
+      params: { player: protectedHero.name },
+    });
+  }
   const selected = selectLicensedHeroes(
     userRoster,
     selectedPlayerIds,

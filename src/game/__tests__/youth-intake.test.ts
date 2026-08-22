@@ -20,6 +20,10 @@ import { DIVISION_STRENGTH_BANDS } from '../pyramid';
 import type { Attrs, Role } from '../../sim/types';
 import type { GameState } from '../types';
 import { PROMOTION_WAGE_CLAUSE_PERCENT } from '../contract-wages';
+import {
+  archetypeTrainingBonusPercent,
+  POSITION_TRAINING_ATTRIBUTES,
+} from '../archetype-caps';
 
 function careerWithRosterSize(
   rosterSize: number,
@@ -210,6 +214,24 @@ describe('pre-season youth intake', () => {
     ).toBe(true);
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
     expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('offers archetypes that help each prospect in their own role', () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      for (const offer of createPreseasonYouthIntake(
+        careerWithRosterSize(14, seed),
+      ).offers) {
+        expect(
+          POSITION_TRAINING_ATTRIBUTES[offer.player.role].some(
+            (attribute) =>
+              archetypeTrainingBonusPercent(
+                offer.player.archetype,
+                attribute,
+              ) > 0,
+          ),
+        ).toBe(true);
+      }
+    }
   });
 
   it('reads the best operational Youth Field, not the first one built', () => {

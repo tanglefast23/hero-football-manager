@@ -2785,6 +2785,7 @@
     "store.chooseBidFirst": "Pick one club's bid before you accept, boss.",
     "store.coachUnavailable": "That coach is no longer available, boss.",
     "store.heroesOnlyLicense": "Only heroes can hold a license, boss.",
+    "store.heroLicensePromiseRequired": "{player}'s starting promise needs this Hero License. End or replace the promise before removing it.",
     "store.lineupOwnPlayersOnly": "Both players in a swap must be ours, boss.",
     "store.nameHasUnsupportedCharacters": "That name has letters the game cannot draw, boss. Try plain letters and numbers.",
     "store.playerNotEligible": "{player} is not eligible for our club, boss.",

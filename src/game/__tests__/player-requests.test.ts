@@ -49,9 +49,7 @@ const LEGACY_MONEY_CATALOG: PlayerRequestCatalog = {
   requests: CATALOG.requests.map((request) =>
     request.id === 'gold-boots'
       ? { ...request, cost: { kind: 'MONEY_PLAYER', wageMultiple: 4 } }
-      : request.id === 'the-car'
-        ? { ...request, cost: { kind: 'MONEY_PLAYER', wageMultiple: 12 } }
-        : request,
+      : request,
   ),
 };
 
@@ -356,6 +354,12 @@ describe('requestMoneyCost', () => {
         { ...context, division: 1 },
       ),
     ).toBe(30000);
+  });
+
+  it('ships the car as a twelve-wage money request', () => {
+    const cost = requestDefinition(CATALOG, 'the-car').cost;
+    expect(cost).toEqual({ kind: 'MONEY_PLAYER', wageMultiple: 12 });
+    expect(requestMoneyCost(cost, { ...context, division: 2 })).toBe(50_400);
   });
 
   it('is undefined for a cost that is not money', () => {
@@ -752,7 +756,7 @@ describe('resolvePlayerRequest', () => {
   });
 
   it('refuses to grant what the club cannot pay for', () => {
-    const state = requestFixture('the-car', LEGACY_MONEY_CATALOG);
+    const state = requestFixture('the-car');
     const broke: GameState = {
       ...state,
       clubs: state.clubs.map((c) =>
@@ -761,10 +765,10 @@ describe('resolvePlayerRequest', () => {
     };
 
     expect(() =>
-      resolvePlayerRequest(broke, LEGACY_MONEY_CATALOG, 'GRANTED'),
+      resolvePlayerRequest(broke, CATALOG, 'GRANTED'),
     ).toThrow('cannot afford');
     expect(() =>
-      resolvePlayerRequest(broke, LEGACY_MONEY_CATALOG, 'REFUSED'),
+      resolvePlayerRequest(broke, CATALOG, 'REFUSED'),
     ).not.toThrow();
   });
 
@@ -793,7 +797,7 @@ describe('resolvePlayerRequest', () => {
 
 describe('canAffordRequest', () => {
   it('is false when the club cannot pay in full', () => {
-    const state = requestFixture('the-car', LEGACY_MONEY_CATALOG);
+    const state = requestFixture('the-car');
     const broke: GameState = {
       ...state,
       clubs: state.clubs.map((c) =>
@@ -1062,6 +1066,25 @@ describe('advancePlayerRequests', () => {
         'CHAIRMAN',
       ),
     ).toBe(false);
+  });
+
+  it('does not offer a cup travel request after the cup ends', () => {
+    const base = tickingCareer();
+    const charter = requestDefinition(CATALOG, 'charter-the-plane');
+    const noCup: GameState = {
+      ...atSeason(base, 3),
+      week: 10,
+      m2: undefined,
+      playerRequestRules: { ...CATALOG, requests: [charter] },
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+      },
+    };
+
+    expect(
+      advancePlayerRequests(noCup, true).playerRequests?.pending,
+    ).toBeUndefined();
   });
 
   it('still offers leave in a week with football ahead of it', () => {
