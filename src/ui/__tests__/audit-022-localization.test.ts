@@ -25,6 +25,8 @@ describe('AUD-022 localization recovery', () => {
     ]) {
       expect(source).toContain(`t('${key}'`);
     }
+    expect(source).toContain('const t = currentStoreCopy();');
+    expect(source).not.toContain('useCopy');
   });
 
   test('the crash recovery copy warns that the last action may have saved', () => {

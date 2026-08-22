@@ -8,6 +8,18 @@ function source(path: string): string {
 }
 
 describe('player-facing acceptance audit regressions', () => {
+  test('gives shared controls a 44-point target and match-order switches', () => {
+    const pressable = source('src/ui/components/SfxPressable.tsx');
+    const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
+
+    expect(pressable).toContainSource(
+      'const minimumTapTarget: ViewStyle = { minWidth: 44, minHeight: 44 };',
+    );
+    expect(pressable).toContainSource('resolved,\n          minimumTapTarget,');
+    expect(matchDay).toContainSource('accessibilityRole="switch"');
+    expect(matchDay).toContainSource('accessibilityState={{ checked: on }}');
+  });
+
   test('opens the story with the intended 15 of 17 roster truth', () => {
     // The sentence is catalog copy now; the brief still has to say it, so the
     // guarantee moves to the key the row draws.

@@ -4011,6 +4011,7 @@
     "confirm.transferList.title": "Pasang {player}?",
     "ledger.leaguePlacePrize": "Hadiah liga · #{position}",
     "store.actionUnavailable": "Itu tidak bisa dilakukan sekarang, Bos.",
+    "store.formationCannotBeFilled": "Skuad ini tidak bisa mengisi formasi itu, Bos.",
     "store.chooseBidFirst": "Pilih tawaran satu klub dulu sebelum terima, Bos.",
     "store.coachUnavailable": "Pelatih itu sudah tidak tersedia, Bos.",
     "store.heroesOnlyLicense": "Cuma pahlawan yang bisa punya lisensi, Bos.",

@@ -4011,6 +4011,7 @@
     "confirm.transferList.title": "Proposer {player} ?",
     "ledger.leaguePlacePrize": "Prime de ligue · #{position}",
     "store.actionUnavailable": "Ce n'est pas possible pour le moment, boss.",
+    "store.formationCannotBeFilled": "Cet effectif ne peut pas couvrir cette formation, boss.",
     "store.chooseBidFirst": "Choisis l'offre d'un club avant d'accepter, boss.",
     "store.coachUnavailable": "Cet entraîneur n'est plus disponible, boss.",
     "store.heroesOnlyLicense": "Seuls les héros peuvent avoir une licence, boss.",

@@ -4011,6 +4011,7 @@
     "confirm.transferList.title": "Rao bán {player}?",
     "ledger.leaguePlacePrize": "Thưởng giải · hạng {position}",
     "store.actionUnavailable": "Việc đó không làm được lúc này, sếp.",
+    "store.formationCannotBeFilled": "Đội hình này không đủ người cho sơ đồ đó, sếp.",
     "store.chooseBidFirst": "Chọn giá của một CLB trước khi nhận, sếp.",
     "store.coachUnavailable": "HLV đó không còn nữa, sếp.",
     "store.heroesOnlyLicense": "Chỉ anh hùng mới được cấp phép, sếp.",

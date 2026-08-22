@@ -75,6 +75,44 @@ describe('App Store release surface', () => {
     expect(titleLanding).toContainSource("'min-w-0 max-w-[620px] flex-1'");
   });
 
+  test('regenerates and inspects the app privacy manifest itself', () => {
+    const config = JSON.parse(source('app.json')) as {
+      expo: {
+        ios: {
+          privacyManifests: {
+            NSPrivacyAccessedAPITypes: Array<{
+              NSPrivacyAccessedAPIType: string;
+              NSPrivacyAccessedAPITypeReasons: string[];
+            }>;
+            NSPrivacyCollectedDataTypes: unknown[];
+            NSPrivacyTracking: boolean;
+          };
+        };
+      };
+    };
+    const manifest = config.expo.ios.privacyManifests;
+
+    expect(manifest.NSPrivacyAccessedAPITypes).toEqual([
+      {
+        NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
+        NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
+      },
+      {
+        NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
+        NSPrivacyAccessedAPITypeReasons: ['C617.1'],
+      },
+      {
+        NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime',
+        NSPrivacyAccessedAPITypeReasons: ['35F9.1'],
+      },
+    ]);
+    expect(manifest.NSPrivacyCollectedDataTypes).toEqual([]);
+    expect(manifest.NSPrivacyTracking).toBe(false);
+    expect(source('scripts/release/inspect-native-app.mjs')).toContainSource(
+      "const privacyManifest = join(app, 'PrivacyInfo.xcprivacy');",
+    );
+  });
+
   test('does not ship the obsolete placeholder hire pitch', () => {
     expect(
       existsSync(join(process.cwd(), 'src/ui/screens/HirePitchScreen.tsx')),

@@ -636,7 +636,8 @@ export function FixtureMatchDayScreen({
     const mode = t(on ? 'fixtureMatchDay.auto' : 'fixtureMatchDay.manual');
     return (
       <Pressable
-        accessibilityRole="button"
+        accessibilityRole="switch"
+        accessibilityState={{ checked: on }}
         accessibilityLabel={t(
           key === 'heroPower'
             ? 'fixtureMatchDay.a11y.heroPowerMode'

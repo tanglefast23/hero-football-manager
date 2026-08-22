@@ -2815,6 +2815,7 @@
     "confirm.transferList.title": "List {player}?",
     "ledger.leaguePlacePrize": "League prize · #{position}",
     "store.actionUnavailable": "That is not possible right now, boss.",
+    "store.formationCannotBeFilled": "This squad cannot fill that formation, boss.",
     "store.chooseBidFirst": "Pick one club's bid before you accept, boss.",
     "store.coachUnavailable": "That coach is no longer available, boss.",
     "store.heroesOnlyLicense": "Only heroes can hold a license, boss.",

@@ -524,6 +524,7 @@ function HeroPowerButton({
         ]}
       >
         <Text
+          maxFontSizeMultiplier={1.3}
           numberOfLines={1}
           style={[
             styles.heroName,
@@ -561,6 +562,7 @@ function HeroPowerButton({
           </View>
         ) : (
           <Text
+            maxFontSizeMultiplier={1.3}
             numberOfLines={1}
             style={[styles.label, { fontSize: Math.round(layout.size * 0.17) }]}
           >
@@ -573,6 +575,7 @@ function HeroPowerButton({
         )}
       </Pressable>
       <Text
+        maxFontSizeMultiplier={1.3}
         numberOfLines={1}
         style={[styles.name, { fontSize: desktop ? 9 : 8 }]}
       >
