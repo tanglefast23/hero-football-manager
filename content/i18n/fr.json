@@ -3981,7 +3981,7 @@
     "store.chooseBidFirst": "Choisis l'offre d'un club avant d'accepter, boss.",
     "store.coachUnavailable": "Cet entraîneur n'est plus disponible, boss.",
     "store.heroesOnlyLicense": "Seuls les héros peuvent avoir une licence, boss.",
-    "store.heroLicensePromiseRequired": "La promesse de titularisation de {player} exige cette Licence de Héros. Mets fin à la promesse ou remplace-la avant de retirer la licence.",
+    "store.heroLicensePromiseRequired": "La promesse de titularisation de {player} exige cette Licence de Héros. Mets-y fin ou remplace-la avant de retirer la licence.",
     "store.lineupOwnPlayersOnly": "Les deux joueurs échangés doivent être à nous, boss.",
     "store.nameHasUnsupportedCharacters": "Ce nom a des lettres que le jeu ne sait pas dessiner, boss. Utilise lettres et chiffres simples.",
     "store.playerNotEligible": "{player} n'est pas éligible pour notre club, boss.",

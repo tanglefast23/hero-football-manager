@@ -258,13 +258,15 @@ describe('opening sentinel', () => {
     // arms, when the passer began being enrolled by stable id instead of by
     // slot. Auto-coaching substitutes mid-pass-flight in these runs, so the
     // wrong player used to inherit the bonus. Totals across 7 arms x 8 seeds
-    // are now 7 wins, 12 draws, 37 losses.
+    // are now 7 wins, 12 draws, 37 losses. The approved 7% head-coach ladder
+    // later moved the observed coach arm to eight losses: 6 wins, 11 draws,
+    // 39 losses across the same sample.
     expect(digests).toEqual({
       ordinary: 'LLDLDWLL',
       'smart-breadth': 'LLDLDWLL',
       'smart-extra-fwd': 'LLDLDWLL',
       'smart-concentration': 'LLLDLLDL',
-      'joe-observed-coach': 'LLLDWLLL',
+      'joe-observed-coach': 'LLLLLLLL',
       'joe-observed-no-coach': 'LWLLLWLL',
       'no-training': 'LLDLLWDD',
     });
