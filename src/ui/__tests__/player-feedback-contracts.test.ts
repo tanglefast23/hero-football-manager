@@ -93,6 +93,9 @@ describe('new power explanation contract', () => {
     // match, so it says what it actually shows. It breathes in size on the
     // halo's own value, so the one thing left to tap is the one thing moving.
     expect(awakening).toContainSource("t('awakening.watchExample')");
+    expect(awakening).toContainSource('onPress={() => setDemoVisible(true)}');
+    expect(awakening).toContainSource('onPress={onContinue}');
+    expect(awakening).toContainSource('style={styles.heroAction}');
     expect(awakening).toContainSource(
       'outputRange: reduceMotion ? [1, 1] : [1, CTA_PULSE_MAX_SCALE]',
     );

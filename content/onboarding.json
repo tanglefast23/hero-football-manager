@@ -24,10 +24,10 @@
       "id": "rhythmic-cpr",
       "visual": "cpr",
       "kicker": "THE RHYTHM",
-      "title": "The chant finds a heartbeat.",
-      "callout": "CPR IN RHYTHM",
-      "detail": "One · two · thunder",
-      "copy": "The physio's compressions fall into time with the crowd. On the final beat, a pulse of light rolls out from {name}."
+      "title": "The chant finds a rhythm.",
+      "callout": "RHYTHM BUILDS",
+      "detail": "Clap · clap · thunder",
+      "copy": "The physio taps a rhythm on {name}'s chest pad. The crowd joins in. On the final beat, a pulse of light rolls out from {name}."
     },
     {
       "id": "magic-sponge",

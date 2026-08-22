@@ -4,7 +4,7 @@ import {
   careerCoachTrainingModifiers,
   careerCoachWeeklyTrainingPoints,
   coachWeeklyTrainingPoints,
-  coachMotivatorStrengthHalfLevels,
+  coachMotivatorStrengthHalfPercentUnits,
 } from '../coach-weekly';
 import type { CoachBoosts, CoachCandidate, CoachSpecialty } from '../market';
 import type { CareerMarketState } from '../market-career';
@@ -13,12 +13,9 @@ import type { CareerMarketState } from '../market-career';
  * A story can permanently change a coach, and there are exactly two ways that
  * could have ruined a save.
  *
- * `applyCareerCoachTrainingModifier` **throws** outside 100..175 rather than
- * clamping. A level-5 head plus a level-5 assistant sharing a specialty already
- * sums to exactly 175, so a single +5 boost on top would have thrown on every
- * training action from then on — and a boost cannot be un-earned, so the career
- * would be unplayable with no way back. The mirror case is a negative boost
- * dropping an assistant-only club below 100.
+ * `applyCareerCoachTrainingModifier` throws outside 100..175 rather than
+ * clamping. Permanent boosts cannot be un-earned, so the boundary must keep
+ * both positive and negative story results inside that safe band.
  */
 
 function coach(
@@ -55,13 +52,12 @@ const scaleFor = (state: CareerMarketState) =>
   careerCoachTrainingModifiers(state).gainScalePercentByAttribute.sho;
 
 describe('coach training boosts', () => {
-  it('does not throw when a maxed pair is boosted past the ceiling', () => {
+  it('keeps a boosted max-level pair inside the ceiling', () => {
     const maxed = market(
       coach(5, ['ATTACK', 'MOTIVATOR'], { trainingPercent: 5 }),
       coach(5, ['ATTACK', 'FITNESS']),
     );
-    // 100 + 50 (head) + 25 (assistant) is already the 175 ceiling.
-    expect(scaleFor(maxed)).toBe(175);
+    expect(scaleFor(maxed)).toBe(155);
     expect(() =>
       applyCareerCoachTrainingModifier(
         10,
@@ -76,7 +72,7 @@ describe('coach training boosts', () => {
       undefined,
       coach(1, ['ATTACK', 'FITNESS'], { trainingPercent: -10 }),
     );
-    // 100 + 5 − 10 would be 95, which the validator rejects.
+    // 100 + 3 − 10 would be 93, which the validator rejects.
     expect(scaleFor(sulking)).toBe(100);
     expect(() =>
       applyCareerCoachTrainingModifier(
@@ -91,7 +87,7 @@ describe('coach training boosts', () => {
     const room = market(
       coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }),
     );
-    expect(scaleFor(room)).toBe(125);
+    expect(scaleFor(room)).toBe(119);
   });
 
   it('only pays the boost on the specialty the coach actually holds', () => {
@@ -99,12 +95,12 @@ describe('coach training boosts', () => {
       coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }),
     );
     const modifiers = careerCoachTrainingModifiers(attacker);
-    expect(modifiers.gainScalePercentByAttribute.sho).toBe(125);
+    expect(modifiers.gainScalePercentByAttribute.sho).toBe(119);
     // DEFENSE is not his, so neither the level bonus nor the boost applies.
     expect(modifiers.gainScalePercentByAttribute.def).toBe(100);
   });
 
-  it('caps a facet at one head-coach level however much content authors', () => {
+  it('caps every permanent story facet however much content authors', () => {
     expect(cappedCoachBoost({ trainingPercent: 30 }, 'trainingPercent')).toBe(
       10,
     );
@@ -147,23 +143,22 @@ describe('coach weekly training points with boosts', () => {
 });
 
 describe('motivator boosts', () => {
-  it('counts in half-levels, matching the plumbing', () => {
-    // A level-2 head Motivator is 4 half-levels; +1 makes 5.
+  it('counts in half-percent units, including 2.5% story steps', () => {
     expect(
-      coachMotivatorStrengthHalfLevels(
+      coachMotivatorStrengthHalfPercentUnits(
         market(coach(2, ['MOTIVATOR', 'ATTACK'])),
       ),
-    ).toBe(4);
+    ).toBe(16);
     expect(
-      coachMotivatorStrengthHalfLevels(
+      coachMotivatorStrengthHalfPercentUnits(
         market(coach(2, ['MOTIVATOR', 'ATTACK'], { motivatorHalfLevels: 1 })),
       ),
-    ).toBe(5);
+    ).toBe(21);
   });
 
   it('ignores a motivator boost on a coach who is not a Motivator', () => {
     expect(
-      coachMotivatorStrengthHalfLevels(
+      coachMotivatorStrengthHalfPercentUnits(
         market(coach(2, ['ATTACK', 'FITNESS'], { motivatorHalfLevels: 2 })),
       ),
     ).toBe(0);
@@ -171,7 +166,7 @@ describe('motivator boosts', () => {
 
   it('cannot drive the club below no motivation at all', () => {
     expect(
-      coachMotivatorStrengthHalfLevels(
+      coachMotivatorStrengthHalfPercentUnits(
         market(coach(1, ['MOTIVATOR', 'ATTACK'], { motivatorHalfLevels: -2 })),
       ),
     ).toBe(0);

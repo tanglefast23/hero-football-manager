@@ -12,6 +12,7 @@ import { buildCareerTeamDef } from '../squad';
 import { trainPlayerInstantly } from '../training';
 import {
   DEFAULT_PLAYER_REQUEST_STATE,
+  MAX_PLAYER_REQUEST_HISTORY,
   STAR_FAME_THRESHOLD,
   absenceWeeksFor,
   advancePlayerRequests,
@@ -49,9 +50,7 @@ const LEGACY_MONEY_CATALOG: PlayerRequestCatalog = {
   requests: CATALOG.requests.map((request) =>
     request.id === 'gold-boots'
       ? { ...request, cost: { kind: 'MONEY_PLAYER', wageMultiple: 4 } }
-      : request.id === 'the-car'
-        ? { ...request, cost: { kind: 'MONEY_PLAYER', wageMultiple: 12 } }
-        : request,
+      : request,
   ),
 };
 
@@ -356,6 +355,12 @@ describe('requestMoneyCost', () => {
         { ...context, division: 1 },
       ),
     ).toBe(30000);
+  });
+
+  it('ships the car as a twelve-wage money request', () => {
+    const cost = requestDefinition(CATALOG, 'the-car').cost;
+    expect(cost).toEqual({ kind: 'MONEY_PLAYER', wageMultiple: 12 });
+    expect(requestMoneyCost(cost, { ...context, division: 2 })).toBe(50_400);
   });
 
   it('is undefined for a cost that is not money', () => {
@@ -752,7 +757,7 @@ describe('resolvePlayerRequest', () => {
   });
 
   it('refuses to grant what the club cannot pay for', () => {
-    const state = requestFixture('the-car', LEGACY_MONEY_CATALOG);
+    const state = requestFixture('the-car');
     const broke: GameState = {
       ...state,
       clubs: state.clubs.map((c) =>
@@ -761,10 +766,10 @@ describe('resolvePlayerRequest', () => {
     };
 
     expect(() =>
-      resolvePlayerRequest(broke, LEGACY_MONEY_CATALOG, 'GRANTED'),
+      resolvePlayerRequest(broke, CATALOG, 'GRANTED'),
     ).toThrow('cannot afford');
     expect(() =>
-      resolvePlayerRequest(broke, LEGACY_MONEY_CATALOG, 'REFUSED'),
+      resolvePlayerRequest(broke, CATALOG, 'REFUSED'),
     ).not.toThrow();
   });
 
@@ -793,7 +798,7 @@ describe('resolvePlayerRequest', () => {
 
 describe('canAffordRequest', () => {
   it('is false when the club cannot pay in full', () => {
-    const state = requestFixture('the-car', LEGACY_MONEY_CATALOG);
+    const state = requestFixture('the-car');
     const broke: GameState = {
       ...state,
       clubs: state.clubs.map((c) =>
@@ -1002,6 +1007,10 @@ function atSeason(state: GameState, season: number): GameState {
 }
 
 describe('advancePlayerRequests', () => {
+  it('keeps history shorter than the request deck so stories can return', () => {
+    expect(MAX_PLAYER_REQUEST_HISTORY).toBeLessThan(CATALOG.requests.length);
+  });
+
   it('does nothing at all when the catalog was never baked in', () => {
     // This is what turns the feature off for the balance harness and the audit
     // probes: they build a setup and drop the catalog from it.
@@ -1062,6 +1071,25 @@ describe('advancePlayerRequests', () => {
         'CHAIRMAN',
       ),
     ).toBe(false);
+  });
+
+  it('does not offer a cup travel request after the cup ends', () => {
+    const base = tickingCareer();
+    const charter = requestDefinition(CATALOG, 'charter-the-plane');
+    const noCup: GameState = {
+      ...atSeason(base, 3),
+      week: 10,
+      m2: undefined,
+      playerRequestRules: { ...CATALOG, requests: [charter] },
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+      },
+    };
+
+    expect(
+      advancePlayerRequests(noCup, true).playerRequests?.pending,
+    ).toBeUndefined();
   });
 
   it('still offers leave in a week with football ahead of it', () => {
@@ -1132,7 +1160,7 @@ describe('advancePlayerRequests', () => {
     expect(next.playerRequests!.weeksSinceRequest).toBe(41);
   });
 
-  it('does not give one player the same request twice in a season', () => {
+  it('never gives a used request story to another player', () => {
     const base = tickingCareer();
     const onlyGoldBoots: PlayerRequestCatalog = {
       ...CATALOG,
@@ -1147,7 +1175,6 @@ describe('advancePlayerRequests', () => {
         absence: false,
       },
     );
-    const unserved = eligible.at(-1)!;
     const overdue: GameState = {
       ...atSeason(base, 3),
       week: 10,
@@ -1155,19 +1182,21 @@ describe('advancePlayerRequests', () => {
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
         weeksSinceRequest: 40,
-        history: eligible.slice(0, -1).map((player, index) => ({
-          requestId: 'gold-boots',
-          playerId: player.id,
-          season: 3,
-          week: index + 1,
-          resolution: 'GRANTED' as const,
-        })),
+        history: [
+          {
+            requestId: 'gold-boots',
+            playerId: eligible[0].id,
+            season: 2,
+            week: 23,
+            resolution: 'GRANTED',
+          },
+        ],
       },
     };
 
     expect(
       advancePlayerRequests(overdue, true).playerRequests!.pending,
-    ).toMatchObject({ requestId: 'gold-boots', playerId: unserved.id });
+    ).toBeUndefined();
   });
 
   it('never offers a bare-eleven squad a leave request it cannot survive', () => {

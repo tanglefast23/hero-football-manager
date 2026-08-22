@@ -349,13 +349,12 @@ export function careerMarketScoutOptions(
   if (!Number.isSafeInteger(state.week) || state.week < 1 || state.week > 30) {
     throw new Error('market option week must be an integer from 1 to 30');
   }
-  const progressionDivision =
+  const currentDivision =
+    state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  const unlockedDivision =
     state.m2 === undefined
       ? 5
-      : Math.min(
-          currentUserDivision(state.m2),
-          state.m2.highestDivisionReached ?? 5,
-        );
+      : state.m2.highestDivisionReached ?? 5;
 
   const roles = [undefined, 'GK', 'DEF', 'MID', 'FWD'] as const;
   const profiles = [
@@ -371,8 +370,8 @@ export function careerMarketScoutOptions(
       ...(role === undefined ? {} : { role }),
     })),
   );
-  if (progressionDivision <= 3) focuses.push({ kind: 'RUMORED_HERO' });
-  if (progressionDivision <= 2) focuses.push({ kind: 'ELITE_PROSPECT' });
+  if (unlockedDivision <= 3) focuses.push({ kind: 'RUMORED_HERO' });
+  if (unlockedDivision <= 2) focuses.push({ kind: 'ELITE_PROSPECT' });
   const missionId = `scout-${state.market?.nextMissionNumber ?? 1}`;
   const startWeek = absoluteCareerWeek(state);
   return SCOUT_REGIONS.flatMap((region) =>
@@ -384,7 +383,8 @@ export function careerMarketScoutOptions(
         region,
         focus,
         scoutOfficeLevel: 1,
-        division: progressionDivision,
+        division: currentDivision,
+        unlockedDivision,
       });
       return {
         id: `scout-option-${region}-${focus.kind === 'PROFILE' ? `${focus.prospectType}-${focus.role ?? 'ANY'}` : focus.kind}`,

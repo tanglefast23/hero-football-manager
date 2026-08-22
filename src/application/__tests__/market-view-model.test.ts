@@ -159,6 +159,46 @@ describe('marketViewModel', () => {
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
   });
 
+  it('prints paid detailed reports as exact values, not zero-width ranges', () => {
+    const source = baseSource();
+    const player = scoutPlayer('exact-player');
+    const exact = Object.fromEntries(
+      Object.entries(player.attrs).map(([attribute, value]) => [
+        attribute,
+        { minimum: value, maximum: value },
+      ]),
+    ) as never;
+    const report = marketViewModel({
+      ...source,
+      scoutResult: {
+        missionId: 'paid-detail',
+        completedWeek: 47,
+        reports: [
+          {
+            playerId: player.id,
+            role: player.role,
+            age: player.age,
+            statRanges: exact,
+            potentialRange: {
+              minimum: player.potential,
+              maximum: player.potential,
+            },
+          },
+        ],
+      },
+    }).scouting.reports[0];
+
+    expect(report.exactValues).toBe(true);
+    expect(report.stats.map((stat) => stat.rangeLabel)).toEqual([
+      '60',
+      '58',
+      '64',
+      '48',
+      '66',
+      '62',
+    ]);
+  });
+
   it('shows a new active trip even while an older report remains on the desk', () => {
     const source = baseSource();
     const mission = startScoutMission({
@@ -250,13 +290,13 @@ describe('marketViewModel', () => {
       loyaltyLabel: '25% loyalty discount',
       available: true,
       headEffectLabels: [
-        'SHO training +40%',
-        'Morale loss -20% · Hero Gauge +20%',
+        'SHO training +28%',
+        'Morale loss -16% · Hero Gauge +16%',
         '+8 TP weekly',
       ],
       assistantEffectLabels: [
-        'SHO training +20%',
-        'Morale loss -10% · Hero Gauge +10%',
+        'SHO training +12%',
+        'Morale loss -8% · Hero Gauge +8%',
         '+4 TP weekly',
       ],
     });

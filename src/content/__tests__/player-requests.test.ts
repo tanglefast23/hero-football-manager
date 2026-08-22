@@ -17,13 +17,19 @@ describe('validated player request catalog', () => {
     );
   });
 
-  test('uses only costs that disrupt the usual team plan', () => {
+  test('includes the shipped money and team-plan costs', () => {
     const kinds = new Set(
       loadLaunchContent().playerRequests.requests.map((r) => r.cost.kind),
     );
 
     expect(kinds).toEqual(
-      new Set(['ABSENCE', 'CONDITION_SQUAD', 'DRILL_PLAYER', 'DRILL_SQUAD']),
+      new Set([
+        'ABSENCE',
+        'CONDITION_SQUAD',
+        'DRILL_PLAYER',
+        'DRILL_SQUAD',
+        'MONEY_PLAYER',
+      ]),
     );
   });
 

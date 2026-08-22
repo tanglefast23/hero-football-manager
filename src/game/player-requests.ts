@@ -466,7 +466,7 @@ export function resolutionDeltas(
   };
 }
 
-/** How many settled decisions the tab remembers. */
+/** A used story stays away until twenty other requests have passed. */
 export const MAX_PLAYER_REQUEST_HISTORY = 20;
 
 export const DEFAULT_PLAYER_REQUEST_STATE: PlayerRequestState = {
@@ -876,18 +876,17 @@ export function advancePlayerRequests(
       lineupSurvivesLeave(stateAtDraw, player),
   };
   const requestAskerPool = (request: PlayerRequestDefinition) =>
-    eligibleAskers(roster, {
-      ...base,
-      absence: request.cost.kind === 'ABSENCE',
-    }).filter(
-      (player) =>
-        !next.playerRequests!.history.some(
-          (entry) =>
-            entry.season === next.season &&
-            entry.playerId === player.id &&
-            entry.requestId === request.id,
-        ),
-    );
+    request.id === 'charter-the-plane' && !isUserAliveInCup(next)
+      ? []
+      : eligibleAskers(roster, {
+          ...base,
+          absence: request.cost.kind === 'ABSENCE',
+        }).filter(
+          (player) =>
+            !next.playerRequests!.history.some(
+              (entry) => entry.requestId === request.id,
+            ),
+        );
   const drawn =
     catalog.requests[
       deterministicCareerEventRoll(

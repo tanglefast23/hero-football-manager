@@ -60,6 +60,8 @@ export interface ScoutReportViewModel {
   readonly powerLabel?: string;
   readonly rumorLabel?: string;
   readonly stats: readonly ScoutedStatViewModel[];
+  /** True after the paid follow-up replaces every range with one value. */
+  readonly exactValues: boolean;
   /** Present only while a range on this report runs past 100. */
   readonly aboveHundredNote?: string;
   readonly dismissAvailable: boolean;

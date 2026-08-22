@@ -81,6 +81,9 @@ interface ScoutMissionSetup {
   readonly region: ScoutRegion;
   readonly focus: ScoutFocus;
   readonly scoutOfficeLevel: number;
+  /** Best division reached, used only for permanent brief unlocks. */
+  readonly unlockedDivision?: number;
+  /** Current playing division, used for shortlist strength. */
   readonly division: number;
   readonly starterScores?: Readonly<Partial<Record<Role, number>>>;
 }
@@ -202,15 +205,17 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
   assertNonEmptyString(setup.missionId, 'scouting mission ID');
   assertPositiveSafeInteger(setup.startWeek, 'scouting start week');
   validateDivision(setup.division);
+  const unlockedDivision = setup.unlockedDivision ?? setup.division;
+  validateDivision(unlockedDivision);
   validateScoutOfficeLevel(setup.scoutOfficeLevel);
   validateScoutFocus(setup.focus);
   if (REGION_COST[setup.region] === undefined) {
     throw new Error(`unknown scouting region ${String(setup.region)}`);
   }
-  if (setup.focus.kind === 'RUMORED_HERO' && setup.division > 3) {
+  if (setup.focus.kind === 'RUMORED_HERO' && unlockedDivision > 3) {
     throw new Error(`rumored hero scouting unlocks in ${divisionTierLabel(3)}`);
   }
-  if (setup.focus.kind === 'ELITE_PROSPECT' && setup.division > 2) {
+  if (setup.focus.kind === 'ELITE_PROSPECT' && unlockedDivision > 2) {
     throw new Error(
       `elite prospect scouting unlocks in ${divisionTierLabel(2)}`,
     );
@@ -298,8 +303,10 @@ export function resolveScoutMission(
         (candidate.sellingClubDivision === undefined ||
           candidate.sellingClubDivision >=
             Math.max(1, (mission.division ?? 5) - 2)) &&
-        roleOverall(candidate.role, candidate.attrs) <=
-          currentStrengthCeiling &&
+        ((mission.focus.kind === 'RUMORED_HERO' &&
+          candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX)) ||
+          roleOverall(candidate.role, candidate.attrs) <=
+            currentStrengthCeiling) &&
         (mission.focus.kind === 'RUMORED_HERO' ||
           candidate.power === undefined) &&
         matchesScoutFocus(candidate, mission.focus),
@@ -1437,7 +1444,7 @@ interface RetiredLegendCoachInput {
  * trusting content — see `COACH_BOOST_CAPS`.
  */
 export interface CoachBoosts {
-  /** Percentage points on his specialty training bonus. One head level is 10. */
+  /** Percentage points added to his specialty training bonus by stories. */
   readonly trainingPercent?: number;
   /** Weekly Training Points, on top of the level's own contribution. */
   readonly weeklyTp?: number;
@@ -1445,7 +1452,7 @@ export interface CoachBoosts {
   readonly motivatorHalfLevels?: number;
 }
 
-/** One head-coach level in each direction, and no further, for a coach's whole career. */
+/** Permanent story-change limits for one coach's whole career. */
 export const COACH_BOOST_CAPS = {
   trainingPercent: 10,
   weeklyTp: 4,

@@ -2,8 +2,10 @@ import {
   CUP_SETTLEMENT_WEEKS,
   DEFAULT_CREATION_RATINGS,
   buildCareerMatchTeamDef,
+  buildCareerMatchTeams,
   createCareer,
   cupMismatchWarning,
+  roleOverall,
   type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
@@ -47,6 +49,53 @@ describe('Hero Cup app routing', () => {
         (hero) => hero.id,
       ),
     ).toEqual(expectedIds);
+  });
+
+  test('brings a weak semi-finalist and finalist closer without passing the club', () => {
+    const base = createCareer(createLaunchCareerSetup(20260822));
+    const opponentId = base.clubs.find(
+      (club) => club.id !== base.userClubId,
+    )!.id;
+    const state: GameState = {
+      ...base,
+      players: base.players.map((player) => {
+        const value = player.clubId === base.userClubId ? 100 : 20;
+        return {
+          ...player,
+          morale: 50,
+          attrs: {
+            pac: value,
+            sho: value,
+            pas: value,
+            def: value,
+            tec: value,
+            sta: value,
+            ref: value,
+          },
+        };
+      }),
+    };
+    const rating = (clubId: string, round?: 'Semi-final' | 'Final') => {
+      const team = buildCareerMatchTeams(
+        state,
+        [state.userClubId, opponentId],
+        round,
+      )[clubId];
+      return Math.round(
+        team.players.reduce(
+          (sum, player) => sum + roleOverall(player.role, player.attrs),
+          0,
+        ) / team.players.length,
+      );
+    };
+    const user = rating(state.userClubId);
+    const ordinary = rating(opponentId);
+    const semi = rating(opponentId, 'Semi-final');
+    const final = rating(opponentId, 'Final');
+
+    expect(semi).toBeGreaterThan(ordinary);
+    expect(final).toBeGreaterThan(semi);
+    expect(final).toBeLessThan(user);
   });
 
   test('routes from the league match through awakening into the playable cup tie', () => {

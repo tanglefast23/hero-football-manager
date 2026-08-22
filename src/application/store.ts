@@ -3057,6 +3057,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         market,
         option.region,
         option.focus,
+        career.m2 === undefined ? 5 : currentUserDivision(career.m2),
         highestDivisionReached(career),
       );
       const next = { ...transaction.state, market: transaction.market };
@@ -3554,14 +3555,18 @@ function currentMatchday(state: GameState) {
   if (matchday === undefined)
     throw new Error('the matchday has no user fixture');
   const { fixture, fixtures } = matchday;
-  const builtTeams = buildCareerMatchTeams(state, [
-    ...new Set(
-      fixtures.flatMap((candidate) => [
-        candidate.homeClubId,
-        candidate.awayClubId,
-      ]),
-    ),
-  ]);
+  const builtTeams = buildCareerMatchTeams(
+    state,
+    [
+      ...new Set(
+        fixtures.flatMap((candidate) => [
+          candidate.homeClubId,
+          candidate.awayClubId,
+        ]),
+      ),
+    ],
+    matchday.cupRoundLabel,
+  );
   const teams = isFirstOnboardingFixture(state, fixture.id)
     ? {
         ...builtTeams,

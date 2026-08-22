@@ -507,6 +507,11 @@ export function marketViewModel(
           report.role === 'GK'
             ? (['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const)
             : (['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const);
+        const exactValues = stats.every(
+          (attribute) =>
+            report.statRanges[attribute].minimum ===
+            report.statRanges[attribute].maximum,
+        );
         return {
           playerId: report.playerId,
           playerName: identity?.name ?? report.playerId,
@@ -529,8 +534,11 @@ export function marketViewModel(
             : {}),
           stats: stats.map((attribute) => ({
             label: attribute.toUpperCase(),
-            rangeLabel: `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,
+            rangeLabel: exactValues
+              ? String(report.statRanges[attribute].minimum)
+              : `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,
           })),
+          exactValues,
           // Attributes are cap-free, so a scouted range legitimately runs past
           // 100 and reads as a bug when it does. Said once, on the reports that
           // actually show it, rather than as permanent footer noise.

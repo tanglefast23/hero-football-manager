@@ -2718,9 +2718,12 @@ export function homeProductAlerts(
       .filter((player) => player.power !== undefined)
       .map((player) => player.id),
   );
+  const rosterIds = new Set(roster.map((player) => player.id));
   const retirementAnnouncements = (state.retirementAnnouncements ?? [])
     .filter(
-      (announcement) => announcement.announcedInSeason === state.season - 1,
+      (announcement) =>
+        announcement.announcedInSeason === state.season - 1 &&
+        rosterIds.has(announcement.playerId),
     )
     .sort((left, right) => left.playerName.localeCompare(right.playerName));
   // The last-chance notice. The announcement is a whole season old by the time
@@ -4842,19 +4845,17 @@ export function postMatchViewModel(
 /**
  * Three goals is a hiding; one or two is a Saturday.
  *
- * The league bands on margin because that is what a league result is: nobody
- * remembers who the visitors were on week nine, they remember whether it was
- * close. The cup does the opposite, below.
+ * Every competition bands a three-goal result as a hiding. Close Cup ties then
+ * use the opponent's seeded division to tell the upset story.
  */
 const BLOWOUT_MARGIN = 3;
 
 /**
  * Which of the gaffer's pools this afternoon draws from.
  *
- * Cup ties band on the division gap frozen into the draw rather than on the
- * margin or on live squad ratings. A knockout is remembered for who it was
- * against — beating a club two tiers up is the story whether it finished 1-0 or
- * 4-0 — and the seeded divisions are the same numbers `cupGiantKillingCelebration`
+ * Close Cup ties band on the division gap frozen into the draw. A blowout uses
+ * the score first, because "coin toss" copy after 8-0 is plainly false. The
+ * seeded divisions are the same numbers `cupGiantKillingCelebration`
  * already reads, so the gaffer and Bert cannot disagree about how big the upset
  * was. Cups drawn before the seed map existed fall through as a level tie,
  * which is the reading that claims least.
@@ -4878,6 +4879,8 @@ function coachLinePool(
     return heavy ? 'leagueLossBig' : 'leagueLossClose';
   }
   const tiersAbove = cupOpponentTiersAbove(state, cupTie);
+  if (margin >= BLOWOUT_MARGIN && tiersAbove <= 0)
+    return outcomeLabel === 'WIN' ? 'leagueWinBig' : 'leagueLossBig';
   if (outcomeLabel === 'WIN') {
     if (tiersAbove >= 2) return 'cupWinGiant';
     if (tiersAbove === 1) return 'cupWinBetter';

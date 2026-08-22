@@ -525,6 +525,15 @@ describe('career contract promises', () => {
       ).not.toThrow();
     });
 
+    test('keeps the license required by an active starting promise', () => {
+      const { state, heroIds } = fullLicenseCap(9419);
+      const promised = promiseStarter(state, heroIds[0]);
+
+      expect(() =>
+        selectCareerLicensedHeroes(promised, heroIds.slice(1)),
+      ).toThrow("starting promise needs this Hero License");
+    });
+
     test('repairs a legacy save that already strands an unlicensed starter', () => {
       const { state, heroIds } = fullLicenseCap(9418);
       // The shape an old save carries: license gone, shirt kept. Match launch

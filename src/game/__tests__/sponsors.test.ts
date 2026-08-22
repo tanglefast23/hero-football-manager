@@ -216,8 +216,14 @@ describe('deterministic offers', () => {
         profile.bonusPercentByObjective?.[offer.objective.kind] ??
         profile.bonusPercent;
       expect(offer.objective.target).toBe(
-        definition.targets[levelByProfile[offer.profile]] -
-          (offer.objective.kind === 'LEAGUE_CLEAN_SHEETS' ? 1 : 0),
+        offer.objective.kind === 'LEAGUE_CLEAN_SHEETS'
+          ? Math.max(
+              1,
+              Math.ceil(
+                (definition.targets[levelByProfile[offer.profile]] - 1) / 2,
+              ),
+            )
+          : definition.targets[levelByProfile[offer.profile]],
       );
       expect(offer.objective.label).toContain(String(offer.objective.target));
       expect(offer.objective.nominalBonus).toBe(
@@ -226,27 +232,34 @@ describe('deterministic offers', () => {
     }
   });
 
-  it('sets D4 clean-sheet goals one match below the authored target', () => {
-    const offers = Array.from(
-      { length: 50 },
-      (_, careerSeed) =>
-        createSeasonSponsorship(seasonContext({ careerSeed })).offers,
-    ).flat();
-    const cleanSheet = offers.find(
-      (offer) => offer.objective.kind === 'LEAGUE_CLEAN_SHEETS',
-    )!;
-    const level = {
-      STEADY: 'EASY',
-      BALANCED: 'NORMAL',
-      BOLD: 'HARD',
-    } as const;
-    const authored = RULES.objectives.find(
-      (objective) => objective.kind === 'LEAGUE_CLEAN_SHEETS',
-    )!;
+  it('keeps every D4 clean-sheet offer near half on Cozy and Chairman', () => {
+    const targets = (difficulty: 'COZY' | 'CHAIRMAN') => {
+      const byProfile = new Map(
+        Array.from(
+          { length: 50 },
+          (_, careerSeed) =>
+            createSeasonSponsorship(seasonContext({ careerSeed, difficulty }))
+              .offers,
+        )
+          .flat()
+          .filter((offer) => offer.objective.kind === 'LEAGUE_CLEAN_SHEETS')
+          .map((offer) => [offer.profile, offer.objective.target] as const),
+      );
+      return [...byProfile.entries()].sort(([left], [right]) =>
+        left.localeCompare(right),
+      );
+    };
 
-    expect(cleanSheet.objective.target).toBe(
-      authored.targets[level[cleanSheet.profile]] - 1,
-    );
+    expect(targets('COZY')).toEqual([
+      ['BALANCED', 2],
+      ['BOLD', 3],
+      ['STEADY', 1],
+    ]);
+    expect(targets('CHAIRMAN')).toEqual([
+      ['BALANCED', 3],
+      ['BOLD', 4],
+      ['STEADY', 2],
+    ]);
   });
 
   it('tightens every Chairman target without changing the deterministic candidate identity', () => {

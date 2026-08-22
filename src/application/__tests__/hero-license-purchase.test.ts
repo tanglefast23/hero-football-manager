@@ -41,8 +41,8 @@ describe('Hero License purchases', () => {
     expect(heroLicensePurchaseCost(3)).toBe(100_000);
     expect(heroLicensePurchaseCost(4)).toBe(200_000);
     expect(heroLicensePurchaseCost(5)).toBe(300_000);
-    expect(heroLicensePurchaseCost(6)).toBe(350_000);
-    expect(heroLicensePurchaseCost(7)).toBe(400_000);
+    expect(heroLicensePurchaseCost(6)).toBe(400_000);
+    expect(heroLicensePurchaseCost(7)).toBe(500_000);
     expect(() => heroLicensePurchaseCost(2)).toThrow('never sold');
 
     // A Global League club that bought nothing still pays the fifth permit's

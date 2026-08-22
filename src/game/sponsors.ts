@@ -939,8 +939,14 @@ function objectiveTarget(
     context.division === 4 && kind === 'LEAGUE_CLEAN_SHEETS'
       ? Math.max(1, authoredTarget - 1)
       : authoredTarget;
-  if (context.difficulty !== 'CHAIRMAN') return divisionTarget;
-  const adjusted = divisionTarget + chairmanDelta;
+  const adjusted =
+    context.difficulty === 'CHAIRMAN'
+      ? divisionTarget + chairmanDelta
+      : divisionTarget;
+  if (context.division === 4 && kind === 'LEAGUE_CLEAN_SHEETS') {
+    return Math.max(1, Math.ceil(adjusted / 2));
+  }
+  if (context.difficulty !== 'CHAIRMAN') return adjusted;
   return kind === 'LEAGUE_FINISH' ? Math.max(1, adjusted) : adjusted;
 }
 

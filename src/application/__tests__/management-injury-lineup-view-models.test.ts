@@ -344,6 +344,38 @@ describe('management injury and lineup presentation', () => {
     );
   });
 
+  it('removes a retirement announcement after the player leaves the club', () => {
+    const initial = createCareer(
+      createLaunchCareerSetup(20260722, undefined, content),
+    );
+    const player = initial.players.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const sold: GameState = {
+      ...initial,
+      season: 2,
+      players: initial.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, clubId: 'sold-to-club' }
+          : candidate,
+      ),
+      retirementAnnouncements: [
+        {
+          playerId: player.id,
+          playerName: player.name,
+          announcedInSeason: 1,
+          retirementAge: 36,
+        },
+      ],
+    };
+
+    expect(
+      homeViewModel(sold).alerts.some((alert) =>
+        alert.id.startsWith('retirement-announcement-'),
+      ),
+    ).toBe(false);
+  });
+
   it('shows the exact board candidates and retained protected-player choice', () => {
     const initial = createCareer(
       createLaunchCareerSetup(20260723, undefined, content),

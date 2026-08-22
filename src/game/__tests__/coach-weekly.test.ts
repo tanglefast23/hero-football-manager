@@ -1,7 +1,7 @@
 import {
   applyCareerCoachTrainingModifier,
   coachMotivatorBonusPercent,
-  coachMotivatorStrengthHalfLevels,
+  coachMotivatorStrengthHalfPercentUnits,
   coachTrainingBonusPercent,
   careerCoachTrainingModifiers,
   careerCoachWeeklyTrainingPoints,
@@ -38,15 +38,24 @@ function marketWithCoach(
 }
 
 describe('career coach weekly effects', () => {
-  test('defines exact head and half-strength assistant percentages', () => {
-    expect(coachTrainingBonusPercent(1, 'HEAD')).toBe(10);
-    expect(coachTrainingBonusPercent(1, 'ASSISTANT')).toBe(5);
-    expect(coachMotivatorBonusPercent(1, 'HEAD')).toBe(5);
-    expect(coachMotivatorBonusPercent(1, 'ASSISTANT')).toBe(2.5);
+  test('defines the exact training and Motivator ladders', () => {
+    const levels = [1, 2, 3, 4, 5];
+    expect(
+      levels.map((level) => coachTrainingBonusPercent(level, 'HEAD')),
+    ).toEqual([7, 14, 21, 28, 35]);
+    expect(
+      levels.map((level) => coachTrainingBonusPercent(level, 'ASSISTANT')),
+    ).toEqual([3, 6, 9, 12, 15]);
+    expect(
+      levels.map((level) => coachMotivatorBonusPercent(level, 'HEAD')),
+    ).toEqual([4, 8, 12, 16, 20]);
+    expect(
+      levels.map((level) => coachMotivatorBonusPercent(level, 'ASSISTANT')),
+    ).toEqual([2, 4, 6, 8, 10]);
 
     const market = marketWithCoach(['MOTIVATOR', 'ATTACK'], 1);
     expect(
-      coachMotivatorStrengthHalfLevels({
+      coachMotivatorStrengthHalfPercentUnits({
         ...market,
         assistantCoach: {
           ...market.headCoach!,
@@ -54,7 +63,7 @@ describe('career coach weekly effects', () => {
           level: 1,
         },
       }),
-    ).toBe(3);
+    ).toBe(12);
   });
 
   test('returns zero-cost, neutral training data before a head coach is hired', () => {
@@ -121,15 +130,15 @@ describe('career coach weekly effects', () => {
     expect(modifiers).toEqual({
       coachId: 'coach-test',
       qualityLevel: 3,
-      specialtyBonusPercent: 30,
+      specialtyBonusPercent: 21,
       specialties: ['ATTACK', 'FITNESS'],
       gainScalePercentByAttribute: {
-        pac: 130,
-        sho: 130,
+        pac: 121,
+        sho: 121,
         pas: 100,
         def: 100,
         tec: 100,
-        sta: 130,
+        sta: 121,
         ref: 100,
       },
     });
@@ -137,7 +146,7 @@ describe('career coach weekly effects', () => {
     expect(JSON.parse(JSON.stringify(modifiers))).toEqual(modifiers);
   });
 
-  test('adds an assistant at half strength and includes both weekly wages', () => {
+  test('adds the smaller assistant effect and includes both weekly wages', () => {
     const market = marketWithCoach(['ATTACK', 'FITNESS'], 4, 2_000);
     const assistant: CoachCandidate = {
       id: 'assistant-test',
@@ -157,12 +166,12 @@ describe('career coach weekly effects', () => {
       coachId: 'coach-test',
       assistantCoachId: 'assistant-test',
       gainScalePercentByAttribute: {
-        pac: 140,
-        sho: 150,
-        pas: 110,
+        pac: 128,
+        sho: 134,
+        pas: 106,
         def: 100,
-        tec: 110,
-        sta: 140,
+        tec: 106,
+        sta: 128,
         ref: 100,
       },
     });
@@ -188,7 +197,7 @@ describe('career coach weekly effects', () => {
         .map(([attribute]) => attribute);
 
       expect(boosted).toEqual(boostedAttributes);
-      expect(modifiers.specialtyBonusPercent).toBe(20);
+      expect(modifiers.specialtyBonusPercent).toBe(14);
     },
   );
 
