@@ -459,6 +459,7 @@ describe('portfolio difficulty allocation', () => {
 describe('one-match sponsor challenge', () => {
   it('offers two midseason targets and settles the chosen next fixture once', () => {
     const sponsorship = createSeasonSponsorship(seasonContext());
+    const prior = fixture('prior', 'c', 'b', 1, 0, { week: 14 });
     const scheduled = fixture('sprint', 'user', 'b', 0, 0, {
       week: 16,
       status: 'scheduled',
@@ -466,11 +467,17 @@ describe('one-match sponsor challenge', () => {
     });
 
     expect(
-      sponsorWeeklyChallengeOptions(sponsorship, [scheduled], 'user', 3, 14),
+      sponsorWeeklyChallengeOptions(
+        sponsorship,
+        [prior, scheduled],
+        'user',
+        3,
+        14,
+      ),
     ).toEqual([]);
     const options = sponsorWeeklyChallengeOptions(
       sponsorship,
-      [scheduled],
+      [prior, scheduled],
       'user',
       3,
       15,
@@ -483,14 +490,14 @@ describe('one-match sponsor challenge', () => {
 
     const accepted = acceptSponsorWeeklyChallenge(
       sponsorship,
-      [scheduled],
+      [prior, scheduled],
       'user',
       3,
       15,
       'SCORE_THREE',
     );
     expect(
-      settleSponsorWeeklyChallenge(accepted, [scheduled], 'user', 3, 80),
+      settleSponsorWeeklyChallenge(accepted, [prior, scheduled], 'user', 3, 80),
     ).toEqual({ sponsorship: accepted });
 
     const played = {
@@ -500,7 +507,7 @@ describe('one-match sponsor challenge', () => {
     };
     const settled = settleSponsorWeeklyChallenge(
       accepted,
-      [played],
+      [prior, played],
       'user',
       3,
       80,
@@ -513,12 +520,32 @@ describe('one-match sponsor challenge', () => {
     expect(
       settleSponsorWeeklyChallenge(
         settled.sponsorship,
-        [played],
+        [prior, played],
         'user',
         3,
         80,
       ),
     ).toEqual({ sponsorship: settled.sponsorship });
+  });
+
+  it('offers no challenge against the current league leader', () => {
+    const sponsorship = createSeasonSponsorship(seasonContext());
+    const prior = fixture('leader-win', 'b', 'c', 2, 0, { week: 14 });
+    const scheduled = fixture('visit-leader', 'user', 'b', 0, 0, {
+      week: 16,
+      status: 'scheduled',
+      score: undefined,
+    });
+
+    expect(
+      sponsorWeeklyChallengeOptions(
+        sponsorship,
+        [prior, scheduled],
+        'user',
+        3,
+        15,
+      ),
+    ).toEqual([]);
   });
 });
 

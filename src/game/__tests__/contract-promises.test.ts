@@ -3,6 +3,7 @@ import { createCareer } from '../career';
 import {
   applyCareerContractPromise,
   careerContractPromiseBlockedReason,
+  ContractPromiseBlockedError,
   hasActiveCareerContractPromise,
   reclaimableHeroLicenseHolders,
   restoreCareerContractPromiseLineup,
@@ -144,6 +145,50 @@ describe('career contract promises', () => {
     expect(promisedIds).toContain(reserve.id);
     expect(promisedIds).not.toContain(weaker.id);
     expect(promisedIds).toContain(stronger.id);
+  });
+
+  test('a starting promise never replaces a player from another role', () => {
+    const state = career(9406);
+    const lineup = state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+    const starters = new Set(lineup.playerIds);
+    const reserve = state.players.find(
+      (player) =>
+        player.clubId === state.userClubId &&
+        !starters.has(player.id) &&
+        player.role !== 'GK',
+    )!;
+    const noMatchingSlot: GameState = {
+      ...state,
+      players: state.players.map((player) => {
+        if (player.id === reserve.id) {
+          return {
+            ...player,
+            role: 'FWD' as const,
+            contractSeasonsRemaining: 2,
+            contractPromise: {
+              perk: 'GUARANTEED_STARTER' as const,
+              agreedSeason: state.season,
+            },
+          };
+        }
+        return starters.has(player.id) && player.role === 'FWD'
+          ? { ...player, role: 'DEF' as const }
+          : player;
+      }),
+    };
+
+    const restored = restoreCareerContractPromiseLineup(noMatchingSlot);
+
+    expect(
+      restored.lineups.find(
+        (candidate) => candidate.clubId === restored.userClubId,
+      )?.playerIds,
+    ).not.toContain(reserve.id);
+    expect(() =>
+      setCareerLineup(noMatchingSlot, lineup.playerIds),
+    ).not.toThrow();
   });
 
   test('captaincy and shirt ten are unique, persisted player roles', () => {
@@ -525,14 +570,43 @@ describe('career contract promises', () => {
       ).not.toThrow();
     });
 
-    test('keeps the license required by an active starting promise', () => {
-      const { state, heroIds } = fullLicenseCap(9419);
-      const promised = promiseStarter(state, heroIds[0]);
+    test.each([
+      ['GUARANTEED_STARTER', 'GUARANTEED_STARTER'],
+      ['CAPTAINCY', 'CAPTAINCY'],
+    ] as const)(
+      'names the active %s promise when its Hero License cannot be removed',
+      (perk, keySuffix) => {
+        const { state, heroIds } = fullLicenseCap(9419);
+        const promised = {
+          ...state,
+          players: state.players.map((player) =>
+            player.id === heroIds[0]
+              ? {
+                  ...player,
+                  contractSeasonsRemaining: 2,
+                  contractPromise: {
+                    perk,
+                    agreedSeason: state.season,
+                  },
+                }
+              : player,
+          ),
+        } satisfies GameState;
 
-      expect(() =>
-        selectCareerLicensedHeroes(promised, heroIds.slice(1)),
-      ).toThrow('starting promise needs this Hero License');
-    });
+        try {
+          selectCareerLicensedHeroes(promised, heroIds.slice(1));
+          throw new Error('expected Hero License removal to be blocked');
+        } catch (error) {
+          expect(error).toBeInstanceOf(ContractPromiseBlockedError);
+          expect((error as ContractPromiseBlockedError).key).toBe(
+            `store.heroLicensePromiseRequired.${keySuffix}`,
+          );
+          expect((error as ContractPromiseBlockedError).params).toMatchObject({
+            season: state.season,
+          });
+        }
+      },
+    );
 
     test('repairs a legacy save that already strands an unlicensed starter', () => {
       const { state, heroIds } = fullLicenseCap(9418);

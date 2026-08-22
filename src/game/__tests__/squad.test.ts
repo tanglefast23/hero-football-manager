@@ -361,6 +361,80 @@ describe('career squad integration', () => {
     });
   });
 
+  it('uses condition, then a licensed-hero tie, with a stable result', () => {
+    const initial = career();
+    const regular = {
+      ...makePlayer(CLUB_IDS[0], 13),
+      role: 'DEF' as const,
+      attrs: { pac: 80, sho: 80, pas: 80, def: 80, tec: 80, sta: 80, ref: 80 },
+      condition: 100,
+    };
+    const hero = {
+      ...makePlayer(CLUB_IDS[0], 14),
+      role: 'DEF' as const,
+      power: 'SUPER_STRENGTH' as const,
+      licensed: true,
+      attrs: { ...regular.attrs },
+      condition: 100,
+    };
+    const candidate: GameState = {
+      ...initial,
+      players: [
+        ...initial.players.map((player) => {
+          if (player.id === `${CLUB_IDS[0]}-p9`) {
+            return { ...player, licensed: false };
+          }
+          if (
+            player.clubId === CLUB_IDS[0] &&
+            ['p1', 'p2', 'p3'].some((suffix) => player.id.endsWith(suffix))
+          ) {
+            return {
+              ...player,
+              attrs: {
+                pac: 90,
+                sho: 90,
+                pas: 90,
+                def: 90,
+                tec: 90,
+                sta: 90,
+                ref: 90,
+              },
+            };
+          }
+          if (player.id === `${CLUB_IDS[0]}-p4`) {
+            return {
+              ...player,
+              attrs: {
+                pac: 90,
+                sho: 90,
+                pas: 90,
+                def: 90,
+                tec: 90,
+                sta: 90,
+                ref: 90,
+              },
+              condition: 1,
+            };
+          }
+          return player;
+        }),
+        regular,
+        hero,
+      ],
+    };
+
+    const first = arrangeCareerLineupForFormation(candidate, '4-4-2');
+    const second = arrangeCareerLineupForFormation(candidate, '4-4-2');
+    const ids = first.lineups.find(
+      (lineup) => lineup.clubId === first.userClubId,
+    )!.playerIds;
+
+    expect(ids).toContain(hero.id);
+    expect(ids).not.toContain(regular.id);
+    expect(ids).not.toContain(`${CLUB_IDS[0]}-p4`);
+    expect(second.lineups).toEqual(first.lineups);
+  });
+
   it('trades formation slots when both players already start, never the keeper', () => {
     const initial = career();
     const lineup = initial.lineups.find(

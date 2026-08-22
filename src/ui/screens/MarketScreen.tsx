@@ -964,6 +964,11 @@ function ScoutingDesk({
                   }}
                 />
               </View>
+              {report.detailedReportBlockedReason ? (
+                <Text className="mt-2 text-right text-sm font-bold text-stamp">
+                  {report.detailedReportBlockedReason}
+                </Text>
+              ) : null}
             </Pressable>
           ))}
         </View>

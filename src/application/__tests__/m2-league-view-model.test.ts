@@ -1,6 +1,8 @@
 import { CUP_SETTLEMENT_WEEKS } from '../../game/career';
 import {
   advanceM2NationalCup,
+  applyM2PromotionAndRelegation,
+  deterministicM2FinishOrders,
   initializeM2Career,
   startM2NationalCup,
   type M2CareerState,
@@ -133,6 +135,7 @@ describe('m2LeagueViewModel', () => {
     expect(view.selectedDivisionSummary.comparisonLabel).toMatch(
       /^\d+ below range$/,
     );
+    expect(view.activeTable.rows.at(-1)?.movement).toBe('NONE');
     expect(view.activeTable.rows).toHaveLength(10);
     expect(view.activeTable.rows[2]).toMatchObject({
       clubId: USER_CLUB.id,
@@ -163,6 +166,40 @@ describe('m2LeagueViewModel', () => {
     ]);
     expect(JSON.stringify({ career, activeStandings })).toBe(frozen);
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
+  });
+
+  it('marks the two lowest rivals for relegation while the player club stays', () => {
+    const initial = initializeM2Career({
+      careerSeed: 552,
+      userClub: USER_CLUB,
+    });
+    const divisionFive = initial.pyramid.divisions.find(
+      (division) => division.level === 5,
+    )!;
+    const career = applyM2PromotionAndRelegation(
+      initial,
+      deterministicM2FinishOrders(initial, 2, 5, [
+        USER_CLUB.id,
+        ...divisionFive.clubs
+          .map((club) => club.id)
+          .filter((clubId) => clubId !== USER_CLUB.id),
+      ]),
+    ).state;
+    const view = m2LeagueViewModel({
+      career,
+      season: 2,
+      week: 30,
+      activeStandings: standings(career, 10),
+      leagueFixtures: userLeagueFixtures(career),
+    });
+
+    expect(
+      view.activeTable.rows.slice(7).map((row) => [row.position, row.movement]),
+    ).toEqual([
+      [8, 'RELEGATION'],
+      [9, 'RELEGATION'],
+      [10, 'NONE'],
+    ]);
   });
 
   it('uses the live squad rating when comparing the club with a division', () => {

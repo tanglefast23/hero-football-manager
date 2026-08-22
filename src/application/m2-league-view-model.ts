@@ -280,6 +280,15 @@ function activeTableRows(
     validateStandingNumbers(standing);
   }
 
+  const relegatedClubIds = new Set(
+    userDivision === 5
+      ? []
+      : source.activeStandings
+          .filter((standing) => standing.clubId !== source.career.userClubId)
+          .sort((left, right) => right.position - left.position)
+          .slice(0, 2)
+          .map((standing) => standing.clubId),
+  );
   return source.activeStandings
     .slice()
     .sort((left, right) => left.position - right.position)
@@ -297,7 +306,7 @@ function activeTableRows(
       movement:
         standing.position <= 2 && userDivision > 1
           ? ('PROMOTION' as const)
-          : standing.position >= 9 && userDivision < 5
+          : relegatedClubIds.has(standing.clubId)
             ? ('RELEGATION' as const)
             : ('NONE' as const),
     }));

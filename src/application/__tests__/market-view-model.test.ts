@@ -141,7 +141,15 @@ describe('marketViewModel', () => {
       scoutOfficeLevel: 2,
       division: 3,
     });
-    const scoutResult = resolveScoutMission(mission, mission.dueWeek, [player]);
+    const resolved = resolveScoutMission(mission, mission.dueWeek, [player]);
+    const scoutResult = {
+      ...resolved,
+      reports: resolved.reports.map((report) => ({
+        ...report,
+        completedSeason: source.season,
+        completedWeek: source.week,
+      })),
+    };
     const viewModel = marketViewModel({
       ...source,
       scoutResult,
@@ -197,6 +205,105 @@ describe('marketViewModel', () => {
       '66',
       '62',
     ]);
+  });
+
+  it('allows a Level 3 detailed follow-up while any report value is still a range', () => {
+    const source = baseSource();
+    const player = scoutPlayer('level-three-range');
+    const mission = startScoutMission({
+      careerSeed: source.careerSeed,
+      missionId: 'level-three-trip',
+      startWeek: 46,
+      region: 'EUROPE',
+      focus: { kind: 'POSITION', role: 'MID' },
+      scoutOfficeLevel: 3,
+      division: 3,
+    });
+    const resolved = resolveScoutMission(mission, mission.dueWeek, [player]);
+    const scoutResult = {
+      ...resolved,
+      reports: resolved.reports.map((candidate) => ({
+        ...candidate,
+        completedSeason: source.season,
+        completedWeek: source.week,
+      })),
+    };
+    const report = marketViewModel({
+      ...source,
+      scoutOfficeLevel: 3,
+      scoutResult,
+    }).scouting.reports[0];
+
+    expect(report.exactValues).toBe(false);
+    expect(report.detailedReportAvailable).toBe(true);
+    expect(report.detailedReportBlockedReason).toBeUndefined();
+  });
+
+  it('explains when a detailed report is unaffordable', () => {
+    const source = baseSource();
+    const player = scoutPlayer('unaffordable-detail');
+    const mission = startScoutMission({
+      careerSeed: source.careerSeed,
+      missionId: 'unaffordable-trip',
+      startWeek: 46,
+      region: 'EUROPE',
+      focus: { kind: 'POSITION', role: 'MID' },
+      scoutOfficeLevel: 2,
+      division: 3,
+    });
+    const resolved = resolveScoutMission(mission, mission.dueWeek, [player]);
+    const report = marketViewModel({
+      ...source,
+      cash: 0,
+      scoutResult: {
+        ...resolved,
+        reports: resolved.reports.map((candidate) => ({
+          ...candidate,
+          completedSeason: source.season,
+          completedWeek: source.week,
+        })),
+      },
+    }).scouting.reports[0];
+
+    expect(report.detailedReportAvailable).toBe(false);
+    expect(report.detailedReportBlockedReason).toBe('Not enough money.');
+  });
+
+  it('marks only scout trips that return after the season final window', () => {
+    const choices = marketViewModel({
+      ...baseSource(),
+      scoutOptions: [
+        {
+          id: 'late-trip',
+          region: 'LOCAL',
+          focus: { kind: 'POSITION', role: 'MID' },
+          durationWeeks: 2,
+        },
+        {
+          id: 'on-time-trip',
+          region: 'EUROPE',
+          focus: { kind: 'POSITION', role: 'DEF' },
+          durationWeeks: 1,
+        },
+      ],
+    }).scouting.choices;
+
+    expect(choices[0].returnsAfterFinalWindow).toBe(true);
+    expect(choices[1].returnsAfterFinalWindow).toBeUndefined();
+    expect(
+      marketViewModel({
+        ...baseSource(),
+        week: 3,
+        scoutOptions: [
+          {
+            id: 'misses-opening-window',
+            region: 'LOCAL',
+            focus: { kind: 'POSITION', role: 'MID' },
+            durationWeeks: 2,
+          },
+        ],
+      }).scouting.choices[0].returnsAfterFinalWindow,
+    ).toBeUndefined();
   });
 
   it('shows a new active trip even while an older report remains on the desk', () => {
@@ -408,7 +515,7 @@ describe('marketViewModel', () => {
       },
     });
 
-    expect(viewModel.negotiation?.wageStep).toBe(1_760);
+    expect(viewModel.negotiation?.wageStep).toBe(8_820);
   });
 
   describe('youth prospect stats', () => {

@@ -52,11 +52,11 @@ const EXPECTED: Readonly<
   'first-up': { outcome: 'PROMOTED', division: 5, position: 1 },
   promoted: { outcome: 'PROMOTED', division: 4, position: 2 },
   safe: { outcome: 'SAFE', division: 3, position: 7 },
-  relegated: { outcome: 'RELEGATED', division: 2, position: 10 },
+  survived: { outcome: 'SAFE', division: 2, position: 10 },
   champions: { outcome: 'CHAMPIONS', division: 1, position: 1 },
 };
 
-describe('the promotion and relegation reel', () => {
+describe('the promotion and survival reel', () => {
   const seed = seedFromSource();
   const seasons = seasonsFromSource();
   const content = loadLaunchContent();
@@ -86,21 +86,20 @@ describe('the promotion and relegation reel', () => {
   );
 
   /**
-   * The review screen re-derives promotion and relegation from the position
-   * rather than calling `divisionAfterFinish`. They must agree, because the
-   * reel prints both side by side and a reviewer would read the disagreement
-   * as a bug in the pyramid rather than a second copy of it.
+   * The review screen applies promotion but protects the player from the
+   * pyramid's relegation result. The preview must apply that same clamp.
    */
   it.each(Object.keys(EXPECTED))(
     'agrees with the pyramid rule on %s',
     (caseId) => {
       const expected = EXPECTED[caseId];
-      const next = divisionAfterFinish(expected.division, expected.position);
+      const next = Math.min(
+        expected.division,
+        divisionAfterFinish(expected.division, expected.position),
+      );
 
       if (expected.outcome === 'PROMOTED')
         expect(next).toBe(expected.division - 1);
-      else if (expected.outcome === 'RELEGATED')
-        expect(next).toBe(expected.division + 1);
       else expect(next).toBe(expected.division);
     },
   );

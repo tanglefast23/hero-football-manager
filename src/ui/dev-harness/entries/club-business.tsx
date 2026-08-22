@@ -15,10 +15,7 @@ import {
   divisionSponsorAnchor,
   expireSponsorOfferWindow,
 } from '../../../game';
-import type {
-  FacilityGridState,
-  FacilityType,
-} from '../../../game/facilities';
+import type { FacilityGridState, FacilityType } from '../../../game/facilities';
 import type { DivisionLevel } from '../../../game/pyramid';
 import type { GameState } from '../../../game/types';
 import {

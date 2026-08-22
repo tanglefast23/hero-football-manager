@@ -6,6 +6,7 @@ import { compareIds } from './ordering';
 import {
   advanceNationalCup,
   createNationalCup,
+  divisionAfterFinish,
   generateLeaguePyramid,
   resolvePromotionAndRelegation,
   resolveSeasonEndLifecycle,
@@ -471,7 +472,33 @@ export function applyM2PromotionAndRelegation(
   finishOrders: readonly DivisionFinishOrder[],
 ): M2PromotionResolution {
   validateStateIdentity(state);
-  const resolved = resolvePromotionAndRelegation(state.pyramid, finishOrders);
+  const protectedOrders = finishOrders.map((order) => {
+    const userIndex = order.orderedClubIds.indexOf(state.userClubId);
+    if (
+      userIndex < 0 ||
+      divisionAfterFinish(order.division, userIndex + 1) <= order.division
+    ) {
+      return order;
+    }
+
+    const orderedClubIds = [...order.orderedClubIds];
+    // Keep the player club safe and let the existing pyramid swap the next AI club.
+    let safeIndex = userIndex - 1;
+    while (
+      divisionAfterFinish(order.division, safeIndex + 1) > order.division
+    ) {
+      safeIndex -= 1;
+    }
+    [orderedClubIds[safeIndex], orderedClubIds[userIndex]] = [
+      orderedClubIds[userIndex],
+      orderedClubIds[safeIndex],
+    ];
+    return { ...order, orderedClubIds };
+  });
+  const resolved = resolvePromotionAndRelegation(
+    state.pyramid,
+    protectedOrders,
+  );
   return {
     state: { ...state, pyramid: resolved.pyramid },
     movements: resolved.movements,

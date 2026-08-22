@@ -714,39 +714,89 @@ export function arrangeCareerLineupForFormation(
   );
   if (lineup === undefined)
     throw new Error(`missing lineup for club ${state.userClubId}`);
-  const remaining = state.players
+  const remaining = state.players.filter(
+    (player) =>
+      player.clubId === state.userClubId &&
+      isAvailableForSelection(player) &&
+      (player.power === undefined || player.licensed),
+  );
+  const arranged: (string | undefined)[] = lineup.playerIds.map(
+    () => undefined,
+  );
+  const assign = (slot: number, player: CareerPlayer) => {
+    arranged[slot] = player.id;
+    remaining.splice(
+      remaining.findIndex((candidate) => candidate.id === player.id),
+      1,
+    );
+  };
+  const promised = remaining
     .filter(
       (player) =>
-        player.clubId === state.userClubId &&
-        isAvailableForSelection(player) &&
-        (player.power === undefined || player.licensed),
+        hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') ||
+        hasActiveCareerContractPromise(player, 'CAPTAINCY'),
     )
     .sort(
       (left, right) =>
-        conditionedRatingD64(
-          roleOverall(right.role, right.attrs),
-          right.condition ?? 100,
-        ) -
-          conditionedRatingD64(
-            roleOverall(left.role, left.attrs),
-            left.condition ?? 100,
-          ) || compareIds(left.id, right.id),
+        left.contractPromise!.agreedSeason -
+          right.contractPromise!.agreedSeason || compareIds(left.id, right.id),
     );
-  const arranged = lineup.playerIds.map((_, slot) => {
-    const role = formationRoleForSlot(formation, slot);
-    const match = remaining.findIndex((player) => player.role === role);
-    return match < 0 ? undefined : remaining.splice(match, 1)[0].id;
-  });
-  const playerIds = arranged.map((playerId, slot) => {
-    if (playerId !== undefined) return playerId;
-    const fallback = remaining.findIndex((player) =>
-      slot === 0 ? player.role === 'GK' : player.role !== 'GK',
+  for (const player of promised) {
+    const slot = arranged.findIndex(
+      (playerId, index) =>
+        playerId === undefined &&
+        formationRoleForSlot(formation, index) === player.role,
     );
-    return fallback < 0 ? undefined : remaining.splice(fallback, 1)[0].id;
-  });
-  if (playerIds.some((playerId) => playerId === undefined)) {
-    throw new Error('the squad cannot fill this formation');
+    if (slot >= 0) assign(slot, player);
   }
+  const rankedForRole = (role: CareerPlayer['role']) =>
+    remaining
+      .filter((player) => player.role === role)
+      .sort(
+        (left, right) =>
+          conditionedRatingD64(
+            roleOverall(role, right.attrs),
+            right.condition ?? 100,
+          ) -
+            conditionedRatingD64(
+              roleOverall(role, left.attrs),
+              left.condition ?? 100,
+            ) ||
+          Number(right.licensed) - Number(left.licensed) ||
+          compareIds(left.id, right.id),
+      )[0];
+  arranged.forEach((playerId, slot) => {
+    if (playerId !== undefined) return;
+    const match = rankedForRole(formationRoleForSlot(formation, slot));
+    if (match !== undefined) assign(slot, match);
+  });
+  arranged.forEach((playerId, slot) => {
+    if (playerId !== undefined || slot === 0) return;
+    const role = formationRoleForSlot(formation, slot);
+    const fallback = remaining
+      .filter(
+        (player) =>
+          player.role !== 'GK' &&
+          !hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') &&
+          !hasActiveCareerContractPromise(player, 'CAPTAINCY'),
+      )
+      .sort(
+        (left, right) =>
+          conditionedRatingD64(
+            roleOverall(role, right.attrs),
+            right.condition ?? 100,
+          ) -
+            conditionedRatingD64(
+              roleOverall(role, left.attrs),
+              left.condition ?? 100,
+            ) ||
+          Number(right.licensed) - Number(left.licensed) ||
+          compareIds(left.id, right.id),
+      )[0];
+    if (fallback !== undefined) assign(slot, fallback);
+  });
+  if (arranged.some((playerId) => playerId === undefined)) return state;
+  const playerIds = arranged as string[];
   const arrangedState = {
     ...state,
     lineups: state.lineups.map((candidate) =>
@@ -854,10 +904,14 @@ export function selectCareerLicensedHeroes(
         hasActiveCareerContractPromise(player, 'CAPTAINCY')),
   );
   if (protectedHero !== undefined) {
+    const promise = protectedHero.contractPromise!;
     throw new ContractPromiseBlockedError({
       text: `${protectedHero.name}'s starting promise needs this Hero License.`,
-      key: 'store.heroLicensePromiseRequired',
-      params: { player: protectedHero.name },
+      key: `store.heroLicensePromiseRequired.${promise.perk}`,
+      params: {
+        player: protectedHero.name,
+        season: promise.agreedSeason,
+      },
     });
   }
   const selected = selectLicensedHeroes(

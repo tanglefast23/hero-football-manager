@@ -587,7 +587,7 @@ interface M1Store {
   completeMidseasonTraining: () => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
-  advanceCareer: () => void;
+  advanceCareer: (formation?: FormationId) => void;
   quickResult: (
     preferences?: Pick<ManagerMatchPreferences, 'initialFormation'>,
   ) => void;
@@ -1580,7 +1580,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({ screen: 'matchday', activeTab: 'league', error: null });
   },
 
-  advanceCareer() {
+  advanceCareer(formation) {
     guarded(set, () => {
       // Advance is only dispatched from the management shell and the season
       // recap. A double-tap lands the second dispatch after the screen has
@@ -1632,7 +1632,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
               ...career,
               eventFlags: [...career.eventFlags, 'm4:season-recap-guide-seen'],
             };
-        const next = reconcilePendingClubLegends(startNextSeason(guidedCareer));
+        const started = reconcilePendingClubLegends(
+          startNextSeason(guidedCareer),
+        );
+        const next =
+          formation === undefined
+            ? started
+            : arrangeCareerLineupForFormation(started, formation);
         set({
           career: next,
           screen:

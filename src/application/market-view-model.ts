@@ -507,11 +507,13 @@ export function marketViewModel(
           report.role === 'GK'
             ? (['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const)
             : (['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const);
-        const exactValues = stats.every(
-          (attribute) =>
-            report.statRanges[attribute].minimum ===
-            report.statRanges[attribute].maximum,
-        );
+        const exactValues =
+          report.potentialRange.minimum === report.potentialRange.maximum &&
+          stats.every(
+            (attribute) =>
+              report.statRanges[attribute].minimum ===
+              report.statRanges[attribute].maximum,
+          );
         return {
           playerId: report.playerId,
           playerName: identity?.name ?? report.playerId,
@@ -532,12 +534,16 @@ export function marketViewModel(
           ...(report.rumoredHeroLead === true && report.power === undefined
             ? { rumorLabel: t('market.heroRumorLooksReal') }
             : {}),
-          stats: stats.map((attribute) => ({
-            label: attribute.toUpperCase(),
-            rangeLabel: exactValues
-              ? String(report.statRanges[attribute].minimum)
-              : `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,
-          })),
+          stats: stats.map((attribute) => {
+            const range = report.statRanges[attribute];
+            return {
+              label: attribute.toUpperCase(),
+              rangeLabel:
+                range.minimum === range.maximum
+                  ? String(range.minimum)
+                  : `${range.minimum}-${range.maximum}`,
+            };
+          }),
           exactValues,
           // Attributes are cap-free, so a scouted range legitimately runs past
           // 100 and reads as a bug when it does. Said once, on the reports that
@@ -550,8 +556,7 @@ export function marketViewModel(
           dismissAvailable:
             source.negotiation?.state.playerId !== report.playerId,
           detailedReportAvailable:
-            source.scoutOfficeLevel < 3 &&
-            report.potentialRange.minimum !== report.potentialRange.maximum &&
+            !exactValues &&
             source.detailedScoutReport === undefined &&
             source.cash >= detailedScoutReportCost(source.division) &&
             reportSurvivesUntil(
@@ -568,6 +573,29 @@ export function marketViewModel(
                     detailedScoutReportCost(source.division),
                   ),
                 }),
+          ...(!exactValues && source.detailedScoutReport !== undefined
+            ? {
+                detailedReportBlockedReason: t(
+                  'market.detailedReportInProgress',
+                ),
+              }
+            : !exactValues &&
+                source.cash < detailedScoutReportCost(source.division)
+              ? {
+                  detailedReportBlockedReason: t('market.scoutNotEnoughMoney'),
+                }
+              : !exactValues &&
+                  !reportSurvivesUntil(
+                    { season: source.season, week: source.week },
+                    report,
+                    source.scoutOfficeLevel >= 2 ? 1 : 2,
+                  )
+                ? {
+                    detailedReportBlockedReason: t(
+                      'market.detailedReportExpiresBeforeReturn',
+                    ),
+                  }
+                : {}),
         } satisfies ScoutReportViewModel;
       }),
     },
@@ -805,6 +833,7 @@ function scoutingChoice(
     source.cash,
     source.firstScoutFavorAvailable === true,
   );
+  const durationWeeks = option.durationWeeks;
   return {
     id: option.id,
     region: option.region,
@@ -827,12 +856,15 @@ function scoutingChoice(
     cost,
     feeWaived,
     durationLabel:
-      option.durationWeeks === undefined
+      durationWeeks === undefined
         ? t('market.scoutDuration')
         : t('market.scoutDurationWeeks', {
-            n: option.durationWeeks,
-            count: option.durationWeeks,
+            n: durationWeeks,
+            count: durationWeeks,
           }),
+    ...(durationWeeks !== undefined && source.week + durationWeeks > 18
+      ? { returnsAfterFinalWindow: true }
+      : {}),
     available:
       !busy && !heroLocked && !eliteLocked && (affordable || feeWaived),
     ...(busy

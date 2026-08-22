@@ -167,12 +167,16 @@ Use this flexible order:
 
 1. Complete required onboarding facilities.
 2. Build the Training Pitch and Coaching Office TP engine.
-3. Build Stadium Stands and adjacent Fan Shops until home income is strong.
+3. Build two Stadium Stands and two adjacent Fan Shops before any miscellaneous
+   skill facility.
 4. Build enough Dorm recovery to support the training and rotation plan.
 5. Build or upgrade the facility for the weakest important unit.
 6. Upgrade the Scout Office before paying for high-value uncertain reports.
 7. Upgrade the Youth Field when youth can still enter the long-term squad.
 8. Upgrade every other useful unlocked building to its current maximum.
+
+Build the third Stadium Stand and third Fan Shop later, when another income
+upgrade beats the next training or recovery upgrade.
 
 The order may change for an urgent renewal, a major Starting XI transfer, or a
 clear condition problem. Record the reason. Do not use old fixed cash floors

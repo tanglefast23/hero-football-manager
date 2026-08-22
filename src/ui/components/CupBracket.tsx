@@ -69,9 +69,10 @@ export function CupBracket({
   );
   // A phone gets the tree wrapped into bands rather than five columns it would
   // have to scroll sideways through, which hides the shape the bracket is for.
-  const bands = narrow && !forceWide
-    ? cupBracketBands(rounds, NARROW_BAND_COLUMNS)
-    : [cupBracketLayout(rounds)];
+  const bands =
+    narrow && !forceWide
+      ? cupBracketBands(rounds, NARROW_BAND_COLUMNS)
+      : [cupBracketLayout(rounds)];
   if (bands.length === 0 || bands[0].columns.length === 0) return null;
 
   return (

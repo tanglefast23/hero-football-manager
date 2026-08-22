@@ -299,8 +299,8 @@ export function restoreCareerContractPromiseLineup(
  * fail-soft in `putPromisedPlayerInStartingLineup` deliberately leaves the
  * later promise unhonoured. Demanding it here anyway froze every lineup edit
  * for the promise's whole duration, so this mirrors the same seniority order
- * (agreedSeason, then id): one GK promise and at most ten outfield promises
- * are enforceable.
+ * (agreedSeason, then id). Promises are capped by the natural roles present in
+ * the submitted XI, matching the same-role restoration rule.
  */
 export function assertCareerLineupHonorsContractPromises(
   state: GameState,
@@ -320,10 +320,17 @@ export function assertCareerLineupHonorsContractPromises(
         left.contractPromise!.agreedSeason -
           right.contractPromise!.agreedSeason || compareIds(left.id, right.id),
     );
-  const enforceable = [
-    ...promised.filter((player) => player.role === 'GK').slice(0, 1),
-    ...promised.filter((player) => player.role !== 'GK').slice(0, 10),
-  ];
+  const playerById = new Map(
+    state.players.map((player) => [player.id, player] as const),
+  );
+  const enforceable = (['GK', 'DEF', 'MID', 'FWD'] as const).flatMap((role) =>
+    promised
+      .filter((player) => player.role === role)
+      .slice(
+        0,
+        playerIds.filter((id) => playerById.get(id)?.role === role).length,
+      ),
+  );
   for (const player of enforceable) {
     if (!selected.has(player.id)) {
       throw new Error(`${player.name} was promised a place in the starting XI`);
@@ -429,10 +436,9 @@ function promisedReplacementSlot(
         ) &&
         !hasActiveCareerContractPromise(candidate.player, 'CAPTAINCY'),
     );
-  const sameRole = eligible.filter(
+  const pool = eligible.filter(
     (candidate) => candidate.player.role === promisedPlayer.role,
   );
-  const pool = sameRole.length > 0 ? sameRole : eligible;
   return (
     pool
       .slice()
