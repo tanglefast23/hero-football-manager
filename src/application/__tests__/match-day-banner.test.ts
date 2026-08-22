@@ -210,7 +210,7 @@ describe('matchDayBannerViewModel', () => {
       'utf8',
     );
     expect(store).toMatchSource(
-      /const next = reconcilePendingClubLegends\(startNextSeason\(guidedCareer\)\);[\s\S]{0,500}matchDayBanner: null/,
+      /const started = reconcilePendingClubLegends\([\s\S]{0,100}startNextSeason\(guidedCareer\),[\s\S]{0,300}const next =[\s\S]{0,500}matchDayBanner: null/,
     );
   });
 

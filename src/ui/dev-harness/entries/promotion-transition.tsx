@@ -24,18 +24,16 @@ import {
 import type { DevHarnessEntry } from '../registry';
 
 /**
- * One career, five rungs of the ladder.
+ * One career, five moments on the ladder.
  *
- * `divisionAfterFinish` sends the top two up and the bottom two down and closes
- * both ends of the pyramid, and `resolvePromotionAndRelegation` applies that to
- * every division at once — but the only thing a player ever sees of it is the
- * season review and the division they wake up in. Neither had been looked at
- * for a relegation or for a D1 title, because reaching either takes a career.
+ * Rival clubs still move down, but the player club stays in its highest reached
+ * division. The player sees that rule through the season review and the next
+ * division, so this reel checks promotion, survival, and the D1 title.
  *
  * Every case is the SAME seeded club at a different season boundary, so the
  * five chips read as one club's story rather than five unrelated fixtures:
- * seed 23 goes up twice, settles, falls out of the National League, and
- * eventually wins the Global League. The seasons were measured, not guessed.
+ * seed 23 goes up twice, settles, survives a bottom finish, and eventually wins
+ * the Global League. The seasons were measured, not guessed.
  */
 
 /** Fixed: this one club's history is what the five cases are cut from. */
@@ -75,9 +73,9 @@ const PROMOTION_CASES: readonly PromotionCase[] = Object.freeze([
     season: 5,
   },
   {
-    id: 'relegated',
-    label: 'Down',
-    note: 'S7 · bottom of D2 · the drop, which no reviewer had seen',
+    id: 'survived',
+    label: 'Stayed up',
+    note: 'S7 · bottom of D2 · the player club stays in its highest reached division',
     season: 7,
   },
   {
@@ -122,9 +120,12 @@ export function PromotionTransitionReel({
         ?.position ?? 0,
     [state],
   );
-  // The pyramid's own rule, printed beside the screen that is meant to be
-  // saying the same thing. Where they disagree the screen is wrong.
-  const nextDivision = divisionAfterFinish(division, finalPosition);
+  // Rival clubs still use the pyramid rule. The player club can move up, but
+  // never down, so a larger division number is clamped away here too.
+  const nextDivision = Math.min(
+    division,
+    divisionAfterFinish(division, finalPosition),
+  ) as DivisionLevel;
 
   const reset = useCallback(() => {
     setState(devHarnessCareerAtSeasonEnd(season, LADDER_SEED));
@@ -278,9 +279,9 @@ export function PromotionTransitionReel({
 export const promotionTransitionEntry: DevHarnessEntry = Object.freeze({
   id: 'promotion-transition',
   group: 'Season',
-  title: 'Promotion and relegation',
+  title: 'Promotion and survival',
   summary:
-    'The season review that says which way the club just moved, and the transition that moves it.',
+    'The season review that shows promotion, survival, and the transition into the next season.',
   cases: Object.freeze(
     PROMOTION_CASES.map((entry) =>
       Object.freeze({
