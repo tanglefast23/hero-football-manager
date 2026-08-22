@@ -1,6 +1,14 @@
 # Balance Problems and Solutions
 
-Status: Proposal only. No balance change in this document is approved or implemented.
+Status: Sections 1, 3, and 4 were approved on 2026-08-22. Their measured work is complete.
+
+Implemented result:
+
+- Added an opt-in deterministic D5 and D4 scout distribution probe.
+- Kept scout valuation unchanged because all 100 sampled missions returned an affordable upgrade and the strongest affordable player did not erase the race.
+- Kept the affordable scout fallback unchanged for the same measured reason.
+- Halved the existing reduced D4 clean-sheet targets: Cozy is now 1/2/3 and Chairman is 2/3/4.
+- Sections 2, 5, 6, and 7 remain proposals only.
 
 Audit date: 2026-08-22  
 Clean code reviewed: `87b8c9ae`  
@@ -29,6 +37,13 @@ These were code bugs, not balance changes. They are fixed and pushed in `36a6268
 ## 1. D5 scout result broke the division
 
 Verdict: The old problem was real. It is resolved in current code.
+
+Implementation result: Complete. The probe sampled 50 missions in D5 and 50 in D4.
+
+- D5 OVR range: 43-86. Fees: $6,508-$28,439. All 50 missions had an affordable upgrade.
+- D4 OVR range: 45-104. Fees: $7,202-$62,209. All 50 missions had an affordable upgrade.
+- The strongest affordable signing improved goal difference slightly against the strongest rival, but did not change its win rate.
+- Valuation stayed unchanged because the measured signing did not erase the division race.
 
 Current code now:
 
@@ -79,7 +94,12 @@ Rejected now:
 
 Verdict: Likely a live target problem. The exact replacement needs measurement.
 
-The old target of eight cannot occur in current code. D4 already gets one clean-sheet reduction. Chairman BOLD can still ask for seven. That can remain too high when a strong defense produces two.
+Implementation result: Complete. The current reduced target is halved after the Chairman adjustment.
+
+- Cozy targets are now 1, 2, and 3 for Steady, Balanced, and Bold.
+- Chairman targets are now 2, 3, and 4.
+
+The old target of eight could not occur before this change. D4 already had one clean-sheet reduction, but Chairman BOLD could still ask for seven. That remained too high when a strong defense produced two.
 
 Solution:
 
@@ -99,6 +119,13 @@ Rejected:
 ## 4. D4 scouting was feast or famine
 
 Verdict: The extreme elite reports should now be blocked. A weaker fallback can remain.
+
+Implementation result: Measured and closed without a code change.
+
+- All 50 sampled D4 missions returned at least one affordable upgrade.
+- 93 of 100 individual D4 reports were affordable upgrades.
+- The weak cheapest-affordable fallback did not appear as a live distribution problem.
+- The existing fallback and RNG order remain unchanged.
 
 When every drawn player is unaffordable, current code inserts the cheapest affordable eligible player. Cheapest does not mean useful.
 
