@@ -3057,6 +3057,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         market,
         option.region,
         option.focus,
+        career.m2 === undefined ? 5 : currentUserDivision(career.m2),
         highestDivisionReached(career),
       );
       const next = { ...transaction.state, market: transaction.market };

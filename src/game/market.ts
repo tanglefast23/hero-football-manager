@@ -81,6 +81,9 @@ interface ScoutMissionSetup {
   readonly region: ScoutRegion;
   readonly focus: ScoutFocus;
   readonly scoutOfficeLevel: number;
+  /** Best division reached, used only for permanent brief unlocks. */
+  readonly unlockedDivision?: number;
+  /** Current playing division, used for shortlist strength. */
   readonly division: number;
   readonly starterScores?: Readonly<Partial<Record<Role, number>>>;
 }
@@ -202,15 +205,17 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
   assertNonEmptyString(setup.missionId, 'scouting mission ID');
   assertPositiveSafeInteger(setup.startWeek, 'scouting start week');
   validateDivision(setup.division);
+  const unlockedDivision = setup.unlockedDivision ?? setup.division;
+  validateDivision(unlockedDivision);
   validateScoutOfficeLevel(setup.scoutOfficeLevel);
   validateScoutFocus(setup.focus);
   if (REGION_COST[setup.region] === undefined) {
     throw new Error(`unknown scouting region ${String(setup.region)}`);
   }
-  if (setup.focus.kind === 'RUMORED_HERO' && setup.division > 3) {
+  if (setup.focus.kind === 'RUMORED_HERO' && unlockedDivision > 3) {
     throw new Error(`rumored hero scouting unlocks in ${divisionTierLabel(3)}`);
   }
-  if (setup.focus.kind === 'ELITE_PROSPECT' && setup.division > 2) {
+  if (setup.focus.kind === 'ELITE_PROSPECT' && unlockedDivision > 2) {
     throw new Error(
       `elite prospect scouting unlocks in ${divisionTierLabel(2)}`,
     );
@@ -298,8 +303,10 @@ export function resolveScoutMission(
         (candidate.sellingClubDivision === undefined ||
           candidate.sellingClubDivision >=
             Math.max(1, (mission.division ?? 5) - 2)) &&
-        roleOverall(candidate.role, candidate.attrs) <=
-          currentStrengthCeiling &&
+        ((mission.focus.kind === 'RUMORED_HERO' &&
+          candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX)) ||
+          roleOverall(candidate.role, candidate.attrs) <=
+            currentStrengthCeiling) &&
         (mission.focus.kind === 'RUMORED_HERO' ||
           candidate.power === undefined) &&
         matchesScoutFocus(candidate, mission.focus),

@@ -253,6 +253,19 @@ describe('deterministic scouting', () => {
       }),
     ).toThrow('D3 · Regional League');
 
+    expect(
+      startScoutMission({
+        careerSeed: 5,
+        missionId: 'earned-before-relegation',
+        startWeek: 1,
+        region: 'EUROPE',
+        focus: { kind: 'RUMORED_HERO' },
+        scoutOfficeLevel: 1,
+        division: 4,
+        unlockedDivision: 3,
+      }).division,
+    ).toBe(4);
+
     let hits = 0;
     for (let seed = 1; seed <= 100; seed += 1) {
       const mission = startScoutMission({
@@ -283,6 +296,46 @@ describe('deterministic scouting', () => {
         resolveScoutMission(mission, mission.dueWeek, candidates, 5),
       ).toEqual(result);
     }
+    expect(hits).toBeGreaterThanOrEqual(15);
+    expect(hits).toBeLessThanOrEqual(35);
+  });
+
+  it('keeps named Hero leads reachable above the ordinary strength cap', () => {
+    const special = marketPlayer('special-test-hero', {
+      attrs: {
+        pac: 128,
+        sho: 128,
+        pas: 128,
+        def: 128,
+        tec: 128,
+        sta: 128,
+        ref: 128,
+      },
+      power: 'SUPER_SPEED',
+      powerTier: 1,
+    });
+    let hits = 0;
+
+    for (let seed = 1; seed <= 100; seed += 1) {
+      const mission = startScoutMission({
+        careerSeed: seed,
+        missionId: 'named-hero-search',
+        startWeek: 1,
+        region: 'EUROPE',
+        focus: { kind: 'RUMORED_HERO' },
+        scoutOfficeLevel: 1,
+        division: 3,
+      });
+      const result = resolveScoutMission(
+        mission,
+        mission.dueWeek,
+        [special, marketPlayer('ordinary')],
+        2,
+      );
+      if (result.reports.some((report) => report.playerId === special.id))
+        hits += 1;
+    }
+
     expect(hits).toBeGreaterThanOrEqual(15);
     expect(hits).toBeLessThanOrEqual(35);
   });

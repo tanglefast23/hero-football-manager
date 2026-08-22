@@ -279,6 +279,7 @@ export function startCareerScoutMission(
   region: ScoutRegion,
   focus: ScoutFocus,
   division = 5,
+  unlockedDivision = division,
 ): CareerMarketTransaction {
   assertManagePhase(state);
   if (!isStoryScoutingUnlocked(state)) {
@@ -295,6 +296,7 @@ export function startCareerScoutMission(
     focus,
     scoutOfficeLevel: scoutOfficeLevel(state),
     division,
+    unlockedDivision,
     starterScores: Object.fromEntries(
       (['GK', 'DEF', 'MID', 'FWD'] as const).map((role) => [
         role,
