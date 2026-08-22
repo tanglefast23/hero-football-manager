@@ -7,11 +7,18 @@ import {
 import { loadLaunchContent } from '../../../content/load';
 import {
   acceptSponsorOffer,
+  advanceFacilityConstruction,
   advanceWeek,
+  buildFacility,
+  createFacilityGrid,
   createSeasonSponsorship,
   divisionSponsorAnchor,
   expireSponsorOfferWindow,
 } from '../../../game';
+import type {
+  FacilityGridState,
+  FacilityType,
+} from '../../../game/facilities';
 import type { DivisionLevel } from '../../../game/pyramid';
 import type { GameState } from '../../../game/types';
 import {
@@ -34,7 +41,7 @@ import { copyFor } from '../../../i18n';
 const harnessCopy = copyFor('en');
 
 /** Production Sponsor Desk states used for the required 375pt review matrix. */
-type ClubBusinessCaseId =
+export type ClubBusinessCaseId =
   | 'd5-locked'
   | 'd5-advertising'
   | 'd4-offers'
@@ -233,9 +240,23 @@ function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
   }
 }
 
-function ClubBusinessReel({ caseId }: { readonly caseId: ClubBusinessCaseId }) {
-  const [career, setCareer] = useState(() => businessCareer(caseId));
-  const [activeTab, setActiveTab] = useState<ClubOfficeTab>('finances');
+export function ClubBusinessReel({
+  caseId,
+  initialTab = 'finances',
+  storeFacilities = false,
+  initialScrollY,
+}: {
+  readonly caseId: ClubBusinessCaseId;
+  readonly initialTab?: ClubOfficeTab;
+  readonly storeFacilities?: boolean;
+  readonly initialScrollY?: number;
+}) {
+  const [career, setCareer] = useState(() =>
+    storeFacilities
+      ? withStoreFacilities(businessCareer(caseId))
+      : businessCareer(caseId),
+  );
+  const [activeTab, setActiveTab] = useState<ClubOfficeTab>(initialTab);
   const reduceMotion = caseId !== 'confirm-offer';
   const viewModel = useMemo(() => clubFinancesViewModel(career), [career]);
   const initialOffer = viewModel.sponsorship?.slots.flatMap((slot) =>
@@ -278,6 +299,7 @@ function ClubBusinessReel({ caseId }: { readonly caseId: ClubBusinessCaseId }) {
           onBuildTrainingGround={() => {}}
           onReviewSponsorOffer={(offer, slot) => setPending({ offer, slot })}
           reduceMotion={reduceMotion}
+          initialScrollY={initialScrollY}
         />
       </View>
       <ConfirmationSheet
@@ -291,6 +313,33 @@ function ClubBusinessReel({ caseId }: { readonly caseId: ClubBusinessCaseId }) {
       />
     </View>
   );
+}
+
+function withStoreFacilities(state: GameState): GameState {
+  let grid = createFacilityGrid();
+  const placements: readonly [FacilityType, number, number][] = [
+    ['training-pitch', 0, 0],
+    ['medical-bay', 2, 0],
+    ['gym', 0, 2],
+    ['dorm', 1, 2],
+    ['fan-shop', 3, 0],
+    ['stadium-stand', 4, 0],
+    ['coaching-office', 3, 2],
+    ['scout-office', 4, 2],
+  ];
+  for (const [type, x, y] of placements) {
+    grid = finishFacilityProject(
+      buildFacility(grid, type, { x, y }, 1_000_000).grid,
+    );
+  }
+  return { ...state, facilities: { ...state.facilities, grid } };
+}
+
+function finishFacilityProject(grid: FacilityGridState): FacilityGridState {
+  let next = grid;
+  while (next.construction !== undefined)
+    next = advanceFacilityConstruction(next).grid;
+  return next;
 }
 
 function ClubBusinessSeasonEndReel({

@@ -9,6 +9,7 @@ const STALE_BUNDLE_MARKERS = [
   /ChunkLoadError/,
   /Failed to fetch dynamically imported module/,
   /Importing a module script failed/,
+  /Loading module https?:\/\/.* failed/,
 ];
 
 export function isStaleBundleError(error: unknown): boolean {

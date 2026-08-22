@@ -351,7 +351,13 @@ const CASES: readonly HarnessCase[] = [
   },
 ];
 
-function FinancialReportCase({ caseId }: { caseId: string }) {
+export function FinancialReportCase({
+  caseId,
+  storeMedia = false,
+}: {
+  caseId: string;
+  storeMedia?: boolean;
+}) {
   const [replayKey, setReplayKey] = useState(0);
   const [layerVisible, setLayerVisible] = useState(true);
   const [backgroundPressed, setBackgroundPressed] = useState(false);
@@ -402,15 +408,17 @@ function FinancialReportCase({ caseId }: { caseId: string }) {
       className="flex-1 bg-paper"
       contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Replay the reveal"
-        onPress={() => setReplayKey((key) => key + 1)}
-        className="mb-3 self-start border-2 border-b-4 border-ink bg-white px-3 py-2"
-        style={{ minHeight: 44 }}
-      >
-        <Text className="font-pixel text-sm uppercase text-ink">Replay ▸</Text>
-      </Pressable>
+      {storeMedia ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Replay the reveal"
+          onPress={() => setReplayKey((key) => key + 1)}
+          className="mb-3 self-start border-2 border-b-4 border-ink bg-white px-3 py-2"
+          style={{ minHeight: 44 }}
+        >
+          <Text className="font-pixel text-sm uppercase text-ink">Replay ▸</Text>
+        </Pressable>
+      )}
       <FinancialReportBody
         key={`${entry.id}-${replayKey}`}
         viewModel={entry.build()}

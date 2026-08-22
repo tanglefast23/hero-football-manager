@@ -1,11 +1,8 @@
 /**
  * App Store title-card renderer.
  *
- * Draws the chunky pixel-bevel card from docs/11-art-style.md Track A: thick
- * ink outline, rounded chunky corners, a bold two-tone face (bright top band,
- * dark bottom lip) and a pixel-font label. Everything is authored in ART
- * PIXELS and upscaled with nearest-neighbour sampling, so the output has real
- * chunky pixels instead of a resampled blur.
+ * Draws comic-book lettering for App Store marketing images. It has no panel
+ * or button silhouette, so players can tell it from captured game UI.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,6 +23,7 @@ export const PALETTE = {
   gold: { dark: '#c8862a', base: '#edb54a', light: '#f7d894' },
   grey: { dark: '#6b6675', base: '#9a95a4', light: '#c9c5d0' },
   pitch: { dark: '#3f8a4a', base: '#5cb85c', light: '#8fd98f' },
+  violet: { dark: '#5b3a91', base: '#9a63d6', light: '#c9a6ec' },
 };
 
 let ckPromise;
@@ -52,6 +50,18 @@ function loadTypeface(ck, weight) {
   return tf;
 }
 
+function loadMarketingTypeface(ck) {
+  const systemFont =
+    '/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf';
+  if (!fs.existsSync(systemFont)) return loadTypeface(ck, 'bold');
+  const buf = fs.readFileSync(systemFont);
+  const typeface = ck.Typeface.MakeTypefaceFromData(
+    buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+  );
+  if (!typeface) throw new Error(`typeface failed to load: ${systemFont}`);
+  return typeface;
+}
+
 /** Width of `text` in art pixels at `size`, using the real font advances. */
 function measure(ck, typeface, size, text) {
   const font = new ck.Font(typeface, size);
@@ -64,8 +74,7 @@ function measure(ck, typeface, size, text) {
 }
 
 /**
- * Largest multiple-of-`step` size at which every line fits `maxWidth`.
- * Silkscreen is an 8px-grid pixel face, so only whole steps stay crisp.
+ * Largest stepped size at which every line fits `maxWidth`.
  */
 function fitSize(
   ck,
@@ -86,96 +95,63 @@ function fitSize(
 }
 
 /**
- * Renders the card at art scale and returns { image, width, height } in art
- * pixels. Caller upscales. `accent` is a {dark, base, light} palette family.
+ * Renders smooth, full-resolution comic lettering. `accent` is the fill family.
  */
-export function drawTitleCard(
-  ck,
-  {
-    lines,
-    width,
-    accent = PALETTE.gold,
-    textColor = PALETTE.ink,
-    outline = PALETTE.ink,
-    margin = 14,
-    padX = 18,
-    lineGap = 8,
-    border = 3,
-    radius = 7,
-    maxFont = 96,
-    band = 9, // bright top highlight, art pixels
-    lip = 7, // dark bottom lip, art pixels
-    clearance = 11, // gap between a bevel band and the nearest cap
-  },
-) {
-  // Enough padding that the caps never touch the highlight or the lip.
-  const padY = Math.max(band, lip) + clearance;
-  const typeface = loadTypeface(ck, 'bold');
-  const cardW = width - margin * 2;
-  const innerMax = cardW - (padX + border) * 2;
-  const size = fitSize(ck, typeface, lines, innerMax, { max: maxFont });
+export function drawTitleCard(ck, { lines, width, accent = PALETTE.blue }) {
+  const unit = width / 440;
+  const px = (value) => Math.round(value * unit);
+  const margin = px(16);
+  const padX = px(20);
+  const padY = px(14);
+  const lineGap = px(1);
+  const typeface = loadMarketingTypeface(ck);
+  const innerMax = width - (margin + padX) * 2;
+  const size = fitSize(ck, typeface, lines, innerMax, {
+    min: px(20),
+    max: px(48),
+    step: Math.max(1, px(2)),
+  });
 
-  // Silkscreen's cap height is 5/8 of its em; using it (not the full line
-  // height) keeps the optical padding even above and below the caps.
-  const capH = Math.round(size * 0.625);
+  const capH = Math.round(size * 0.72);
   const textBlockH = lines.length * capH + (lines.length - 1) * lineGap;
-  const cardH = textBlockH + (padY + border) * 2;
-  const height = cardH + margin * 2;
+  const height = textBlockH + padY * 2 + margin * 2 + px(12);
 
   const surface = ck.MakeSurface(width, height);
   const canvas = surface.getCanvas();
   canvas.clear(ck.TRANSPARENT);
 
   const paint = new ck.Paint();
-  paint.setAntiAlias(false); // hard pixel edges — never a soft ramp
-  paint.setStyle(ck.PaintStyle.Fill);
-
-  const rrect = (x, y, w, h, r) => ck.RRectXY(ck.XYWHRect(x, y, w, h), r, r);
-
-  // 1. ink outline (the whole card silhouette)
-  paint.setColor(hexColor(ck, outline));
-  canvas.drawRRect(rrect(margin, margin, cardW, cardH, radius), paint);
-
-  // 2. base face
-  const fx = margin + border;
-  const fy = margin + border;
-  const fw = cardW - border * 2;
-  const fh = cardH - border * 2;
-  paint.setColor(hexColor(ck, accent.base));
-  canvas.drawRRect(rrect(fx, fy, fw, fh, radius - border), paint);
-
-  // 3. bright top band + dark bottom lip (the two-tone bevel). Absolute art
-  // pixels, not a fraction of the face: the label must sit wholly on the flat
-  // base colour, and a proportional band creeps into the caps as text grows.
-  const lipH = lip;
-  const bandH = band;
-  canvas.save();
-  canvas.clipRRect(
-    rrect(fx, fy, fw, fh, radius - border),
-    ck.ClipOp.Intersect,
-    false,
-  );
-  paint.setColor(hexColor(ck, accent.light));
-  canvas.drawRect(ck.XYWHRect(fx, fy, fw, bandH), paint);
-  paint.setColor(hexColor(ck, accent.dark));
-  canvas.drawRect(ck.XYWHRect(fx, fy + fh - lipH, fw, lipH), paint);
-  canvas.restore();
-
-  // 4. label
+  paint.setAntiAlias(true);
   const font = new ck.Font(typeface, size);
-  font.setSubpixel(false);
-  font.setHinting(ck.FontHinting.None);
-  // No anti-aliasing — a pixel face must stay pixels. This CanvasKit build
-  // only names AntiAlias/SubpixelAntiAlias, so pass SkFontEdging::kAlias (0)
-  // as a raw embind enum value.
-  font.setEdging(ck.FontEdging.Alias ?? { value: 0 });
-  paint.setColor(hexColor(ck, textColor));
+  font.setSubpixel(true);
+  font.setEdging(ck.FontEdging.AntiAlias);
+
+  // Blue face, warm inner keyline, red drop face, and ink outline match the
+  // supplied comic-wordmark direction without adding a surrounding box.
   lines.forEach((line, i) => {
     const w = measure(ck, typeface, size, line);
-    const x = Math.round(margin + (cardW - w) / 2);
-    const y = Math.round(margin + border + padY + capH + i * (capH + lineGap));
+    const textX = Math.round((width - w) / 2);
+    const textY = Math.round(margin + padY + capH + i * (capH + lineGap));
     const blob = ck.TextBlob.MakeFromText(line, font);
-    canvas.drawTextBlob(blob, x, y, paint);
+
+    paint.setStyle(ck.PaintStyle.Stroke);
+    paint.setStrokeWidth(px(6));
+    paint.setColor(hexColor(ck, PALETTE.ink));
+    canvas.drawTextBlob(blob, textX + px(3), textY + px(7), paint);
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setColor(hexColor(ck, PALETTE.red.dark));
+    canvas.drawTextBlob(blob, textX + px(3), textY + px(7), paint);
+
+    paint.setStyle(ck.PaintStyle.Stroke);
+    paint.setStrokeWidth(px(6));
+    paint.setColor(hexColor(ck, PALETTE.ink));
+    canvas.drawTextBlob(blob, textX, textY, paint);
+    paint.setStrokeWidth(px(2));
+    paint.setColor(hexColor(ck, PALETTE.gold.base));
+    canvas.drawTextBlob(blob, textX, textY, paint);
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setColor(hexColor(ck, accent.base));
+    canvas.drawTextBlob(blob, textX, textY, paint);
     blob.delete();
   });
   font.delete();
@@ -183,27 +159,6 @@ export function drawTitleCard(
 
   const image = surface.makeImageSnapshot();
   return { image, width, height, surface, fontSize: size };
-}
-
-/** Nearest-neighbour upscale so art pixels stay square and hard-edged. */
-export function upscale(ck, image, factor) {
-  const w = image.width() * factor;
-  const h = image.height() * factor;
-  const surface = ck.MakeSurface(w, h);
-  const canvas = surface.getCanvas();
-  canvas.clear(ck.TRANSPARENT);
-  const paint = new ck.Paint();
-  paint.setAntiAlias(false);
-  canvas.drawImageRectOptions(
-    image,
-    ck.XYWHRect(0, 0, image.width(), image.height()),
-    ck.XYWHRect(0, 0, w, h),
-    ck.FilterMode.Nearest,
-    ck.MipmapMode.None,
-    paint,
-  );
-  paint.delete();
-  return { image: surface.makeImageSnapshot(), surface, width: w, height: h };
 }
 
 export function writePng(ck, image, outPath) {

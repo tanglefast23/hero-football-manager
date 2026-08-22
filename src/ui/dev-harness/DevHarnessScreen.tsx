@@ -95,6 +95,28 @@ export function DevHarnessScreen() {
   );
 }
 
+/** Production component only, with no developer toolbar in store captures. */
+export function StoreMediaScreen({
+  entryId,
+  caseId,
+}: {
+  readonly entryId?: string;
+  readonly caseId?: string;
+}) {
+  const resolution = resolveDevHarnessRoute(DEV_HARNESS_ENTRIES, {
+    entryId,
+    caseId,
+  });
+  if (resolution.kind === 'menu') {
+    throw new Error(`Unknown store-media scene: ${entryId ?? '(missing)'}`);
+  }
+  const entry = DEV_HARNESS_ENTRIES.find(
+    (candidate) => candidate.id === resolution.entryId,
+  );
+  if (entry === undefined) throw new Error('Store-media scene disappeared');
+  return <View style={styles.hostRoot}>{entry.render(resolution.caseId)}</View>;
+}
+
 /** Every registered feature, grouped, with the one line that says what it is. */
 function DevHarnessMenu({
   entries,

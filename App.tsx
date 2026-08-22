@@ -45,6 +45,7 @@ import {
   type Locale,
 } from './src/i18n';
 import { LanguageOfferCard } from './src/ui/LanguageOfferCard';
+import { isStaleBundleError } from './src/ui/stale-bundle';
 import {
   SafeAreaProvider,
   SafeAreaView,
@@ -797,6 +798,18 @@ function GameApp() {
         })
         .catch((error) => {
           if (requestId !== languageRequestIdRef.current) return;
+          if (isStaleBundleError(error) && typeof window !== 'undefined') {
+            const current = preferencesRef.current;
+            savePreferences({
+              ...current,
+              language,
+              ...(languageOffered === true ? { languageOffered: true } : {}),
+            });
+            void preferencesSaveQueueRef.current.finally(() => {
+              reloadBrowserDocument();
+            });
+            return;
+          }
           const detail = error instanceof Error ? error.message : String(error);
           const failure = copyRef.current('app.settingsWereNotSaved', {
             detail,

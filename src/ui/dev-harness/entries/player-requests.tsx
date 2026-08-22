@@ -184,12 +184,18 @@ function careerForCase(caseId: string): GameState {
   return steppedCareer((state) => askerWeight(state) === 2);
 }
 
-export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
+export function PlayerRequestsReel({
+  caseId,
+  storeMedia = false,
+}: {
+  readonly caseId: string;
+  readonly storeMedia?: boolean;
+}) {
   const insets = useSafeAreaInsets();
   const [state, setState] = useState<GameState>(() => careerForCase(caseId));
-  const [stage, setStage] = useState<RequestStage>('tab');
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
+  const [stage, setStage] = useState<RequestStage>(storeMedia ? 'card' : 'tab');
+  const [reduceMotion, setReduceMotion] = useState(storeMedia);
+  const [controlsVisible, setControlsVisible] = useState(!storeMedia);
   const [decision, setDecision] = useState<string>();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>();
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
@@ -343,7 +349,7 @@ export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
               `S${state.season} W${state.week} · ${viewModel.available ? 'TAB LIVE' : 'TAB NOT YET OPEN'}`}
           </Text>
         </View>
-      ) : (
+      ) : storeMedia ? null : (
         <View style={[styles.showRow, { paddingBottom: insets.bottom + 12 }]}>
           <DevHarnessButton
             label="QA ▴"

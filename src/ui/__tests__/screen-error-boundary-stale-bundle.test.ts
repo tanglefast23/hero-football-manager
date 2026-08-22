@@ -12,6 +12,13 @@ test('classifies chunk-load failures as stale bundle', () => {
       new TypeError('Failed to fetch dynamically imported module'),
     ),
   ).toBe(true);
+  expect(
+    isStaleBundleError(
+      new Error(
+        'Loading module https://example.test/_expo/static/js/web/id-old.js failed.',
+      ),
+    ),
+  ).toBe(true);
 });
 
 test('ordinary view-model throws are not stale bundles', () => {

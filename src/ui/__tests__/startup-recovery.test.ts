@@ -46,6 +46,14 @@ describe('startup recovery', () => {
     );
   });
 
+  it('keeps a chosen language and reloads when its old web chunk is gone', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    expect(app).toMatch(
+      /isStaleBundleError\(error\)[\s\S]*?savePreferences\(\{[\s\S]*?language,[\s\S]*?preferencesSaveQueueRef\.current\.finally\(\(\) => \{\s*reloadBrowserDocument\(\);/,
+    );
+  });
+
   it('does not reconcile the assistant inbox again for its own career update', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 

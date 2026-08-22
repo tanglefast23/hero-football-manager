@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MatchScreen } from '../../../render/MatchScreen';
 import { powerMatchShowcaseHome } from '../../../render/power-match-showcase';
@@ -41,11 +41,18 @@ function LiveMatchControlsReel({
   keeper: boolean;
   tutorial: boolean;
 }) {
+  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const power = tutorial ? 'GUST' : 'ELASTIC_KEEPER';
 
   return (
-    <View style={{ paddingTop: insets.top, flex: 1 }}>
+    <View
+      style={{
+        flex: 1,
+        paddingTop: width >= 600 ? insets.top : 0,
+        transform: [{ translateY: width < 600 ? -20 : 0 }],
+      }}
+    >
       <MatchScreen
         seed={20260893}
         home={keeper || tutorial ? powerMatchShowcaseHome(power) : undefined}

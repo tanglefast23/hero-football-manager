@@ -118,6 +118,10 @@ export interface M2LeagueScreenProps {
   /** First Cup win: point down at the Round of 32 until any touch. */
   guideRoundOf32?: boolean;
   onDismissRoundOf32Guide?: () => void;
+  /** Board shown first by deterministic store-media scenes. */
+  initialSubTab?: M2LeagueSubTab;
+  /** Show the complete wide Cup tree in deterministic iPad store media. */
+  forceWideCupBracket?: boolean;
 }
 
 export function M2LeagueScreen({
@@ -129,6 +133,8 @@ export function M2LeagueScreen({
   onGuideSubTabAnchorChange,
   guideRoundOf32 = false,
   onDismissRoundOf32Guide,
+  initialSubTab = 'league',
+  forceWideCupBracket = false,
 }: M2LeagueScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -138,7 +144,7 @@ export function M2LeagueScreen({
   );
   const layoutMode = useLayoutMode();
   const [selectedSubTab, setSelectedSubTab] =
-    useState<M2LeagueSubTab>('league');
+    useState<M2LeagueSubTab>(initialSubTab);
 
   /**
    * The guide *selects* the tab rather than pinning it. Pinning would leave the
@@ -638,6 +644,7 @@ export function M2LeagueScreen({
                   rounds={viewModel.cup.rounds}
                   championName={viewModel.cup.championName}
                   guideRoundOf32={guideRoundOf32}
+                  forceWide={forceWideCupBracket}
                 />
               </View>
               <View className="gap-4">

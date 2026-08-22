@@ -65,6 +65,7 @@ export interface SeasonEndScreenProps {
   onExpiredContractVisible?: () => void;
   guideCopy?: { title: string; body: string };
   textScale?: TextScale;
+  initialScrollY?: number;
 }
 
 export function SeasonEndScreen({
@@ -80,11 +81,14 @@ export function SeasonEndScreen({
   onExpiredContractVisible,
   guideCopy,
   textScale = 1,
+  initialScrollY,
 }: SeasonEndScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const renewalDraft = useContractDraft(viewModel.renewalNegotiation);
   const wide = useLayoutMode() === 'twoColumn';
+  const scrollViewRef = useRef<ScrollView>(null);
+  const initialScrollAppliedRef = useRef(false);
   // Renewals arrive as a queue: committing one re-renders this same button
   // holding the next player, so an ordinary double-tap would sign a wage the
   // manager never saw.
@@ -179,7 +183,17 @@ export function SeasonEndScreen({
         <SettingsButton onPress={onOpenSettings} />
       </View>
       <ScrollView
+        ref={scrollViewRef}
         className="flex-1"
+        onContentSizeChange={() => {
+          if (initialScrollY === undefined || initialScrollAppliedRef.current)
+            return;
+          initialScrollAppliedRef.current = true;
+          scrollViewRef.current?.scrollTo({
+            y: initialScrollY,
+            animated: false,
+          });
+        }}
         contentContainerStyle={[
           { padding: 16, paddingBottom: 28 },
           desktopContent,

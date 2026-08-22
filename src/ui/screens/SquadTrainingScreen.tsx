@@ -318,6 +318,8 @@ export interface SquadTrainingScreenProps {
   onChangeSquadSort: (sort: SquadSort | null) => void;
   /** Opens the lay-off offers for this player. Omitted where sales are locked. */
   onLayOffPlayer?: (playerId: string) => void;
+  /** Fixed capture offset for deterministic store-media scenes. */
+  initialScrollY?: number;
 }
 
 export function SquadTrainingScreen({
@@ -350,6 +352,7 @@ export function SquadTrainingScreen({
   squadSort,
   onChangeSquadSort,
   onLayOffPlayer,
+  initialScrollY,
 }: SquadTrainingScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -419,6 +422,7 @@ export function SquadTrainingScreen({
   const scrollRef = useRef<ScrollView>(null);
   const scrollViewportRef = useRef<View>(null);
   const latestScrollOffsetRef = useRef(0);
+  const initialScrollAppliedRef = useRef(false);
   const drillShopRef = useRef<View>(null);
   const attributesRef = useRef<View>(null);
   /**
@@ -715,6 +719,15 @@ export function SquadTrainingScreen({
           desktopContent,
         ]}
         scrollEventThrottle={16}
+        onContentSizeChange={() => {
+          if (
+            initialScrollY === undefined ||
+            initialScrollAppliedRef.current
+          )
+            return;
+          initialScrollAppliedRef.current = true;
+          scrollRef.current?.scrollTo({ y: initialScrollY, animated: false });
+        }}
         onScroll={(event) => {
           latestScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
         }}

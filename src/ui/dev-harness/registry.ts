@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { appStoreScenesEntry } from './entries/app-store-scenes';
 import { assistantBeatsEntry } from './entries/assistant-beats';
 import { contractRenewalEntry } from './entries/contract-renewal';
 import { awardsCeremonyEntry } from './entries/awards-ceremony';
@@ -65,6 +66,7 @@ export interface DevHarnessCase {
  * the harness".
  */
 export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
+  appStoreScenesEntry,
   // Ordered so the menu reads as a career does: what happens during a season,
   // then what closes one, then the two ends of the whole climb.
   fulltimeReportEntry,

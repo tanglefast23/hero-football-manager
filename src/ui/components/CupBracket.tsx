@@ -41,12 +41,15 @@ export interface CupBracketProps {
   championName?: string;
   /** First Cup win helper: points at the first full bracket round. */
   guideRoundOf32?: boolean;
+  /** Show the complete wide tree in deterministic iPad store-media captures. */
+  forceWide?: boolean;
 }
 
 export function CupBracket({
   rounds,
   championName,
   guideRoundOf32 = false,
+  forceWide = false,
 }: CupBracketProps) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
@@ -66,7 +69,7 @@ export function CupBracket({
   );
   // A phone gets the tree wrapped into bands rather than five columns it would
   // have to scroll sideways through, which hides the shape the bracket is for.
-  const bands = narrow
+  const bands = narrow && !forceWide
     ? cupBracketBands(rounds, NARROW_BAND_COLUMNS)
     : [cupBracketLayout(rounds)];
   if (bands.length === 0 || bands[0].columns.length === 0) return null;

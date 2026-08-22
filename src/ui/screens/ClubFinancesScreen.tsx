@@ -206,6 +206,8 @@ export interface ClubFinancesScreenProps {
   reduceMotion?: boolean;
   /** Bumped after the signing modal is gone so the replacement desk receives focus. */
   focusSponsorSummaryToken?: number;
+  /** Fixed capture offset for deterministic store-media scenes. */
+  initialScrollY?: number;
 }
 
 export function ClubFinancesScreen({
@@ -235,6 +237,7 @@ export function ClubFinancesScreen({
   onCoachSpeechGuideAnchorChange,
   reduceMotion = false,
   focusSponsorSummaryToken,
+  initialScrollY,
 }: ClubFinancesScreenProps) {
   const t = useCopy();
   const facility = viewModel.trainingGround;
@@ -277,6 +280,7 @@ export function ClubFinancesScreen({
   const facilityDetailRef = useRef<View>(null);
   const facilityDetailScrollFrameRef = useRef<number | null>(null);
   const latestScrollOffsetRef = useRef(0);
+  const initialScrollAppliedRef = useRef(false);
   const [selectedBuildType, setSelectedBuildType] =
     useState<FacilityTypeViewModel | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(
@@ -1024,6 +1028,15 @@ export function ClubFinancesScreen({
         ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        onContentSizeChange={() => {
+          if (
+            initialScrollY === undefined ||
+            initialScrollAppliedRef.current
+          )
+            return;
+          initialScrollAppliedRef.current = true;
+          scrollRef.current?.scrollTo({ y: initialScrollY, animated: false });
+        }}
         onScroll={(event) => {
           latestScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
           if (guideFocus === 'emergency-loan') {

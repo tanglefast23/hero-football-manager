@@ -31,7 +31,13 @@ import { careerEventTargetCandidates } from '../../../application/career-event-t
 const CONTENT = loadLaunchContent();
 
 /** Visible review surface backed by the exact production target and resolution paths. */
-export function CareerEventsReel({ caseId }: { readonly caseId: string }) {
+export function CareerEventsReel({
+  caseId,
+  storeMedia = false,
+}: {
+  readonly caseId: string;
+  readonly storeMedia?: boolean;
+}) {
   const events = useMemo(() => eventsForCase(caseId), [caseId]);
   const base = useMemo(careerEventsCareer, []);
   if (events.length === 0)
@@ -39,9 +45,9 @@ export function CareerEventsReel({ caseId }: { readonly caseId: string }) {
 
   const [index, setIndex] = useState(0);
   const [riskSide, setRiskSide] = useState<RiskSide>('success');
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(storeMedia);
   const [guideVisible, setGuideVisible] = useState(false);
-  const [panelVisible, setPanelVisible] = useState(true);
+  const [panelVisible, setPanelVisible] = useState(!storeMedia);
   const [runKey, setRunKey] = useState(0);
   const [state, setState] = useState<GameState>(() =>
     offerStoryEvent(base, events[0]!.id),
@@ -228,7 +234,7 @@ export function CareerEventsReel({ caseId }: { readonly caseId: string }) {
             <Text style={styles.stateNote}>STATE: {changes.join(' · ')}</Text>
           )}
         </View>
-      ) : (
+      ) : storeMedia ? null : (
         <View style={[styles.showRow, { paddingBottom: insets.bottom + 12 }]}>
           <DevHarnessButton
             label="QA ▴"
