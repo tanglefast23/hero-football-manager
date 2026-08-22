@@ -4039,7 +4039,7 @@
     "store.heroLicenseBought": "Heldenlizenz {license} angemeldet.",
     "cashTransaction.heroLicenseBought": "Heldenlizenz {license} gekauft",
     "glossary.heroes.permit-office.term": "Meldestelle",
-    "glossary.heroes.permit-office.definition": "Der Schalter auf dem Spieltagsbildschirm, der eine Heldenlizenz verkauft, bevor der Verein sie erspielt hat. Die dritte kostet 100.000 $, die vierte 200.000 $, und jede weitere über die vier eines Weltliga-Vereins hinaus beginnt bei 300.000 $ und steigt jedes Mal um 50.000 $. Kaufen holt eine Lizenz nur früher: ein späterer Aufstieg hebt die freie Zahl an, statt auf den Kauf draufzulegen.",
+    "glossary.heroes.permit-office.definition": "Der Schalter auf dem Spieltagsbildschirm, der eine Heldenlizenz verkauft, bevor der Verein sie erspielt hat. Die dritte kostet 100.000 $, die vierte 200.000 $, und jede weitere über die vier eines Weltliga-Vereins hinaus beginnt bei 300.000 $ und steigt jedes Mal um 100.000 $. Kaufen holt eine Lizenz nur früher: ein späterer Aufstieg hebt die freie Zahl an, statt auf den Kauf draufzulegen.",
     "fixtureMatchDay.heroLicenseGlobalOnly": "Nur ein Weltliga-Verein darf mehr als vier halten.",
     "coachSpeech.trainCoach": "Trainer schulen · Ansprache",
     "coachSpeech.costDetail": "Kostet alle {points} TP. Jeder Spieler erhält +{boost} für die zweite Halbzeit.",

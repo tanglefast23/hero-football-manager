@@ -102,29 +102,27 @@ describe('what the gaffer says about a cup tie', () => {
   const level = tieByGap(levelWeek, 0);
   const giant = tieAtLeastGap(giantWeek, 2);
 
-  it('reads a tie by who it was against, whatever the margin', () => {
-    // Same opponent, wildly different scorelines, one pool: a knockout is
-    // remembered for who it was against, not for how heavy it got.
+  it('uses opponent context for close ties and score context for blowouts', () => {
     expect(content.fulltimeCoachLines.cupWinSlight).toContain(
       lineFor(levelWeek, level, 1, 0),
     );
-    expect(content.fulltimeCoachLines.cupWinSlight).toContain(
+    expect(content.fulltimeCoachLines.leagueWinBig).toContain(
       lineFor(levelWeek, level, 5, 0),
     );
     expect(content.fulltimeCoachLines.cupLossEven).toContain(
       lineFor(levelWeek, level, 0, 1),
     );
-    expect(content.fulltimeCoachLines.cupLossEven).toContain(
+    expect(content.fulltimeCoachLines.leagueLossBig).toContain(
       lineFor(levelWeek, level, 0, 5),
     );
   });
 
   it('knows a giant when it beats one, and when it loses to one', () => {
     expect(content.fulltimeCoachLines.cupWinGiant).toContain(
-      lineFor(giantWeek, giant, 2, 1),
+      lineFor(giantWeek, giant, 4, 0),
     );
     expect(content.fulltimeCoachLines.cupLossStrong).toContain(
-      lineFor(giantWeek, giant, 1, 2),
+      lineFor(giantWeek, giant, 0, 4),
     );
   });
 
@@ -181,7 +179,7 @@ describe('what the gaffer says about a cup tie', () => {
     });
   });
 
-  it('never hands a cup tie one of the league lines', () => {
+  it('keeps close cup ties out of the score-only league pools', () => {
     const leagueLines = [
       ...content.fulltimeCoachLines.leagueWinBig,
       ...content.fulltimeCoachLines.leagueWinClose,

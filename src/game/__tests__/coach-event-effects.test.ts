@@ -146,7 +146,7 @@ describe('applying a coach effect', () => {
   it('moves where the bonus lands, without changing how much it is', () => {
     let state = careerWithStaff(coach('head', ['ATTACK', 'FITNESS']));
     const before = careerCoachTrainingModifiers(state.market!);
-    expect(before.gainScalePercentByAttribute.sho).toBe(120);
+    expect(before.gainScalePercentByAttribute.sho).toBe(114);
     expect(before.gainScalePercentByAttribute.ref).toBe(100);
 
     state = applyCoachEventEffect(state, 'HEAD', {
@@ -154,8 +154,8 @@ describe('applying a coach effect', () => {
     });
     const after = careerCoachTrainingModifiers(state.market!);
     // FITNESS is gone, GOALKEEPING arrives, ATTACK is untouched — a lateral move.
-    expect(after.gainScalePercentByAttribute.sho).toBe(120);
-    expect(after.gainScalePercentByAttribute.ref).toBe(120);
+    expect(after.gainScalePercentByAttribute.sho).toBe(114);
+    expect(after.gainScalePercentByAttribute.ref).toBe(114);
     expect(after.gainScalePercentByAttribute.sta).toBe(100);
   });
 });

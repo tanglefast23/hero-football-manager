@@ -66,8 +66,28 @@ describe('awakening cutscene framing', () => {
     // until the cut-scene was keyed; what this pins is that the hint still
     // exists, not which language it is in.
     expect(source).toContain("t('awakening.tapToSkip')");
+    expect(source).toContain('onPress={advanceStory}');
+    expect(source).toContain('{beat === 3 && advanceReady ? null : (');
+    expect(source).toContain('{beat === 3 && advanceReady ? (');
     // Nothing may be disabled while a beat plays, or the skip tap goes nowhere.
     expect(source).not.toContain('disabled={!advanceReady}');
+  });
+
+  it('offers separate accessible actions only after the reveal finishes', () => {
+    const source = sceneSource();
+
+    expect(source).toContainSource(
+      "accessibilityLabel={t('awakening.watchExample')}",
+    );
+    expect(source).toContainSource(
+      'accessibilityLabel={viewModel.continueLabel}',
+    );
+    expect(source).toContainSource(
+      "label={t('powerAcquiredDemo.continue')}",
+    );
+    expect(source).toContainSource(
+      '{beat === 3 && advanceReady ? (\n              <View style={styles.heroFooter}>',
+    );
   });
 
   /**

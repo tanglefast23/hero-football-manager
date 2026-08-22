@@ -884,10 +884,7 @@ export function advancePlayerRequests(
         }).filter(
           (player) =>
             !next.playerRequests!.history.some(
-              (entry) =>
-                entry.season === next.season &&
-                entry.playerId === player.id &&
-                entry.requestId === request.id,
+              (entry) => entry.requestId === request.id,
             ),
         );
   const drawn =

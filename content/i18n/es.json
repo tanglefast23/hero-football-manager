@@ -4039,7 +4039,7 @@
     "store.heroLicenseBought": "Licencia de Héroe {license} registrada.",
     "cashTransaction.heroLicenseBought": "Licencia de Héroe {license} comprada",
     "glossary.heroes.permit-office.term": "Oficina de permisos",
-    "glossary.heroes.permit-office.definition": "El mostrador de la pantalla de día de partido que vende una Licencia de Héroe antes de que el club la gane. La tercera cuesta $100.000, la cuarta $200.000, y cada una por encima de las cuatro que ya tiene un club de la Liga Global empieza en $300.000 y sube $50.000 cada vez. Comprar solo adelanta el permiso: un ascenso posterior sube el número gratuito en vez de sumarse a lo que pagaste.",
+    "glossary.heroes.permit-office.definition": "El mostrador de la pantalla de día de partido que vende una Licencia de Héroe antes de que el club la gane. La tercera cuesta $100.000, la cuarta $200.000, y cada una por encima de las cuatro que ya tiene un club de la Liga Global empieza en $300.000 y sube $100.000 cada vez. Comprar solo adelanta el permiso: un ascenso posterior sube el número gratuito en vez de sumarse a lo que pagaste.",
     "fixtureMatchDay.heroLicenseGlobalOnly": "Solo un club de la Liga Global puede tener más de cuatro.",
     "coachSpeech.trainCoach": "Formar técnico · Charla",
     "coachSpeech.costDetail": "Gasta los {points} PE. Cada jugador gana +{boost} en la segunda parte.",

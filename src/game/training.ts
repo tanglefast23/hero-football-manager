@@ -33,6 +33,7 @@ import {
 import { tryRepairCareerLineupForInjuries } from './squad';
 import { isAvailableForSelection } from './lineup';
 import { drillMultiplierPercent } from './player-requests';
+import { trainingDrillTier } from './promotion-progression';
 import {
   keeperDisplayLadderMultiplier,
   resolveTrainingDrillForPath,
@@ -43,6 +44,8 @@ import type { CareerPlayer, GameState } from './types';
 
 export const INSTANT_DRILL_CONDITION_COST = 8;
 export const SUPER_TRAINING_PITY_DRILLS = 12;
+/** Tier 5 keeps its base gain, but late-game percentage bonuses stop snowballing past +75%. */
+const TIER_FIVE_DEVELOPMENT_BONUS_CAP_PERCENT = 75;
 
 export function individualTrainingUsedFlag(
   season: number,
@@ -180,6 +183,7 @@ export function instantTrainingPreview(
     player,
     attribute,
     baseGain,
+    drill.id,
   );
   const adjustedGain = adjusted.value - currentValue;
   const adjustedAfter = Math.min(
@@ -303,6 +307,7 @@ export function trainPlayerInstantly(
     player,
     attribute,
     rolledGain,
+    drill.id,
   );
 
   /**
@@ -347,6 +352,7 @@ export function trainPlayerInstantly(
           player,
           attribute,
           rolledGain * displayMultiplier,
+          drill.id,
         ).value -
           growth.value);
 
@@ -474,6 +480,7 @@ function applyInstantGrowthModifiers(
   player: CareerPlayer,
   attribute: keyof CareerPlayer['attrs'],
   rolledGain: number,
+  drillId: string,
 ): {
   value: number;
   trainingBonusRemainders?: Partial<
@@ -501,10 +508,17 @@ function applyInstantGrowthModifiers(
   );
   const coachBonusPercent =
     (coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) - 100;
-  const developmentBonusPercent =
+  const uncappedDevelopmentBonusPercent =
     archetypeTrainingBonusPercent(player.archetype, attribute) +
     positionTrainingBonusPercent(player.role, attribute) +
     coachBonusPercent;
+  const developmentBonusPercent =
+    trainingDrillTier(drillId) === 5
+      ? Math.min(
+          TIER_FIVE_DEVELOPMENT_BONUS_CAP_PERCENT,
+          uncappedDevelopmentBonusPercent,
+        )
+      : uncappedDevelopmentBonusPercent;
 
   const trainingBonusRemainders = {
     ...(player.trainingBonusRemainders ??

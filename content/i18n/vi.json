@@ -4039,7 +4039,7 @@
     "store.heroLicenseBought": "Đã đăng ký Giấy Phép Anh Hùng {license}.",
     "cashTransaction.heroLicenseBought": "Đã mua Giấy Phép Anh Hùng {license}",
     "glossary.heroes.permit-office.term": "Phòng cấp phép",
-    "glossary.heroes.permit-office.definition": "Quầy trên màn hình ngày thi đấu bán Giấy Phép Anh Hùng trước khi CLB giành được. Cái thứ ba giá $100.000, cái thứ tư $200.000, và mỗi cái vượt quá bốn cái mà một CLB Giải Toàn Cầu đã có bắt đầu từ $300.000 và tăng thêm $50.000 mỗi lần. Mua chỉ giúp có sớm hơn: lần thăng hạng sau nâng số miễn phí lên, chứ không cộng vào phần bạn đã trả.",
+    "glossary.heroes.permit-office.definition": "Quầy trên màn hình ngày thi đấu bán Giấy Phép Anh Hùng trước khi CLB giành được. Cái thứ ba giá $100.000, cái thứ tư $200.000, và mỗi cái vượt quá bốn cái mà một CLB Giải Toàn Cầu đã có bắt đầu từ $300.000 và tăng thêm $100.000 mỗi lần. Mua chỉ giúp có sớm hơn: lần thăng hạng sau nâng số miễn phí lên, chứ không cộng vào phần bạn đã trả.",
     "fixtureMatchDay.heroLicenseGlobalOnly": "Chỉ CLB Giải Toàn Cầu mới được giữ hơn bốn.",
     "coachSpeech.trainCoach": "Rèn HLV · Bài nói",
     "coachSpeech.costDetail": "Tiêu hết {points} TP. Mỗi cầu thủ được +{boost} cho hiệp hai.",

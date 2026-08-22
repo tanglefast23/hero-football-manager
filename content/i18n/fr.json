@@ -4039,7 +4039,7 @@
     "store.heroLicenseBought": "Licence de Héros {license} enregistrée.",
     "cashTransaction.heroLicenseBought": "Licence de Héros {license} achetée",
     "glossary.heroes.permit-office.term": "Bureau des permis",
-    "glossary.heroes.permit-office.definition": "Le guichet de l'écran de jour de match qui vend une Licence de Héros avant que le club ne l'ait gagnée. La troisième coûte 100 000 $, la quatrième 200 000 $, et chacune au-delà des quatre d'un club de Ligue Mondiale part de 300 000 $ et monte de 50 000 $ à chaque fois. Acheter ne fait qu'avancer le permis : une montée plus tard relève le nombre gratuit au lieu de s'ajouter à ce que tu as payé.",
+    "glossary.heroes.permit-office.definition": "Le guichet de l'écran de jour de match qui vend une Licence de Héros avant que le club ne l'ait gagnée. La troisième coûte 100 000 $, la quatrième 200 000 $, et chacune au-delà des quatre d'un club de Ligue Mondiale part de 300 000 $ et monte de 100 000 $ à chaque fois. Acheter ne fait qu'avancer le permis : une montée plus tard relève le nombre gratuit au lieu de s'ajouter à ce que tu as payé.",
     "fixtureMatchDay.heroLicenseGlobalOnly": "Seul un club de Ligue Mondiale peut en détenir plus de quatre.",
     "coachSpeech.trainCoach": "Former le coach · Causerie",
     "coachSpeech.costDetail": "Dépense les {points} PE. Chaque joueur gagne +{boost} en seconde période.",

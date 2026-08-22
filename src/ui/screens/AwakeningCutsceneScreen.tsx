@@ -542,7 +542,7 @@ export function AwakeningCutsceneScreen({
     }
     const action = nextAwakeningAction(beat);
     if (action === 'continue') {
-      setDemoVisible(true);
+      onContinue();
       return;
     }
     setBeat(action);
@@ -558,9 +558,7 @@ export function AwakeningCutsceneScreen({
           license: viewModel.licenseLabel,
         });
   const storyAccessibilityHint = advanceReady
-    ? beat < 3
-      ? t('awakening.a11y.tapForNextBeat')
-      : t('awakening.a11y.tapToWatchDemonstration')
+    ? t('awakening.a11y.tapForNextBeat')
     : t('awakening.a11y.tapToSkipToEndOfBeat');
 
   // The match demo replaces the awakening stage instead of opening over it.
@@ -595,12 +593,14 @@ export function AwakeningCutsceneScreen({
             taps — but the bare pitch either side of the card is no longer dead.
             On a wide screen that empty area is most of the screen, and tapping
             it did nothing. */}
-        <Pressable
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          onPress={advanceStory}
-          style={StyleSheet.absoluteFill}
-        />
+        {beat === 3 && advanceReady ? null : (
+          <Pressable
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            onPress={advanceStory}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
         {/* Read-only chrome, so it lets the tap through to the backdrop above
             rather than swallowing it: a tap on the fixture line is a tap on
             the cutscene. */}
@@ -679,20 +679,17 @@ export function AwakeningCutsceneScreen({
           ) : null}
           {/* The whole picture is the button too, so a skip tap can land where
               the manager is already looking instead of on the text below. */}
-          <Pressable
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            onPress={advanceStory}
-            style={StyleSheet.absoluteFill}
-          />
+          {beat === 3 && advanceReady ? null : (
+            <Pressable
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              onPress={advanceStory}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={storyAccessibilityLabel}
-          accessibilityHint={storyAccessibilityHint}
-          onPress={advanceStory}
-        >
+        <View>
           <View
             style={[
               styles.storyPanel,
@@ -708,7 +705,7 @@ export function AwakeningCutsceneScreen({
               {/* Lit only once the tap does something. While the scene is still
                   playing the same line is a status, and a status that glows
                   like a button is a promise the screen cannot keep. */}
-              {advanceReady ? (
+              {advanceReady && beat < 3 ? (
                 <AwakeningCta label={tapHint} reduceMotion={reduceMotion} />
               ) : (
                 <Text
@@ -723,7 +720,7 @@ export function AwakeningCutsceneScreen({
             >
               {beat === 3 ? viewModel.playerName : current.title}
             </Text>
-            {beat === 3 ? (
+            {beat === 3 && advanceReady ? (
               <Text style={styles.powerName}>{viewModel.powerName}</Text>
             ) : null}
             {beat === 3 ? (
@@ -743,17 +740,46 @@ export function AwakeningCutsceneScreen({
                 {copy}
               </Text>
             ) : null}
-            {beat === 3 ? (
+            {beat === 3 && advanceReady ? (
               <View style={styles.heroFooter}>
                 <Text style={styles.license}>{viewModel.licenseLabel}</Text>
-                <AwakeningCta
-                  label={t('awakening.watchExample')}
-                  reduceMotion={reduceMotion}
-                />
+                <View style={styles.heroActions}>
+                  <Pressable
+                    accessibilityLabel={t('awakening.watchExample')}
+                    accessibilityRole="button"
+                    onPress={() => setDemoVisible(true)}
+                    style={styles.heroAction}
+                  >
+                    <AwakeningCta
+                      label={t('awakening.watchExample')}
+                      reduceMotion={reduceMotion}
+                    />
+                  </Pressable>
+                  <Pressable
+                    accessibilityLabel={viewModel.continueLabel}
+                    accessibilityRole="button"
+                    onPress={onContinue}
+                    style={styles.heroAction}
+                  >
+                    <AwakeningCta
+                      label={t('powerAcquiredDemo.continue')}
+                      reduceMotion={reduceMotion}
+                    />
+                  </Pressable>
+                </View>
               </View>
             ) : null}
           </View>
-        </Pressable>
+          {beat === 3 && advanceReady ? null : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={storyAccessibilityLabel}
+              accessibilityHint={storyAccessibilityHint}
+              onPress={advanceStory}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+        </View>
       </View>
       {graphicsStatus !== 'ok' ? (
         <View accessibilityViewIsModal style={styles.graphicsRecoveryOverlay}>
@@ -1088,6 +1114,8 @@ const makeStyles = (faces: LocaleFaces) =>
     },
     counterText: { fontFamily: faces.display, color: '#241f2e', fontSize: 13 },
     viewport: {
+      flexShrink: 1,
+      minHeight: 160,
       overflow: 'hidden',
       backgroundColor: '#3f8a4a',
       borderBottomWidth: 4,
@@ -1207,9 +1235,15 @@ const makeStyles = (faces: LocaleFaces) =>
       paddingTop: 12,
       borderTopWidth: 2,
       borderTopColor: '#241f2e55',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      gap: 10,
     },
+    heroActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+    heroAction: { minHeight: 44, justifyContent: 'center' },
     license: {
       fontFamily: faces.data,
       color: '#241f2e',

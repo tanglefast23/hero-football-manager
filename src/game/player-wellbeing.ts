@@ -1,4 +1,4 @@
-import { coachMotivatorStrengthHalfLevels } from './coach-weekly';
+import { coachMotivatorStrengthHalfPercentUnits } from './coach-weekly';
 import {
   cappedFacilityBoost,
   isFacilityOperational,
@@ -280,10 +280,10 @@ export function resolveWeeklyPlayerWellbeing(
     }
     return { outcome: participation.outcome, participants };
   });
-  const motivatorStrengthHalfLevels =
+  const motivatorStrengthHalfPercentUnits =
     state.market === undefined
       ? 0
-      : coachMotivatorStrengthHalfLevels(state.market);
+      : coachMotivatorStrengthHalfPercentUnits(state.market);
   const bestDorm = bestOperationalDorm(state.facilities.grid);
   const conditionDelta =
     weeklyConditionRecovery(bestDorm?.level ?? 0) +
@@ -321,7 +321,7 @@ export function resolveWeeklyPlayerWellbeing(
     const underpaidMoraleDelta = isUnderpaidPlayer(player) ? -2 : 0;
     const motivation = applyMotivatorProtection(
       matchMoraleDelta + underpaidMoraleDelta,
-      motivatorStrengthHalfLevels,
+      motivatorStrengthHalfPercentUnits,
       player.motivatorMoraleRemainderHalfPoints ??
         (player.motivatorMoraleRemainder ?? 0) * 2,
     );
@@ -437,15 +437,17 @@ function isUnderpaidPlayer(player: CareerPlayer): boolean {
 
 function applyMotivatorProtection(
   moraleDelta: number,
-  strengthHalfLevels: number,
+  strengthHalfPercentUnits: number,
   remainderHalfPoints: number,
 ): { moraleDelta: number; remainderHalfPoints: number } {
   if (
-    !Number.isSafeInteger(strengthHalfLevels) ||
-    strengthHalfLevels < 0 ||
-    strengthHalfLevels > 15
+    !Number.isSafeInteger(strengthHalfPercentUnits) ||
+    strengthHalfPercentUnits < 0 ||
+    strengthHalfPercentUnits > 80
   ) {
-    throw new Error('Motivator strength must be from 0 to 15 half-levels');
+    throw new Error(
+      'Motivator strength must be from 0 to 80 half-percent units',
+    );
   }
   if (
     !Number.isSafeInteger(remainderHalfPoints) ||
@@ -456,13 +458,13 @@ function applyMotivatorProtection(
       'Motivator morale remainder must be from 0 to 199 half-points',
     );
   }
-  if (moraleDelta >= 0 || strengthHalfLevels === 0) {
+  if (moraleDelta >= 0 || strengthHalfPercentUnits === 0) {
     return { moraleDelta, remainderHalfPoints };
   }
-  // One half-level is 2.5%. A denominator of 200 keeps assistant effects exact
-  // without introducing floating-point morale or fractional player ratings.
+  // One unit is 0.5%. A denominator of 200 keeps every new 4%/2% level step and
+  // the existing 2.5% story boosts exact without fractional player ratings.
   const scaled =
-    Math.abs(moraleDelta) * strengthHalfLevels * 5 + remainderHalfPoints;
+    Math.abs(moraleDelta) * strengthHalfPercentUnits + remainderHalfPoints;
   const prevented = Math.floor(scaled / 200);
   return {
     moraleDelta: moraleDelta + prevented,

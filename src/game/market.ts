@@ -1444,7 +1444,7 @@ interface RetiredLegendCoachInput {
  * trusting content — see `COACH_BOOST_CAPS`.
  */
 export interface CoachBoosts {
-  /** Percentage points on his specialty training bonus. One head level is 10. */
+  /** Percentage points added to his specialty training bonus by stories. */
   readonly trainingPercent?: number;
   /** Weekly Training Points, on top of the level's own contribution. */
   readonly weeklyTp?: number;
@@ -1452,7 +1452,7 @@ export interface CoachBoosts {
   readonly motivatorHalfLevels?: number;
 }
 
-/** One head-coach level in each direction, and no further, for a coach's whole career. */
+/** Permanent story-change limits for one coach's whole career. */
 export const COACH_BOOST_CAPS = {
   trainingPercent: 10,
   weeklyTp: 4,

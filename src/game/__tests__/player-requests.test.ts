@@ -12,6 +12,7 @@ import { buildCareerTeamDef } from '../squad';
 import { trainPlayerInstantly } from '../training';
 import {
   DEFAULT_PLAYER_REQUEST_STATE,
+  MAX_PLAYER_REQUEST_HISTORY,
   STAR_FAME_THRESHOLD,
   absenceWeeksFor,
   advancePlayerRequests,
@@ -1006,6 +1007,10 @@ function atSeason(state: GameState, season: number): GameState {
 }
 
 describe('advancePlayerRequests', () => {
+  it('keeps history shorter than the request deck so stories can return', () => {
+    expect(MAX_PLAYER_REQUEST_HISTORY).toBeLessThan(CATALOG.requests.length);
+  });
+
   it('does nothing at all when the catalog was never baked in', () => {
     // This is what turns the feature off for the balance harness and the audit
     // probes: they build a setup and drop the catalog from it.
@@ -1155,7 +1160,7 @@ describe('advancePlayerRequests', () => {
     expect(next.playerRequests!.weeksSinceRequest).toBe(41);
   });
 
-  it('does not give one player the same request twice in a season', () => {
+  it('never gives a used request story to another player', () => {
     const base = tickingCareer();
     const onlyGoldBoots: PlayerRequestCatalog = {
       ...CATALOG,
@@ -1170,7 +1175,6 @@ describe('advancePlayerRequests', () => {
         absence: false,
       },
     );
-    const unserved = eligible.at(-1)!;
     const overdue: GameState = {
       ...atSeason(base, 3),
       week: 10,
@@ -1178,19 +1182,21 @@ describe('advancePlayerRequests', () => {
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
         weeksSinceRequest: 40,
-        history: eligible.slice(0, -1).map((player, index) => ({
-          requestId: 'gold-boots',
-          playerId: player.id,
-          season: 3,
-          week: index + 1,
-          resolution: 'GRANTED' as const,
-        })),
+        history: [
+          {
+            requestId: 'gold-boots',
+            playerId: eligible[0].id,
+            season: 2,
+            week: 23,
+            resolution: 'GRANTED',
+          },
+        ],
       },
     };
 
     expect(
       advancePlayerRequests(overdue, true).playerRequests!.pending,
-    ).toMatchObject({ requestId: 'gold-boots', playerId: unserved.id });
+    ).toBeUndefined();
   });
 
   it('never offers a bare-eleven squad a leave request it cannot survive', () => {

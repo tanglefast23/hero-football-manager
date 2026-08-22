@@ -290,13 +290,13 @@ describe('marketViewModel', () => {
       loyaltyLabel: '25% loyalty discount',
       available: true,
       headEffectLabels: [
-        'SHO training +40%',
-        'Morale loss -20% · Hero Gauge +20%',
+        'SHO training +28%',
+        'Morale loss -16% · Hero Gauge +16%',
         '+8 TP weekly',
       ],
       assistantEffectLabels: [
-        'SHO training +20%',
-        'Morale loss -10% · Hero Gauge +10%',
+        'SHO training +12%',
+        'Morale loss -8% · Hero Gauge +8%',
         '+4 TP weekly',
       ],
     });

@@ -9,7 +9,7 @@ import {
   buildFacility as placeFacility,
   createFacilityGrid,
 } from './facilities';
-import { applyLowMoraleToStat } from './pyramid';
+import { applyLowMoraleToStat, type NationalCupRound } from './pyramid';
 import { assertContractTermFitsCareer } from './retirement';
 import {
   assertCareerLineupHonorsContractPromises,
@@ -70,7 +70,7 @@ export function careerHeroLimit(state: GameState): number {
  * Priced by the permit's NUMBER, never by how many the club has bought, so the
  * bill is the same whether the club climbed to it or paid its way to it: a
  * third costs $100,000, a fourth $200,000, and every permit past the four a
- * Global League club already holds starts at $300,000 and rises $50,000 each
+ * Global League club already holds starts at $300,000 and rises $100,000 each
  * time.
  */
 export function heroLicensePurchaseCost(licenseNumber: number): number {
@@ -79,7 +79,7 @@ export function heroLicensePurchaseCost(licenseNumber: number): number {
   }
   if (licenseNumber === 3) return 100_000;
   if (licenseNumber === 4) return 200_000;
-  return 300_000 + 50_000 * (licenseNumber - 5);
+  return 300_000 + 100_000 * (licenseNumber - 5);
 }
 
 export interface HeroLicenseOffer {
@@ -312,18 +312,29 @@ export function buildCareerTeams(
 export function buildCareerMatchTeams(
   state: GameState,
   clubIds: readonly string[],
+  cupRoundLabel?: NationalCupRound['label'],
 ): Readonly<Record<string, TeamDef>> {
   return Object.fromEntries(
-    clubIds.map((clubId) => [clubId, buildCareerMatchTeamDef(state, clubId)]),
+    clubIds.map((clubId) => [
+      clubId,
+      buildCareerMatchTeamDef(state, clubId, cupRoundLabel),
+    ]),
   );
 }
 
 export function buildCareerMatchTeamDef(
   state: GameState,
   clubId: string,
+  cupRoundLabel?: NationalCupRound['label'],
 ): TeamDef {
-  if (state.clubs.some((club) => club.id === clubId))
-    return buildCareerTeamDef(state, clubId);
+  if (state.clubs.some((club) => club.id === clubId)) {
+    return applyCupCatchUp(
+      state,
+      clubId,
+      buildCareerTeamDef(state, clubId),
+      cupRoundLabel,
+    );
+  }
   const division = state.m2?.pyramid.divisions.find((candidate) =>
     candidate.clubs.some((club) => club.id === clubId),
   );
@@ -372,10 +383,48 @@ export function buildCareerMatchTeamDef(
     ...take('FWD', 2),
   ];
   const lineupIds = fresherOpponentLineupIds(roster, lineupTemplate, heroLimit);
-  return applyMatchDayForm(
+  return applyCupCatchUp(
     state,
     clubId,
-    buildTeamDef(club, roster, lineupIds, heroLimit),
+    applyMatchDayForm(
+      state,
+      clubId,
+      buildTeamDef(club, roster, lineupIds, heroLimit),
+    ),
+    cupRoundLabel,
+  );
+}
+
+/** Closes part of a large late-Cup gap without ever erasing it. */
+function applyCupCatchUp(
+  state: GameState,
+  clubId: string,
+  opponent: TeamDef,
+  roundLabel?: NationalCupRound['label'],
+): TeamDef {
+  if (
+    clubId === state.userClubId ||
+    (roundLabel !== 'Semi-final' && roundLabel !== 'Final')
+  ) {
+    return opponent;
+  }
+  const rating = (team: TeamDef) =>
+    Math.round(
+      team.players.reduce(
+        (sum, player) => sum + roleOverall(player.role, player.attrs),
+        0,
+      ) / team.players.length,
+    );
+  const userRating = rating(buildCareerTeamDef(state, state.userClubId));
+  const opponentRating = rating(opponent);
+  const gap = userRating - opponentRating;
+  if (gap < 10) return opponent;
+  const target =
+    opponentRating +
+    Math.floor((gap * (roundLabel === 'Final' ? 50 : 25)) / 100);
+  return scaleTeamAttributes(
+    opponent,
+    Math.floor((target * 100) / opponentRating),
   );
 }
 

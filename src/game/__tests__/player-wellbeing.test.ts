@@ -463,7 +463,7 @@ describe('weekly player wellbeing', () => {
     expect(updated).toMatchObject({
       morale: 28,
       consecutiveLowMoraleWeeks: 2,
-      motivatorMoraleRemainderHalfPoints: 100,
+      motivatorMoraleRemainderHalfPoints: 80,
       transferRequested: true,
     });
   });
@@ -523,7 +523,7 @@ describe('weekly player wellbeing', () => {
     ).toBe(false);
   });
 
-  test('gives a Level 1 assistant Motivator an exact 2.5% morale effect', () => {
+  test('gives a Level 1 assistant Motivator an exact 2% morale effect', () => {
     let state = createCareer(createLaunchCareerSetup(11));
     const player = userPlayers(state)[0];
     const assistant = state.market!.coachCandidates[0];
@@ -558,8 +558,8 @@ describe('weekly player wellbeing', () => {
     const updated = state.players.find(
       (candidate) => candidate.id === player.id,
     )!;
-    expect(updated.morale).toBe(61);
-    expect(updated.motivatorMoraleRemainderHalfPoints).toBe(0);
+    expect(updated.morale).toBe(60);
+    expect(updated.motivatorMoraleRemainderHalfPoints).toBe(160);
   });
 });
 

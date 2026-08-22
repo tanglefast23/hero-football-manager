@@ -4039,7 +4039,7 @@
     "store.heroLicenseBought": "Lisensi Pahlawan {license} terdaftar.",
     "cashTransaction.heroLicenseBought": "Lisensi Pahlawan {license} dibeli",
     "glossary.heroes.permit-office.term": "Kantor izin",
-    "glossary.heroes.permit-office.definition": "Loket di layar hari pertandingan yang menjual Lisensi Pahlawan sebelum klub meraihnya. Yang ketiga $100.000, yang keempat $200.000, dan setiap lisensi di atas empat milik klub Liga Global mulai dari $300.000 dan naik $50.000 tiap kali. Membeli hanya mempercepat: promosi nanti menaikkan jumlah gratisnya, bukan menambah yang sudah kamu bayar.",
+    "glossary.heroes.permit-office.definition": "Loket di layar hari pertandingan yang menjual Lisensi Pahlawan sebelum klub meraihnya. Yang ketiga $100.000, yang keempat $200.000, dan setiap lisensi di atas empat milik klub Liga Global mulai dari $300.000 dan naik $100.000 tiap kali. Membeli hanya mempercepat: promosi nanti menaikkan jumlah gratisnya, bukan menambah yang sudah kamu bayar.",
     "fixtureMatchDay.heroLicenseGlobalOnly": "Hanya klub Liga Global yang boleh punya lebih dari empat.",
     "coachSpeech.trainCoach": "Latih pelatih · Pidato",
     "coachSpeech.costDetail": "Menghabiskan semua {points} TP. Setiap pemain dapat +{boost} untuk babak kedua.",

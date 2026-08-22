@@ -1,6 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { MAX_PLAYER_ATTRIBUTE } from '../../sim/attributes';
 import { superTrainingChancePercent } from '../archetype-caps';
+import { createCareer } from '../career';
 import {
   applyCareerContractPromise,
   TRAINING_PRIORITY_DRILLS,
@@ -10,6 +11,7 @@ import { overtrainingInjuryChancePercent } from '../player-wellbeing';
 import {
   individualTrainingUsedFlag,
   INSTANT_DRILL_CONDITION_COST,
+  instantTrainingPreview,
   SUPER_TRAINING_PITY_DRILLS,
   trainPlayerInstantly,
 } from '../training';
@@ -173,6 +175,50 @@ describe('trainPlayerInstantly', () => {
         ordinary.after - ordinary.before,
       );
     }
+  });
+
+  it('caps stacked development bonuses at 75% only on Tier 5', () => {
+    const state = {
+      ...createCareer(createLaunchCareerSetup(75)),
+      phase: 'manage' as const,
+      trainingPoints: 1_000,
+    };
+    const player = userPlayer(state);
+    const coach = {
+      ...state.market!.coachCandidates[0],
+      level: 5,
+      specialties: ['FITNESS', 'ATTACK'] as const,
+      boosts: { trainingPercent: 10 },
+    };
+    const stacked: GameState = {
+      ...state,
+      trainingPoints: 1_000,
+      market: {
+        ...state.market!,
+        headCoach: coach,
+        assistantCoach: { ...coach, id: 'tier-five-assistant' },
+      },
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? {
+              ...candidate,
+              age: 24,
+              role: 'FWD',
+              archetype: 'Prodigy',
+              trainingBonusRemainders: {},
+            }
+          : candidate,
+      ),
+    };
+    const preview = (tier: 4 | 5) =>
+      instantTrainingPreview(
+        { ...stacked, ownedTrainingTiers: { sprints: tier } },
+        player.id,
+        'sprints',
+      );
+
+    expect(preview(4).adjustment).toBe(12);
+    expect(preview(5).adjustment).toBe(15);
   });
 
   it('enforces a TRAINING_PRIORITY debt: owed drills block others, count down, then clear', () => {

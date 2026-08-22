@@ -35,15 +35,15 @@ describe('Club coaching-staff view model', () => {
         severanceCost: 500,
         specialtyLabels: ['Attack', 'Motivator'],
         effectLabels: [
-          'SHO training +10%',
-          'Morale loss -5% · Hero Gauge +5%',
+          'SHO training +7%',
+          'Morale loss -4% · Hero Gauge +4%',
           '+5 TP weekly',
         ],
       }),
     ]);
   });
 
-  it('shows true half-strength effects for an employed assistant', () => {
+  it('shows the smaller effects for an employed assistant', () => {
     const initial = createCareer(
       createLaunchCareerSetup(20260722, undefined, content),
     );
@@ -61,8 +61,8 @@ describe('Club coaching-staff view model', () => {
     expect(clubFinancesViewModel(state).coachingStaff[0]).toMatchObject({
       role: 'ASSISTANT',
       effectLabels: [
-        'SHO training +5%',
-        'Morale loss -2.5% · Hero Gauge +2.5%',
+        'SHO training +3%',
+        'Morale loss -2% · Hero Gauge +2%',
         '+3 TP weekly',
       ],
     });
