@@ -47,6 +47,10 @@ readiness work. It is not a substitute for the full submission runbook.
   first-load budget pass.
 - The App Store Connect API reports version `1.0.0` in Prepare for Submission,
   zero uploaded builds, and no screenshot sets.
+- Paid Apps and Free Apps agreements are Active. Content Rights is saved. App
+  Privacy is published as Data Not Collected with the live HFM privacy URL.
+- Current ratings are 9+ in 172 regions, 12+ in Vietnam and Brazil, and ALL in
+  Korea.
 - Steam remains post-launch scope. There is no desktop wrapper, Steamworks
   integration, App ID, or depot in this repository.
 - Post-match/week-review resume and live iPad transition performance remain
@@ -69,13 +73,11 @@ readiness work. It is not a substitute for the full submission runbook.
   Brazil, ALL Korea), DSA trader status, tax category, US base storefront,
   173 of 175 territories, Mac **off**, Apple Vision Pro **off**, Public
   distribution, **Sign-in required: No**, and **Manually release this version**.
-- **Still open in App Store Connect:** screenshots (0 uploaded), Content Rights
-  (never set up), the App Privacy questionnaire (never started), and the build.
-- **Decide deliberately:** the Apple School Manager education discount is
-  switched **on**. Nothing in the runbook records that as an owner decision.
-- **Check before upload:** App Store Connect version reads `1.0` while
-  `app.json` marketing version is `1.0.0`. Confirm Apple accepts the pair, or
-  align them, before the archive is built.
+- **Still open in App Store Connect:** screenshots and the build. Content Rights
+  is saved, and App Privacy is published as Data Not Collected.
+- **Apple School Manager education discount is off.** Mac and Apple Vision Pro
+  availability are also off.
+- **Versions align:** App Store Connect and `app.json` both read `1.0.0`.
 
 ## Signed archive: dry run passed 2026-08-17
 
