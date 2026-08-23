@@ -361,7 +361,7 @@ describe('launch career adapter', () => {
       rebased.playerRequestRules?.requests.find(
         (request) => request.id === 'gold-boots',
       )?.cost,
-    ).toEqual({ kind: 'DRILL_PLAYER', multiplierPercent: 80, weeks: 2 });
+    ).toEqual({ kind: 'MONEY_PLAYER', wageMultiple: 6 });
 
     const open = {
       ...stale,

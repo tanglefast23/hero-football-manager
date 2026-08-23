@@ -46,8 +46,11 @@ export function playerGiftQuote(
   state: GameState,
   playerId: string,
 ): PlayerGiftQuote {
-  const club = state.clubs.find((candidate) => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   const player = userClubPlayer(state, playerId);
   if (player === undefined) {
     return {
@@ -97,7 +100,8 @@ export function givePlayerGift(
     throw new Error(`player gift blocked: ${quote.blockedReason}`);
   }
   const player = userClubPlayer(state, playerId);
-  if (player === undefined) throw new Error('player gift blocked: PLAYER_NOT_AT_CLUB');
+  if (player === undefined)
+    throw new Error('player gift blocked: PLAYER_NOT_AT_CLUB');
 
   const moraleAfter = player.morale + quote.moraleGain;
   const players = state.players.map((candidate) => {

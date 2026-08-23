@@ -34,7 +34,10 @@ import type {
   TrainingSlotStatOption,
   TrainingUpgradeViewModel,
 } from '../models';
-import { PlayerGiftCelebration } from '../PlayerGiftCelebration';
+import {
+  LazyPlayerGiftCelebration as PlayerGiftCelebration,
+  preloadPlayerGiftCelebration,
+} from '../LazyPlayerGiftCelebration';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -849,11 +852,13 @@ export function SquadTrainingScreen({
       ) : null}
       {lastPlayerGiftResult === null ||
       onClearPlayerGiftResult === undefined ? null : (
-        <PlayerGiftCelebration
-          result={lastPlayerGiftResult}
-          reduceMotion={reduceMotion}
-          onDone={onClearPlayerGiftResult}
-        />
+        <Suspense fallback={null}>
+          <PlayerGiftCelebration
+            result={lastPlayerGiftResult}
+            reduceMotion={reduceMotion}
+            onDone={onClearPlayerGiftResult}
+          />
+        </Suspense>
       )}
     </View>
   );
@@ -1750,7 +1755,10 @@ function PlayerFileSection({
                 disabled={gift.blockedReason !== undefined}
                 pressSfx="click"
                 onPress={() =>
-                  guardGiftTap(() => onGift(selectedPlayer.id))
+                  guardGiftTap(() => {
+                    void preloadPlayerGiftCelebration();
+                    onGift(selectedPlayer.id);
+                  })
                 }
               />
             </View>

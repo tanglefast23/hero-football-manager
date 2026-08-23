@@ -207,7 +207,10 @@ export function PlayerGiftCelebration({
 function GiftIcon() {
   const styles = usePixelStyles(makeStyles);
   return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
       <View style={styles.bowRow}>
         <View style={[styles.bow, styles.bowLeft]} />
         <View style={[styles.bow, styles.bowRight]} />
@@ -224,100 +227,105 @@ function GiftIcon() {
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(36,31,46,0.82)',
-  },
-  safeArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  title: {
-    color: '#fffaf0',
-    fontFamily: faces.display,
-    fontSize: 22,
-    lineHeight: 30,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  giftGroup: { alignItems: 'center', minHeight: 150 },
-  bowRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: -3 },
-  bow: {
-    width: 32,
-    height: 24,
-    backgroundColor: '#ffd65a',
-    borderColor: '#241f2e',
-    borderWidth: 4,
-  },
-  bowLeft: { transform: [{ rotate: '-18deg' }], marginRight: -4 },
-  bowRight: { transform: [{ rotate: '18deg' }], marginLeft: -4 },
-  lid: {
-    width: 116,
-    height: 28,
-    backgroundColor: '#ee4b49',
-    borderColor: '#241f2e',
-    borderWidth: 4,
-  },
-  box: {
-    width: 100,
-    height: 72,
-    alignSelf: 'center',
-    backgroundColor: '#d53845',
-    borderColor: '#241f2e',
-    borderTopWidth: 0,
-    borderWidth: 4,
-  },
-  ribbonVertical: {
-    width: 20,
-    height: '100%',
-    alignSelf: 'center',
-    backgroundColor: '#ffd65a',
-  },
-  sparkle: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    backgroundColor: '#fff4a8',
-  },
-  sparkleLeft: { left: -25, top: 42, transform: [{ rotate: '45deg' }] },
-  sparkleRight: { right: -28, top: 10, transform: [{ rotate: '45deg' }] },
-  cost: {
-    marginTop: 8,
-    color: '#ff7b70',
-    fontFamily: faces.display,
-    fontSize: 20,
-  },
-  playerRow: {
-    minHeight: 126,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  moraleCard: {
-    maxWidth: 220,
-    borderWidth: 4,
-    borderBottomWidth: 7,
-    borderColor: '#241f2e',
-    backgroundColor: '#d9f4a8',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  morale: {
-    color: '#245332',
-    fontFamily: faces.display,
-    fontSize: 18,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  continue: {
-    color: '#fffaf0',
-    fontFamily: faces.data,
-    fontSize: 13,
-    textTransform: 'uppercase',
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(36,31,46,0.82)',
+    },
+    safeArea: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 20,
+      gap: 16,
+    },
+    title: {
+      color: '#fffaf0',
+      fontFamily: faces.display,
+      fontSize: 22,
+      lineHeight: 30,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+    },
+    giftGroup: { alignItems: 'center', minHeight: 150 },
+    bowRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginBottom: -3,
+    },
+    bow: {
+      width: 32,
+      height: 24,
+      backgroundColor: '#ffd65a',
+      borderColor: '#241f2e',
+      borderWidth: 4,
+    },
+    bowLeft: { transform: [{ rotate: '-18deg' }], marginRight: -4 },
+    bowRight: { transform: [{ rotate: '18deg' }], marginLeft: -4 },
+    lid: {
+      width: 116,
+      height: 28,
+      backgroundColor: '#ee4b49',
+      borderColor: '#241f2e',
+      borderWidth: 4,
+    },
+    box: {
+      width: 100,
+      height: 72,
+      alignSelf: 'center',
+      backgroundColor: '#d53845',
+      borderColor: '#241f2e',
+      borderTopWidth: 0,
+      borderWidth: 4,
+    },
+    ribbonVertical: {
+      width: 20,
+      height: '100%',
+      alignSelf: 'center',
+      backgroundColor: '#ffd65a',
+    },
+    sparkle: {
+      position: 'absolute',
+      width: 10,
+      height: 10,
+      backgroundColor: '#fff4a8',
+    },
+    sparkleLeft: { left: -25, top: 42, transform: [{ rotate: '45deg' }] },
+    sparkleRight: { right: -28, top: 10, transform: [{ rotate: '45deg' }] },
+    cost: {
+      marginTop: 8,
+      color: '#ff7b70',
+      fontFamily: faces.display,
+      fontSize: 20,
+    },
+    playerRow: {
+      minHeight: 126,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 14,
+    },
+    moraleCard: {
+      maxWidth: 220,
+      borderWidth: 4,
+      borderBottomWidth: 7,
+      borderColor: '#241f2e',
+      backgroundColor: '#d9f4a8',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    morale: {
+      color: '#245332',
+      fontFamily: faces.display,
+      fontSize: 18,
+      lineHeight: 24,
+      textAlign: 'center',
+    },
+    continue: {
+      color: '#fffaf0',
+      fontFamily: faces.data,
+      fontSize: 13,
+      textTransform: 'uppercase',
+    },
+  });

@@ -158,9 +158,7 @@ export interface FireworkShellKeyframes {
 }
 
 /** Time-ordered knots for one shell on the shared looping clock. */
-export function fireworkShellKeyframes(
-  open: number,
-): FireworkShellKeyframes {
+export function fireworkShellKeyframes(open: number): FireworkShellKeyframes {
   if (!Number.isFinite(open) || open < 0 || open >= 1) {
     throw new Error('firework phase must be from 0 up to 1');
   }

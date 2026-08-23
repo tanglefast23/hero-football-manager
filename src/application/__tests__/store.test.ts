@@ -96,7 +96,9 @@ describe('M1 app store integration', () => {
     );
 
     const loaded = useM1Store.getState().career!;
-    const loadedTarget = loaded.players.find((player) => player.id === target.id)!;
+    const loadedTarget = loaded.players.find(
+      (player) => player.id === target.id,
+    )!;
     const report = loaded.market!.scoutReports[0];
     expect(report.potentialRange).toEqual({
       minimum: loadedTarget.potential,

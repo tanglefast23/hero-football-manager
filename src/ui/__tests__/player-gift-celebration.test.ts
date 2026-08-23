@@ -9,6 +9,10 @@ const squadSource = readFileSync(
   join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
   'utf8',
 );
+const lazySource = readFileSync(
+  join(process.cwd(), 'src/ui/LazyPlayerGiftCelebration.tsx'),
+  'utf8',
+);
 
 test('the gift flow shows the requested art, values, and live player sprite', () => {
   expect(source).toContain('<GiftIcon />');
@@ -17,6 +21,11 @@ test('the gift flow shows the requested art, values, and live player sprite', ()
   expect(source).toContain('<PlayerRunSprite');
   expect(source).not.toContain('<PixelPortrait');
   expect(source).toContain('playPositiveSfx();');
+  expect(squadSource).toContain(
+    'LazyPlayerGiftCelebration as PlayerGiftCelebration',
+  );
+  expect(lazySource).toContain("await import('./SkiaSurfaceImplementations')");
+  expect(lazySource).toContain('LoadSkiaWeb');
 });
 
 test('rapid taps advance the ref before React renders the next beat', () => {
@@ -29,16 +38,18 @@ test('rapid taps advance the ref before React renders the next beat', () => {
 });
 
 test('reduced motion and screen readers get the final static result', () => {
-  expect(source).toContain('const waitingForScreenReader = screenReader === null;');
-  expect(source).toContain('const staticMode = reduce || screenReader === true;');
+  expect(source).toContain(
+    'const waitingForScreenReader = screenReader === null;',
+  );
+  expect(source).toContain(
+    'const staticMode = reduce || screenReader === true;',
+  );
   expect(source).toContain('accessibilityViewIsModal');
   expect(source).toContain('AccessibilityInfo.announceForAccessibility');
 });
 
 test('the unknown screen-reader state never flashes or dismisses the final beat', () => {
-  expect(source).toContain(
-    'const beat = staticMode ? LAST_BEAT : beatState;',
-  );
+  expect(source).toContain('const beat = staticMode ? LAST_BEAT : beatState;');
   expect(source).toContain(
     'if (staticMode || waitingForScreenReader) return undefined;',
   );

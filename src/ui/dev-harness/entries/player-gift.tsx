@@ -1,14 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { loadLaunchContent } from '../../../content';
-import deCatalog from '../../../../content/i18n/de.json';
-import viCatalog from '../../../../content/i18n/vi.json';
 import { givePlayerGift } from '../../../game/player-gifts';
 import type { GameState } from '../../../game/types';
 import {
   copyFor,
+  ensureCatalog,
   LocaleProvider,
-  registerCatalog,
   type Locale,
 } from '../../../i18n';
 import { squadTrainingViewModel } from '../../../application/view-models';
@@ -18,11 +16,24 @@ import type { SquadSort } from '../../squad-sort';
 import { devHarnessCareerAtWeek } from '../career';
 import type { DevHarnessEntry } from '../registry';
 
-// Dev-only review cases load these catalogs without changing the saved language.
-registerCatalog('de', deCatalog);
-registerCatalog('vi', viCatalog);
-
 function PlayerGiftReel({ locale }: { locale: Locale }) {
+  const [ready, setReady] = useState(locale === 'en');
+
+  useEffect(() => {
+    let active = true;
+    setReady(locale === 'en');
+    void ensureCatalog(locale).then(() => {
+      if (active) setReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [locale]);
+
+  return ready ? <LoadedPlayerGiftReel locale={locale} /> : null;
+}
+
+function LoadedPlayerGiftReel({ locale }: { locale: Locale }) {
   const initial = useMemo(() => devHarnessCareerAtWeek(1, 12), []);
   const firstPlayer = initial.players.find(
     (player) => player.clubId === initial.userClubId,

@@ -12,7 +12,7 @@ describe('startup recovery', () => {
     const appRoot = app.slice(appRootStart, appRootEnd);
 
     expect(appRoot).toMatch(
-      /<SafeAreaProvider>\s*<ScreenErrorBoundary[\s\S]*?<GameApp \/>[\s\S]*?<\/ScreenErrorBoundary>\s*<\/SafeAreaProvider>/,
+      /<SafeAreaProvider>\s*<ScreenErrorBoundary[\s\S]*?<GameApp\s+key=\{gameGeneration\}\s+onRecover=\{recoverGame\}\s*\/>[\s\S]*?<\/ScreenErrorBoundary>\s*<\/SafeAreaProvider>/,
     );
   });
 

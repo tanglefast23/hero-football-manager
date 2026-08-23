@@ -1804,9 +1804,8 @@ export function NegotiationPanel({
                 wage: formatCurrency(t, finalDemand.weeklyWage),
                 seasons: finalDemand.termSeasons,
                 promise:
-                  viewModel.perks.find(
-                    (entry) => entry.id === finalDemand.perk,
-                  )?.label ?? finalDemand.perk,
+                  viewModel.perks.find((entry) => entry.id === finalDemand.perk)
+                    ?.label ?? finalDemand.perk,
               })}
               variant="confirm"
               onPress={() =>

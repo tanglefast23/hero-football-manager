@@ -162,9 +162,7 @@ describe('marketViewModel', () => {
       role: 'MID',
       ageLabel: 'Age 22',
     });
-    expect(viewModel.scouting.reports[0].potentialLabel).toBe(
-      'B- · SUPER 23%',
-    );
+    expect(viewModel.scouting.reports[0].potentialLabel).toBe('B- · SUPER 23%');
     expect(viewModel.scouting.reports[0].exactValues).toBe(true);
     expect(viewModel.scouting.reports[0].stats).toHaveLength(6);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);

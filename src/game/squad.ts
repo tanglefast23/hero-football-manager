@@ -741,13 +741,10 @@ export function arrangeCareerLineupForFormation(
       .map((_, slot) => slot)
       .filter((slot) => formationRoleForSlot(formation, slot) === role);
     remaining
-      .filter(
-        (player) => starterSlot.has(player.id) && player.role === role,
-      )
+      .filter((player) => starterSlot.has(player.id) && player.role === role)
       .sort(
         (left, right) =>
-          Number(hasStarterPromise(right)) -
-            Number(hasStarterPromise(left)) ||
+          Number(hasStarterPromise(right)) - Number(hasStarterPromise(left)) ||
           roleOverall(role, right.attrs) - roleOverall(role, left.attrs) ||
           starterSlot.get(left.id)! - starterSlot.get(right.id)!,
       )
@@ -794,11 +791,7 @@ export function arrangeCareerLineupForFormation(
     if (playerId !== undefined || slot === 0) return;
     const role = formationRoleForSlot(formation, slot);
     const fallback = remaining
-      .filter(
-        (player) =>
-          player.role !== 'GK' &&
-          !hasStarterPromise(player),
-      )
+      .filter((player) => player.role !== 'GK' && !hasStarterPromise(player))
       .sort(
         (left, right) =>
           Number(starterSlot.has(right.id)) -

@@ -38,7 +38,7 @@ describe('youth arrival walk-on', () => {
     const walkOnSource = source('src/ui/PlayerWalkOnWelcome.tsx');
 
     expect(appSource).toContain('<AcademyGroupWalkOnWelcome');
-    expect(appSource).toContain("academy-promotion:s${store.career.season}");
+    expect(appSource).toContain('academy-promotion:s${store.career.season}');
     expect(appSource).toContain("'permanent'");
     expect(walkOnSource).toContain('players.map((player)');
     expect(walkOnSource).toContain("t('academyArrival.thanks')");

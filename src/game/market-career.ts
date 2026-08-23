@@ -382,21 +382,21 @@ export function resolveCareerScoutClock(
       ...currentMarket,
       detailedScoutReport: undefined,
       scoutReports: currentMarket.scoutReports.map((report) => {
-      const target = careerTransferTarget(state, report.playerId);
-      if (target === undefined) return report;
-      return {
-        ...report,
-        statRanges: Object.fromEntries(
-          Object.entries(target.player.attrs).map(([attribute, value]) => [
-            attribute,
-            { minimum: value, maximum: value },
-          ]),
-        ) as ScoutReport['statRanges'],
-        potentialRange: {
-          minimum: target.player.potential ?? 3,
-          maximum: target.player.potential ?? 3,
-        },
-      };
+        const target = careerTransferTarget(state, report.playerId);
+        if (target === undefined) return report;
+        return {
+          ...report,
+          statRanges: Object.fromEntries(
+            Object.entries(target.player.attrs).map(([attribute, value]) => [
+              attribute,
+              { minimum: value, maximum: value },
+            ]),
+          ) as ScoutReport['statRanges'],
+          potentialRange: {
+            minimum: target.player.potential ?? 3,
+            maximum: target.player.potential ?? 3,
+          },
+        };
       }),
     };
   }
@@ -1902,22 +1902,20 @@ function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
       sellerCanSpare(state, player.id),
     ),
     ...unattached,
-  ].map(
-    ({ player, sellingClubDivision }) => ({
-      id: player.id,
-      region: scoutRegion(player.id),
-      role: player.role,
-      age: player.age ?? 24,
-      attrs: { ...player.attrs },
-      potential: player.potential ?? 3,
-      personality: marketPersonality(player.personality),
-      ...(player.power === undefined
-        ? {}
-        : { power: player.power, powerTier: player.powerTier ?? 1 }),
-      contractSeasonsRemaining: player.contractSeasonsRemaining,
-      sellingClubDivision,
-    }),
-  );
+  ].map(({ player, sellingClubDivision }) => ({
+    id: player.id,
+    region: scoutRegion(player.id),
+    role: player.role,
+    age: player.age ?? 24,
+    attrs: { ...player.attrs },
+    potential: player.potential ?? 3,
+    personality: marketPersonality(player.personality),
+    ...(player.power === undefined
+      ? {}
+      : { power: player.power, powerTier: player.powerTier ?? 1 }),
+    contractSeasonsRemaining: player.contractSeasonsRemaining,
+    sellingClubDivision,
+  }));
 }
 
 /** Resolves a scouted target from either the active division or the persistent pyramid. */
