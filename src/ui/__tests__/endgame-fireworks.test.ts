@@ -2,6 +2,7 @@ import {
   FIREWORK_CELL,
   FIREWORK_SHELL_IDS,
   fireworkBursts,
+  fireworkShellKeyframes,
   fireworkShellRuns,
 } from '../endgame-fireworks';
 
@@ -62,6 +63,23 @@ describe('firework shells', () => {
 });
 
 describe('the firework display', () => {
+  it('keeps wrapped shell keyframes in chronological order', () => {
+    const failing = fireworkShellKeyframes(0.88);
+    const rounded = failing.inputRange.map(
+      (value) => Math.round(value * 100) / 100,
+    );
+
+    expect(rounded).toEqual([0, 0.04, 0.22, 0.88, 1]);
+    expect(rounded).not.toEqual([0, 0.22, 0.88, 0.04, 1]);
+  });
+
+  it.each([0.5, 0.7, 0.84, 0.88, 0.99])(
+    'builds valid animation ranges at phase %s',
+    (phase) => {
+      expectValidKeyframes(fireworkShellKeyframes(phase));
+    },
+  );
+
   /**
    * The true ending re-renders on every tap and every rotation. A rolled layout
    * would rearrange the whole sky under the man who is mid-sentence.
@@ -113,4 +131,31 @@ describe('the firework display', () => {
   it('has an empty sky rather than a broken one when asked for no shells', () => {
     expect(fireworkBursts('true-ending', 0)).toEqual([]);
   });
+
+  it.each([
+    ['true-ending', 5],
+    ['global-league', 5],
+    ['cup-winners', 3],
+  ] as const)('gives every %s shell valid keyframes', (scene, count) => {
+    fireworkBursts(scene, count).forEach((burst) => {
+      expectValidKeyframes(fireworkShellKeyframes(burst.phase));
+    });
+  });
 });
+
+function expectValidKeyframes(
+  keyframes: ReturnType<typeof fireworkShellKeyframes>,
+): void {
+  expect(keyframes.inputRange).toHaveLength(keyframes.opacityRange.length);
+  expect(keyframes.inputRange).toHaveLength(keyframes.scaleRange.length);
+  keyframes.inputRange.forEach((value, index, range) => {
+    expect(value).toBeGreaterThanOrEqual(0);
+    expect(value).toBeLessThanOrEqual(1);
+    if (index > 0) expect(value).toBeGreaterThanOrEqual(range[index - 1]);
+  });
+  keyframes.opacityRange.forEach((value) => {
+    expect(value).toBeGreaterThanOrEqual(0);
+    expect(value).toBeLessThanOrEqual(1);
+  });
+  keyframes.scaleRange.forEach((value) => expect(value).toBeGreaterThan(0));
+}

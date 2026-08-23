@@ -33,6 +33,17 @@ function youthIds(seasons: number, offersPerIntake: number): string[] {
 }
 
 describe('youth arrival walk-on', () => {
+  it('introduces automatic season-refill players together in one shared bubble', () => {
+    const appSource = source('App.tsx');
+    const walkOnSource = source('src/ui/PlayerWalkOnWelcome.tsx');
+
+    expect(appSource).toContain('<AcademyGroupWalkOnWelcome');
+    expect(appSource).toContain("academy-promotion:s${store.career.season}");
+    expect(appSource).toContain("'permanent'");
+    expect(walkOnSource).toContain('players.map((player)');
+    expect(walkOnSource).toContain("t('academyArrival.thanks')");
+  });
+
   it('sends academy graduates to the walk-on and keeps the receipt for transfers', () => {
     const appSource = source('App.tsx');
 

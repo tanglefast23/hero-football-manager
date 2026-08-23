@@ -82,19 +82,87 @@ export function PlayerWalkOnWelcome({
   );
 }
 
+export function AcademyGroupWalkOnWelcome({
+  players,
+  navigationAnchor,
+  reduceMotion = false,
+  onDone,
+}: {
+  players: readonly PlayerSigningConfirmation[];
+  navigationAnchor?: TutorialAnchorLayout | null;
+  reduceMotion?: boolean;
+  onDone: () => void;
+}) {
+  const t = useCopy();
+  const { width: viewportWidth, height: viewportHeight } =
+    useWindowDimensions();
+  const line = t('academyArrival.thanks');
+  const groundOffset = navigationAnchor
+    ? Math.max(0, viewportHeight - navigationAnchor.y)
+    : FALLBACK_GROUND_OFFSET;
+  const groupScale = Math.max(
+    1,
+    Math.min(
+      SPRITE_SCALE,
+      Math.floor(
+        (viewportWidth - 32) /
+          (Math.max(1, players.length) * PLAYER_SPRITE_CELL.width),
+      ),
+    ),
+  );
+  const characterWidth =
+    players.length * PLAYER_SPRITE_CELL.width * groupScale;
+
+  useEffect(() => {
+    playPositiveSfx();
+  }, []);
+
+  return (
+    <CharacterSpeechOverlay
+      lines={[line]}
+      characterWidth={characterWidth}
+      characterHeight={PLAYER_SPRITE_CELL.height * groupScale}
+      groundOffset={groundOffset}
+      autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
+      reduceMotion={reduceMotion}
+      accessibilityLabel={t('academyArrival.a11y.groupSays', {
+        players: players.map((player) => player.playerName).join(', '),
+        line,
+      })}
+      onDone={onDone}
+    >
+      <View className="flex-row items-end">
+        {players.map((player) => (
+          <WalkingPlayer
+            key={player.playerId}
+            player={player}
+            scale={groupScale}
+          />
+        ))}
+      </View>
+    </CharacterSpeechOverlay>
+  );
+}
+
 /**
  * The overlay owns the walk, so the sprite is told to cycle its frames the
  * whole time it is on screen — a two-frame run held still would read as a
  * glitch, and he is only stationary for the length of one line.
  */
-function WalkingPlayer({ player }: { player: PlayerSigningConfirmation }) {
+function WalkingPlayer({
+  player,
+  scale = SPRITE_SCALE,
+}: {
+  player: PlayerSigningConfirmation;
+  scale?: number;
+}) {
   return (
     <View>
       <PlayerRunSprite
         playerId={player.playerId}
         role={player.role}
         lookId={player.lookId}
-        scale={SPRITE_SCALE}
+        scale={scale}
         walking
       />
     </View>

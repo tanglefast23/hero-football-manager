@@ -80,6 +80,19 @@ describe('the wage the panel quotes', () => {
 });
 
 describe('the agent s closing ultimatum', () => {
+  it('names and remounts the action from the complete live offer', () => {
+    const screen = readFileSync(
+      join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
+      'utf8',
+    );
+
+    expect(screen).toContain("t('market.a11y.offerPlayerTermsAndPromise'");
+    expect(screen).toContain(
+      'key={`${viewModel.id}:${weeklyWage}:${termSeasons}:${perk}`}',
+    );
+    expect(screen).toContain("t('market.offerSummary'");
+  });
+
   it('keeps the needed wage hidden until the agent gives his final demand', () => {
     const screen = readFileSync(
       join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),

@@ -90,6 +90,7 @@ import {
   startNextSeason,
   startCareerScoutMission,
   startDetailedScoutReport,
+  resolveCareerScoutClock,
   dismissCareerScoutReport,
   dismissStoryCallback,
   submitCareerTransferOffer,
@@ -3701,7 +3702,7 @@ function seasonBoundaryScreen(career: GameState): M1Screen {
  * save whose authored content this build no longer ships from bricking.
  */
 function reconcileLoadedCareer(state: GameState): GameState {
-  return reconcilePendingAwakeningContent(
+  const reconciled = reconcilePendingAwakeningContent(
     reconcilePendingStoryEvent(
       reconcileLegacyFirstAwakening(
         // Licenses first: a save written before license changes benched anyone
@@ -3715,6 +3716,14 @@ function reconcileLoadedCareer(state: GameState): GameState {
       launchContent.events,
     ),
   );
+  return {
+    ...reconciled,
+    ...(reconciled.market === undefined
+      ? {}
+      : {
+          market: resolveCareerScoutClock(reconciled, reconciled.market),
+        }),
+  };
 }
 
 /**

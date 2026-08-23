@@ -164,7 +164,10 @@ import {
   PlayerSigningOverlay,
   type PlayerSigningConfirmation,
 } from './src/ui/PlayerSigningOverlay';
-import { PlayerWalkOnWelcome } from './src/ui/PlayerWalkOnWelcome';
+import {
+  AcademyGroupWalkOnWelcome,
+  PlayerWalkOnWelcome,
+} from './src/ui/PlayerWalkOnWelcome';
 import { PostMatchSummaryModal } from './src/ui/PostMatchSummaryModal';
 import { TutorialSpotlight } from './src/ui/TutorialSpotlight';
 import { TutorialTapCue } from './src/ui/TutorialTapCue';
@@ -227,6 +230,7 @@ import {
   hasEverGainedFans,
   inheritedSquad,
   isFirstOnboardingFixture,
+  isAssistantInboxProductPermanentlyDismissed,
   isFullyCappedPlayer,
   isTransferWindowOpen,
   leagueStandings,
@@ -433,6 +437,7 @@ function requestedQaRoot(
 
 export default function App() {
   const [qaBypassed, setQaBypassed] = useState(false);
+  const [gameGeneration, setGameGeneration] = useState(0);
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
   // QA roots are available in development and static web review exports, where
   // __DEV__ is false. Native Release builds always continue to the real game,
@@ -449,6 +454,10 @@ export default function App() {
       </SafeAreaProvider>
     );
   }
+  const recoverGame = () => {
+    useM1Store.getState().recoverFromScreenCrash();
+    setGameGeneration((generation) => generation + 1);
+  };
   return (
     <SafeAreaProvider>
       <ScreenErrorBoundary
@@ -460,15 +469,15 @@ export default function App() {
         // point: recovering to `welcome` leaves the career untouched, so without
         // the flag `continueCareer()` resumes the screen that just crashed and
         // the player loops.
-        onRecover={() => useM1Store.getState().recoverFromScreenCrash()}
+        onRecover={recoverGame}
       >
-        <GameApp />
+        <GameApp key={gameGeneration} onRecover={recoverGame} />
       </ScreenErrorBoundary>
     </SafeAreaProvider>
   );
 }
 
-function GameApp() {
+function GameApp({ onRecover }: { onRecover: () => void }) {
   const store = useM1Store();
   const developerModeAvailable = developerModeAvailableForSurface(
     __DEV__,
@@ -2139,6 +2148,32 @@ function GameApp() {
     playerSigning !== null && playerSigning.source !== 'transfer'
       ? playerSigning
       : null;
+  const academyArrivalAlertId =
+    store.career === null
+      ? null
+      : `academy-promotion:s${store.career.season}`;
+  const automaticAcademyArrivals =
+    store.career === null ||
+    academyArrivalAlertId === null ||
+    isAssistantInboxProductPermanentlyDismissed(
+      store.career,
+      academyArrivalAlertId,
+    )
+      ? []
+      : store.career.players
+          .filter(
+            (player) =>
+              player.clubId === store.career!.userClubId &&
+              player.id.includes(`-academy-s${store.career!.season}-`),
+          )
+          .sort((left, right) => left.name.localeCompare(right.name))
+          .map((player) => ({
+            playerId: player.id,
+            playerName: player.name,
+            role: player.role,
+            ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+            source: 'academy' as const,
+          }));
   /**
    * The board's money message in full, for the row the manager just opened.
    *
@@ -4148,7 +4183,10 @@ function GameApp() {
 
   return (
     <LocaleProvider value={preferences.language}>
-      <SafeAreaProvider>
+      <ScreenErrorBoundary
+        onRecover={onRecover}
+      >
+        <SafeAreaProvider>
         <StatusBar
           style={
             (!fontsLoaded && !fontError && bootError === null) ||
@@ -4689,6 +4727,29 @@ function GameApp() {
                 onDone={() => setPlayerSigning(null)}
               />
             ) : null}
+            {store.screen === 'management' &&
+            automaticAcademyArrivals.length > 0 &&
+            academyArrivalAlertId !== null &&
+            !guideOverlayVisible &&
+            playerSigning === null &&
+            playerSaleFarewell === null &&
+            coachOverlay === null &&
+            facilityProjectNotice === null &&
+            pendingConfirmation === null &&
+            !postMatchSummaryVisible &&
+            !globalSettingsOpen ? (
+              <AcademyGroupWalkOnWelcome
+                players={automaticAcademyArrivals}
+                navigationAnchor={navigationGuideAnchor}
+                reduceMotion={reduceMotion}
+                onDone={() =>
+                  store.dismissInboxProduct(
+                    academyArrivalAlertId,
+                    'permanent',
+                  )
+                }
+              />
+            ) : null}
             {playerSigning !== null && playerSigning.source === 'transfer' ? (
               <PlayerSigningOverlay
                 player={playerSigning}
@@ -4906,7 +4967,8 @@ function GameApp() {
               and panel, so nothing can paint through them. */}
           <InfoTipLayer />
         </View>
-      </SafeAreaProvider>
+        </SafeAreaProvider>
+      </ScreenErrorBoundary>
     </LocaleProvider>
   );
 }

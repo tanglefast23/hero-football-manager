@@ -12,7 +12,12 @@ import type {
   PlayerRequestDefinition,
   PlayerRequestResolution,
 } from '../game/types';
-import { copyFor, formatIntegerForCopy, type CopyFn } from '../i18n';
+import {
+  copyFor,
+  formatIntegerForCopy,
+  formatMoneyForCopy,
+  type CopyFn,
+} from '../i18n';
 import { copyOrEnglish } from './copy-fallback';
 
 /**
@@ -36,6 +41,7 @@ export interface PendingRequestViewModel {
   /** Feeds `EventPixelScene`; always `request-<id>`. */
   readonly artKey: string;
   readonly grantLabel: string;
+  readonly grantMoneyCost?: string;
   readonly refuseLabel: string;
   readonly canAfford: boolean;
   readonly weeksToAnswer: number;
@@ -104,6 +110,15 @@ export function playerRequestViewModel(
     requestTarget(definition.cost),
     difficulty,
   ).asker;
+  const grantCostLabel = grantLabel(
+    definition,
+    pending.costAmount,
+    difficulty,
+    t,
+  );
+  const moneyCost =
+    definition.cost.kind === 'MONEY_PLAYER' ||
+    definition.cost.kind === 'MONEY_SQUAD';
 
   return {
     available,
@@ -126,7 +141,8 @@ export function playerRequestViewModel(
         definition.line,
       ),
       artKey: `request-${definition.id}`,
-      grantLabel: grantLabel(definition, pending.costAmount, difficulty, t),
+      grantLabel: grantCostLabel,
+      ...(moneyCost ? { grantMoneyCost: grantCostLabel } : {}),
       refuseLabel: t('playerRequests.refuseCost', {
         loyalty: Math.abs(refuse.loyalty),
         morale: Math.abs(refuse.morale),
@@ -158,7 +174,7 @@ function grantLabel(
 ): string {
   const cost = definition.cost;
   if (cost.kind === 'MONEY_PLAYER' || cost.kind === 'MONEY_SQUAD') {
-    return formatIntegerForCopy(t, -(costAmount ?? 0));
+    return formatMoneyForCopy(t, -(costAmount ?? 0));
   }
   if (cost.kind === 'ABSENCE') {
     const weeks = absenceWeeksFor(cost.weeks, difficulty);

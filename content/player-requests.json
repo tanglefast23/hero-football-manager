@@ -14,15 +14,15 @@
     }
   },
   "requests": [
-    { "id": "gift-for-my-bae", "title": "Something with diamonds", "line": "Something with diamonds in it. She'll know if it's fake.", "art": ["money-bag", "star-sparkle"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 75, "weeks": 2 } },
+    { "id": "gift-for-my-bae", "title": "Something with diamonds", "line": "Something with diamonds in it. She'll know if it's fake.", "art": ["money-bag", "star-sparkle"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 10 } },
     { "id": "the-car", "title": "The car", "line": "I've seen the one. It's yellow.", "art": ["sports-car", "money-bag"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 12 } },
-    { "id": "gold-boots", "title": "Custom gold boots", "line": "My initials on the heel.", "art": ["boot", "star-sparkle"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 80, "weeks": 2 } },
+    { "id": "gold-boots", "title": "Custom gold boots", "line": "My initials on the heel.", "art": ["boot", "star-sparkle"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 6 } },
     { "id": "fly-my-mum-in", "title": "Fly my mum in", "line": "Every home game. She's never seen me play.", "art": ["ticket", "letter"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 80, "weeks": 2 } },
     { "id": "personal-chef", "title": "A personal chef", "line": "I can't eat what's in that canteen.", "art": ["chef-hat", "burger"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 75, "weeks": 3 } },
     { "id": "home-studio", "title": "A studio at home", "line": "I've got bars, boss. I need a booth.", "art": ["microphone", "tv"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 65, "weeks": 3 } },
     { "id": "cousins-wedding", "title": "My cousin's wedding", "line": "I said I'd pay. Loudly. In front of everyone.", "art": ["envelope", "money-bag"], "cost": { "kind": "ABSENCE", "weeks": 1 } },
     { "id": "matchday-barber", "title": "Matchday barber", "line": "I can't go out there like this.", "art": ["scissors", "scarf"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 85, "weeks": 2 } },
-    { "id": "highlights-drone", "title": "A highlights drone", "line": "My agent says I need content.", "art": ["drone", "camera"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 75, "weeks": 2 } },
+    { "id": "highlights-drone", "title": "A highlights drone", "line": "My agent says I need content.", "art": ["drone", "camera"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 8 } },
     { "id": "fix-my-old-pitch", "title": "Fix my old pitch", "line": "The one I grew up on. New fence, new nets.", "art": ["cone", "banner-flag"], "cost": { "kind": "ABSENCE", "weeks": 1 } },
     { "id": "ship-my-car-over", "title": "Ship my car over", "line": "It's been in a container for six months.", "art": ["briefcase", "ticket"], "cost": { "kind": "ABSENCE", "weeks": 1 } },
     { "id": "charity-match-back-home", "title": "A match back home", "line": "One game in my old town. I'm not asking twice.", "art": ["banner-flag", "letter"], "cost": { "kind": "ABSENCE", "weeks": 1 } },

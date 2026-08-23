@@ -703,7 +703,7 @@ export function setCareerLineup(
   return candidate;
 }
 
-/** Picks the strongest available natural-role lineup for the chosen formation. */
+/** Keeps the manager's starters where the chosen formation still has room. */
 export function arrangeCareerLineupForFormation(
   state: GameState,
   formation: FormationId,
@@ -723,6 +723,9 @@ export function arrangeCareerLineupForFormation(
   const arranged: (string | undefined)[] = lineup.playerIds.map(
     () => undefined,
   );
+  const starterSlot = new Map(
+    lineup.playerIds.map((playerId, slot) => [playerId, slot] as const),
+  );
   const assign = (slot: number, player: CareerPlayer) => {
     arranged[slot] = player.id;
     remaining.splice(
@@ -730,12 +733,29 @@ export function arrangeCareerLineupForFormation(
       1,
     );
   };
+  const hasStarterPromise = (player: CareerPlayer) =>
+    hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') ||
+    hasActiveCareerContractPromise(player, 'CAPTAINCY');
+  for (const role of ['GK', 'DEF', 'MID', 'FWD'] as const) {
+    const slots = arranged
+      .map((_, slot) => slot)
+      .filter((slot) => formationRoleForSlot(formation, slot) === role);
+    remaining
+      .filter(
+        (player) => starterSlot.has(player.id) && player.role === role,
+      )
+      .sort(
+        (left, right) =>
+          Number(hasStarterPromise(right)) -
+            Number(hasStarterPromise(left)) ||
+          roleOverall(role, right.attrs) - roleOverall(role, left.attrs) ||
+          starterSlot.get(left.id)! - starterSlot.get(right.id)!,
+      )
+      .slice(0, slots.length)
+      .forEach((player, index) => assign(slots[index]!, player));
+  }
   const promised = remaining
-    .filter(
-      (player) =>
-        hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') ||
-        hasActiveCareerContractPromise(player, 'CAPTAINCY'),
-    )
+    .filter(hasStarterPromise)
     .sort(
       (left, right) =>
         left.contractPromise!.agreedSeason -
@@ -777,11 +797,12 @@ export function arrangeCareerLineupForFormation(
       .filter(
         (player) =>
           player.role !== 'GK' &&
-          !hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') &&
-          !hasActiveCareerContractPromise(player, 'CAPTAINCY'),
+          !hasStarterPromise(player),
       )
       .sort(
         (left, right) =>
+          Number(starterSlot.has(right.id)) -
+            Number(starterSlot.has(left.id)) ||
           conditionedRatingD64(
             roleOverall(role, right.attrs),
             right.condition ?? 100,

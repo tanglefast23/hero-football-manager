@@ -101,6 +101,7 @@ const isSpoken = (key: string): boolean =>
  */
 const isSpeech = (key: string): boolean =>
   /^playerRequest\.[^.]+\.line$/.test(key) ||
+  key.startsWith('academyArrival.') ||
   key.startsWith('playerArrival.') ||
   key.startsWith('playerFarewell.') ||
   key.startsWith('storyCallback.') ||

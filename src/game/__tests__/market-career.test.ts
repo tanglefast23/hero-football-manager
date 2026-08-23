@@ -43,7 +43,6 @@ import {
   scoutShortlistSize,
   sellCareerPlayer,
   startCareerScoutMission,
-  startDetailedScoutReport,
   submitCareerTransferOffer,
 } from '../market-career';
 import type { CareerPlayer, GameState } from '../types';
@@ -1694,7 +1693,7 @@ describe('career market integration', () => {
     ).toEqual([]);
   });
 
-  test('charges for a detailed report and reveals exact potential later', () => {
+  test('upgrades a saved fuzzy report immediately without charging again', () => {
     const state = { ...createCareer(createLaunchCareerSetup(86)), week: 1 };
     const target = state.players.find(
       (player) => player.clubId !== state.userClubId,
@@ -1722,19 +1721,7 @@ describe('career market integration', () => {
         },
       ],
     };
-    const cashBefore = state.clubs.find(
-      (club) => club.id === state.userClubId,
-    )!.cash;
-    const started = startDetailedScoutReport(state, market, target.id, 5);
-
-    expect(
-      started.state.clubs.find((club) => club.id === state.userClubId)?.cash,
-    ).toBe(cashBefore - 2500);
-    expect(started.market.detailedScoutReport?.dueWeek).toBe(3);
-    const resolved = resolveCareerScoutClock(
-      { ...started.state, week: 3 },
-      started.market,
-    );
+    const resolved = resolveCareerScoutClock(state, market);
     expect(resolved.detailedScoutReport).toBeUndefined();
     expect(resolved.scoutReports[0].potentialRange).toEqual({
       minimum: target.potential,
@@ -1749,91 +1736,6 @@ describe('career market integration', () => {
             target.attrs[attribute as keyof typeof target.attrs],
       ),
     ).toBe(true);
-  });
-
-  test('allows exact-stat detail when a level-three office already knows potential', () => {
-    const initial = { ...createCareer(createLaunchCareerSetup(286)), week: 1 };
-    const state: GameState = {
-      ...initial,
-      facilities: {
-        ...initial.facilities,
-        grid: {
-          ...initial.facilities.grid!,
-          nextBuildingId: 2,
-          buildings: [
-            {
-              id: 'scout-office-3',
-              type: 'scout-office',
-              level: 3,
-              capitalInvested: 27_000,
-              x: 0,
-              y: 0,
-            },
-          ],
-        },
-      },
-    };
-    const target = state.players.find(
-      (player) => player.clubId !== state.userClubId,
-    )!;
-    const range = { minimum: 40, maximum: 60 };
-    const market = {
-      ...state.market!,
-      scoutReports: [
-        {
-          playerId: target.id,
-          role: target.role,
-          age: target.age ?? 22,
-          statRanges: Object.fromEntries(
-            Object.keys(target.attrs).map((attribute) => [attribute, range]),
-          ) as never,
-          potentialRange: {
-            minimum: target.potential ?? 3,
-            maximum: target.potential ?? 3,
-          },
-          completedSeason: 1,
-          completedWeek: 1,
-        },
-      ],
-    };
-
-    expect(
-      startDetailedScoutReport(state, market, target.id, 5).market,
-    ).toMatchObject({ detailedScoutReport: { dueWeek: 2 } });
-  });
-
-  test('refuses a detailed report that would expire at season end', () => {
-    const state = { ...createCareer(createLaunchCareerSetup(186)), week: 28 };
-    const target = state.players.find(
-      (player) => player.clubId !== state.userClubId,
-    )!;
-    const range = { minimum: 40, maximum: 60 };
-    const market = {
-      ...state.market!,
-      scoutReports: [
-        {
-          playerId: target.id,
-          role: target.role,
-          age: target.age ?? 22,
-          statRanges: {
-            pac: range,
-            sho: range,
-            pas: range,
-            def: range,
-            tec: range,
-            sta: range,
-            ref: range,
-          },
-          potentialRange: { minimum: 2 as const, maximum: 4 as const },
-          completedSeason: 1,
-          completedWeek: 19,
-        },
-      ],
-    };
-
-    expect(() => startDetailedScoutReport(state, market, target.id, 5)).toThrow(
-      /transfer window closes before this report can finish/,
-    );
   });
 
   test('lets transfer-requested players attract extra bids in the final week', () => {

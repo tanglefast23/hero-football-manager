@@ -30,6 +30,7 @@ import {
   serializeGameState,
 } from '../../persistence/game-state-codec';
 import { weeklySettlementAwardKeys } from '../weekly-settlement-awards';
+import { createProvisionalSponsorPortfolio } from '../sponsors';
 
 /** The shape a career club's starting eleven must be able to field. */
 const SQUAD_ROLES: readonly CareerPlayer['role'][] = [
@@ -516,6 +517,58 @@ describe('career validation and determinism', () => {
 });
 
 describe('finances and two-season boundary', () => {
+  it('stores localized continuity-sponsor keys instead of English placeholder names', () => {
+    const initial = createCareer(makeSetup());
+    const contracts = createProvisionalSponsorPortfolio(2_000, 2, 1);
+    const weekFour = advanceWeek({
+      ...initial,
+      week: 4,
+      clubBusiness: {
+        ...initial.clubBusiness,
+        sponsorship: {
+          activeContracts: contracts,
+          offers: [],
+          portfolioSeason: 1,
+        },
+      },
+    });
+    const settled = completeMatchday(weekFour, allDraws(weekFour));
+
+    expect(
+      settled.ledgers[0]!.lines
+        .filter((line) => line.kind === 'sponsor')
+        .map((line) => [line.labelKey, line.labelParams]),
+    ).toEqual([
+      ['ledger.monthlyContinuitySponsorNumbered', { number: 1 }],
+      ['ledger.monthlyContinuitySponsorNumbered', { number: 2 }],
+    ]);
+
+    const weekEight = advanceWeek({
+      ...initial,
+      week: 8,
+      clubBusiness: {
+        ...initial.clubBusiness,
+        sponsorship: {
+          activeContracts: contracts.map((contract) => ({
+            ...contract,
+            provisional: false,
+          })),
+          offers: [],
+          portfolioSeason: 1,
+        },
+      },
+    });
+    const laterSettlement = completeMatchday(weekEight, allDraws(weekEight));
+    expect(
+      laterSettlement.ledgers[0]!.lines
+        .filter((line) => line.kind === 'sponsor')
+        .map((line) => line.labelKey),
+    ).toEqual([
+      'ledger.monthlyContinuitySponsorNumbered',
+      'ledger.monthlyContinuitySponsorNumbered',
+    ]);
+  });
+
   it('pays the Season 1 wage subsidy but removes it in Season 2', () => {
     const seasonOneWeekTwo = advanceWeek(createCareer(makeSetup()));
     expect(seasonOneWeekTwo.ledgers[0].lines).toEqual([
