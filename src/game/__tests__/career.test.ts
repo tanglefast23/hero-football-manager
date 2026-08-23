@@ -535,9 +535,9 @@ describe('finances and two-season boundary', () => {
     const settled = completeMatchday(weekFour, allDraws(weekFour));
 
     expect(
-      settled.ledgers[0]!.lines
-        .filter((line) => line.kind === 'sponsor')
-        .map((line) => [line.labelKey, line.labelParams]),
+      settled.ledgers[0]!.lines.filter((line) => line.kind === 'sponsor').map(
+        (line) => [line.labelKey, line.labelParams],
+      ),
     ).toEqual([
       ['ledger.monthlyContinuitySponsorNumbered', { number: 1 }],
       ['ledger.monthlyContinuitySponsorNumbered', { number: 2 }],
@@ -560,9 +560,9 @@ describe('finances and two-season boundary', () => {
     });
     const laterSettlement = completeMatchday(weekEight, allDraws(weekEight));
     expect(
-      laterSettlement.ledgers[0]!.lines
-        .filter((line) => line.kind === 'sponsor')
-        .map((line) => line.labelKey),
+      laterSettlement.ledgers[0]!.lines.filter(
+        (line) => line.kind === 'sponsor',
+      ).map((line) => line.labelKey),
     ).toEqual([
       'ledger.monthlyContinuitySponsorNumbered',
       'ledger.monthlyContinuitySponsorNumbered',

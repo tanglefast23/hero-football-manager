@@ -397,7 +397,9 @@ describe('career squad integration', () => {
     expect(ids).not.toContain(weakMidId);
     expect(ids).toContain(reserveForwardId);
     expect(ids[0]).toBe(initial.lineups[0].playerIds[0]);
-    expect(ids.filter((id) => initial.lineups[0].playerIds.includes(id))).toHaveLength(10);
+    expect(
+      ids.filter((id) => initial.lineups[0].playerIds.includes(id)),
+    ).toHaveLength(10);
   });
 
   it('trades formation slots when both players already start, never the keeper', () => {

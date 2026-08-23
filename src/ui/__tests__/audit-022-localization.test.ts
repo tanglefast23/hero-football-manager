@@ -46,7 +46,9 @@ describe('AUD-022 localization recovery', () => {
     expect(copyFor('de')('screenErrorBoundary.backToTitle')).toBe(
       'Zurück zum Titel',
     );
-    expect(app).toContain('<GameApp key={gameGeneration} onRecover={recoverGame} />');
+    expect(app).toContain(
+      '<GameApp key={gameGeneration} onRecover={recoverGame} />',
+    );
     expect(gameApp).toContain('onRecover={onRecover}');
   });
 

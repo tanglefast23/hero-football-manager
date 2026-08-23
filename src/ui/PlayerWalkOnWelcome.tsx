@@ -110,8 +110,7 @@ export function AcademyGroupWalkOnWelcome({
       ),
     ),
   );
-  const characterWidth =
-    players.length * PLAYER_SPRITE_CELL.width * groupScale;
+  const characterWidth = players.length * PLAYER_SPRITE_CELL.width * groupScale;
 
   useEffect(() => {
     playPositiveSfx();
