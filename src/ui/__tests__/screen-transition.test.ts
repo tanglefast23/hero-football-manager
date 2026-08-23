@@ -168,3 +168,19 @@ describe('App screen routing', () => {
     expect(app).toContain('screenKey === RivalHeroIntroScreen');
   });
 });
+
+describe('management tab routing', () => {
+  const shell = source('src/ui/ManagementShell.tsx');
+
+  it('keeps the chrome still while the selected desk dissolves', () => {
+    expect(shell).toContain(
+      '<ScreenTransition screenKey={activeTab} reduceMotion={reduceMotion}>',
+    );
+  });
+
+  it('makes the selected main tab obvious without styling every tab', () => {
+    expect(shell).toContain(
+      "? 'relative min-h-12 flex-1 items-center justify-center border-t-4 border-blue-dark bg-blue-light'",
+    );
+  });
+});

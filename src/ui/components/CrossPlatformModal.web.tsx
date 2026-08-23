@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Animated, type ModalProps, type ViewStyle } from 'react-native';
+import { MOTION_MS } from '../motion';
 
 let visibleWebModalCount = 0;
 let appRootSnapshot:
@@ -59,56 +60,91 @@ export function CrossPlatformModal({
   const opacity = useRef(
     new Animated.Value(animationType === 'fade' ? 0 : 1),
   ).current;
+  const [present, setPresent] = useState(visible);
+  const childrenRef = useRef(children);
+  if (visible) childrenRef.current = children;
   const onRequestCloseRef = useRef(onRequestClose);
   const onShowRef = useRef(onShow);
   const onDismissRef = useRef(onDismiss);
+  const shownRef = useRef(false);
   onRequestCloseRef.current = onRequestClose;
   onShowRef.current = onShow;
   onDismissRef.current = onDismiss;
 
   useEffect(() => {
-    if (!visible) return undefined;
-    onShowRef.current?.(undefined as never);
-    return () => onDismissRef.current?.();
-  }, [visible]);
+    if (visible && present && !shownRef.current) {
+      shownRef.current = true;
+      onShowRef.current?.(undefined as never);
+    } else if (!present && shownRef.current) {
+      shownRef.current = false;
+      onDismissRef.current?.();
+    }
+  }, [present, visible]);
+
+  useEffect(
+    () => () => {
+      if (shownRef.current) onDismissRef.current?.();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!present || typeof document === 'undefined') return undefined;
+    const releaseAppRoot = blockAppRoot();
+    return releaseAppRoot;
+  }, [present]);
 
   useEffect(() => {
     if (!visible || typeof document === 'undefined') return undefined;
-    const releaseAppRoot = blockAppRoot();
     const dismissOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape')
         onRequestCloseRef.current?.(undefined as never);
     };
     document.addEventListener('keydown', dismissOnEscape);
-    return () => {
-      document.removeEventListener('keydown', dismissOnEscape);
-      releaseAppRoot();
-    };
+    return () => document.removeEventListener('keydown', dismissOnEscape);
   }, [visible]);
 
   useEffect(() => {
-    if (!visible) return undefined;
-    if (animationType !== 'fade') {
-      opacity.setValue(1);
+    if (visible && !present) {
+      setPresent(true);
       return undefined;
     }
-    opacity.setValue(0);
+    if (!present) return undefined;
+    if (animationType !== 'fade') {
+      opacity.setValue(visible ? 1 : 0);
+      if (!visible) setPresent(false);
+      return undefined;
+    }
+    if (visible) opacity.setValue(0);
     const animation = Animated.timing(opacity, {
-      toValue: 1,
-      duration: 180,
+      toValue: visible ? 1 : 0,
+      duration: MOTION_MS.QUICK,
       useNativeDriver: false,
     });
-    animation.start();
-    return () => animation.stop();
-  }, [animationType, opacity, visible]);
+    const finish = () => {
+      if (!visible) setPresent(false);
+    };
+    animation.start(({ finished }) => {
+      if (finished) finish();
+    });
+    const backstop = visible
+      ? undefined
+      : setTimeout(finish, MOTION_MS.QUICK + 100);
+    return () => {
+      if (backstop !== undefined) clearTimeout(backstop);
+      animation.stop();
+    };
+  }, [animationType, opacity, present, visible]);
 
-  if (!visible || typeof document === 'undefined') return null;
+  if (!present || typeof document === 'undefined') return null;
   return createPortal(
     <Animated.View
       accessibilityViewIsModal
+      accessibilityElementsHidden={!visible}
+      pointerEvents={visible ? 'auto' : 'none'}
       style={[WEB_LAYER_STYLE, { opacity }]}
     >
-      {children}
+      {childrenRef.current}
     </Animated.View>,
     document.body,
   );

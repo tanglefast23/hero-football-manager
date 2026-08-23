@@ -43,5 +43,11 @@ describe('cross-platform modal coverage', () => {
     expect(source(webWrapper)).toContain("setAttribute('aria-hidden', 'true')");
     expect(source(webWrapper)).toContain('visibleWebModalCount += 1');
     expect(source(webWrapper)).toContain('visibleWebModalCount - 1');
+    expect(source(webWrapper)).toContain(
+      'const [present, setPresent] = useState(visible);',
+    );
+    expect(source(webWrapper)).toContain('toValue: visible ? 1 : 0');
+    expect(source(webWrapper)).toContain('duration: MOTION_MS.QUICK');
+    expect(source(webWrapper)).toContain('{childrenRef.current}');
   });
 });

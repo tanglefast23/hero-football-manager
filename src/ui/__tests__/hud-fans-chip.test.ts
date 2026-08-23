@@ -34,6 +34,12 @@ describe('the HUD fans chip', () => {
     );
   });
 
+  it('does not nest the resource-chip buttons inside another button', () => {
+    expect(shell).not.toMatch(
+      /<Pressable(?:(?!<\/Pressable>)[\s\S])*\{resourceCluster\}(?:(?!<Pressable)[\s\S])*<\/Pressable>/,
+    );
+  });
+
   it('renders a negative cash value and its dollar glyph in red', () => {
     expect(shell).toContainSource(
       'const negativeMoney = money && shownValue < 0;',
