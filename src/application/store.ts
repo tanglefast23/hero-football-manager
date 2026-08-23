@@ -26,6 +26,7 @@ import {
   completeRivalHeroIntro as markRivalHeroIntroComplete,
   completeCupGiantKillingCelebration as markCupGiantKillingCelebrationComplete,
   completeFirstOnboardingMatch,
+  completeLowMoraleGiftTutorial,
   completeAssistantGuideMilestone,
   type AssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -621,7 +622,7 @@ interface M1Store {
   /** Passing undefined clears the selection — sorting the register deselects. */
   selectPlayer: (playerId: string | undefined) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
-  giftPlayer: (playerId: string) => Promise<void>;
+  giftPlayer: (playerId: string, completeTutorial?: boolean) => Promise<void>;
   /**
    * Runs the rest of a repeat batch at once, for when the manager skips out of
    * the presentation. The drills were paid for and queued; watching them is
@@ -2681,9 +2682,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({ selectedPlayerId, error: null });
   },
 
-  async giftPlayer(playerId) {
+  async giftPlayer(playerId, completeTutorial = false) {
+    let career: GameState | undefined;
     try {
-      const career = requireCareer(get());
+      const current = requireCareer(get());
+      career = completeTutorial
+        ? completeLowMoraleGiftTutorial(current)
+        : current;
       const result = applyPlayerGift(career, playerId);
       const player = result.state.players.find(
         (candidate) => candidate.id === playerId,
@@ -2694,18 +2699,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
       queueCareerSave(get, set, result.state);
       await flushPendingCareerSave();
 
-      const current = get();
+      const storeState = get();
       if (
-        current.activeTab !== 'squad' ||
-        current.career !== result.state ||
-        (current.repository !== null &&
-          current.lastPersistedCareer !== result.state)
+        storeState.activeTab !== 'squad' ||
+        storeState.career !== result.state ||
+        (storeState.repository !== null &&
+          storeState.lastPersistedCareer !== result.state)
       ) {
         return;
       }
       set({
         lastPlayerGiftResult: {
-          sequence: (current.lastPlayerGiftResult?.sequence ?? 0) + 1,
+          sequence: (storeState.lastPlayerGiftResult?.sequence ?? 0) + 1,
           playerId,
           playerName: player.name,
           role: player.role,
@@ -2715,7 +2720,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
         },
       });
     } catch (error) {
-      set({ error: playerGiftErrorCopy(error) });
+      if (career !== undefined && completeTutorial) {
+        set({ career, error: playerGiftErrorCopy(error) });
+        queueCareerSave(get, set, career);
+        await flushPendingCareerSave();
+      } else {
+        set({ error: playerGiftErrorCopy(error) });
+      }
     }
   },
 

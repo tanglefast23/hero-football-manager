@@ -1,4 +1,8 @@
 import { createCareer } from '../../game/career';
+import {
+  lowMoraleGiftTutorialPlayerId,
+  reconcileLowMoraleGiftTutorialTarget,
+} from '../../game/player-gifts';
 import type { GameState } from '../../game/types';
 import {
   MissingCareerBackupError,
@@ -13,12 +17,18 @@ beforeEach(() => {
 
 test('shows the gift celebration only after the gifted career is saved', async () => {
   const base = createCareer(createLaunchCareerSetup(20260823));
-  const career: GameState = {
+  const player = base.players.find(
+    (candidate) => candidate.clubId === base.userClubId,
+  )!;
+  const career: GameState = reconcileLowMoraleGiftTutorialTarget({
     ...base,
+    players: base.players.map((candidate) =>
+      candidate.id === player.id ? { ...candidate, morale: 5 } : candidate,
+    ),
     clubs: base.clubs.map((club) =>
       club.id === base.userClubId ? { ...club, cash: 1_000_000 } : club,
     ),
-  };
+  });
   const saved: GameState[] = [];
   let releaseSave: (() => void) | undefined;
   const repository = stubCareerRepository({
@@ -39,11 +49,7 @@ test('shows the gift celebration only after the gifted career is saved', async (
     persistenceReady: true,
     lastPersistedCareer: career,
   });
-  const player = career.players.find(
-    (candidate) => candidate.clubId === career.userClubId,
-  )!;
-
-  const gifting = useM1Store.getState().giftPlayer(player.id);
+  const gifting = useM1Store.getState().giftPlayer(player.id, true);
   await waitUntil(() => releaseSave !== undefined);
 
   expect(useM1Store.getState().lastPlayerGiftResult).toBeNull();
@@ -54,10 +60,52 @@ test('shows the gift celebration only after the gifted career is saved', async (
     kind: 'player-gift',
     referenceId: player.id,
   });
+  expect(lowMoraleGiftTutorialPlayerId(saved.at(-1)!)).toBeUndefined();
+  expect(reconcileLowMoraleGiftTutorialTarget(saved.at(-1)!)).toBe(
+    saved.at(-1),
+  );
   expect(useM1Store.getState().lastPlayerGiftResult).toMatchObject({
     playerId: player.id,
-    moraleGain: 5,
+    moraleGain: 20,
   });
+});
+
+test('saves tutorial completion when the guided gift is unaffordable', async () => {
+  const base = createCareer(createLaunchCareerSetup(20260825));
+  const player = base.players.find(
+    (candidate) => candidate.clubId === base.userClubId,
+  )!;
+  const career = reconcileLowMoraleGiftTutorialTarget({
+    ...base,
+    players: base.players.map((candidate) =>
+      candidate.id === player.id ? { ...candidate, morale: 5 } : candidate,
+    ),
+    clubs: base.clubs.map((club) =>
+      club.id === base.userClubId ? { ...club, cash: 0 } : club,
+    ),
+  });
+  const saved: GameState[] = [];
+  useM1Store.setState({
+    career,
+    repository: stubCareerRepository({
+      async save(state) {
+        saved.push(state);
+      },
+    }),
+    activeTab: 'squad',
+    persistenceReady: true,
+    lastPersistedCareer: career,
+  });
+
+  await useM1Store.getState().giftPlayer(player.id, true);
+
+  expect(saved.at(-1)?.cashTransactions).toEqual(career.cashTransactions);
+  expect(lowMoraleGiftTutorialPlayerId(saved.at(-1)!)).toBeUndefined();
+  expect(reconcileLowMoraleGiftTutorialTarget(saved.at(-1)!)).toBe(
+    saved.at(-1),
+  );
+  expect(useM1Store.getState().error).toBe('The club cannot afford this gift.');
+  expect(useM1Store.getState().lastPlayerGiftResult).toBeNull();
 });
 
 test('does not replay a saved gift celebration after leaving the Squad tab', async () => {

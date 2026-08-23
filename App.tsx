@@ -13,15 +13,19 @@ import {
 } from 'react';
 import {
   Animated,
+  AccessibilityInfo,
   AppState,
+  BackHandler,
   Linking,
   LogBox,
   Platform,
+  Pressable as NativePressable,
   Share,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
+  findNodeHandle,
 } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
@@ -171,6 +175,7 @@ import {
 import { PostMatchSummaryModal } from './src/ui/PostMatchSummaryModal';
 import { TutorialSpotlight } from './src/ui/TutorialSpotlight';
 import { TutorialTapCue } from './src/ui/TutorialTapCue';
+import { preloadPlayerGiftCelebration } from './src/ui/LazyPlayerGiftCelebration';
 import { advisorMilestonesToBank } from './src/ui/advisor-milestones';
 import { shouldAskAssistantMode } from './src/ui/assistant-mode-choice';
 import {
@@ -234,6 +239,7 @@ import {
   isFullyCappedPlayer,
   isTransferWindowOpen,
   leagueStandings,
+  LOW_MORALE_GIFT_TUTORIAL_ALERT_ID,
   midseasonTrainingStatus,
   nextDueStoryCallback,
   shouldShowSquadSortHint,
@@ -533,8 +539,80 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
     useState<TutorialAnchorLayout | null>(null);
   const [requestedAssistantSequenceId, setRequestedAssistantSequenceId] =
     useState<AssistantGuideSequenceId | null>(null);
+  const [lowMoraleGiftTutorialPlayerId, setLowMoraleGiftTutorialPlayerId] =
+    useState<string | null>(null);
+  const [giftGuideAnchor, setGiftGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
+  const giftTutorialTargetRef = useRef<View>(null);
   const [conciergeFocus, setConciergeFocus] =
     useState<AssistantGuideFocus | null>(null);
+
+  const exitLowMoraleGiftTutorial = useCallback(() => {
+    setLowMoraleGiftTutorialPlayerId(null);
+    setGiftGuideAnchor(null);
+    store.setActiveTab('home');
+  }, [store.setActiveTab]);
+
+  const buyGuidedGift = useCallback(() => {
+    if (lowMoraleGiftTutorialPlayerId === null) return;
+    const playerId = lowMoraleGiftTutorialPlayerId;
+    setLowMoraleGiftTutorialPlayerId(null);
+    setGiftGuideAnchor(null);
+    playManagementActionSfx('select');
+    void preloadPlayerGiftCelebration();
+    void store.giftPlayer(playerId, true);
+  }, [lowMoraleGiftTutorialPlayerId, store.giftPlayer]);
+
+  useEffect(() => {
+    if (lowMoraleGiftTutorialPlayerId === null) return;
+    const back =
+      Platform.OS === 'web'
+        ? null
+        : BackHandler.addEventListener('hardwareBackPress', () => {
+            exitLowMoraleGiftTutorial();
+            return true;
+          });
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') exitLowMoraleGiftTutorial();
+    };
+    if (Platform.OS === 'web') document.addEventListener('keydown', escape);
+    return () => {
+      back?.remove();
+      if (Platform.OS === 'web')
+        document.removeEventListener('keydown', escape);
+    };
+  }, [exitLowMoraleGiftTutorial, lowMoraleGiftTutorialPlayerId]);
+
+  useEffect(() => {
+    if (giftGuideAnchor === null) return;
+    const frame = requestAnimationFrame(() => {
+      const target = giftTutorialTargetRef.current;
+      if (target === null) return;
+      if (Platform.OS === 'web') {
+        (
+          target as unknown as {
+            focus?: (options?: FocusOptions) => void;
+          }
+        ).focus?.({ preventScroll: true });
+        return;
+      }
+      const handle = findNodeHandle(target);
+      if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [giftGuideAnchor]);
+
+  useEffect(() => {
+    if (lowMoraleGiftTutorialPlayerId === null || giftGuideAnchor !== null) {
+      return;
+    }
+    const timeout = setTimeout(exitLowMoraleGiftTutorial, 5_000);
+    return () => clearTimeout(timeout);
+  }, [
+    exitLowMoraleGiftTutorial,
+    giftGuideAnchor,
+    lowMoraleGiftTutorialPlayerId,
+  ]);
   const [firstCupRoundOf32Spoken, setFirstCupRoundOf32Spoken] = useState(false);
   /**
    * Which board money row the manager has just opened, if any.
@@ -3435,6 +3513,15 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         store.focusInboxDuty(alert.mustDoDutyId);
       }
       if (
+        alertId === LOW_MORALE_GIFT_TUTORIAL_ALERT_ID &&
+        alert?.playerId !== undefined
+      ) {
+        store.selectPlayer(alert.playerId);
+        setConciergeFocus(null);
+        setGiftGuideAnchor(null);
+        setLowMoraleGiftTutorialPlayerId(alert.playerId);
+        store.setActiveTab('squad');
+      } else if (
         alert?.guideSequenceId !== undefined &&
         alert.destination !== undefined
       ) {
@@ -3666,8 +3753,14 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
               });
             }}
             onGiftPlayer={(playerId) => {
-              void store.giftPlayer(playerId);
+              if (playerId === lowMoraleGiftTutorialPlayerId) {
+                buyGuidedGift();
+              } else {
+                void store.giftPlayer(playerId);
+              }
             }}
+            guideGiftPlayerId={lowMoraleGiftTutorialPlayerId ?? undefined}
+            onGiftGuideAnchorChange={setGiftGuideAnchor}
             lastPlayerGiftResult={store.lastPlayerGiftResult}
             onClearPlayerGiftResult={store.clearPlayerGiftResult}
             onBookGreenBullTraining={() => {
@@ -4182,7 +4275,8 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
   const backgroundInteractionBlocked =
     pendingConfirmation !== null ||
     blockingSaveWarningVisible ||
-    postMatchSummaryVisible;
+    postMatchSummaryVisible ||
+    lowMoraleGiftTutorialPlayerId !== null;
 
   return (
     <LocaleProvider value={preferences.language}>
@@ -4887,6 +4981,73 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
                 )
               ) : null}
             </View>
+            {lowMoraleGiftTutorialPlayerId !== null ? (
+              <View
+                accessibilityViewIsModal
+                accessibilityLabel={t('playerGift.lowMoraleTutorial.cue')}
+                onAccessibilityEscape={exitLowMoraleGiftTutorial}
+                style={StyleSheet.absoluteFill}
+              >
+                <TutorialSpotlight
+                  anchor={giftGuideAnchor}
+                  viewportWidth={viewportWidth}
+                  viewportHeight={viewportHeight}
+                  blocking
+                />
+                {giftGuideAnchor === null ? null : (
+                  <>
+                    <NativePressable
+                      ref={giftTutorialTargetRef}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('playerGift.a11y.giftAction', {
+                        n:
+                          squadTrainingVm?.selectedPlayerGift
+                            ?.clubGiftsRemaining ?? 0,
+                        player:
+                          squadTrainingVm?.players.find(
+                            (player) =>
+                              player.id === lowMoraleGiftTutorialPlayerId,
+                          )?.name ?? '',
+                        cost: formatCurrency(
+                          t,
+                          squadTrainingVm?.selectedPlayerGift?.cost ?? 0,
+                        ),
+                        gain:
+                          squadTrainingVm?.selectedPlayerGift?.moraleGain ?? 0,
+                        remaining:
+                          squadTrainingVm?.selectedPlayerGift
+                            ?.clubGiftsRemaining ?? 0,
+                        status:
+                          squadTrainingVm?.selectedPlayerGift?.blockedReason ??
+                          '',
+                      })}
+                      onPress={buyGuidedGift}
+                      style={{
+                        position: 'absolute',
+                        left: giftGuideAnchor.x,
+                        top: giftGuideAnchor.y,
+                        width: giftGuideAnchor.width,
+                        height: giftGuideAnchor.height,
+                      }}
+                    />
+                    <TutorialTapCue
+                      label={t('playerGift.lowMoraleTutorial.cue')}
+                      detail={t('playerGift.moraleResult', {
+                        gain:
+                          squadTrainingVm?.selectedPlayerGift?.moraleGain ?? 20,
+                      })}
+                      direction="down"
+                      reduceMotion={reduceMotion}
+                      style={tutorialCuePositionAbove(
+                        giftGuideAnchor,
+                        viewportWidth,
+                        viewportHeight,
+                      )}
+                    />
+                  </>
+                )}
+              </View>
+            ) : null}
             {postMatchSummaryVisible && store.postMatch !== null ? (
               <PostMatchSummaryModal
                 viewModel={store.postMatch}

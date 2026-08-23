@@ -233,7 +233,7 @@ describe('M2 game-state codec', () => {
     );
   });
 
-  test('rejects duplicate or zero-value immediate cash transactions', () => {
+  test('rejects duplicate or zero-value non-gift cash transactions', () => {
     const initial = createCareer(createLaunchCareerSetup(46));
     const state = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const transaction = state.cashTransactions![0];

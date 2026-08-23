@@ -75,6 +75,8 @@ import { InfoTip } from '../components/InfoTip';
 import { energyBand } from '../../render/match-energy-ui';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import { useTapGuard } from '../use-tap-guard';
+import { useGuideAnchor } from '../use-guide-anchor';
+import type { TutorialAnchorLayout } from '../tutorial-cue-position';
 import {
   LOYALTY_NO_RENEWAL_THRESHOLD,
   LOYALTY_WARNING_THRESHOLD,
@@ -326,6 +328,8 @@ export interface SquadTrainingScreenProps {
   onLayOffPlayer?: (playerId: string) => void;
   /** Buys the selected player one weekly morale gift. */
   onGiftPlayer?: (playerId: string) => void;
+  guideGiftPlayerId?: string;
+  onGiftGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
   lastPlayerGiftResult?: PlayerGiftCelebrationViewModel | null;
   onClearPlayerGiftResult?: () => void;
   /** Fixed capture offset for deterministic store-media scenes. */
@@ -363,6 +367,8 @@ export function SquadTrainingScreen({
   onChangeSquadSort,
   onLayOffPlayer,
   onGiftPlayer,
+  guideGiftPlayerId,
+  onGiftGuideAnchorChange,
   lastPlayerGiftResult = null,
   onClearPlayerGiftResult,
   initialScrollY,
@@ -393,6 +399,11 @@ export function SquadTrainingScreen({
   const selectedPlayer = viewModel.players.find(
     (player) => player.id === selectedPlayerId,
   );
+  const guideGift = selectedPlayer?.id === guideGiftPlayerId;
+  const {
+    anchorRef: giftGuideRef,
+    scheduleMeasurement: scheduleGiftGuideMeasurement,
+  } = useGuideAnchor(guideGift, onGiftGuideAnchorChange);
   const selectedArchetype =
     selectedPlayer === undefined
       ? undefined
@@ -620,6 +631,26 @@ export function SquadTrainingScreen({
     };
   }, [quickTrainScrollTargetId, scrollGuideTargetIntoView]);
 
+  useEffect(() => {
+    if (!guideGift) return;
+    let secondFrame: number | null = null;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        scrollGuideTargetIntoView(giftGuideRef);
+        scheduleGiftGuideMeasurement();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) cancelAnimationFrame(secondFrame);
+    };
+  }, [
+    giftGuideRef,
+    guideGift,
+    scheduleGiftGuideMeasurement,
+    scrollGuideTargetIntoView,
+  ]);
+
   const layoutMode = useLayoutMode();
 
   const sections: FlowSection[] = [
@@ -685,6 +716,8 @@ export function SquadTrainingScreen({
                 onLayOff={onLayOffPlayer}
                 gift={viewModel.selectedPlayerGift}
                 onGift={onGiftPlayer}
+                giftGuideRef={giftGuideRef}
+                onGiftGuideLayout={scheduleGiftGuideMeasurement}
               />
             ),
           },
@@ -742,6 +775,7 @@ export function SquadTrainingScreen({
         }}
         onScroll={(event) => {
           latestScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+          if (guideGift) scheduleGiftGuideMeasurement();
         }}
         onScrollBeginDrag={() => {
           dismissPlayerGuide();
@@ -1519,6 +1553,8 @@ interface PlayerFileSectionProps {
   onLayOff?: (playerId: string) => void;
   gift?: NonNullable<SquadTrainingViewModel['selectedPlayerGift']>;
   onGift?: (playerId: string) => void;
+  giftGuideRef?: RefObject<View | null>;
+  onGiftGuideLayout?: () => void;
 }
 
 function PlayerFileSection({
@@ -1531,6 +1567,8 @@ function PlayerFileSection({
   onLayOff,
   gift,
   onGift,
+  giftGuideRef,
+  onGiftGuideLayout,
 }: PlayerFileSectionProps) {
   const t = useCopy();
   const guardGiftTap = useTapGuard();
@@ -1741,7 +1779,12 @@ function PlayerFileSection({
                 </Text>
               )}
             </View>
-            <View className="min-w-[132px]">
+            <View
+              ref={giftGuideRef}
+              collapsable={false}
+              className="min-w-[132px]"
+              onLayout={onGiftGuideLayout}
+            >
               <ActionButton
                 label={t('playerGift.action')}
                 accessibilityLabel={t('playerGift.a11y.giftAction', {

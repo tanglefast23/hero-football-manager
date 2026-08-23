@@ -2,9 +2,12 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
 import {
   PLAYER_GIFT_WEEKLY_CLUB_LIMIT,
+  completeLowMoraleGiftTutorial,
   givePlayerGift,
+  lowMoraleGiftTutorialPlayerId,
   playerGiftCost,
   playerGiftQuote,
+  reconcileLowMoraleGiftTutorialTarget,
 } from '../player-gifts';
 import type { CareerPlayer, GameState } from '../types';
 
@@ -36,13 +39,9 @@ function replacePlayer(
 }
 
 describe('player gifts', () => {
-  test('prices one wage in D5 and three wages in D2 and D1', () => {
-    expect(playerGiftCost(500, 5)).toBe(500);
-    expect(playerGiftCost(500, 3)).toBe(500);
-    expect(playerGiftCost(500, 2)).toBe(1_500);
-    expect(playerGiftCost(500, 1)).toBe(1_500);
-    expect(playerGiftCost(0, 5)).toBe(50);
-    expect(playerGiftCost(0, 2)).toBe(150);
+  test('prices every gift at four current weekly wages', () => {
+    expect(playerGiftCost(500)).toBe(2_000);
+    expect(playerGiftCost(0)).toBe(0);
   });
 
   test('charges once, adds morale once, and records localized transaction data', () => {
@@ -59,8 +58,8 @@ describe('player gifts', () => {
     )!;
     const transaction = result.state.cashTransactions!.at(-1)!;
 
-    expect(afterPlayer.morale).toBe(66);
-    expect(result.moraleGain).toBe(5);
+    expect(afterPlayer.morale).toBe(81);
+    expect(result.moraleGain).toBe(20);
     expect(transaction).toMatchObject({
       kind: 'player-gift',
       label: `Gift for ${player.name}`,
@@ -81,6 +80,24 @@ describe('player gifts', () => {
 
     expect(playerGiftQuote(before, player.id).moraleGain).toBe(2);
     expect(givePlayerGift(before, player.id).moraleAfter).toBe(100);
+  });
+
+  test('records and limits a free gift for a zero-wage player', () => {
+    const initial = richCareer();
+    const players = roster(initial);
+    let state = replacePlayer(initial, players[0]!.id, { weeklyWage: 0 });
+
+    state = givePlayerGift(state, players[0]!.id).state;
+
+    expect(state.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'player-gift',
+      amount: 0,
+      referenceId: players[0]!.id,
+    });
+    expect(playerGiftQuote(state, players[0]!.id).blockedReason).toBe(
+      'ALREADY_GIFTED',
+    );
+    expect(playerGiftQuote(state, players[1]!.id).clubGiftsRemaining).toBe(2);
   });
 
   test.each([
@@ -134,7 +151,7 @@ describe('player gifts', () => {
     const initial = richCareer();
     const player = roster(initial)[0]!;
     const below = replacePlayer(initial, player.id, {
-      morale: 32,
+      morale: 12,
       personality: 'Professional',
       transferRequested: true,
       consecutiveLowMoraleWeeks: 7,
@@ -146,7 +163,7 @@ describe('player gifts', () => {
     expect(belowAfter.consecutiveLowMoraleWeeks).toBe(7);
 
     const crossing = replacePlayer(initial, player.id, {
-      morale: 34,
+      morale: 24,
       personality: undefined,
       transferRequested: true,
       consecutiveLowMoraleWeeks: 9,
@@ -165,5 +182,75 @@ describe('player gifts', () => {
     expect(givePlayerGift(initial, player.id)).toEqual(
       givePlayerGift(initial, player.id),
     );
+  });
+
+  test('targets the lowest eligible low-morale player and retargets stale alerts', () => {
+    const initial = richCareer();
+    const players = roster(initial);
+    const low = players[2]!;
+    const tiedLater = players[3]!;
+    const ready = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.clubId !== initial.userClubId
+          ? player
+          : {
+              ...player,
+              morale:
+                player.id === low.id || player.id === tiedLater.id ? 17 : 50,
+            },
+      ),
+    };
+
+    const targeted = reconcileLowMoraleGiftTutorialTarget(ready);
+    expect(lowMoraleGiftTutorialPlayerId(targeted)).toBe(low.id);
+    expect(reconcileLowMoraleGiftTutorialTarget(targeted)).toBe(targeted);
+
+    const stale = {
+      ...targeted,
+      players: targeted.players.map((player) =>
+        player.id === low.id ? { ...player, transferRequested: true } : player,
+      ),
+    };
+    expect(
+      lowMoraleGiftTutorialPlayerId(
+        reconcileLowMoraleGiftTutorialTarget(stale),
+      ),
+    ).toBe(tiedLater.id);
+  });
+
+  test('never targets another player after the tutorial completes', () => {
+    const initial = richCareer();
+    const player = roster(initial)[0]!;
+    const low = replacePlayer(initial, player.id, { morale: 10 });
+    const completed = completeLowMoraleGiftTutorial(
+      reconcileLowMoraleGiftTutorialTarget(low),
+    );
+
+    expect(lowMoraleGiftTutorialPlayerId(completed)).toBeUndefined();
+    expect(
+      lowMoraleGiftTutorialPlayerId(
+        reconcileLowMoraleGiftTutorialTarget(completed),
+      ),
+    ).toBeUndefined();
+  });
+
+  test('does not target a player at exactly 30 morale', () => {
+    const initial = richCareer();
+    const player = roster(initial)[0]!;
+    const boundary = {
+      ...initial,
+      players: initial.players.map((candidate) =>
+        candidate.clubId !== initial.userClubId
+          ? candidate
+          : { ...candidate, morale: candidate.id === player.id ? 30 : 50 },
+      ),
+    };
+
+    expect(
+      lowMoraleGiftTutorialPlayerId(
+        reconcileLowMoraleGiftTutorialTarget(boundary),
+      ),
+    ).toBeUndefined();
   });
 });

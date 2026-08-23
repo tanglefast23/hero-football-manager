@@ -220,7 +220,7 @@ const cashTransactionSchema = z
     label: nonemptyString,
     labelKey: labelKeySchema,
     labelParams: labelParamsSchema,
-    amount: safeInteger.refine((value) => value !== 0, 'must be non-zero'),
+    amount: safeInteger,
     // Signed, like `ledgerSchema` above. Every kind here used to be a purchase,
     // which a club can only make with money, so the balance left after one was
     // always positive. Closing a facility is a credit and is deliberately
@@ -229,7 +229,16 @@ const cashTransactionSchema = z
     balanceAfter: safeInteger,
     referenceId: nonemptyString.optional(),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((transaction, context) => {
+    if (transaction.amount === 0 && transaction.kind !== 'player-gift') {
+      context.addIssue({
+        code: 'custom',
+        path: ['amount'],
+        message: 'must be non-zero unless it is a player gift',
+      });
+    }
+  });
 
 const attributesSchema = z
   .object({

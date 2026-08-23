@@ -18,10 +18,10 @@ describe('the post-match Financial Report layer', () => {
     const app = source('App.tsx');
 
     expect(app).toMatch(
-      /const backgroundInteractionBlocked =\s*pendingConfirmation !== null \|\|\s*blockingSaveWarningVisible \|\|\s*postMatchSummaryVisible;/,
+      /const backgroundInteractionBlocked =\s*pendingConfirmation !== null \|\|\s*blockingSaveWarningVisible \|\|\s*postMatchSummaryVisible \|\|\s*lowMoraleGiftTutorialPlayerId !== null;/,
     );
     expect(app).toMatch(
-      /<View\s+className="flex-1"\s+pointerEvents=\{backgroundInteractionBlocked[\s\S]*?<\/View>\s*\{postMatchSummaryVisible && store\.postMatch !== null \? \(\s*<PostMatchSummaryModal/,
+      /<View\s+className="flex-1"\s+pointerEvents=\{backgroundInteractionBlocked[\s\S]*?<\/View>\s*\{lowMoraleGiftTutorialPlayerId !== null[\s\S]*?\{postMatchSummaryVisible && store\.postMatch !== null \? \(\s*<PostMatchSummaryModal/,
     );
   });
 });
