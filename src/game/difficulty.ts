@@ -70,7 +70,7 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 10_000,
     opponentGrowthPercent: 5,
-    d1OpponentGrowthPercent: 3,
+    d1OpponentGrowthPercent: 5,
     opponentGrowthAttributeCap: 800,
     // Chairman is allowed to sink twice as deep before the board steps in, so
     // the danger zone lasts longer and the ultimatums bite harder. It is still

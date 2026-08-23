@@ -172,6 +172,10 @@ describe('the boost reaches the number, not just the record', () => {
 });
 
 describe('the training multiplier scales the bonus, not the whole thing', () => {
+  it('uses the exact 10%, 15%, and 20% facility ladder', () => {
+    expect(FACILITY_TRAINING_MULTIPLIER).toEqual([1, 1.1, 1.15, 1.2]);
+  });
+
   /**
    * A level-3 gym adds 30% to the drill; that earned part sits above the 1.0
    * every club gets for free. A −20% boost must take a fifth of *that*, not

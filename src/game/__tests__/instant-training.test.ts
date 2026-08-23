@@ -217,7 +217,7 @@ describe('trainPlayerInstantly', () => {
         'sprints',
       );
 
-    expect(preview(4).adjustment).toBe(12);
+    expect(preview(4).adjustment).toBe(11);
     expect(preview(5).adjustment).toBe(15);
   });
 

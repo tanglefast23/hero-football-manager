@@ -784,10 +784,10 @@ function validateCoachTrainingRemainder(
 /**
  * Indexed by facility level; index 0 means the club owns no such building.
  * These bonuses stay useful without doubling late-career drill gains. Level 1
- * still changes a drill, while Levels 2 and 3 now add 20% and 30%.
+ * still changes a drill, while Levels 2 and 3 add 15% and 20%.
  */
 export const FACILITY_TRAINING_MULTIPLIER: readonly number[] = [
-  1, 1.1, 1.2, 1.3,
+  1, 1.1, 1.15, 1.2,
 ];
 
 function facilityTrainingMultiplier(

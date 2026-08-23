@@ -35,7 +35,7 @@ describe('Club coaching-staff view model', () => {
         severanceCost: 500,
         specialtyLabels: ['Attack', 'Motivator'],
         effectLabels: [
-          'SHO training +7%',
+          'SHO training +6%',
           'Morale loss -4% · Hero Gauge +4%',
           '+5 TP weekly',
         ],
@@ -89,7 +89,7 @@ describe('Club coaching-staff view model', () => {
 
     expect(clubFinancesViewModel(state).coachingStaff[0]).toMatchObject({
       effectLabels: [
-        'SHO training +12%',
+        'SHO training +11%',
         'Morale loss -6.5% · Hero Gauge +6.5%',
         '+7 TP weekly',
       ],

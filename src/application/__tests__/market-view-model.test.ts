@@ -397,7 +397,7 @@ describe('marketViewModel', () => {
       loyaltyLabel: '25% loyalty discount',
       available: true,
       headEffectLabels: [
-        'SHO training +28%',
+        'SHO training +24%',
         'Morale loss -16% · Hero Gauge +16%',
         '+8 TP weekly',
       ],

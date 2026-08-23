@@ -30,7 +30,7 @@ export function coachTrainingBonusPercent(
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
   return checkedMultiply(
     level,
-    role === 'HEAD' ? 7 : 3,
+    role === 'HEAD' ? 6 : 3,
     `${role.toLowerCase()} training bonus`,
   );
 }
@@ -216,8 +216,8 @@ export function careerCoachTrainingModifiers(
     validateCoach(assistant.level, assistant.specialties, 'assistant coach');
   const specialtyBonusPercent =
     coach === undefined ? 0 : coachTrainingBonusPercent(coach.level, 'HEAD');
-  // The assistant is the smaller second staff slot: +3% rather than +7% per
-  // level, so a same-specialty pair climbs by a clean +10% per level.
+  // The assistant is the smaller second staff slot: +3% rather than +6% per
+  // level, so a same-specialty pair climbs by +9% per level.
   const assistantBonusPercent =
     assistant === undefined
       ? 0

@@ -365,7 +365,7 @@ describe('facility weekly integration', () => {
     expect(gateOf(withStands(1, 1, 1))).toBe(5_040);
   });
 
-  test('uses the reduced x1.10/x1.20/x1.30 facility ladder', () => {
+  test('uses the x1.10/x1.15/x1.20 facility ladder', () => {
     const initial = createCareer(createLaunchCareerSetup(20260726));
     const playerId = initial.players.find(
       (player) => player.clubId === initial.userClubId,
@@ -413,11 +413,11 @@ describe('facility weekly integration', () => {
       );
     };
 
-    // Sprints 1 gives +3 PAC at age 25. Level 1 still rounds to +3; levels 2
-    // and 3 round to +4.
+    // Sprints 1 gives +3 PAC at age 25. Levels 1 and 2 still round to +3;
+    // Level 3 rounds to +4.
     expect(atGymLevel(0)).toBe(3);
     expect(atGymLevel(1)).toBe(3);
-    expect(atGymLevel(2)).toBe(4);
+    expect(atGymLevel(2)).toBe(3);
     expect(atGymLevel(3)).toBe(4);
   });
 
