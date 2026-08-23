@@ -458,6 +458,7 @@ export type CashTransactionKind =
   | 'coach-hiring'
   | 'coach-dismissal'
   | 'player-request'
+  | 'player-gift'
   | 'event'
   | 'balance-adjustment';
 

@@ -76,6 +76,7 @@ import {
   playerAttributeCaps,
   playerGrowthGrade,
   playerPotentialGrade,
+  playerGiftQuote,
   overtrainingInjuryChancePercent,
   superTrainingChancePercent,
   facilityEffects,
@@ -4331,6 +4332,23 @@ export function squadTrainingViewModel(
     selectedPlayerId === undefined
       ? undefined
       : playerById.get(selectedPlayerId);
+  const selectedPlayerGift =
+    selectedPlayer === undefined
+      ? undefined
+      : playerGiftQuote(state, selectedPlayer.id);
+
+  const giftBlockedReason =
+    selectedPlayerGift?.blockedReason === undefined
+      ? undefined
+      : t(
+          {
+            ALREADY_GIFTED: 'playerGift.blocked.alreadyGifted',
+            CLUB_LIMIT_REACHED: 'playerGift.blocked.clubLimit',
+            MORALE_FULL: 'playerGift.blocked.moraleFull',
+            NOT_ENOUGH_CASH: 'playerGift.blocked.notEnoughCash',
+            PLAYER_NOT_AT_CLUB: 'playerGift.blocked.playerNotAtClub',
+          }[selectedPlayerGift.blockedReason],
+        );
 
   return {
     resources: {
@@ -4449,6 +4467,18 @@ export function squadTrainingViewModel(
         })),
       };
     }),
+    ...(selectedPlayerGift === undefined
+      ? {}
+      : {
+          selectedPlayerGift: {
+            cost: selectedPlayerGift.cost,
+            moraleGain: selectedPlayerGift.moraleGain,
+            clubGiftsRemaining: selectedPlayerGift.clubGiftsRemaining,
+            ...(giftBlockedReason === undefined
+              ? {}
+              : { blockedReason: giftBlockedReason }),
+          },
+        }),
     ...(selectedPlayer === undefined
       ? {}
       : {
