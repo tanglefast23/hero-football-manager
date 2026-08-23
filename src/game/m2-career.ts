@@ -568,7 +568,7 @@ export function planEndlessCareerSeasonTransition(
   state: M2CareerState,
   completedSeason: number,
   growth: OpponentGrowthRules = DEFAULT_OPPONENT_GROWTH,
-  d1LeagueLossesByClubId: Readonly<Record<string, number>> = {},
+  d1LeagueNonWinsByClubId: Readonly<Record<string, number>> = {},
 ): EndlessCareerSeasonTransitionPlan {
   validateStateIdentity(state);
   validateSeason(completedSeason);
@@ -594,7 +594,7 @@ export function planEndlessCareerSeasonTransition(
               ? cloneClub(club)
               : candidate.level !== 1
                 ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
-                : (d1LeagueLossesByClubId[club.id] ?? 1) === 0
+                : (d1LeagueNonWinsByClubId[club.id] ?? 1) === 0
                   ? cloneClub(club)
                   : scaleOpponentClub(
                       club,

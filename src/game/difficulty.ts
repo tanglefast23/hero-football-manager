@@ -19,7 +19,7 @@ export interface DifficultyRules {
   emergencyLoanAmount: number;
   /** Annual percentage applied independently to all seven rival attributes. */
   opponentGrowthPercent: number;
-  /** D1 annual growth after that club records at least one league loss. */
+  /** D1 annual growth after that club records at least one league draw or loss. */
   d1OpponentGrowthPercent: number;
   /** Hard attribute ceiling for generated rivals in endless careers. */
   opponentGrowthAttributeCap: number;

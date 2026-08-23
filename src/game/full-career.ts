@@ -190,7 +190,10 @@ export function startNextFullCareerSeason(
     difficultyRules(state),
     activeDivision === 1
       ? Object.fromEntries(
-          activeStandings.map((standing) => [standing.clubId, standing.lost]),
+          activeStandings.map((standing) => [
+            standing.clubId,
+            standing.drawn + standing.lost,
+          ]),
         )
       : {},
   );

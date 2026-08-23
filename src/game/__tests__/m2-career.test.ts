@@ -213,7 +213,7 @@ describe('endless opponent growth', () => {
     expect(total(chairman)).toBeGreaterThan(total(cozy));
   });
 
-  it('holds perfect D1 clubs flat and grows a club after one loss', () => {
+  it('holds perfect D1 clubs flat and grows clubs after a draw or loss', () => {
     const initial = initializeM2Career({
       careerSeed: 9182,
       userClub: USER_CLUB,
@@ -221,12 +221,12 @@ describe('endless opponent growth', () => {
     const divisionOne = initial.pyramid.divisions.find(
       (division) => division.level === 1,
     )!;
-    const [perfect, beaten] = divisionOne.clubs;
+    const [perfect, drawn, beaten] = divisionOne.clubs;
     const advanced = planEndlessCareerSeasonTransition(
       initial,
       1,
       difficultyRules({ difficulty: 'CHAIRMAN' }),
-      { [perfect.id]: 0, [beaten.id]: 1 },
+      { [perfect.id]: 0, [drawn.id]: 1, [beaten.id]: 1 },
     ).state;
     const cozyAdvanced = planEndlessCareerSeasonTransition(
       initial,
@@ -249,6 +249,7 @@ describe('endless opponent growth', () => {
       .clubs.find((club) => club.id === beaten.id)!.squad[0];
 
     expect(advancedPlayer(perfect.id).attrs).toEqual(perfect.squad[0].attrs);
+    expect(advancedPlayer(drawn.id).attrs).not.toEqual(drawn.squad[0].attrs);
     expect(
       unknownAdvanced.pyramid.divisions
         .find((division) => division.level === 1)!
