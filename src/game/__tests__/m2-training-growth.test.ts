@@ -100,12 +100,12 @@ describe('M2 player-specific instant training growth', () => {
     const result = trainWithoutSuper(state, playerId, 'circuit');
 
     // Circuit 1's +3 STA becomes +4 under the Lv3 Gym. Engine's 15% bonus
-    // banks 59 hundredths from the unrounded 3.9 gain. No growth wall applies.
+    // banks 54 hundredths from the unrounded 3.6 gain. No growth wall applies.
     expect(result.after).toBe(94);
     expect(
       result.state.players.find((p) => p.id === playerId)
         ?.trainingBonusRemainders?.sta,
-    ).toBe(59);
+    ).toBe(54);
   });
 
   test('banks fractional archetype bonuses until repeat drills earn a whole point', () => {

@@ -57,7 +57,7 @@ describe('coach training boosts', () => {
       coach(5, ['ATTACK', 'MOTIVATOR'], { trainingPercent: 5 }),
       coach(5, ['ATTACK', 'FITNESS']),
     );
-    expect(scaleFor(maxed)).toBe(155);
+    expect(scaleFor(maxed)).toBe(150);
     expect(() =>
       applyCareerCoachTrainingModifier(
         10,
@@ -87,7 +87,7 @@ describe('coach training boosts', () => {
     const room = market(
       coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }),
     );
-    expect(scaleFor(room)).toBe(119);
+    expect(scaleFor(room)).toBe(117);
   });
 
   it('only pays the boost on the specialty the coach actually holds', () => {
@@ -95,7 +95,7 @@ describe('coach training boosts', () => {
       coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }),
     );
     const modifiers = careerCoachTrainingModifiers(attacker);
-    expect(modifiers.gainScalePercentByAttribute.sho).toBe(119);
+    expect(modifiers.gainScalePercentByAttribute.sho).toBe(117);
     // DEFENSE is not his, so neither the level bonus nor the boost applies.
     expect(modifiers.gainScalePercentByAttribute.def).toBe(100);
   });

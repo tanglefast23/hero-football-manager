@@ -264,7 +264,7 @@ describe('endless opponent growth', () => {
       'sta',
       'ref',
     ] as const) {
-      const scaled = beaten.squad[0].attrs[attribute] * 1.03;
+      const scaled = beaten.squad[0].attrs[attribute] * 1.05;
       expect([Math.floor(scaled), Math.ceil(scaled)]).toContain(
         advancedPlayer(beaten.id).attrs[attribute],
       );

@@ -42,7 +42,7 @@ describe('career coach weekly effects', () => {
     const levels = [1, 2, 3, 4, 5];
     expect(
       levels.map((level) => coachTrainingBonusPercent(level, 'HEAD')),
-    ).toEqual([7, 14, 21, 28, 35]);
+    ).toEqual([6, 12, 18, 24, 30]);
     expect(
       levels.map((level) => coachTrainingBonusPercent(level, 'ASSISTANT')),
     ).toEqual([3, 6, 9, 12, 15]);
@@ -122,7 +122,7 @@ describe('career coach weekly effects', () => {
     ).toEqual([5, 6, 7, 8, 9]);
   });
 
-  test('applies +10% per quality level only to attributes in either specialty', () => {
+  test('applies +6% per quality level only to attributes in either specialty', () => {
     const market = marketWithCoach(['ATTACK', 'FITNESS'], 3);
     const before = JSON.stringify(market);
     const modifiers = careerCoachTrainingModifiers(market);
@@ -130,15 +130,15 @@ describe('career coach weekly effects', () => {
     expect(modifiers).toEqual({
       coachId: 'coach-test',
       qualityLevel: 3,
-      specialtyBonusPercent: 21,
+      specialtyBonusPercent: 18,
       specialties: ['ATTACK', 'FITNESS'],
       gainScalePercentByAttribute: {
-        pac: 121,
-        sho: 121,
+        pac: 118,
+        sho: 118,
         pas: 100,
         def: 100,
         tec: 100,
-        sta: 121,
+        sta: 118,
         ref: 100,
       },
     });
@@ -166,12 +166,12 @@ describe('career coach weekly effects', () => {
       coachId: 'coach-test',
       assistantCoachId: 'assistant-test',
       gainScalePercentByAttribute: {
-        pac: 128,
-        sho: 134,
+        pac: 124,
+        sho: 130,
         pas: 106,
         def: 100,
         tec: 106,
-        sta: 128,
+        sta: 124,
         ref: 100,
       },
     });
@@ -197,7 +197,7 @@ describe('career coach weekly effects', () => {
         .map(([attribute]) => attribute);
 
       expect(boosted).toEqual(boostedAttributes);
-      expect(modifiers.specialtyBonusPercent).toBe(14);
+      expect(modifiers.specialtyBonusPercent).toBe(12);
     },
   );
 
