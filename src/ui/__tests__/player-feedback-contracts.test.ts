@@ -188,6 +188,16 @@ describe('story-event result contract', () => {
   });
 });
 
+describe('player-request money cost contract', () => {
+  it('shows the exact negative cash amount beside a dollar-bills mark', () => {
+    const card = source('src/ui/PlayerRequestDecisionCard.tsx');
+
+    expect(card).toContainSource('request.grantMoneyCost');
+    expect(card).toContainSource('>$$</PixelText>');
+    expect(card).toContainSource("t('playerRequestCard.moneyCost'");
+  });
+});
+
 describe('match-speed contract', () => {
   it('offers every speed from the first match, with nothing to unlock', () => {
     const app = source('App.tsx');

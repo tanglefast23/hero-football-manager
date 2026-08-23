@@ -366,34 +366,38 @@ export function resolveCareerScoutClock(
       expireCareerTransferListings(state, market),
     ),
   );
-  const detail = currentMarket.detailedScoutReport;
-  if (detail !== undefined && absoluteCareerWeek(state) >= detail.dueWeek) {
-    const target = careerTransferTarget(state, detail.playerId);
+  // New missions return full details immediately. Upgrade old fuzzy reports
+  // on load too, so an existing career never sees the retired second step.
+  if (
+    currentMarket.detailedScoutReport !== undefined ||
+    currentMarket.scoutReports.some(
+      (report) =>
+        report.potentialRange.minimum !== report.potentialRange.maximum ||
+        Object.values(report.statRanges).some(
+          (range) => range.minimum !== range.maximum,
+        ),
+    )
+  ) {
     currentMarket = {
       ...currentMarket,
       detailedScoutReport: undefined,
-      scoutReports:
-        target === undefined
-          ? currentMarket.scoutReports
-          : currentMarket.scoutReports.map((report) =>
-              report.playerId === detail.playerId
-                ? {
-                    ...report,
-                    statRanges: Object.fromEntries(
-                      Object.entries(target.player.attrs).map(
-                        ([attribute, value]) => [
-                          attribute,
-                          { minimum: value, maximum: value },
-                        ],
-                      ),
-                    ) as ScoutReport['statRanges'],
-                    potentialRange: {
-                      minimum: target.player.potential ?? 3,
-                      maximum: target.player.potential ?? 3,
-                    },
-                  }
-                : report,
-            ),
+      scoutReports: currentMarket.scoutReports.map((report) => {
+        const target = careerTransferTarget(state, report.playerId);
+        if (target === undefined) return report;
+        return {
+          ...report,
+          statRanges: Object.fromEntries(
+            Object.entries(target.player.attrs).map(([attribute, value]) => [
+              attribute,
+              { minimum: value, maximum: value },
+            ]),
+          ) as ScoutReport['statRanges'],
+          potentialRange: {
+            minimum: target.player.potential ?? 3,
+            maximum: target.player.potential ?? 3,
+          },
+        };
+      }),
     };
   }
   const mission = currentMarket.activeScoutMission;
@@ -1893,22 +1897,25 @@ function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
       active: false,
     }),
   );
-  return [...allCareerTransferTargets(state), ...unattached].map(
-    ({ player, sellingClubDivision }) => ({
-      id: player.id,
-      region: scoutRegion(player.id),
-      role: player.role,
-      age: player.age ?? 24,
-      attrs: { ...player.attrs },
-      potential: player.potential ?? 3,
-      personality: marketPersonality(player.personality),
-      ...(player.power === undefined
-        ? {}
-        : { power: player.power, powerTier: player.powerTier ?? 1 }),
-      contractSeasonsRemaining: player.contractSeasonsRemaining,
-      sellingClubDivision,
-    }),
-  );
+  return [
+    ...allCareerTransferTargets(state).filter(({ player }) =>
+      sellerCanSpare(state, player.id),
+    ),
+    ...unattached,
+  ].map(({ player, sellingClubDivision }) => ({
+    id: player.id,
+    region: scoutRegion(player.id),
+    role: player.role,
+    age: player.age ?? 24,
+    attrs: { ...player.attrs },
+    potential: player.potential ?? 3,
+    personality: marketPersonality(player.personality),
+    ...(player.power === undefined
+      ? {}
+      : { power: player.power, powerTier: player.powerTier ?? 1 }),
+    contractSeasonsRemaining: player.contractSeasonsRemaining,
+    sellingClubDivision,
+  }));
 }
 
 /** Resolves a scouted target from either the active division or the persistent pyramid. */

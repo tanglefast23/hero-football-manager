@@ -164,7 +164,10 @@ import {
   PlayerSigningOverlay,
   type PlayerSigningConfirmation,
 } from './src/ui/PlayerSigningOverlay';
-import { PlayerWalkOnWelcome } from './src/ui/PlayerWalkOnWelcome';
+import {
+  AcademyGroupWalkOnWelcome,
+  PlayerWalkOnWelcome,
+} from './src/ui/PlayerWalkOnWelcome';
 import { PostMatchSummaryModal } from './src/ui/PostMatchSummaryModal';
 import { TutorialSpotlight } from './src/ui/TutorialSpotlight';
 import { TutorialTapCue } from './src/ui/TutorialTapCue';
@@ -227,6 +230,7 @@ import {
   hasEverGainedFans,
   inheritedSquad,
   isFirstOnboardingFixture,
+  isAssistantInboxProductPermanentlyDismissed,
   isFullyCappedPlayer,
   isTransferWindowOpen,
   leagueStandings,
@@ -433,6 +437,7 @@ function requestedQaRoot(
 
 export default function App() {
   const [qaBypassed, setQaBypassed] = useState(false);
+  const [gameGeneration, setGameGeneration] = useState(0);
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
   // QA roots are available in development and static web review exports, where
   // __DEV__ is false. Native Release builds always continue to the real game,
@@ -449,6 +454,10 @@ export default function App() {
       </SafeAreaProvider>
     );
   }
+  const recoverGame = () => {
+    useM1Store.getState().recoverFromScreenCrash();
+    setGameGeneration((generation) => generation + 1);
+  };
   return (
     <SafeAreaProvider>
       <ScreenErrorBoundary
@@ -460,15 +469,15 @@ export default function App() {
         // point: recovering to `welcome` leaves the career untouched, so without
         // the flag `continueCareer()` resumes the screen that just crashed and
         // the player loops.
-        onRecover={() => useM1Store.getState().recoverFromScreenCrash()}
+        onRecover={recoverGame}
       >
-        <GameApp />
+        <GameApp key={gameGeneration} onRecover={recoverGame} />
       </ScreenErrorBoundary>
     </SafeAreaProvider>
   );
 }
 
-function GameApp() {
+function GameApp({ onRecover }: { onRecover: () => void }) {
   const store = useM1Store();
   const developerModeAvailable = developerModeAvailableForSurface(
     __DEV__,
@@ -2139,6 +2148,30 @@ function GameApp() {
     playerSigning !== null && playerSigning.source !== 'transfer'
       ? playerSigning
       : null;
+  const academyArrivalAlertId =
+    store.career === null ? null : `academy-promotion:s${store.career.season}`;
+  const automaticAcademyArrivals =
+    store.career === null ||
+    academyArrivalAlertId === null ||
+    isAssistantInboxProductPermanentlyDismissed(
+      store.career,
+      academyArrivalAlertId,
+    )
+      ? []
+      : store.career.players
+          .filter(
+            (player) =>
+              player.clubId === store.career!.userClubId &&
+              player.id.includes(`-academy-s${store.career!.season}-`),
+          )
+          .sort((left, right) => left.name.localeCompare(right.name))
+          .map((player) => ({
+            playerId: player.id,
+            playerName: player.name,
+            role: player.role,
+            ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+            source: 'academy' as const,
+          }));
   /**
    * The board's money message in full, for the row the manager just opened.
    *
@@ -3632,6 +3665,11 @@ function GameApp() {
                 onConfirm: () => store.purchaseTrainingUpgrade(pathId),
               });
             }}
+            onGiftPlayer={(playerId) => {
+              void store.giftPlayer(playerId);
+            }}
+            lastPlayerGiftResult={store.lastPlayerGiftResult}
+            onClearPlayerGiftResult={store.clearPlayerGiftResult}
             onBookGreenBullTraining={() => {
               const offer = squadTrainingVm!.greenBullTraining;
               if (offer === undefined || offer.blockedReason !== undefined)
@@ -4148,60 +4186,61 @@ function GameApp() {
 
   return (
     <LocaleProvider value={preferences.language}>
-      <SafeAreaProvider>
-        <StatusBar
-          style={
-            (!fontsLoaded && !fontError && bootError === null) ||
-            bootError !== null ||
-            !store.persistenceReady ||
-            store.persistenceLoadError !== null ||
-            store.screen === 'watched' ||
-            store.screen === 'shootout' ||
-            store.screen === 'faceoff' ||
-            store.screen === 'awakening' ||
-            store.screen === 'midseason-training' ||
-            rivalHeroIntro !== undefined
-              ? 'light'
-              : 'dark'
-          }
-        />
-        <View
-          className="flex-1 bg-ink"
-          style={vars({
-            '--font-display': faces.display,
-            '--font-data': faces.data,
-          })}
-        >
-          {/* Inside the provider on purpose: the card announces the language it
-            just switched to, so it has to render in it. */}
-          <LanguageOfferCard
-            offered={languageOffer}
-            onKeep={() => answerLanguageOffer(languageOffer ?? 'en')}
-            onUseEnglish={() => answerLanguageOffer('en')}
+      <ScreenErrorBoundary onRecover={onRecover}>
+        <SafeAreaProvider>
+          <StatusBar
+            style={
+              (!fontsLoaded && !fontError && bootError === null) ||
+              bootError !== null ||
+              !store.persistenceReady ||
+              store.persistenceLoadError !== null ||
+              store.screen === 'watched' ||
+              store.screen === 'shootout' ||
+              store.screen === 'faceoff' ||
+              store.screen === 'awakening' ||
+              store.screen === 'midseason-training' ||
+              rivalHeroIntro !== undefined
+                ? 'light'
+                : 'dark'
+            }
           />
           <View
-            className="flex-1"
-            pointerEvents={backgroundInteractionBlocked ? 'none' : 'auto'}
-            accessibilityElementsHidden={backgroundInteractionBlocked}
-            importantForAccessibility={
-              backgroundInteractionBlocked ? 'no-hide-descendants' : 'auto'
-            }
-            {...confirmationBackgroundProps(backgroundInteractionBlocked)}
+            className="flex-1 bg-ink"
+            style={vars({
+              '--font-display': faces.display,
+              '--font-data': faces.data,
+            })}
           >
+            {/* Inside the provider on purpose: the card announces the language it
+            just switched to, so it has to render in it. */}
+            <LanguageOfferCard
+              offered={languageOffer}
+              onKeep={() => answerLanguageOffer(languageOffer ?? 'en')}
+              onUseEnglish={() => answerLanguageOffer('en')}
+            />
             <View
               className="flex-1"
-              {...bertBriefingBackgroundProps(
-                bertBriefingVisible || scoutDealsGuideVisible,
-              )}
+              pointerEvents={backgroundInteractionBlocked ? 'none' : 'auto'}
+              accessibilityElementsHidden={backgroundInteractionBlocked}
+              importantForAccessibility={
+                backgroundInteractionBlocked ? 'no-hide-descendants' : 'auto'
+              }
+              {...confirmationBackgroundProps(backgroundInteractionBlocked)}
             >
-              <ScreenTransition
-                screenKey={screenKey}
-                reduceMotion={reduceMotion}
-                animated={!screenRequiresHardCut}
+              <View
+                className="flex-1"
+                {...bertBriefingBackgroundProps(
+                  bertBriefingVisible || scoutDealsGuideVisible,
+                )}
               >
-                <Suspense fallback={<LoadingScreen />}>{screen}</Suspense>
-              </ScreenTransition>
-              {/* The match week announces itself the moment the desk appears, the
+                <ScreenTransition
+                  screenKey={screenKey}
+                  reduceMotion={reduceMotion}
+                  animated={!screenRequiresHardCut}
+                >
+                  <Suspense fallback={<LoadingScreen />}>{screen}</Suspense>
+                </ScreenTransition>
+                {/* The match week announces itself the moment the desk appears, the
             same way the Financial Report announces a surge. Held back until
             the manager is actually ON the desk: the week review runs first,
             and a bugle over it would be two announcements at once.
@@ -4212,701 +4251,732 @@ function GameApp() {
             was still being read while the match week announced itself. The
             banner is not dismissed meanwhile, just not mounted, so it lands
             the moment Continue closes the report. */}
-              {store.screen === 'management' &&
-              !postMatchSummaryVisible &&
-              midseasonTrainingStage === null &&
-              store.matchDayBanner !== null ? (
-                <MatchDayBanner
-                  key={store.matchDayBanner.id}
-                  headline={store.matchDayBanner.headline}
-                  accessibilityLabel={store.matchDayBanner.accessibilityLabel}
-                  isCup={store.matchDayBanner.isCup}
-                  reduceMotion={reduceMotion}
-                  onShown={store.dismissMatchDayBanner}
-                />
-              ) : null}
-              {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
+                {store.screen === 'management' &&
+                !postMatchSummaryVisible &&
+                midseasonTrainingStage === null &&
+                store.matchDayBanner !== null ? (
+                  <MatchDayBanner
+                    key={store.matchDayBanner.id}
+                    headline={store.matchDayBanner.headline}
+                    accessibilityLabel={store.matchDayBanner.accessibilityLabel}
+                    isCup={store.matchDayBanner.isCup}
+                    reduceMotion={reduceMotion}
+                    onShown={store.dismissMatchDayBanner}
+                  />
+                ) : null}
+                {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
             unsaved career must keep saying so until a save actually succeeds. */}
-              {store.saveWarning !== null && !blockingSaveWarningVisible && (
-                <SaveWarningBanner
-                  message={store.saveWarning}
-                  // The banner's Retry renders behind `blocked`, and
-                  // `store.saveBlocked` needs THREE consecutive failures. After
-                  // one, the player read "your club is not saving" on a banner
-                  // with no button on it. The warning itself is the right
-                  // condition: it is set the moment a write fails and cleared
-                  // the moment one lands.
-                  blocked={store.saveWarning !== null}
-                  seasonPaused={store.saveBlocked}
-                  onRetry={store.retrySave}
-                />
-              )}
-              <SettingsOverlay
-                open={globalSettingsOpen}
-                glossary={content.glossary}
-                glossaryOpen={globalGlossaryOpen}
-                privacySupportOpen={globalPrivacySupportOpen}
-                volume={devVolume}
-                reduceMotion={preferences.reduceMotion}
-                quickMatchEnabled={preferences.quickMatchEnabled}
-                hudSide={preferences.hudSide}
-                hapticsEnabled={preferences.hapticsEnabled}
-                textScale={preferences.textScale}
-                language={preferences.language}
-                onCycleLanguage={cycleLanguage}
-                highContrast={preferences.highContrast}
-                colorSafeKits={preferences.colorSafeKits}
-                cutInMode={preferences.cutInMode}
-                performanceLimited={performanceLimitActive}
-                developerMode={
-                  developerModeAvailable ? preferences.developerMode : undefined
-                }
-                assistantMode={
-                  store.career === null
-                    ? undefined
-                    : (store.career.assistantMode ?? 'teacher')
-                }
-                accessibilityCopy={assistantFiction(
-                  content.assistantGuide,
-                  'accessibility',
-                  t,
+                {store.saveWarning !== null && !blockingSaveWarningVisible && (
+                  <SaveWarningBanner
+                    message={store.saveWarning}
+                    // The banner's Retry renders behind `blocked`, and
+                    // `store.saveBlocked` needs THREE consecutive failures. After
+                    // one, the player read "your club is not saving" on a banner
+                    // with no button on it. The warning itself is the right
+                    // condition: it is set the moment a write fails and cleared
+                    // the moment one lands.
+                    blocked={store.saveWarning !== null}
+                    seasonPaused={store.saveBlocked}
+                    onRetry={store.retrySave}
+                  />
                 )}
-                // No career, no record to open — not even a locked one.
-                hallOfFame={
-                  store.career === null
-                    ? undefined
-                    : hallOfFameViewModel(store.career, t)
-                }
-                hallOfFameOpen={globalHallOfFameOpen}
-                onHallOfFameOpenChange={setGlobalHallOfFameOpen}
-                difficultyLabel={
-                  store.career?.onboarding?.stage === 'create-player'
-                    ? undefined
-                    : (store.career?.difficulty ??
-                      (store.career ? 'COZY' : undefined))
-                }
-                saveError={settingsSaveError}
-                onVolumeChange={setVolume}
-                onToggleReduceMotion={toggleReduceMotion}
-                onToggleQuickMatch={toggleQuickMatch}
-                onToggleHudSide={toggleHudSide}
-                onToggleHaptics={toggleHaptics}
-                onCycleTextScale={cycleTextScale}
-                onToggleHighContrast={toggleHighContrast}
-                onToggleColorSafeKits={toggleColorSafeKits}
-                onToggleCutInMode={toggleCutInMode}
-                onRetry3x={retryThreeTimesSpeed}
-                onEmailSupport={emailSupport}
-                onOpenPrivacyPolicy={openPrivacyPolicy}
-                onToggleDeveloperMode={
-                  developerModeAvailable ? toggleDeveloperMode : undefined
-                }
-                onSetAssistantMode={
-                  store.career === null ? undefined : handleSetAssistantMode
-                }
-                onGlossaryOpenChange={setGlobalGlossaryOpen}
-                onPrivacySupportOpenChange={setGlobalPrivacySupportOpen}
-                onOpenChange={(open) => {
-                  setGlobalSettingsOpen(open);
-                  if (!open) {
-                    setGlobalGlossaryOpen(false);
-                    setGlobalPrivacySupportOpen(false);
-                    setGlobalHallOfFameOpen(false);
-                    setSettingsSaveError(null);
+                <SettingsOverlay
+                  open={globalSettingsOpen}
+                  glossary={content.glossary}
+                  glossaryOpen={globalGlossaryOpen}
+                  privacySupportOpen={globalPrivacySupportOpen}
+                  volume={devVolume}
+                  reduceMotion={preferences.reduceMotion}
+                  quickMatchEnabled={preferences.quickMatchEnabled}
+                  hudSide={preferences.hudSide}
+                  hapticsEnabled={preferences.hapticsEnabled}
+                  textScale={preferences.textScale}
+                  language={preferences.language}
+                  onCycleLanguage={cycleLanguage}
+                  highContrast={preferences.highContrast}
+                  colorSafeKits={preferences.colorSafeKits}
+                  cutInMode={preferences.cutInMode}
+                  performanceLimited={performanceLimitActive}
+                  developerMode={
+                    developerModeAvailable
+                      ? preferences.developerMode
+                      : undefined
                   }
-                }}
-              />
-            </View>
-            {scoutDealsGuideVisible && marketDealsGuideAnchor !== null ? (
-              <View
-                accessibilityViewIsModal
-                accessibilityLabel={t('market.openDealsGuide')}
-                style={StyleSheet.absoluteFill}
-              >
-                <TutorialSpotlight
-                  anchor={marketDealsGuideAnchor}
-                  viewportWidth={viewportWidth}
-                  viewportHeight={viewportHeight}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('market.a11y.dealsDesk')}
-                  onPress={() => {
-                    setMarketSectionRequest((current) => ({
-                      section: 'TRANSFERS',
-                      token: (current?.token ?? 0) + 1,
-                    }));
-                    setConciergeFocus(null);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    left: marketDealsGuideAnchor.x,
-                    top: marketDealsGuideAnchor.y,
-                    width: marketDealsGuideAnchor.width,
-                    height: marketDealsGuideAnchor.height,
-                  }}
-                />
-                <TutorialTapCue
-                  label={t('market.tapMe')}
-                  detail={t('market.tab.deals')}
-                  direction="down"
-                  reduceMotion={reduceMotion}
-                  style={tutorialCuePositionAbove(
-                    marketDealsGuideAnchor,
-                    viewportWidth,
-                    viewportHeight,
+                  assistantMode={
+                    store.career === null
+                      ? undefined
+                      : (store.career.assistantMode ?? 'teacher')
+                  }
+                  accessibilityCopy={assistantFiction(
+                    content.assistantGuide,
+                    'accessibility',
+                    t,
                   )}
+                  // No career, no record to open — not even a locked one.
+                  hallOfFame={
+                    store.career === null
+                      ? undefined
+                      : hallOfFameViewModel(store.career, t)
+                  }
+                  hallOfFameOpen={globalHallOfFameOpen}
+                  onHallOfFameOpenChange={setGlobalHallOfFameOpen}
+                  difficultyLabel={
+                    store.career?.onboarding?.stage === 'create-player'
+                      ? undefined
+                      : (store.career?.difficulty ??
+                        (store.career ? 'COZY' : undefined))
+                  }
+                  saveError={settingsSaveError}
+                  onVolumeChange={setVolume}
+                  onToggleReduceMotion={toggleReduceMotion}
+                  onToggleQuickMatch={toggleQuickMatch}
+                  onToggleHudSide={toggleHudSide}
+                  onToggleHaptics={toggleHaptics}
+                  onCycleTextScale={cycleTextScale}
+                  onToggleHighContrast={toggleHighContrast}
+                  onToggleColorSafeKits={toggleColorSafeKits}
+                  onToggleCutInMode={toggleCutInMode}
+                  onRetry3x={retryThreeTimesSpeed}
+                  onEmailSupport={emailSupport}
+                  onOpenPrivacyPolicy={openPrivacyPolicy}
+                  onToggleDeveloperMode={
+                    developerModeAvailable ? toggleDeveloperMode : undefined
+                  }
+                  onSetAssistantMode={
+                    store.career === null ? undefined : handleSetAssistantMode
+                  }
+                  onGlossaryOpenChange={setGlobalGlossaryOpen}
+                  onPrivacySupportOpenChange={setGlobalPrivacySupportOpen}
+                  onOpenChange={(open) => {
+                    setGlobalSettingsOpen(open);
+                    if (!open) {
+                      setGlobalGlossaryOpen(false);
+                      setGlobalPrivacySupportOpen(false);
+                      setGlobalHallOfFameOpen(false);
+                      setSettingsSaveError(null);
+                    }
+                  }}
                 />
               </View>
-            ) : null}
-            {guideOverlayVisible && cupMismatchWarning !== undefined ? (
-              <BertBriefingWalkOn
-                key={cupMismatchWarning.fixtureId}
-                content={content.assistantGuide}
-                customMessage={cupMismatchWarning}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={store.completeCupMismatchWarning}
-              />
-            ) : guideOverlayVisible &&
-              cupGiantKillingCelebration !== undefined ? (
-              <BertBriefingWalkOn
-                key={cupGiantKillingCelebration.fixtureId}
-                content={content.assistantGuide}
-                customMessage={cupGiantKillingCelebration}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={store.completeCupGiantKillingCelebration}
-              />
-            ) : guideOverlayVisible && cupExitConsolationVisible ? (
-              <BertBriefingWalkOn
-                key="first-cup-exit"
-                content={content.assistantGuide}
-                // Authored beats rather than a briefing sequence, the same as the
-                // giant-killing above it: this is a reaction to one result, not a
-                // lesson the career queued. `sequenceId` still names the run of
-                // looks in bert-beat-moments so the promise is not delivered by
-                // the face that just winced at the scoreline.
-                sequenceId="first-cup-exit"
-                customMessage={{
-                  title: t('firstCupExit.title'),
-                  body: [t('firstCupExit.body1'), t('firstCupExit.body2')],
-                }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() =>
-                  store.completeGuideMilestone('first-cup-exit-seen')
-                }
-              />
-            ) : guideOverlayVisible && firstCupRoundOf32BriefingVisible ? (
-              <BertBriefingWalkOn
-                key="first-cup-round-of-32"
-                content={content.assistantGuide}
-                sequenceId="first-cup-round-of-32"
-                customMessage={{
-                  title: t('firstCupWin.roundOf32Title'),
-                  body: [
-                    t('firstCupWin.roundOf32Body1'),
-                    t('firstCupWin.roundOf32Body2'),
-                  ],
-                }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={preferences.reduceMotion}
-                onDone={() => {
-                  setFirstCupRoundOf32Spoken(true);
-                  setConciergeFocus('national-cup');
-                }}
-              />
-            ) : guideOverlayVisible && facilityErrorBertVisible ? (
-              <BertBriefingWalkOn
-                key={`facility-error:${store.error}`}
-                content={content.assistantGuide}
-                sequenceId="facility-error"
-                customMessage={{ body: store.error! }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={preferences.reduceMotion}
-                onDone={store.clearError}
-              />
-            ) : guideOverlayVisible && bertNotice !== undefined ? (
-              <BertBriefingWalkOn
-                key="first-scout-favor"
-                content={content.assistantGuide}
-                sequenceId="first-scout-favor"
-                customMessage={{ body: bertNotice.message }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={store.clearNotice}
-              />
-            ) : guideOverlayVisible && assistantSequenceId !== null ? (
-              <BertBriefingWalkOn
-                content={content.assistantGuide}
-                sequenceId={assistantSequenceId}
-                customMessage={
-                  assistantSequenceId === 'board-protection' &&
-                  boardConversionBriefing !== undefined
-                    ? {
-                        ...boardConversionBriefing,
-                        focus: 'board-protection',
-                      }
-                    : undefined
-                }
-                moneyAnchor={moneyGuideAnchor}
-                fansAnchor={fansGuideAnchor}
-                loanAnchor={loanGuideAnchor}
-                coachSpeechAnchor={coachSpeechGuideAnchor}
-                navigationAnchor={navigationGuideAnchor}
-                subTabAnchor={leagueSubTabGuideAnchor}
-                reduceMotion={reduceMotion}
-                onFocusChange={setActiveGuideFocus}
-                onDone={completeAssistantGuideSequence}
-              />
-            ) : guideOverlayVisible &&
-              facilityComboRevealVisible &&
-              facilityComboReveal !== undefined ? (
-              <BertBriefingWalkOn
-                key={facilityComboReveal.id}
-                content={content.assistantGuide}
-                sequenceId="facility-adjacency"
-                customMessage={{
-                  title: t('clubFinances.secretCombo', {
-                    pair: facilityComboReveal.pairLabel,
-                  }),
-                  body: facilityComboReveal.discoveryCopy,
-                  focus: 'facility-adjacency',
-                }}
-                facilityAdjacencyAnchor={facilityAdjacencyGuideAnchor}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onFocusChange={setActiveGuideFocus}
-                onDone={() => {
-                  setActiveGuideFocus(undefined);
-                  store.completeGuideMilestone(facilityComboReveal.milestone);
-                }}
-              />
-            ) : guideOverlayVisible && transferWindowLessonVisible ? (
-              <BertBriefingWalkOn
-                key="transfer-window"
-                content={content.assistantGuide}
-                customMessage={{
-                  title: t('market.transferWindowLessonTitle'),
-                  body: [
-                    t('bert.custom.transferWindow.body1'),
-                    t('bert.custom.transferWindow.body2'),
-                  ],
-                }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() =>
-                  store.completeGuideMilestone('transfer-window-seen')
-                }
-              />
-            ) : guideOverlayVisible && fansLessonVisible ? (
-              <BertBriefingWalkOn
-                key="first-fans"
-                content={content.assistantGuide}
-                // Authored beats rather than a briefing sequence: nothing queued
-                // this, the turnstiles did. `sequenceId` still names the run of
-                // looks in bert-beat-moments so the good news is not delivered
-                // deadpan.
-                sequenceId="first-fans"
-                customMessage={{
-                  title: t('bert.firstFans.title'),
-                  body: [t('bert.firstFans.body1'), t('bert.firstFans.body2')],
-                  // Lights the chip he is introducing, and only that chip.
-                  focus: 'fans',
-                }}
-                fansAnchor={fansGuideAnchor}
-                // Without this the chip he is introducing stays under the
-                // scrim: the focus is what enables its measurement.
-                onFocusChange={setActiveGuideFocus}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() => {
-                  store.completeGuideMilestone('first-fans-seen');
-                  // He said he would show you; the second beat is waiting there.
-                  setClubOfficeTab('finances');
-                  store.setActiveTab('club');
-                }}
-              />
-            ) : guideOverlayVisible && fansLedgerTourVisible ? (
-              <BertBriefingWalkOn
-                key="first-fans-ledger"
-                content={content.assistantGuide}
-                sequenceId="first-fans-ledger"
-                customMessage={{
-                  body: [
-                    t('bert.firstFansLedger.body1'),
-                    t('bert.firstFansLedger.body2'),
-                    t('bert.firstFansLedger.body3'),
-                  ],
-                }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() =>
-                  store.completeGuideMilestone('first-fans-ledger-seen')
-                }
-              />
-            ) : guideOverlayVisible && expiredContractLessonVisible ? (
-              <BertBriefingWalkOn
-                key="expired-contract"
-                content={content.assistantGuide}
-                sequenceId="expired-contract"
-                reduceMotion={reduceMotion}
-                onDone={() =>
-                  store.completeGuideMilestone('expired-contract-seen')
-                }
-              />
-            ) : null}
-            {displayedBoardFinanceMessage !== undefined &&
-            openedBoardFinanceAlertId !== null ? (
-              <BertBriefingWalkOn
-                key={`board-finance-${openedBoardFinanceAlertId}`}
-                content={content.assistantGuide}
-                // Authored beats rather than a briefing sequence: the sequences are
-                // one-shot firsts, and these two rows come back every week the
-                // money stays bad. `sequenceId` still names the run of looks in
-                // bert-beat-moments so a warning is not delivered cheerfully.
-                sequenceId={
-                  openedBoardFinanceAlertId === 'emergency-loan'
-                    ? 'board-emergency-loan'
-                    : 'board-financial-warning'
-                }
-                customMessage={displayedBoardFinanceMessage}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() => {
-                  const completedAlertId = openedBoardFinanceAlertId;
-                  const wasLoan = completedAlertId === 'emergency-loan';
-                  setOpenedBoardFinanceAlertId(null);
-                  setBoardFinanceMessageStartIndex(0);
-                  store.dismissInboxProduct(
-                    completedAlertId,
-                    wasLoan ? 'permanent' : 'current-week',
-                  );
-                  // He has just told a bailed-out club to build something that
-                  // earns. Saying so and leaving the manager on the ledger would
-                  // make it advice; opening the board and lighting the two
-                  // money-making buildings makes it a next move.
-                  if (wasLoan) {
-                    setClubOfficeTab('facility');
-                    setConciergeFocus('income-facilities');
-                    setIncomeFacilitiesFlashToken((token) => token + 1);
-                  }
-                }}
-              />
-            ) : null}
-            {careerTeaches && store.inboxDutyReminder !== null ? (
-              <BertBriefingWalkOn
-                key="inbox-duty-reminder"
-                content={content.assistantGuide}
-                // Authored beats rather than a briefing sequence: this is a reply to
-                // a press, not a lesson the career has queued, so it owns its copy
-                // here. `sequenceId` still names the run of looks in
-                // bert-beat-moments so the joke is not delivered by the face that
-                // just refused the manager.
-                sequenceId="inbox-duty-reminder"
-                customMessage={{
-                  title: t(
-                    `${inboxDutyCopyStem(store.inboxDutyReminder[0])}.title`,
-                  ),
-                  body: [
-                    t(`${inboxDutyCopyStem(store.inboxDutyReminder[0])}.body`),
-                  ],
-                }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={store.dismissInboxDutyReminder}
-              />
-            ) : null}
-            {heroLicenseBriefing !== null ? (
-              <BertBriefingWalkOn
-                key="hero-license-shop"
-                content={content.assistantGuide}
-                // Authored beats, like the inbox-duty reminder: this is his
-                // answer to a press, not a lesson the career queued. The id
-                // only picks the run of looks he wears while saying it.
-                sequenceId="hero-license-shop"
-                customMessage={{
-                  title: t('bert.heroLicense.title'),
-                  body: [
-                    t('bert.heroLicense.body1'),
-                    t('bert.heroLicense.body2'),
-                  ],
-                }}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() => {
-                  store.completeGuideMilestone('hero-license-shop-seen');
-                  setHeroLicenseBriefing(null);
-                  askToBuyHeroLicense(
-                    heroLicenseBriefing.license,
-                    heroLicenseBriefing.cost,
-                  );
-                }}
-              />
-            ) : null}
-            {!guideOverlayVisible &&
-            rivalHeroIntro === undefined &&
-            lowConditionMatchdayStarter !== null ? (
-              <MatchdayConditionWarning
-                key={lowConditionMatchdayStarter.id}
-                playerName={lowConditionMatchdayStarter.name}
-                reduceMotion={reduceMotion}
-                onDone={() =>
-                  store.completeGuideMilestone('match-condition-warning-seen')
-                }
-              />
-            ) : null}
-            {coachOverlay !== null ? (
-              <CoachStaffOverlay
-                mode={coachOverlay.mode}
-                coach={coachOverlay.coach}
-                reduceMotion={reduceMotion}
-                onConfirm={
-                  coachOverlay.mode === 'confirm-dismiss'
-                    ? confirmCoachDismissal
-                    : undefined
-                }
-                onClose={() => {
-                  const returnsHome = coachOverlay.mode !== 'confirm-dismiss';
-                  setCoachOverlay(null);
-                  if (returnsHome) useM1Store.getState().setActiveTab('home');
-                }}
-              />
-            ) : null}
-            {facilityProjectNotice !== null ? (
-              <FacilityProjectNotice
-                project={facilityProjectNotice}
-                reduceMotion={reduceMotion}
-                onClose={() => setFacilityProjectNotice(null)}
-              />
-            ) : null}
-            {signingWalkOn !== null ? (
-              <PlayerWalkOnWelcome
-                player={signingWalkOn}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() => setPlayerSigning(null)}
-              />
-            ) : null}
-            {playerSigning !== null && playerSigning.source === 'transfer' ? (
-              <PlayerSigningOverlay
-                player={playerSigning}
-                reduceMotion={reduceMotion}
-                onClose={() => setPlayerSigning(null)}
-              />
-            ) : null}
-            {layOffPlayerId !== null ? (
-              <LayOffOffersModal
-                playerName={
-                  store.career?.players.find(
-                    (player) => player.id === layOffPlayerId,
-                  )?.name ?? ''
-                }
-                offers={(
-                  (store.career?.market?.transferListings ?? []).find(
-                    (listing) => listing.playerId === layOffPlayerId,
-                  )?.bids ?? []
-                ).map((bid) => ({
-                  id: bid.id,
-                  clubName:
-                    store.career?.clubs.find(
-                      (club) => club.id === bid.buyerClubId,
-                    )?.name ?? bid.buyerClubId,
-                  fee: bid.quote.fee,
-                }))}
-                reduceMotion={reduceMotion}
-                onCancel={() => setLayOffPlayerId(null)}
-                onAccept={(bidId) => {
-                  const playerId = layOffPlayerId;
-                  setLayOffPlayerId(null);
-                  handleTransferAction(playerId, 'SELL', bidId);
-                }}
-              />
-            ) : null}
-            {playerSaleFarewell !== null ? (
-              <PlayerSaleFarewellWalkOn
-                player={playerSaleFarewell}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() => setPlayerSaleFarewell(null)}
-              />
-            ) : null}
-            {midseasonTrainingStage === 'walk-on' &&
-            midseasonTrainingVm !== undefined ? (
-              <MidseasonTrainingCaptainWalkOn
-                viewModel={midseasonTrainingVm}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() => setMidseasonTrainingStage('card')}
-              />
-            ) : null}
-            {midseasonTrainingStage === 'card' &&
-            midseasonTrainingVm !== undefined ? (
-              <MidseasonTrainingDecisionCard
-                viewModel={midseasonTrainingVm}
-                reduceMotion={reduceMotion}
-                onYes={() => {
-                  store.acceptMidseasonTraining();
-                  setMidseasonTrainingStage(null);
-                }}
-                onNo={() => {
-                  store.declineMidseasonTraining();
-                  setMidseasonTrainingStage(null);
-                }}
-              />
-            ) : null}
-            {/* Two stages: the player walks on and says their line, then the card
-            asks for a decision. Split so the manager meets the person before
-            being asked to price them. */}
-            {requestStage === 'walk-on' && playerRequestVm?.pending ? (
-              <PlayerRequestWalkOn
-                request={playerRequestVm.pending}
-                navigationAnchor={navigationGuideAnchor}
-                reduceMotion={reduceMotion}
-                onDone={() => setRequestStage('card')}
-              />
-            ) : null}
-            {requestStage === 'card' && playerRequestVm?.pending ? (
-              <PlayerRequestDecisionCard
-                request={playerRequestVm.pending}
-                reduceMotion={reduceMotion}
-                onGrant={() => {
-                  store.resolvePlayerRequest('GRANTED');
-                  setRequestStage(null);
-                }}
-                onRefuse={() => {
-                  store.resolvePlayerRequest('REFUSED');
-                  setRequestStage(null);
-                }}
-              />
-            ) : null}
-            {storyCallback !== undefined &&
-            storyCallbackLine !== undefined &&
-            store.career !== null &&
-            store.screen === 'management' &&
-            !guideOverlayVisible &&
-            requestStage === null &&
-            midseasonTrainingStage === null &&
-            playerSigning === null &&
-            playerSaleFarewell === null &&
-            coachOverlay === null &&
-            facilityProjectNotice === null &&
-            pendingConfirmation === null &&
-            !postMatchSummaryVisible &&
-            !globalSettingsOpen ? (
-              storyCallback.speaker === 'BERT' ? (
+              {scoutDealsGuideVisible && marketDealsGuideAnchor !== null ? (
+                <View
+                  accessibilityViewIsModal
+                  accessibilityLabel={t('market.openDealsGuide')}
+                  style={StyleSheet.absoluteFill}
+                >
+                  <TutorialSpotlight
+                    anchor={marketDealsGuideAnchor}
+                    viewportWidth={viewportWidth}
+                    viewportHeight={viewportHeight}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('market.a11y.dealsDesk')}
+                    onPress={() => {
+                      setMarketSectionRequest((current) => ({
+                        section: 'TRANSFERS',
+                        token: (current?.token ?? 0) + 1,
+                      }));
+                      setConciergeFocus(null);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: marketDealsGuideAnchor.x,
+                      top: marketDealsGuideAnchor.y,
+                      width: marketDealsGuideAnchor.width,
+                      height: marketDealsGuideAnchor.height,
+                    }}
+                  />
+                  <TutorialTapCue
+                    label={t('market.tapMe')}
+                    detail={t('market.tab.deals')}
+                    direction="down"
+                    reduceMotion={reduceMotion}
+                    style={tutorialCuePositionAbove(
+                      marketDealsGuideAnchor,
+                      viewportWidth,
+                      viewportHeight,
+                    )}
+                  />
+                </View>
+              ) : null}
+              {guideOverlayVisible && cupMismatchWarning !== undefined ? (
                 <BertBriefingWalkOn
+                  key={cupMismatchWarning.fixtureId}
                   content={content.assistantGuide}
+                  customMessage={cupMismatchWarning}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={store.completeCupMismatchWarning}
+                />
+              ) : guideOverlayVisible &&
+                cupGiantKillingCelebration !== undefined ? (
+                <BertBriefingWalkOn
+                  key={cupGiantKillingCelebration.fixtureId}
+                  content={content.assistantGuide}
+                  customMessage={cupGiantKillingCelebration}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={store.completeCupGiantKillingCelebration}
+                />
+              ) : guideOverlayVisible && cupExitConsolationVisible ? (
+                <BertBriefingWalkOn
+                  key="first-cup-exit"
+                  content={content.assistantGuide}
+                  // Authored beats rather than a briefing sequence, the same as the
+                  // giant-killing above it: this is a reaction to one result, not a
+                  // lesson the career queued. `sequenceId` still names the run of
+                  // looks in bert-beat-moments so the promise is not delivered by
+                  // the face that just winced at the scoreline.
+                  sequenceId="first-cup-exit"
                   customMessage={{
-                    title: t('storyCallback.followUpTitle'),
-                    body: [storyCallbackLine],
+                    title: t('firstCupExit.title'),
+                    body: [t('firstCupExit.body1'), t('firstCupExit.body2')],
                   }}
                   navigationAnchor={navigationGuideAnchor}
                   reduceMotion={reduceMotion}
-                  onDone={() => store.completeStoryCallback(storyCallback.id)}
+                  onDone={() =>
+                    store.completeGuideMilestone('first-cup-exit-seen')
+                  }
                 />
-              ) : (
-                <StoryCallbackWalkOn
-                  callback={storyCallback}
-                  state={store.career}
-                  line={storyCallbackLine}
+              ) : guideOverlayVisible && firstCupRoundOf32BriefingVisible ? (
+                <BertBriefingWalkOn
+                  key="first-cup-round-of-32"
+                  content={content.assistantGuide}
+                  sequenceId="first-cup-round-of-32"
+                  customMessage={{
+                    title: t('firstCupWin.roundOf32Title'),
+                    body: [
+                      t('firstCupWin.roundOf32Body1'),
+                      t('firstCupWin.roundOf32Body2'),
+                    ],
+                  }}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={preferences.reduceMotion}
+                  onDone={() => {
+                    setFirstCupRoundOf32Spoken(true);
+                    setConciergeFocus('national-cup');
+                  }}
+                />
+              ) : guideOverlayVisible && facilityErrorBertVisible ? (
+                <BertBriefingWalkOn
+                  key={`facility-error:${store.error}`}
+                  content={content.assistantGuide}
+                  sequenceId="facility-error"
+                  customMessage={{ body: store.error! }}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={preferences.reduceMotion}
+                  onDone={store.clearError}
+                />
+              ) : guideOverlayVisible && bertNotice !== undefined ? (
+                <BertBriefingWalkOn
+                  key="first-scout-favor"
+                  content={content.assistantGuide}
+                  sequenceId="first-scout-favor"
+                  customMessage={{ body: bertNotice.message }}
                   navigationAnchor={navigationGuideAnchor}
                   reduceMotion={reduceMotion}
-                  onDone={() => store.completeStoryCallback(storyCallback.id)}
+                  onDone={store.clearNotice}
                 />
-              )
+              ) : guideOverlayVisible && assistantSequenceId !== null ? (
+                <BertBriefingWalkOn
+                  content={content.assistantGuide}
+                  sequenceId={assistantSequenceId}
+                  customMessage={
+                    assistantSequenceId === 'board-protection' &&
+                    boardConversionBriefing !== undefined
+                      ? {
+                          ...boardConversionBriefing,
+                          focus: 'board-protection',
+                        }
+                      : undefined
+                  }
+                  moneyAnchor={moneyGuideAnchor}
+                  fansAnchor={fansGuideAnchor}
+                  loanAnchor={loanGuideAnchor}
+                  coachSpeechAnchor={coachSpeechGuideAnchor}
+                  navigationAnchor={navigationGuideAnchor}
+                  subTabAnchor={leagueSubTabGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onFocusChange={setActiveGuideFocus}
+                  onDone={completeAssistantGuideSequence}
+                />
+              ) : guideOverlayVisible &&
+                facilityComboRevealVisible &&
+                facilityComboReveal !== undefined ? (
+                <BertBriefingWalkOn
+                  key={facilityComboReveal.id}
+                  content={content.assistantGuide}
+                  sequenceId="facility-adjacency"
+                  customMessage={{
+                    title: t('clubFinances.secretCombo', {
+                      pair: facilityComboReveal.pairLabel,
+                    }),
+                    body: facilityComboReveal.discoveryCopy,
+                    focus: 'facility-adjacency',
+                  }}
+                  facilityAdjacencyAnchor={facilityAdjacencyGuideAnchor}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onFocusChange={setActiveGuideFocus}
+                  onDone={() => {
+                    setActiveGuideFocus(undefined);
+                    store.completeGuideMilestone(facilityComboReveal.milestone);
+                  }}
+                />
+              ) : guideOverlayVisible && transferWindowLessonVisible ? (
+                <BertBriefingWalkOn
+                  key="transfer-window"
+                  content={content.assistantGuide}
+                  customMessage={{
+                    title: t('market.transferWindowLessonTitle'),
+                    body: [
+                      t('bert.custom.transferWindow.body1'),
+                      t('bert.custom.transferWindow.body2'),
+                    ],
+                  }}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() =>
+                    store.completeGuideMilestone('transfer-window-seen')
+                  }
+                />
+              ) : guideOverlayVisible && fansLessonVisible ? (
+                <BertBriefingWalkOn
+                  key="first-fans"
+                  content={content.assistantGuide}
+                  // Authored beats rather than a briefing sequence: nothing queued
+                  // this, the turnstiles did. `sequenceId` still names the run of
+                  // looks in bert-beat-moments so the good news is not delivered
+                  // deadpan.
+                  sequenceId="first-fans"
+                  customMessage={{
+                    title: t('bert.firstFans.title'),
+                    body: [
+                      t('bert.firstFans.body1'),
+                      t('bert.firstFans.body2'),
+                    ],
+                    // Lights the chip he is introducing, and only that chip.
+                    focus: 'fans',
+                  }}
+                  fansAnchor={fansGuideAnchor}
+                  // Without this the chip he is introducing stays under the
+                  // scrim: the focus is what enables its measurement.
+                  onFocusChange={setActiveGuideFocus}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => {
+                    store.completeGuideMilestone('first-fans-seen');
+                    // He said he would show you; the second beat is waiting there.
+                    setClubOfficeTab('finances');
+                    store.setActiveTab('club');
+                  }}
+                />
+              ) : guideOverlayVisible && fansLedgerTourVisible ? (
+                <BertBriefingWalkOn
+                  key="first-fans-ledger"
+                  content={content.assistantGuide}
+                  sequenceId="first-fans-ledger"
+                  customMessage={{
+                    body: [
+                      t('bert.firstFansLedger.body1'),
+                      t('bert.firstFansLedger.body2'),
+                      t('bert.firstFansLedger.body3'),
+                    ],
+                  }}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() =>
+                    store.completeGuideMilestone('first-fans-ledger-seen')
+                  }
+                />
+              ) : guideOverlayVisible && expiredContractLessonVisible ? (
+                <BertBriefingWalkOn
+                  key="expired-contract"
+                  content={content.assistantGuide}
+                  sequenceId="expired-contract"
+                  reduceMotion={reduceMotion}
+                  onDone={() =>
+                    store.completeGuideMilestone('expired-contract-seen')
+                  }
+                />
+              ) : null}
+              {displayedBoardFinanceMessage !== undefined &&
+              openedBoardFinanceAlertId !== null ? (
+                <BertBriefingWalkOn
+                  key={`board-finance-${openedBoardFinanceAlertId}`}
+                  content={content.assistantGuide}
+                  // Authored beats rather than a briefing sequence: the sequences are
+                  // one-shot firsts, and these two rows come back every week the
+                  // money stays bad. `sequenceId` still names the run of looks in
+                  // bert-beat-moments so a warning is not delivered cheerfully.
+                  sequenceId={
+                    openedBoardFinanceAlertId === 'emergency-loan'
+                      ? 'board-emergency-loan'
+                      : 'board-financial-warning'
+                  }
+                  customMessage={displayedBoardFinanceMessage}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => {
+                    const completedAlertId = openedBoardFinanceAlertId;
+                    const wasLoan = completedAlertId === 'emergency-loan';
+                    setOpenedBoardFinanceAlertId(null);
+                    setBoardFinanceMessageStartIndex(0);
+                    store.dismissInboxProduct(
+                      completedAlertId,
+                      wasLoan ? 'permanent' : 'current-week',
+                    );
+                    // He has just told a bailed-out club to build something that
+                    // earns. Saying so and leaving the manager on the ledger would
+                    // make it advice; opening the board and lighting the two
+                    // money-making buildings makes it a next move.
+                    if (wasLoan) {
+                      setClubOfficeTab('facility');
+                      setConciergeFocus('income-facilities');
+                      setIncomeFacilitiesFlashToken((token) => token + 1);
+                    }
+                  }}
+                />
+              ) : null}
+              {careerTeaches && store.inboxDutyReminder !== null ? (
+                <BertBriefingWalkOn
+                  key="inbox-duty-reminder"
+                  content={content.assistantGuide}
+                  // Authored beats rather than a briefing sequence: this is a reply to
+                  // a press, not a lesson the career has queued, so it owns its copy
+                  // here. `sequenceId` still names the run of looks in
+                  // bert-beat-moments so the joke is not delivered by the face that
+                  // just refused the manager.
+                  sequenceId="inbox-duty-reminder"
+                  customMessage={{
+                    title: t(
+                      `${inboxDutyCopyStem(store.inboxDutyReminder[0])}.title`,
+                    ),
+                    body: [
+                      t(
+                        `${inboxDutyCopyStem(store.inboxDutyReminder[0])}.body`,
+                      ),
+                    ],
+                  }}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={store.dismissInboxDutyReminder}
+                />
+              ) : null}
+              {heroLicenseBriefing !== null ? (
+                <BertBriefingWalkOn
+                  key="hero-license-shop"
+                  content={content.assistantGuide}
+                  // Authored beats, like the inbox-duty reminder: this is his
+                  // answer to a press, not a lesson the career queued. The id
+                  // only picks the run of looks he wears while saying it.
+                  sequenceId="hero-license-shop"
+                  customMessage={{
+                    title: t('bert.heroLicense.title'),
+                    body: [
+                      t('bert.heroLicense.body1'),
+                      t('bert.heroLicense.body2'),
+                    ],
+                  }}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => {
+                    store.completeGuideMilestone('hero-license-shop-seen');
+                    setHeroLicenseBriefing(null);
+                    askToBuyHeroLicense(
+                      heroLicenseBriefing.license,
+                      heroLicenseBriefing.cost,
+                    );
+                  }}
+                />
+              ) : null}
+              {!guideOverlayVisible &&
+              rivalHeroIntro === undefined &&
+              lowConditionMatchdayStarter !== null ? (
+                <MatchdayConditionWarning
+                  key={lowConditionMatchdayStarter.id}
+                  playerName={lowConditionMatchdayStarter.name}
+                  reduceMotion={reduceMotion}
+                  onDone={() =>
+                    store.completeGuideMilestone('match-condition-warning-seen')
+                  }
+                />
+              ) : null}
+              {coachOverlay !== null ? (
+                <CoachStaffOverlay
+                  mode={coachOverlay.mode}
+                  coach={coachOverlay.coach}
+                  reduceMotion={reduceMotion}
+                  onConfirm={
+                    coachOverlay.mode === 'confirm-dismiss'
+                      ? confirmCoachDismissal
+                      : undefined
+                  }
+                  onClose={() => {
+                    const returnsHome = coachOverlay.mode !== 'confirm-dismiss';
+                    setCoachOverlay(null);
+                    if (returnsHome) useM1Store.getState().setActiveTab('home');
+                  }}
+                />
+              ) : null}
+              {facilityProjectNotice !== null ? (
+                <FacilityProjectNotice
+                  project={facilityProjectNotice}
+                  reduceMotion={reduceMotion}
+                  onClose={() => setFacilityProjectNotice(null)}
+                />
+              ) : null}
+              {signingWalkOn !== null ? (
+                <PlayerWalkOnWelcome
+                  player={signingWalkOn}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => setPlayerSigning(null)}
+                />
+              ) : null}
+              {store.screen === 'management' &&
+              automaticAcademyArrivals.length > 0 &&
+              academyArrivalAlertId !== null &&
+              !guideOverlayVisible &&
+              playerSigning === null &&
+              playerSaleFarewell === null &&
+              coachOverlay === null &&
+              facilityProjectNotice === null &&
+              pendingConfirmation === null &&
+              !postMatchSummaryVisible &&
+              !globalSettingsOpen ? (
+                <AcademyGroupWalkOnWelcome
+                  players={automaticAcademyArrivals}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() =>
+                    store.dismissInboxProduct(
+                      academyArrivalAlertId,
+                      'permanent',
+                    )
+                  }
+                />
+              ) : null}
+              {playerSigning !== null && playerSigning.source === 'transfer' ? (
+                <PlayerSigningOverlay
+                  player={playerSigning}
+                  reduceMotion={reduceMotion}
+                  onClose={() => setPlayerSigning(null)}
+                />
+              ) : null}
+              {layOffPlayerId !== null ? (
+                <LayOffOffersModal
+                  playerName={
+                    store.career?.players.find(
+                      (player) => player.id === layOffPlayerId,
+                    )?.name ?? ''
+                  }
+                  offers={(
+                    (store.career?.market?.transferListings ?? []).find(
+                      (listing) => listing.playerId === layOffPlayerId,
+                    )?.bids ?? []
+                  ).map((bid) => ({
+                    id: bid.id,
+                    clubName:
+                      store.career?.clubs.find(
+                        (club) => club.id === bid.buyerClubId,
+                      )?.name ?? bid.buyerClubId,
+                    fee: bid.quote.fee,
+                  }))}
+                  reduceMotion={reduceMotion}
+                  onCancel={() => setLayOffPlayerId(null)}
+                  onAccept={(bidId) => {
+                    const playerId = layOffPlayerId;
+                    setLayOffPlayerId(null);
+                    handleTransferAction(playerId, 'SELL', bidId);
+                  }}
+                />
+              ) : null}
+              {playerSaleFarewell !== null ? (
+                <PlayerSaleFarewellWalkOn
+                  player={playerSaleFarewell}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => setPlayerSaleFarewell(null)}
+                />
+              ) : null}
+              {midseasonTrainingStage === 'walk-on' &&
+              midseasonTrainingVm !== undefined ? (
+                <MidseasonTrainingCaptainWalkOn
+                  viewModel={midseasonTrainingVm}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => setMidseasonTrainingStage('card')}
+                />
+              ) : null}
+              {midseasonTrainingStage === 'card' &&
+              midseasonTrainingVm !== undefined ? (
+                <MidseasonTrainingDecisionCard
+                  viewModel={midseasonTrainingVm}
+                  reduceMotion={reduceMotion}
+                  onYes={() => {
+                    store.acceptMidseasonTraining();
+                    setMidseasonTrainingStage(null);
+                  }}
+                  onNo={() => {
+                    store.declineMidseasonTraining();
+                    setMidseasonTrainingStage(null);
+                  }}
+                />
+              ) : null}
+              {/* Two stages: the player walks on and says their line, then the card
+            asks for a decision. Split so the manager meets the person before
+            being asked to price them. */}
+              {requestStage === 'walk-on' && playerRequestVm?.pending ? (
+                <PlayerRequestWalkOn
+                  request={playerRequestVm.pending}
+                  navigationAnchor={navigationGuideAnchor}
+                  reduceMotion={reduceMotion}
+                  onDone={() => setRequestStage('card')}
+                />
+              ) : null}
+              {requestStage === 'card' && playerRequestVm?.pending ? (
+                <PlayerRequestDecisionCard
+                  request={playerRequestVm.pending}
+                  reduceMotion={reduceMotion}
+                  onGrant={() => {
+                    store.resolvePlayerRequest('GRANTED');
+                    setRequestStage(null);
+                  }}
+                  onRefuse={() => {
+                    store.resolvePlayerRequest('REFUSED');
+                    setRequestStage(null);
+                  }}
+                />
+              ) : null}
+              {storyCallback !== undefined &&
+              storyCallbackLine !== undefined &&
+              store.career !== null &&
+              store.screen === 'management' &&
+              !guideOverlayVisible &&
+              requestStage === null &&
+              midseasonTrainingStage === null &&
+              playerSigning === null &&
+              playerSaleFarewell === null &&
+              coachOverlay === null &&
+              facilityProjectNotice === null &&
+              pendingConfirmation === null &&
+              !postMatchSummaryVisible &&
+              !globalSettingsOpen ? (
+                storyCallback.speaker === 'BERT' ? (
+                  <BertBriefingWalkOn
+                    content={content.assistantGuide}
+                    customMessage={{
+                      title: t('storyCallback.followUpTitle'),
+                      body: [storyCallbackLine],
+                    }}
+                    navigationAnchor={navigationGuideAnchor}
+                    reduceMotion={reduceMotion}
+                    onDone={() => store.completeStoryCallback(storyCallback.id)}
+                  />
+                ) : (
+                  <StoryCallbackWalkOn
+                    callback={storyCallback}
+                    state={store.career}
+                    line={storyCallbackLine}
+                    navigationAnchor={navigationGuideAnchor}
+                    reduceMotion={reduceMotion}
+                    onDone={() => store.completeStoryCallback(storyCallback.id)}
+                  />
+                )
+              ) : null}
+            </View>
+            {postMatchSummaryVisible && store.postMatch !== null ? (
+              <PostMatchSummaryModal
+                viewModel={store.postMatch}
+                reduceMotion={reduceMotion}
+                onDismiss={store.dismissPostMatchSummary}
+              />
             ) : null}
-          </View>
-          {postMatchSummaryVisible && store.postMatch !== null ? (
-            <PostMatchSummaryModal
-              viewModel={store.postMatch}
+            {blockingSaveWarningVisible && store.saveWarning !== null && (
+              <SaveWarningBanner
+                message={store.saveWarning}
+                blocked
+                // This is the blocking presentation — the season really is paused
+                // here, so holding the screen reader on it is honest.
+                seasonPaused
+                onRetry={store.retrySave}
+              />
+            )}
+            <ConfirmationSheet
+              confirmation={pendingConfirmation}
               reduceMotion={reduceMotion}
-              onDismiss={store.dismissPostMatchSummary}
+              onCancel={() => setPendingConfirmation(null)}
+              onConfirm={() => {
+                if (pendingConfirmation?.confirmDisabled) return;
+                const action = pendingConfirmation?.onConfirm;
+                setPendingConfirmation(null);
+                action?.();
+              }}
             />
-          ) : null}
-          {blockingSaveWarningVisible && store.saveWarning !== null && (
-            <SaveWarningBanner
-              message={store.saveWarning}
-              blocked
-              // This is the blocking presentation — the season really is paused
-              // here, so holding the screen reader on it is honest.
-              seasonPaused
-              onRetry={store.retrySave}
-            />
-          )}
-          <ConfirmationSheet
-            confirmation={pendingConfirmation}
-            reduceMotion={reduceMotion}
-            onCancel={() => setPendingConfirmation(null)}
-            onConfirm={() => {
-              if (pendingConfirmation?.confirmDisabled) return;
-              const action = pendingConfirmation?.onConfirm;
-              setPendingConfirmation(null);
-              action?.();
-            }}
-          />
-          {/* Held back until the story screen is gone. The card explains a swap
+            {/* Held back until the story screen is gone. The card explains a swap
               the engine already made, so it belongs after the outcome the
               manager is still reading, not on top of it. */}
-          <ConfirmationSheet
-            confirmation={
-              store.lineupChange === null || store.screen === 'event'
-                ? null
-                : {
-                    kicker: t('lineupChange.kicker'),
-                    title: t('lineupChange.title', {
-                      player: store.lineupChange.outName,
-                    }),
-                    detail: `${store.lineupChange.reason}\n\n${t(
-                      'lineupChange.replacedBy',
-                      { replacement: store.lineupChange.inName },
-                    )}`,
-                    cancelLabel: t('lineupChange.keep', {
-                      replacement: store.lineupChange.inName,
-                    }),
-                    confirmLabel: t('lineupChange.pickAnother'),
-                    onConfirm: () => {},
-                  }
-            }
-            reduceMotion={reduceMotion}
-            onCancel={store.clearLineupChange}
-            onConfirm={() => {
-              store.clearLineupChange();
-              store.setActiveTab('squad');
-            }}
-          />
-          {/* Out here with the modals, not inside the screen, because a notice
+            <ConfirmationSheet
+              confirmation={
+                store.lineupChange === null || store.screen === 'event'
+                  ? null
+                  : {
+                      kicker: t('lineupChange.kicker'),
+                      title: t('lineupChange.title', {
+                        player: store.lineupChange.outName,
+                      }),
+                      detail: `${store.lineupChange.reason}\n\n${t(
+                        'lineupChange.replacedBy',
+                        { replacement: store.lineupChange.inName },
+                      )}`,
+                      cancelLabel: t('lineupChange.keep', {
+                        replacement: store.lineupChange.inName,
+                      }),
+                      confirmLabel: t('lineupChange.pickAnother'),
+                      onConfirm: () => {},
+                    }
+              }
+              reduceMotion={reduceMotion}
+              onCancel={store.clearLineupChange}
+              onConfirm={() => {
+                store.clearLineupChange();
+                store.setActiveTab('squad');
+              }}
+            />
+            {/* Out here with the modals, not inside the screen, because a notice
               nested under the screen sat BENEATH every overlay that renders
               after it — a Bert walk-on, an inbox reminder, a confirmation
               sheet. They are full-screen pressables, so they ate the tap that
               was meant to dismiss the banner and the player was stuck reading
               "Not enough Cash" with no way to close it. */}
-          {rivalHeroIntro === undefined &&
-            (developerSaveError ? (
-              <FeedbackNotice
-                message={developerSaveError}
-                tone="error"
-                onDismiss={() => setDeveloperSaveError(null)}
-              />
-            ) : store.error && !facilityErrorBertVisible ? (
-              <FeedbackNotice
-                message={store.error}
-                tone="error"
-                onDismiss={store.clearError}
-              />
-            ) : store.notice && store.notice.speaker !== 'bert' ? (
-              <FeedbackNotice
-                message={store.notice.message}
-                tone={store.notice.tone}
-                onDismiss={store.clearNotice}
-              />
-            ) : null)}
-          {/* Last child on purpose. Stat tips are drawn here, after every card
+            {rivalHeroIntro === undefined &&
+              (developerSaveError ? (
+                <FeedbackNotice
+                  message={developerSaveError}
+                  tone="error"
+                  onDismiss={() => setDeveloperSaveError(null)}
+                />
+              ) : store.error && !facilityErrorBertVisible ? (
+                <FeedbackNotice
+                  message={store.error}
+                  tone="error"
+                  onDismiss={store.clearError}
+                />
+              ) : store.notice && store.notice.speaker !== 'bert' ? (
+                <FeedbackNotice
+                  message={store.notice.message}
+                  tone={store.notice.tone}
+                  onDismiss={store.clearNotice}
+                />
+              ) : null)}
+            {/* Last child on purpose. Stat tips are drawn here, after every card
               and panel, so nothing can paint through them. */}
-          <InfoTipLayer />
-        </View>
-      </SafeAreaProvider>
+            <InfoTipLayer />
+          </View>
+        </SafeAreaProvider>
+      </ScreenErrorBoundary>
     </LocaleProvider>
   );
 }

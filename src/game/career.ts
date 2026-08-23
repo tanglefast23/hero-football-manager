@@ -1336,12 +1336,22 @@ function settlementAwards(
         difficultyRules(state).sponsorIncomePercent,
       )) {
         if (payment.actualAmount <= 0) continue;
+        const contract = contracts.find(
+          (candidate) => candidate.contractId === payment.contractId,
+        );
+        const continuity = contract?.sponsorContentId === 'continuity';
         awards.push({
           line: {
             kind: 'sponsor',
             label: `${payment.sponsorName} · Monthly sponsor`,
-            labelKey: 'ledger.monthlySponsor',
-            labelParams: { sponsor: payment.sponsorName },
+            labelKey: continuity
+              ? contracts.length === 1
+                ? 'ledger.monthlyContinuitySponsor'
+                : 'ledger.monthlyContinuitySponsorNumbered'
+              : 'ledger.monthlySponsor',
+            labelParams: continuity
+              ? { number: payment.slot + 1 }
+              : { sponsor: payment.sponsorName },
             amount: payment.actualAmount,
             idempotencyKey: weeklySettlementAwardKeys.sponsorMonth(
               state.userClubId,

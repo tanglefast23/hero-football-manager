@@ -84,12 +84,14 @@ import {
   setCareerLineup,
   swapCareerLineupPlayer,
   resolvePlayerRequest as resolveCareerPlayerRequest,
+  givePlayerGift as applyPlayerGift,
   trainPlayerInstantly,
   trainingPathLabel,
   trainingPathLabelKey,
   startNextSeason,
   startCareerScoutMission,
   startDetailedScoutReport,
+  resolveCareerScoutClock,
   dismissCareerScoutReport,
   dismissStoryCallback,
   submitCareerTransferOffer,
@@ -133,6 +135,7 @@ import type {
   MatchDayBannerViewModel,
   PenaltyShootoutViewModel,
   PostMatchViewModel,
+  PlayerGiftCelebrationViewModel,
   QuickResultFaceOffViewModel,
   WeeklyReviewViewModel,
 } from '../ui';
@@ -477,6 +480,7 @@ interface M1Store {
   activeTab: ManagementTab;
   selectedPlayerId?: string;
   lastDrillResult: InstantDrillResult | null;
+  lastPlayerGiftResult: PlayerGiftCelebrationViewModel | null;
   watchedMatch: WatchedMatch | null;
   postMatch: PostMatchViewModel | null;
   postMatchOverlay: PostMatchOverlay;
@@ -617,6 +621,7 @@ interface M1Store {
   /** Passing undefined clears the selection — sorting the register deselects. */
   selectPlayer: (playerId: string | undefined) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
+  giftPlayer: (playerId: string) => Promise<void>;
   /**
    * Runs the rest of a repeat batch at once, for when the manager skips out of
    * the presentation. The drills were paid for and queued; watching them is
@@ -627,6 +632,7 @@ interface M1Store {
   /** Buys one Hero License above the cap the club has earned on the pitch. */
   purchaseHeroLicense: () => void;
   clearDrillResult: () => void;
+  clearPlayerGiftResult: () => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
   upgradeClubFacility: (buildingId: string) => void;
@@ -851,6 +857,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   recoveredFromScreenCrash: false,
   activeTab: 'home',
   lastDrillResult: null,
+  lastPlayerGiftResult: null,
   watchedMatch: null,
   postMatch: null,
   postMatchOverlay: null,
@@ -881,6 +888,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         career,
         hasSavedCareer: career !== null,
         lastPersistedCareer: career === loadedCareer ? career : null,
+        lastPlayerGiftResult: null,
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
@@ -1067,6 +1075,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         activeTab: 'home',
         selectedPlayerId: undefined,
         lastDrillResult: null,
+        lastPlayerGiftResult: null,
         watchedMatch: null,
         postMatch: null,
         postMatchOverlay: null,
@@ -2672,6 +2681,44 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({ selectedPlayerId, error: null });
   },
 
+  async giftPlayer(playerId) {
+    try {
+      const career = requireCareer(get());
+      const result = applyPlayerGift(career, playerId);
+      const player = result.state.players.find(
+        (candidate) => candidate.id === playerId,
+      );
+      if (player === undefined) throw new Error('unknown gifted player');
+
+      set({ career: result.state, error: null });
+      queueCareerSave(get, set, result.state);
+      await flushPendingCareerSave();
+
+      const current = get();
+      if (
+        current.activeTab !== 'squad' ||
+        current.career !== result.state ||
+        (current.repository !== null &&
+          current.lastPersistedCareer !== result.state)
+      ) {
+        return;
+      }
+      set({
+        lastPlayerGiftResult: {
+          sequence: (current.lastPlayerGiftResult?.sequence ?? 0) + 1,
+          playerId,
+          playerName: player.name,
+          role: player.role,
+          lookId: player.lookId,
+          cost: result.cost,
+          moraleGain: result.moraleGain,
+        },
+      });
+    } catch (error) {
+      set({ error: playerGiftErrorCopy(error) });
+    }
+  },
+
   trainPlayer(playerId, pathId) {
     guarded(set, () => {
       const career = requireCareer(get());
@@ -2806,6 +2853,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   clearDrillResult() {
     set({ lastDrillResult: null });
+  },
+
+  clearPlayerGiftResult() {
+    set({ lastPlayerGiftResult: null });
   },
 
   buildFacility() {
@@ -3701,7 +3752,7 @@ function seasonBoundaryScreen(career: GameState): M1Screen {
  * save whose authored content this build no longer ships from bricking.
  */
 function reconcileLoadedCareer(state: GameState): GameState {
-  return reconcilePendingAwakeningContent(
+  const reconciled = reconcilePendingAwakeningContent(
     reconcilePendingStoryEvent(
       reconcileLegacyFirstAwakening(
         // Licenses first: a save written before license changes benched anyone
@@ -3715,6 +3766,14 @@ function reconcileLoadedCareer(state: GameState): GameState {
       launchContent.events,
     ),
   );
+  return {
+    ...reconciled,
+    ...(reconciled.market === undefined
+      ? {}
+      : {
+          market: resolveCareerScoutClock(reconciled, reconciled.market),
+        }),
+  };
 }
 
 /**
@@ -4136,6 +4195,25 @@ function guarded(
   } catch (error) {
     set({ error: copyError(error) });
   }
+}
+
+function playerGiftErrorCopy(error: unknown): string {
+  const reason = rawMessage(error).match(
+    /player gift blocked: (ALREADY_GIFTED|CLUB_LIMIT_REACHED|MORALE_FULL|NOT_ENOUGH_CASH|PLAYER_NOT_AT_CLUB)/,
+  )?.[1];
+  const key =
+    reason === 'ALREADY_GIFTED'
+      ? 'playerGift.blocked.alreadyGifted'
+      : reason === 'CLUB_LIMIT_REACHED'
+        ? 'playerGift.blocked.clubLimit'
+        : reason === 'MORALE_FULL'
+          ? 'playerGift.blocked.moraleFull'
+          : reason === 'NOT_ENOUGH_CASH'
+            ? 'playerGift.blocked.notEnoughCash'
+            : reason === 'PLAYER_NOT_AT_CLUB'
+              ? 'playerGift.blocked.playerNotAtClub'
+              : 'store.actionUnavailable';
+  return t(key);
 }
 
 /** Turns every player-reachable facility refusal into Bert-ready copy. */

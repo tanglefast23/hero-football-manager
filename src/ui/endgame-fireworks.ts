@@ -151,6 +151,41 @@ export interface FireworkBurst {
   readonly colorIndex: number;
 }
 
+export interface FireworkShellKeyframes {
+  readonly inputRange: number[];
+  readonly opacityRange: number[];
+  readonly scaleRange: number[];
+}
+
+/** Time-ordered knots for one shell on the shared looping clock. */
+export function fireworkShellKeyframes(open: number): FireworkShellKeyframes {
+  if (!Number.isFinite(open) || open < 0 || open >= 1) {
+    throw new Error('firework phase must be from 0 up to 1');
+  }
+  const peak = open + 0.16;
+  const gone = open + 0.34;
+
+  if (gone <= 1) {
+    return {
+      inputRange: [0, open, peak, gone, 1],
+      opacityRange: [0, 0, 1, 0, 0],
+      scaleRange: [0.35, 0.35, 1, 1.12, 1.12],
+    };
+  }
+  if (peak <= 1) {
+    return {
+      inputRange: [0, gone - 1, open, peak, 1],
+      opacityRange: [1, 0, 0, 1, 1],
+      scaleRange: [1.12, 1.12, 0.35, 1, 1.12],
+    };
+  }
+  return {
+    inputRange: [0, peak - 1, gone - 1, open, 1],
+    opacityRange: [1, 1, 0, 0, 1],
+    scaleRange: [1, 1, 1.12, 0.35, 1],
+  };
+}
+
 /**
  * Where the shells sit in the sky, and when each one goes off.
  *

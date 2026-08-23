@@ -1795,12 +1795,17 @@ export function NegotiationPanel({
           </Text>
           <View className="mt-3">
             <ActionButton
+              key={`${viewModel.id}:${finalDemand.weeklyWage}:${finalDemand.termSeasons}:${finalDemand.perk}`}
               label={t('market.signAtTheirPrice', {
                 wage: formatCurrency(t, finalDemand.weeklyWage),
               })}
-              accessibilityLabel={t('market.a11y.offerPerWeekForSeasons', {
+              accessibilityLabel={t('market.a11y.offerPlayerTermsAndPromise', {
+                player: viewModel.playerName,
                 wage: formatCurrency(t, finalDemand.weeklyWage),
                 seasons: finalDemand.termSeasons,
+                promise:
+                  viewModel.perks.find((entry) => entry.id === finalDemand.perk)
+                    ?.label ?? finalDemand.perk,
               })}
               variant="confirm"
               onPress={() =>
@@ -2127,6 +2132,13 @@ export function NegotiationPanel({
                 : undefined
             }
           >
+            <Text className="mb-2 text-center text-sm text-ink/60">
+              {t('market.offerSummary', {
+                wage: formatCurrency(t, weeklyWage),
+                seasons: termSeasons,
+                promise: selectedPerk?.label ?? perk,
+              })}
+            </Text>
             {guided ? (
               <TutorialTapCue
                 detail={t('market.makeTheOffer')}
@@ -2138,6 +2150,7 @@ export function NegotiationPanel({
               />
             ) : null}
             <ActionButton
+              key={`${viewModel.id}:${weeklyWage}:${termSeasons}:${perk}`}
               // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
               label={
                 walksOut
@@ -2150,9 +2163,11 @@ export function NegotiationPanel({
                       wage: formatCurrency(t, weeklyWage),
                       floor: formatCurrency(t, viewModel.walkOutWeeklyWage),
                     })
-                  : t('market.a11y.offerPerWeekForSeasons', {
+                  : t('market.a11y.offerPlayerTermsAndPromise', {
+                      player: viewModel.playerName,
                       wage: formatCurrency(t, weeklyWage),
                       seasons: termSeasons,
+                      promise: selectedPerk?.label ?? perk,
                     })
               }
               variant="confirm"

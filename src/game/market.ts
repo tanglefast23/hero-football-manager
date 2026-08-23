@@ -334,22 +334,16 @@ export function resolveScoutMission(
       playerId: candidate.id,
       role: candidate.role,
       age: candidate.age,
-      statRanges: scoutAttributeRanges(
-        candidate.attrs,
-        Math.max(1, mission.scoutOfficeLevel),
-        mixSeed(mission.missionSeed, candidate.id),
-      ),
-      potentialRange: scoutingRange(
-        candidate.potential,
-        mission.scoutOfficeLevel <= 1
-          ? 2
-          : mission.scoutOfficeLevel === 2
-            ? 1
-            : 0,
-        1,
-        5,
-        mixSeed(mission.missionSeed, `${candidate.id}:potential`),
-      ),
+      statRanges: Object.fromEntries(
+        Object.entries(candidate.attrs).map(([attribute, value]) => [
+          attribute,
+          { minimum: value, maximum: value },
+        ]),
+      ) as ScoutedAttributeRanges,
+      potentialRange: {
+        minimum: candidate.potential,
+        maximum: candidate.potential,
+      },
       ...(candidate.power !== undefined
         ? { power: candidate.power, powerTier: candidate.powerTier ?? 1 }
         : {}),

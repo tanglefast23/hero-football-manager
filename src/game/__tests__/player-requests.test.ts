@@ -363,6 +363,21 @@ describe('requestMoneyCost', () => {
     expect(requestMoneyCost(cost, { ...context, division: 2 })).toBe(50_400);
   });
 
+  it('prices diamonds, gold boots, and the highlights drone as purchases', () => {
+    expect(requestDefinition(CATALOG, 'gift-for-my-bae').cost).toEqual({
+      kind: 'MONEY_PLAYER',
+      wageMultiple: 10,
+    });
+    expect(requestDefinition(CATALOG, 'gold-boots').cost).toEqual({
+      kind: 'MONEY_PLAYER',
+      wageMultiple: 6,
+    });
+    expect(requestDefinition(CATALOG, 'highlights-drone').cost).toEqual({
+      kind: 'MONEY_PLAYER',
+      wageMultiple: 8,
+    });
+  });
+
   it('is undefined for a cost that is not money', () => {
     expect(
       requestMoneyCost({ kind: 'ABSENCE', weeks: 2 }, context),

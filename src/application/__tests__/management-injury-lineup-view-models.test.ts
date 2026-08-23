@@ -310,6 +310,38 @@ describe('management injury and lineup presentation', () => {
     );
   });
 
+  it('removes the transfer-request message as soon as the request ends', () => {
+    const initial = createCareer(
+      createLaunchCareerSetup(20260823, undefined, content),
+    );
+    const requester = initial.players.find(
+      (player) => player.clubId === initial.userClubId,
+    )!;
+    const requested: GameState = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === requester.id
+          ? { ...player, transferRequested: true }
+          : player,
+      ),
+    };
+    expect(homeViewModel(requested).alerts).toContainEqual(
+      expect.objectContaining({ id: `transfer-request-${requester.id}` }),
+    );
+
+    const withdrawn: GameState = {
+      ...requested,
+      players: requested.players.map((player) =>
+        player.id === requester.id
+          ? { ...player, transferRequested: false }
+          : player,
+      ),
+    };
+    expect(homeViewModel(withdrawn).alerts).not.toContainEqual(
+      expect.objectContaining({ id: `transfer-request-${requester.id}` }),
+    );
+  });
+
   it('keeps a retirement announcement visible during the player final season', () => {
     const initial = createCareer(
       createLaunchCareerSetup(20260722, undefined, content),

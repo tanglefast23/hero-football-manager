@@ -59,6 +59,7 @@ import { SfxPressable } from '../components/SfxPressable';
 import {
   FIREWORK_CELL,
   fireworkBursts,
+  fireworkShellKeyframes,
   fireworkShellRuns,
   type FireworkBurst,
 } from '../endgame-fireworks';
@@ -431,27 +432,20 @@ function FireworkShell({
 
   // Each shell owns a window of the shared loop: it opens, holds, and fades
   // while the others are elsewhere in their own windows.
-  const open = burst.phase;
-  const peak = (open + 0.16) % 1;
-  const gone = (open + 0.34) % 1;
-  const wraps = gone < open;
-  const stops = wraps ? [0, gone, open, peak, 1] : [0, open, peak, gone, 1];
-  const values = wraps ? [1, 0, 0, 1, 1] : [0, 0, 1, 0, 0];
+  const keyframes = fireworkShellKeyframes(burst.phase);
 
   const animated = reduceMotion
     ? undefined
     : {
         opacity: progress.interpolate({
-          inputRange: stops,
-          outputRange: values,
+          inputRange: keyframes.inputRange,
+          outputRange: keyframes.opacityRange,
         }),
         transform: [
           {
             scale: progress.interpolate({
-              inputRange: stops,
-              outputRange: wraps
-                ? [1, 0.35, 0.35, 1, 1]
-                : [0.35, 0.35, 1, 1.12, 1.12],
+              inputRange: keyframes.inputRange,
+              outputRange: keyframes.scaleRange,
             }),
           },
         ],

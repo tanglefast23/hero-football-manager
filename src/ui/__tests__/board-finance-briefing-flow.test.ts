@@ -103,7 +103,7 @@ describe('the board money rows', () => {
     // Only the loan ends with a building to point at. The warning's own last
     // line is conditional on funds the club may not have, so marching a broke
     // manager to a menu he cannot buy from would be the wrong next move.
-    const onDone = /const wasLoan = [\s\S]*?\n\s{12}\}\}/.exec(app);
+    const onDone = /const wasLoan = [\s\S]*?\n\s+\}\}/.exec(app);
     expect(onDone).not.toBeNull();
     expect(onDone![0]).toContainSource('if (wasLoan) {');
   });

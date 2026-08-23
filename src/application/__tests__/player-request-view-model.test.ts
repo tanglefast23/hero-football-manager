@@ -167,7 +167,8 @@ describe('playerRequestViewModel', () => {
       ),
     );
 
-    expect(model.pending!.grantLabel).toBe('-4,200');
+    expect(model.pending!.grantLabel).toBe('-$4,200');
+    expect(model.pending!.grantMoneyCost).toBe('-$4,200');
   });
 
   it('disables granting when the club cannot pay', () => {

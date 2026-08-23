@@ -55,6 +55,66 @@ describe('M1 app store integration', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
+  it('upgrades saved fuzzy scout reports while loading', async () => {
+    const saved = createCareer(createLaunchCareerSetup(86));
+    const target = saved.players.find(
+      (player) => player.clubId !== saved.userClubId,
+    )!;
+    const range = { minimum: 40, maximum: 60 };
+    const fuzzy: GameState = {
+      ...saved,
+      market: {
+        ...saved.market!,
+        scoutReports: [
+          {
+            playerId: target.id,
+            role: target.role,
+            age: target.age ?? 22,
+            statRanges: {
+              pac: range,
+              sho: range,
+              pas: range,
+              def: range,
+              tec: range,
+              sta: range,
+              ref: range,
+            },
+            potentialRange: { minimum: 2, maximum: 4 },
+            completedSeason: saved.season,
+            completedWeek: saved.week,
+          },
+        ],
+      },
+    };
+
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        async load() {
+          return fuzzy;
+        },
+      }),
+    );
+
+    const loaded = useM1Store.getState().career!;
+    const loadedTarget = loaded.players.find(
+      (player) => player.id === target.id,
+    )!;
+    const report = loaded.market!.scoutReports[0];
+    expect(report.potentialRange).toEqual({
+      minimum: loadedTarget.potential,
+      maximum: loadedTarget.potential,
+    });
+    expect(
+      Object.entries(report.statRanges).every(
+        ([attribute, exact]) =>
+          exact.minimum ===
+            loadedTarget.attrs[attribute as keyof typeof loadedTarget.attrs] &&
+          exact.maximum ===
+            loadedTarget.attrs[attribute as keyof typeof loadedTarget.attrs],
+      ),
+    ).toBe(true);
+  });
+
   it('uses a fifth permit without forcing a lineup swap and can restore a benched starter', () => {
     const initial = createCareer(createLaunchCareerSetup(20260821));
     const lineup = initial.lineups.find(

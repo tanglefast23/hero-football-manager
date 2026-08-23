@@ -129,7 +129,7 @@ describe('marketViewModel', () => {
     expect(viewModel.scouting.choices[0].blockedReason).toBe('Scout Sent');
   });
 
-  it('turns resolved fuzzy reports into compact, serializable player dossiers', () => {
+  it('turns exact scout reports into compact, serializable player dossiers', () => {
     const source = baseSource();
     const player = scoutPlayer('scout-1');
     const mission = startScoutMission({
@@ -162,7 +162,8 @@ describe('marketViewModel', () => {
       role: 'MID',
       ageLabel: 'Age 22',
     });
-    expect(viewModel.scouting.reports[0].potentialLabel).toBe('B-–A+');
+    expect(viewModel.scouting.reports[0].potentialLabel).toBe('B- · SUPER 23%');
+    expect(viewModel.scouting.reports[0].exactValues).toBe(true);
     expect(viewModel.scouting.reports[0].stats).toHaveLength(6);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
   });
@@ -207,7 +208,7 @@ describe('marketViewModel', () => {
     ]);
   });
 
-  it('allows a Level 3 detailed follow-up while any report value is still a range', () => {
+  it('does not offer a second report at any Scout Office level', () => {
     const source = baseSource();
     const player = scoutPlayer('level-three-range');
     const mission = startScoutMission({
@@ -234,39 +235,9 @@ describe('marketViewModel', () => {
       scoutResult,
     }).scouting.reports[0];
 
-    expect(report.exactValues).toBe(false);
-    expect(report.detailedReportAvailable).toBe(true);
-    expect(report.detailedReportBlockedReason).toBeUndefined();
-  });
-
-  it('explains when a detailed report is unaffordable', () => {
-    const source = baseSource();
-    const player = scoutPlayer('unaffordable-detail');
-    const mission = startScoutMission({
-      careerSeed: source.careerSeed,
-      missionId: 'unaffordable-trip',
-      startWeek: 46,
-      region: 'EUROPE',
-      focus: { kind: 'POSITION', role: 'MID' },
-      scoutOfficeLevel: 2,
-      division: 3,
-    });
-    const resolved = resolveScoutMission(mission, mission.dueWeek, [player]);
-    const report = marketViewModel({
-      ...source,
-      cash: 0,
-      scoutResult: {
-        ...resolved,
-        reports: resolved.reports.map((candidate) => ({
-          ...candidate,
-          completedSeason: source.season,
-          completedWeek: source.week,
-        })),
-      },
-    }).scouting.reports[0];
-
+    expect(report.exactValues).toBe(true);
     expect(report.detailedReportAvailable).toBe(false);
-    expect(report.detailedReportBlockedReason).toBe('Not enough money.');
+    expect(report.detailedReportBlockedReason).toBeUndefined();
   });
 
   it('marks only scout trips that return after the season final window', () => {

@@ -328,7 +328,7 @@ describe('career squad integration', () => {
     ).toThrow('injured and unavailable');
   });
 
-  it('auto-arranges the strongest available players into natural roles', () => {
+  it('keeps existing starters instead of replacing them with stronger reserves', () => {
     const initial = career();
     const reserveId = `${CLUB_IDS[0]}-p12`;
     const withStrongReserve = {
@@ -352,7 +352,8 @@ describe('career squad integration', () => {
       (lineup) => lineup.clubId === arranged.userClubId,
     )!.playerIds;
 
-    expect(ids).toContain(reserveId);
+    expect(ids).not.toContain(reserveId);
+    expect(ids).toEqual(initial.lineups[0].playerIds);
     ids.forEach((playerId, slot) => {
       const player = arranged.players.find(
         (candidate) => candidate.id === playerId,
@@ -361,78 +362,44 @@ describe('career squad integration', () => {
     });
   });
 
-  it('uses condition, then a licensed-hero tie, with a stable result', () => {
+  it('benches the lowest-overall excess starter when a formation loses a role slot', () => {
     const initial = career();
-    const regular = {
-      ...makePlayer(CLUB_IDS[0], 13),
-      role: 'DEF' as const,
-      attrs: { pac: 80, sho: 80, pas: 80, def: 80, tec: 80, sta: 80, ref: 80 },
-      condition: 100,
-    };
-    const hero = {
-      ...makePlayer(CLUB_IDS[0], 14),
-      role: 'DEF' as const,
-      power: 'SUPER_STRENGTH' as const,
-      licensed: true,
-      attrs: { ...regular.attrs },
-      condition: 100,
-    };
+    const weakMidId = `${CLUB_IDS[0]}-p8`;
+    const reserveForwardId = `${CLUB_IDS[0]}-p12`;
     const candidate: GameState = {
       ...initial,
-      players: [
-        ...initial.players.map((player) => {
-          if (player.id === `${CLUB_IDS[0]}-p9`) {
-            return { ...player, licensed: false };
-          }
-          if (
-            player.clubId === CLUB_IDS[0] &&
-            ['p1', 'p2', 'p3'].some((suffix) => player.id.endsWith(suffix))
-          ) {
-            return {
+      players: initial.players.map((player) =>
+        player.id === weakMidId
+          ? {
               ...player,
               attrs: {
-                pac: 90,
-                sho: 90,
-                pas: 90,
-                def: 90,
-                tec: 90,
-                sta: 90,
-                ref: 90,
+                pac: 30,
+                sho: 30,
+                pas: 30,
+                def: 30,
+                tec: 30,
+                sta: 30,
+                ref: 30,
               },
-            };
-          }
-          if (player.id === `${CLUB_IDS[0]}-p4`) {
-            return {
-              ...player,
-              attrs: {
-                pac: 90,
-                sho: 90,
-                pas: 90,
-                def: 90,
-                tec: 90,
-                sta: 90,
-                ref: 90,
-              },
-              condition: 1,
-            };
-          }
-          return player;
-        }),
-        regular,
-        hero,
-      ],
+              condition: 100,
+            }
+          : player.id === reserveForwardId
+            ? { ...player, role: 'FWD' as const }
+            : player,
+      ),
     };
 
-    const first = arrangeCareerLineupForFormation(candidate, '4-4-2');
-    const second = arrangeCareerLineupForFormation(candidate, '4-4-2');
-    const ids = first.lineups.find(
-      (lineup) => lineup.clubId === first.userClubId,
+    const arranged = arrangeCareerLineupForFormation(candidate, '4-3-3');
+    const ids = arranged.lineups.find(
+      (lineup) => lineup.clubId === arranged.userClubId,
     )!.playerIds;
 
-    expect(ids).toContain(hero.id);
-    expect(ids).not.toContain(regular.id);
-    expect(ids).not.toContain(`${CLUB_IDS[0]}-p4`);
-    expect(second.lineups).toEqual(first.lineups);
+    expect(ids).not.toContain(weakMidId);
+    expect(ids).toContain(reserveForwardId);
+    expect(ids[0]).toBe(initial.lineups[0].playerIds[0]);
+    expect(
+      ids.filter((id) => initial.lineups[0].playerIds.includes(id)),
+    ).toHaveLength(10);
   });
 
   it('trades formation slots when both players already start, never the keeper', () => {

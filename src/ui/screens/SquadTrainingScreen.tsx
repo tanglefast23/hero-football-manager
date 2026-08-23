@@ -28,11 +28,16 @@ import {
 import { PixelPortrait } from '../components/PixelPortrait';
 import type {
   DrillResultViewModel,
+  PlayerGiftCelebrationViewModel,
   SquadPlayerViewModel,
   SquadTrainingViewModel,
   TrainingSlotStatOption,
   TrainingUpgradeViewModel,
 } from '../models';
+import {
+  LazyPlayerGiftCelebration as PlayerGiftCelebration,
+  preloadPlayerGiftCelebration,
+} from '../LazyPlayerGiftCelebration';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -69,6 +74,7 @@ import { PixelText } from '../components/PixelText';
 import { InfoTip } from '../components/InfoTip';
 import { energyBand } from '../../render/match-energy-ui';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useTapGuard } from '../use-tap-guard';
 import {
   LOYALTY_NO_RENEWAL_THRESHOLD,
   LOYALTY_WARNING_THRESHOLD,
@@ -318,6 +324,10 @@ export interface SquadTrainingScreenProps {
   onChangeSquadSort: (sort: SquadSort | null) => void;
   /** Opens the lay-off offers for this player. Omitted where sales are locked. */
   onLayOffPlayer?: (playerId: string) => void;
+  /** Buys the selected player one weekly morale gift. */
+  onGiftPlayer?: (playerId: string) => void;
+  lastPlayerGiftResult?: PlayerGiftCelebrationViewModel | null;
+  onClearPlayerGiftResult?: () => void;
   /** Fixed capture offset for deterministic store-media scenes. */
   initialScrollY?: number;
 }
@@ -352,6 +362,9 @@ export function SquadTrainingScreen({
   squadSort,
   onChangeSquadSort,
   onLayOffPlayer,
+  onGiftPlayer,
+  lastPlayerGiftResult = null,
+  onClearPlayerGiftResult,
   initialScrollY,
 }: SquadTrainingScreenProps) {
   const t = useCopy();
@@ -670,6 +683,8 @@ export function SquadTrainingScreen({
                 }
                 attributesRef={attributesRef}
                 onLayOff={onLayOffPlayer}
+                gift={viewModel.selectedPlayerGift}
+                onGift={onGiftPlayer}
               />
             ),
           },
@@ -835,6 +850,16 @@ export function SquadTrainingScreen({
           />
         </Suspense>
       ) : null}
+      {lastPlayerGiftResult === null ||
+      onClearPlayerGiftResult === undefined ? null : (
+        <Suspense fallback={null}>
+          <PlayerGiftCelebration
+            result={lastPlayerGiftResult}
+            reduceMotion={reduceMotion}
+            onDone={onClearPlayerGiftResult}
+          />
+        </Suspense>
+      )}
     </View>
   );
 }
@@ -1492,6 +1517,8 @@ interface PlayerFileSectionProps {
   attributesRef?: RefObject<View | null>;
   /** Opens the lay-off offers. Absent while player sales are still locked. */
   onLayOff?: (playerId: string) => void;
+  gift?: NonNullable<SquadTrainingViewModel['selectedPlayerGift']>;
+  onGift?: (playerId: string) => void;
 }
 
 function PlayerFileSection({
@@ -1502,8 +1529,11 @@ function PlayerFileSection({
   guideQuickTrain = false,
   attributesRef,
   onLayOff,
+  gift,
+  onGift,
 }: PlayerFileSectionProps) {
   const t = useCopy();
+  const guardGiftTap = useTapGuard();
   return (
     <PaperPanel
       kicker={t('squadTraining.playerFile')}
@@ -1686,6 +1716,55 @@ function PlayerFileSection({
           />
         </InfoTip>
       </View>
+      {gift === undefined || onGift === undefined ? null : (
+        <View className="mt-3 border-2 border-b-4 border-ink bg-gold-light p-3">
+          <View className="flex-row items-center justify-between gap-3">
+            <View className="min-w-0 flex-1">
+              <PixelText className="text-sm uppercase text-ink">
+                {t('playerGift.action')}
+              </PixelText>
+              <Text className="mt-1 font-mono text-base text-stamp">
+                {formatCurrency(t, gift.cost)}
+              </Text>
+              <Text className="font-pixel text-sm uppercase text-pitch-ink">
+                {t('playerGift.moraleResult', { gain: gift.moraleGain })}
+              </Text>
+              <Text className="mt-1 text-xs text-ink/60">
+                {t('playerGift.remaining', {
+                  n: gift.clubGiftsRemaining,
+                  count: gift.clubGiftsRemaining,
+                })}
+              </Text>
+              {gift.blockedReason === undefined ? null : (
+                <Text className="mt-1 text-xs font-bold text-stamp">
+                  {gift.blockedReason}
+                </Text>
+              )}
+            </View>
+            <View className="min-w-[132px]">
+              <ActionButton
+                label={t('playerGift.action')}
+                accessibilityLabel={t('playerGift.a11y.giftAction', {
+                  n: gift.clubGiftsRemaining,
+                  player: selectedPlayer.name,
+                  cost: formatCurrency(t, gift.cost),
+                  gain: gift.moraleGain,
+                  remaining: gift.clubGiftsRemaining,
+                  status: gift.blockedReason ?? '',
+                })}
+                disabled={gift.blockedReason !== undefined}
+                pressSfx="click"
+                onPress={() =>
+                  guardGiftTap(() => {
+                    void preloadPlayerGiftCelebration();
+                    onGift(selectedPlayer.id);
+                  })
+                }
+              />
+            </View>
+          </View>
+        </View>
+      )}
       <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
         <View className="flex-1">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">

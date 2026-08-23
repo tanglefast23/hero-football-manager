@@ -247,6 +247,38 @@ describe('season review story', () => {
       seasonEndViewModel(state, content, 1).recap?.memorableEventTitle,
     ).toBe('Perfect league season');
   });
+
+  it('calls out a league title even when the champion lost a match', () => {
+    const content = loadLaunchContent();
+    const initial = createCareer(
+      createLaunchCareerSetup(24_684, undefined, content),
+    );
+    const state: GameState = {
+      ...initial,
+      phase: 'season-end',
+      seasonRecaps: [
+        {
+          season: initial.season,
+          division: 5,
+          finalPosition: 1,
+          played: 18,
+          won: 14,
+          drawn: 1,
+          lost: 3,
+          goalsFor: 42,
+          goalsAgainst: 16,
+          cashChange: 0,
+          closingCash: 100_000,
+          trainingCapsReached: 0,
+          cupResult: 'Round 1',
+        },
+      ],
+    };
+
+    expect(
+      seasonEndViewModel(state, content, 1).recap?.memorableEventTitle,
+    ).toBe('League champions');
+  });
 });
 
 describe('promotion reward presentation', () => {

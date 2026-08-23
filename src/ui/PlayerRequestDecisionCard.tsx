@@ -48,6 +48,25 @@ export function PlayerRequestDecisionCard({
             </Text>
           </View>
 
+          {request.grantMoneyCost === undefined ? null : (
+            <View
+              accessible
+              accessibilityLabel={t('playerRequestCard.moneyCost', {
+                amount: request.grantMoneyCost,
+              })}
+              className="mt-4 flex-row items-center gap-3 border-2 border-b-4 border-stamp bg-red-light px-3 py-2"
+            >
+              <View className="h-9 w-12 items-center justify-center border-2 border-stamp bg-white">
+                <PixelText className="text-base text-stamp">$$</PixelText>
+              </View>
+              <PixelText className="min-w-0 flex-1 text-base uppercase text-stamp">
+                {t('playerRequestCard.moneyCost', {
+                  amount: request.grantMoneyCost,
+                })}
+              </PixelText>
+            </View>
+          )}
+
           <View className="mt-4 flex-row gap-2">
             <View className="min-w-0 flex-1">
               <ActionButton

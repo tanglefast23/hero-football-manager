@@ -404,7 +404,7 @@ export function ChampionshipCelebrationScreen({
           adjustsFontSizeToFit
           numberOfLines={2}
         >
-          YOU WON{`\n`}THE LEAGUE!
+          {t('championshipCelebration.wonTheLeague')}
         </Text>
         <View className="mt-3 flex-row items-center gap-2 self-center border-2 border-gold bg-ink/80 px-4 py-2">
           <ClubCrest clubName={viewModel.clubName} size={24} />

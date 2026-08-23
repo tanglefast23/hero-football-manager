@@ -26,6 +26,7 @@ export * from './fan-growth';
 export * from './lineup';
 export * from './loyalty';
 export * from './player-requests';
+export * from './player-gifts';
 export * from './pending-match-impact';
 export * from './retirement';
 export * from './rival-hero-intro';
