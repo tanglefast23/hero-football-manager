@@ -14,6 +14,7 @@ import { fulltimeReportEntry } from './entries/fulltime-report';
 import { hallOfFameEntry } from './entries/hall-of-fame';
 import { heroLicenseShopEntry } from './entries/hero-license-shop';
 import { playerRequestsEntry } from './entries/player-requests';
+import { playerGiftEntry } from './entries/player-gift';
 import { promotionTransitionEntry } from './entries/promotion-transition';
 import { retirementLegacyEntry } from './entries/retirement-legacy';
 import { rivalHeroIntroEntry } from './entries/rival-hero-intro';
@@ -75,6 +76,7 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   clubBusinessEntry,
   careerEventsEntry,
   playerRequestsEntry,
+  playerGiftEntry,
   liveMatchControlsEntry,
   matchVfxEntry,
   motivationalSpeechEntry,

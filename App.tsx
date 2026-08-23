@@ -3667,6 +3667,11 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
                 onConfirm: () => store.purchaseTrainingUpgrade(pathId),
               });
             }}
+            onGiftPlayer={(playerId) => {
+              void store.giftPlayer(playerId);
+            }}
+            lastPlayerGiftResult={store.lastPlayerGiftResult}
+            onClearPlayerGiftResult={store.clearPlayerGiftResult}
             onBookGreenBullTraining={() => {
               const offer = squadTrainingVm!.greenBullTraining;
               if (offer === undefined || offer.blockedReason !== undefined)

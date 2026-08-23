@@ -213,6 +213,7 @@ const cashTransactionSchema = z
       'coach-hiring',
       'coach-dismissal',
       'player-request',
+      'player-gift',
       'event',
       'balance-adjustment',
     ]),

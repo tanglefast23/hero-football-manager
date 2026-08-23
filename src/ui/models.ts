@@ -737,6 +737,13 @@ export interface SquadTrainingViewModel {
       | 'NOT_ENOUGH_CASH';
   };
   players: readonly SquadPlayerViewModel[];
+  /** The selected player's exact Gift action, including any visible blocker. */
+  selectedPlayerGift?: {
+    cost: number;
+    moraleGain: number;
+    clubGiftsRemaining: number;
+    blockedReason?: string;
+  };
   /**
    * The rookie the manager built. They are sorted to the top of the roster, and
    * the first-training cue glows their Train button alone — lighting all
@@ -753,6 +760,16 @@ export interface SquadTrainingViewModel {
     playerName: string;
     remaining: number;
   };
+}
+
+export interface PlayerGiftCelebrationViewModel {
+  sequence: number;
+  playerId: string;
+  playerName: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
+  cost: number;
+  moraleGain: number;
 }
 
 export interface TrainingGroundDecisionViewModel {

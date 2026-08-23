@@ -286,7 +286,9 @@ export function requestMoneyCost(
   cost: PlayerRequestCost,
   context: RequestPricingContext,
 ): number | undefined {
-  const divisionMultiplier = (context.division ?? 5) <= 2 ? 3 : 1;
+  const divisionMultiplier = managementMoneyDivisionMultiplier(
+    context.division,
+  );
   if (cost.kind === 'MONEY_PLAYER') {
     return Math.max(
       1,
@@ -307,6 +309,17 @@ export function requestMoneyCost(
     );
   }
   return undefined;
+}
+
+/** Shared late-game price rule for optional player-facing money actions. */
+export function managementMoneyDivisionMultiplier(
+  division: number | undefined,
+): 1 | 3 {
+  const resolved = division ?? 5;
+  if (!Number.isInteger(resolved) || resolved < 1 || resolved > 5) {
+    throw new Error('division must be an integer from 1 to 5');
+  }
+  return resolved <= 2 ? 3 : 1;
 }
 
 /** Cozy never loses a player for more than one week. */
