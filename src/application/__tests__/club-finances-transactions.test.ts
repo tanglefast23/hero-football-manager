@@ -6,6 +6,7 @@ import {
   buildCareerFacility,
   createCareer,
   relocateCareerFacility,
+  givePlayerGift,
   TRAINING_PITCH_TP_PER_LEVEL,
   type FacilityGridState,
 } from '../../game';
@@ -155,6 +156,27 @@ describe('club finances immediate transaction history', () => {
       }),
     ]);
     expect(moved.ledgers).toHaveLength(0);
+  });
+
+  test('shows a free player gift as a neutral transaction', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260823));
+    const player = initial.players.find(
+      (candidate) => candidate.clubId === initial.userClubId,
+    )!;
+    const ready = {
+      ...initial,
+      players: initial.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, weeklyWage: 0 }
+          : candidate,
+      ),
+    };
+    const gifted = givePlayerGift(ready, player.id).state;
+
+    expect(clubFinancesViewModel(gifted).recentTransactions[0]).toMatchObject({
+      amount: 0,
+      kind: 'neutral',
+    });
   });
 
   test('projects recurring commitments instead of replaying a one-off statement', () => {

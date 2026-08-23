@@ -206,7 +206,7 @@ export const CLUB_LEGEND_MIN_SEASONS = 5;
  * still a legend, just a patient one.
  */
 export const CLUB_LEGEND_MIN_FAME = 200;
-const LOW_MORALE_THRESHOLD = 30;
+export const LOW_MORALE_THRESHOLD = 30;
 /**
  * The ladder is a geography ladder — District, County, Regional, National,
  * Global — so the name alone tells the manager how high they have climbed.

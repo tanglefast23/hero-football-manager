@@ -2,7 +2,10 @@
 date: 2026-08-23
 topic: player-gifting
 status: council-reviewed
+superseded-by: 2026-08-23-low-morale-gift-tutorial.md
 ---
+
+> Pricing and morale gain are superseded by the low-morale Gift tutorial spec.
 
 # Player Gifting
 

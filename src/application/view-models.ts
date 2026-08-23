@@ -77,6 +77,8 @@ import {
   playerGrowthGrade,
   playerPotentialGrade,
   playerGiftQuote,
+  LOW_MORALE_GIFT_TUTORIAL_ALERT_ID,
+  lowMoraleGiftTutorialPlayerId,
   overtrainingInjuryChancePercent,
   superTrainingChancePercent,
   facilityEffects,
@@ -134,6 +136,7 @@ import {
   type SponsorOfferSnapshot,
   type SponsorProfileId,
   type SponsorWeeklyChallengeKind,
+  reconcileLowMoraleGiftTutorialTarget,
 } from '../game';
 import type {
   AwakeningCutsceneViewModel,
@@ -837,8 +840,7 @@ export function clubFinancesViewModel(
         ),
         amount: transaction.amount,
         balanceAfter: transaction.balanceAfter,
-        kind:
-          transaction.amount > 0 ? ('income' as const) : ('expense' as const),
+        kind: ledgerLineKind(transaction.amount),
       })),
     fans: club.fans,
     variableIncome: variableIncomeViewModel(state, t),
@@ -2672,6 +2674,10 @@ export function homeProductAlerts(
   t: CopyFn = englishCopy(),
 ): ClubAlertViewModel[] {
   const roster = rosterForClub(state, state.userClubId);
+  const lowMoraleGiftPlayerId = lowMoraleGiftTutorialPlayerId(state);
+  const lowMoraleGiftPlayer = roster.find(
+    (player) => player.id === lowMoraleGiftPlayerId,
+  );
   const expired = roster.filter(
     (player) => player.contractSeasonsRemaining === 0,
   );
@@ -2864,6 +2870,20 @@ export function homeProductAlerts(
               latestBoardResolution.kind === 'TARGET_MET'
                 ? ('info' as const)
                 : ('urgent' as const),
+          },
+        ]),
+    ...(lowMoraleGiftPlayer === undefined
+      ? []
+      : [
+          {
+            id: LOW_MORALE_GIFT_TUTORIAL_ALERT_ID,
+            title: t('playerGift.lowMoraleTutorial.inbox.title'),
+            detail: t('playerGift.lowMoraleTutorial.inbox.detail', {
+              player: lowMoraleGiftPlayer.name,
+            }),
+            tone: 'urgent' as const,
+            destination: 'squad' as const,
+            playerId: lowMoraleGiftPlayer.id,
           },
         ]),
     ...(sponsorChallengeOptions.length === 0
@@ -3500,7 +3520,9 @@ function isDeskTipEligible(state: GameState, tipId: string): boolean {
 }
 
 function homeAssistantInboxPlan(state: GameState) {
-  state = reconcileSatisfiedAssistantGuideSequences(state);
+  state = reconcileLowMoraleGiftTutorialTarget(
+    reconcileSatisfiedAssistantGuideSequences(state),
+  );
   const productAlerts = homeProductAlerts(state);
   const dueGuides = dueAssistantInboxGuideSequences(state);
   return scheduleAssistantInboxWeek(state, {
@@ -3689,7 +3711,9 @@ export function homeViewModel(
       state,
       `board-resolution:${latestBoardResolution.id}`,
     );
-  const assistantState = reconcileSatisfiedAssistantGuideSequences(state);
+  const assistantState = reconcileLowMoraleGiftTutorialTarget(
+    reconcileSatisfiedAssistantGuideSequences(state),
+  );
   const careerTeaches = assistantTeaches(assistantState);
   const productAlerts = homeProductAlerts(assistantState, t);
   const dueGuides = dueAssistantInboxGuideSequences(assistantState);

@@ -1,12 +1,16 @@
 import { recordCashTransaction } from './cash-transactions';
-import { currentUserDivision } from './m2-career';
-import { managementMoneyDivisionMultiplier } from './player-requests';
-import { shouldWithdrawTransferRequest } from './pyramid';
+import { LOW_MORALE_THRESHOLD, shouldWithdrawTransferRequest } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
-export const PLAYER_GIFT_MORALE_GAIN = 5;
+export const PLAYER_GIFT_MORALE_GAIN = 20;
 export const PLAYER_GIFT_WEEKLY_CLUB_LIMIT = 3;
-export const PLAYER_GIFT_MINIMUM_COST = 50;
+export const PLAYER_GIFT_WAGE_WEEKS = 4;
+export const LOW_MORALE_GIFT_TUTORIAL_ALERT_ID = 'low-morale-gift-tutorial';
+
+const LOW_MORALE_GIFT_TUTORIAL_COMPLETE_FLAG =
+  'guide:player-gift:low-morale-complete';
+const LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX =
+  'guide:player-gift:low-morale-target:';
 
 export type PlayerGiftBlockedReason =
   | 'PLAYER_NOT_AT_CLUB'
@@ -30,12 +34,11 @@ export interface PlayerGiftResult {
   readonly moraleAfter: number;
 }
 
-export function playerGiftCost(weeklyWage: number, division: number): number {
+export function playerGiftCost(weeklyWage: number): number {
   if (!Number.isSafeInteger(weeklyWage) || weeklyWage < 0) {
     throw new Error('player weekly wage must be a non-negative safe integer');
   }
-  const base = Math.max(PLAYER_GIFT_MINIMUM_COST, weeklyWage);
-  const cost = base * managementMoneyDivisionMultiplier(division);
+  const cost = weeklyWage * PLAYER_GIFT_WAGE_WEEKS;
   if (!Number.isSafeInteger(cost)) {
     throw new Error('player gift cost exceeds the safe integer range');
   }
@@ -61,8 +64,7 @@ export function playerGiftQuote(
     };
   }
 
-  const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-  const cost = playerGiftCost(player.weeklyWage, division);
+  const cost = playerGiftCost(player.weeklyWage);
   const moraleGain = Math.min(PLAYER_GIFT_MORALE_GAIN, 100 - player.morale);
   const gifts = currentWeekGifts(state);
   const playerGifted = gifts.some(
@@ -134,7 +136,7 @@ export function givePlayerGift(
     label: `Gift for ${player.name}`,
     labelKey: 'playerGift.transaction',
     labelParams: { player: player.name, amount: quote.cost },
-    amount: -quote.cost,
+    amount: quote.cost === 0 ? 0 : -quote.cost,
     referenceId: playerId,
   });
 
@@ -144,6 +146,77 @@ export function givePlayerGift(
     cost: quote.cost,
     moraleGain: quote.moraleGain,
     moraleAfter,
+  };
+}
+
+export function lowMoraleGiftTutorialPlayerId(
+  state: Pick<GameState, 'eventFlags'>,
+): string | undefined {
+  return state.eventFlags
+    .find((flag) => flag.startsWith(LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX))
+    ?.slice(LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX.length);
+}
+
+export function reconcileLowMoraleGiftTutorialTarget(
+  state: GameState,
+): GameState {
+  const targetFlags = state.eventFlags.filter((flag) =>
+    flag.startsWith(LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX),
+  );
+  if (state.eventFlags.includes(LOW_MORALE_GIFT_TUTORIAL_COMPLETE_FLAG)) {
+    return targetFlags.length === 0
+      ? state
+      : {
+          ...state,
+          eventFlags: state.eventFlags.filter(
+            (flag) => !flag.startsWith(LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX),
+          ),
+        };
+  }
+
+  const eligible = state.players.filter(
+    (player) =>
+      player.clubId === state.userClubId &&
+      player.morale < LOW_MORALE_THRESHOLD &&
+      player.transferRequested !== true,
+  );
+  const target = eligible.reduce<CareerPlayer | undefined>(
+    (lowest, player) =>
+      lowest === undefined || player.morale < lowest.morale ? player : lowest,
+    undefined,
+  );
+  const targetFlag =
+    target === undefined
+      ? undefined
+      : `${LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX}${target.id}`;
+  if (
+    targetFlags.length === (targetFlag === undefined ? 0 : 1) &&
+    targetFlags[0] === targetFlag
+  ) {
+    return state;
+  }
+  return {
+    ...state,
+    eventFlags: [
+      ...state.eventFlags.filter(
+        (flag) => !flag.startsWith(LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX),
+      ),
+      ...(targetFlag === undefined ? [] : [targetFlag]),
+    ],
+  };
+}
+
+export function completeLowMoraleGiftTutorial(state: GameState): GameState {
+  return {
+    ...state,
+    eventFlags: [
+      ...state.eventFlags.filter(
+        (flag) => !flag.startsWith(LOW_MORALE_GIFT_TUTORIAL_TARGET_PREFIX),
+      ),
+      ...(state.eventFlags.includes(LOW_MORALE_GIFT_TUTORIAL_COMPLETE_FLAG)
+        ? []
+        : [LOW_MORALE_GIFT_TUTORIAL_COMPLETE_FLAG]),
+    ],
   };
 }
 

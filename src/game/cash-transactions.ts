@@ -20,8 +20,13 @@ export function recordCashTransaction(
   state: GameState,
   input: CashTransactionInput,
 ): GameState {
-  if (!Number.isSafeInteger(input.amount) || input.amount === 0) {
-    throw new Error('cash transaction amount must be a non-zero safe integer');
+  if (
+    !Number.isSafeInteger(input.amount) ||
+    (input.amount === 0 && input.kind !== 'player-gift')
+  ) {
+    throw new Error(
+      'cash transaction amount must be a safe integer and non-zero unless it is a player gift',
+    );
   }
   if (input.label.trim().length === 0) {
     throw new Error('cash transaction label must be a non-empty string');
