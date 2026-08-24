@@ -32,6 +32,7 @@ import {
   GuidanceDoubleFlash,
   type GuidanceNudgeTarget,
 } from './GuidanceDoubleFlash';
+import { ScreenTransition } from './components/ScreenTransition';
 
 const TABS: ReadonlyArray<{
   id: ManagementTab;
@@ -450,9 +451,8 @@ export function ManagementShell({
     onPressDeveloperSaveSlot !== undefined &&
     onToggleDeveloperManualSave !== undefined;
 
-  // Forwarded into each chip's InfoTip: the chips cover essentially the whole
-  // cluster, so the outer ledger Pressable below only ever receives taps in the
-  // gaps. The click cue the outer SfxPressable would have played rides along.
+  // Forwarded into each chip's InfoTip. Wrapping the cluster in another
+  // Pressable creates invalid button-inside-button markup on web.
   const openLedgerFromChip =
     onOpenLedger === undefined
       ? undefined
@@ -556,23 +556,7 @@ export function ManagementShell({
           ) : null}
           {!developerControlsVisible ? (
             <View className="min-w-0 flex-shrink flex-row items-center gap-2">
-              {onOpenLedger ? (
-                <Pressable
-                  className="min-w-0 flex-shrink"
-                  accessibilityRole="button"
-                  accessibilityLabel={t(
-                    'managementShell.a11y.openTheClubLedger',
-                  )}
-                  onPress={onOpenLedger}
-                  style={({ pressed }) => ({
-                    opacity: pressed ? 0.7 : undefined,
-                  })}
-                >
-                  {resourceCluster}
-                </Pressable>
-              ) : (
-                resourceCluster
-              )}
+              {resourceCluster}
               {onOpenSettings ? (
                 <SettingsButton onPress={onOpenSettings} />
               ) : null}
@@ -607,22 +591,7 @@ export function ManagementShell({
           </Text>
           {developerControlsVisible ? (
             <View className="flex-row items-center gap-2">
-              {onOpenLedger ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t(
-                    'managementShell.a11y.openTheClubLedger',
-                  )}
-                  onPress={onOpenLedger}
-                  style={({ pressed }) => ({
-                    opacity: pressed ? 0.7 : undefined,
-                  })}
-                >
-                  {resourceCluster}
-                </Pressable>
-              ) : (
-                resourceCluster
-              )}
+              {resourceCluster}
               {onOpenSettings ? (
                 <SettingsButton onPress={onOpenSettings} />
               ) : null}
@@ -631,7 +600,11 @@ export function ManagementShell({
         </View>
       </View>
 
-      <View className="flex-1 bg-paper">{children}</View>
+      <View className="flex-1 bg-paper">
+        <ScreenTransition screenKey={activeTab} reduceMotion={reduceMotion}>
+          {children}
+        </ScreenTransition>
+      </View>
 
       <View
         className="border-t-2 border-ink bg-paper-dark px-3 pt-2"
@@ -880,7 +853,9 @@ export function ManagementShell({
                   className={
                     guided
                       ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
-                      : 'relative min-h-12 flex-1 items-center justify-center'
+                      : selected
+                        ? 'relative min-h-12 flex-1 items-center justify-center border-t-4 border-blue-dark bg-blue-light'
+                        : 'relative min-h-12 flex-1 items-center justify-center'
                   }
                   style={({ pressed }) => ({
                     opacity: !tab.available ? 0.35 : pressed ? 0.7 : undefined,

@@ -36,8 +36,6 @@ describe('management shell safe-area chrome', () => {
   });
 
   test('the content column keeps the paper backdrop', () => {
-    expect(shell).toContain(
-      '<View className="flex-1 bg-paper">{children}</View>',
-    );
+    expect(shell).toContain('<View className="flex-1 bg-paper">');
   });
 });
