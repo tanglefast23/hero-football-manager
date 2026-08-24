@@ -3199,6 +3199,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         onPowerCutInSeen={recordSeenPowerCutIn}
         highContrast={preferences.highContrast}
         colorSafeKits={preferences.colorSafeKits}
+        clubKit={store.career.clubKit}
         autoPowers={preferences.autoPowers}
         autoSubs={preferences.autoSubs}
         onAutoSubsChange={saveAutoSubs}
@@ -3322,6 +3323,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         shootout={store.shootout}
         reduceMotion={reduceMotion}
         colorSafeKits={preferences.colorSafeKits}
+        clubKit={store.career.clubKit}
         onDone={store.completeShootout}
       />
     );
@@ -3331,6 +3333,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         faceOff={store.faceOff}
         reduceMotion={reduceMotion}
         colorSafeKits={preferences.colorSafeKits}
+        clubKitChoice={store.career.clubKit}
         onDone={store.completeFaceOff}
       />
     );
