@@ -196,6 +196,14 @@ describe('player-request money cost contract', () => {
     expect(card).toContainSource('>$$</PixelText>');
     expect(card).toContainSource("t('playerRequestCard.moneyCost'");
   });
+
+  it('puts non-money downsides in a warning panel before the decision', () => {
+    const card = source('src/ui/PlayerRequestDecisionCard.tsx');
+
+    expect(card).toContainSource("t('playerRequestCard.downside'");
+    expect(card).toContainSource('accessibilityLabel={grantDetail}');
+    expect(card).toContainSource('>!</PixelText>');
+  });
 });
 
 describe('match-speed contract', () => {

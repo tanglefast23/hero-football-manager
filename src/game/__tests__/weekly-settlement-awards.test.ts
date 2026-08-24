@@ -14,6 +14,15 @@ function playInAward() {
   }).awards[0];
 }
 
+function finalAward() {
+  return nationalCupRoundSettlementAwards({
+    clubId: 'user-club',
+    season: 2,
+    roundNumber: 6,
+    roundLabel: 'Final',
+  }).awards[0];
+}
+
 describe('weekly settlement awards', () => {
   test('builds the Cup cash and supporter award under one stable round key', () => {
     expect(playInAward()).toEqual({
@@ -33,6 +42,16 @@ describe('weekly settlement awards', () => {
         idempotencyKey: 'cup-round:user-club:s2:r1',
       },
       fanGain: 6,
+    });
+  });
+
+  test('pays $100,000 for winning the Hero Cup', () => {
+    expect(finalAward()).toMatchObject({
+      line: {
+        labelKey: 'ledger.cupChampions',
+        amount: 100_000,
+      },
+      fanGain: 120,
     });
   });
 
