@@ -259,12 +259,28 @@ describe('renderer juice wiring', () => {
       'const suppressCosmeticEffects = reduceMotion || reducedEffects;',
     );
     expect(source).toContainSource(
-      'const startJuice = (power: PowerId, player: number, now: number) => {\n      if (suppressCosmeticEffects) return;',
+      'const suppressCosmeticEffectsRef = useRef(suppressCosmeticEffects);',
+    );
+    expect(source).toContainSource(
+      'const startJuice = (power: PowerId, player: number, now: number) => {\n      if (suppressCosmeticEffectsRef.current || threeXLiteRef.current) return;',
     );
     expect(takeover).toContainSource('reduceMotion ? null : shellStyle');
     expect(takeover).toContainSource(
       'reduceMotion ? styles.sheenHidden : sheenStyle',
     );
+  });
+
+  it('keeps the match loop alive when adaptive effects change', () => {
+    const source = matchSource();
+    const loopEffect = source.slice(
+      source.indexOf('useEffect(() => {\n    let raf = 0;'),
+      source.indexOf('// Distance, not wall-clock ticks'),
+    );
+
+    expect(loopEffect).toContainSource('suppressCosmeticEffectsRef.current');
+    expect(loopEffect).not.toContainSource('\n    suppressCosmeticEffects,');
+    expect(loopEffect).not.toContainSource('\n    reducedEffects,');
+    expect(loopEffect).not.toContainSource('\n    speed,');
   });
 
   it('keeps the activation non-blocking — no pause reason, no full-screen panel', () => {

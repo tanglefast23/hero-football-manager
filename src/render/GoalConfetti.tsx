@@ -13,16 +13,22 @@ interface GoalConfettiProps {
   readonly burstId: number;
   readonly width: number;
   readonly height: number;
+  readonly pieceCount: number;
 }
 
-export function GoalConfetti({ burstId, width, height }: GoalConfettiProps) {
+export function GoalConfetti({
+  burstId,
+  width,
+  height,
+  pieceCount,
+}: GoalConfettiProps) {
   const progress = useRef(new Animated.Value(0)).current;
-  // Nothing is mounted between goals: 120 idle Views on every sim tick is a
-  // cost the rest of the match should not pay for a 2.2s effect.
+  // Nothing is mounted between goals: hundreds of idle Views on every sim tick
+  // are a cost the rest of the match should not pay for a 2.2s effect.
   const [live, setLive] = useState(false);
   const pieces = useMemo(
-    () => makeGoalConfetti(width, height),
-    [width, height],
+    () => makeGoalConfetti(width, height, pieceCount),
+    [width, height, pieceCount],
   );
 
   useEffect(() => {

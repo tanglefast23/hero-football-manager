@@ -121,6 +121,10 @@ import {
 import { ProceduralMatchEffects } from './ProceduralMatchEffects';
 import { GoalConfetti } from './GoalConfetti';
 import {
+  GOAL_CONFETTI_PIECE_COUNT,
+  GOAL_CONFETTI_SPARSE_PIECE_COUNT,
+} from './goal-confetti';
+import {
   appendMatchVfxEmitter,
   prepareMatchVfxEmitter,
   type MatchVfxKind,
@@ -1055,6 +1059,11 @@ export function MatchScreen({
   // whole object rather than spreading it.
   const roleLabelWindowRef = useRef(CLOSED_ROLE_LABEL_WINDOW);
   const [speed, setSpeed] = useState<MatchSpeed>(1);
+  // 3x keeps the match information and authored power art, but drops the
+  // approved high-cost decorations. Returning to 1x or 2x restores them.
+  const threeXLite = speed === 3;
+  const threeXLiteRef = useRef(threeXLite);
+  threeXLiteRef.current = threeXLite;
   const [reducedEffects, setReducedEffects] = useState(false);
   const reducedEffectsRef = useRef(false);
   const [performanceNotice, setPerformanceNotice] = useState(false);
@@ -1077,6 +1086,8 @@ export function MatchScreen({
   const graphicsStatusRef = useRef(graphicsStatus);
   graphicsStatusRef.current = graphicsStatus;
   const suppressCosmeticEffects = reduceMotion || reducedEffects;
+  const suppressCosmeticEffectsRef = useRef(suppressCosmeticEffects);
+  suppressCosmeticEffectsRef.current = suppressCosmeticEffects;
   /** Opt-in bench cover: a manager who only wants to watch should not be
    * punished with eleven exhausted players and five unused substitutions.
    * Seeded from the saved preference, so the choice is made once, not weekly. */
@@ -1682,7 +1693,8 @@ export function MatchScreen({
      * bodies read as a handover.
      */
     const startSubstitutionWalk = (s: MatchState, e: MatchEvent) => {
-      if (suppressCosmeticEffects || e.kind !== 'SUBSTITUTION') return;
+      if (suppressCosmeticEffectsRef.current || e.kind !== 'SUBSTITUTION')
+        return;
       const incoming = s.players[e.player];
       const outgoing = playerDefById.get(e.outPlayerId);
       if (incoming === undefined || outgoing === undefined) {
@@ -1778,7 +1790,7 @@ export function MatchScreen({
     };
 
     const startJuice = (power: PowerId, player: number, now: number) => {
-      if (suppressCosmeticEffects) return;
+      if (suppressCosmeticEffectsRef.current || threeXLiteRef.current) return;
       const juice = powerJuice(power);
       const { scale: pitchScale } = layoutRef.current;
       juiceRef.current = {
@@ -1912,6 +1924,7 @@ export function MatchScreen({
             performanceResumeAtRef.current = now + 1000;
             if (decision.action === 'reduce-effects') {
               reducedEffectsRef.current = true;
+              suppressCosmeticEffectsRef.current = true;
               setReducedEffects(true);
             } else if (!performanceLimitActiveRef.current) {
               performanceLimitActiveRef.current = true;
@@ -1921,6 +1934,7 @@ export function MatchScreen({
               setPerformanceNotice(true);
               if (speedRef.current === 3) {
                 speedRef.current = 2;
+                threeXLiteRef.current = false;
                 resumeAtlasFrame(matchPlaybackRate(2));
                 setSpeed(2);
               }
@@ -2084,7 +2098,9 @@ export function MatchScreen({
         for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
           const entity = playerAt(s, i);
           const ghosts =
-            entity === undefined || suppressCosmeticEffects
+            entity === undefined ||
+            suppressCosmeticEffectsRef.current ||
+            threeXLiteRef.current
               ? 0
               : trailGhostsFor(entity);
           trailRef.current[i] =
@@ -2374,7 +2390,10 @@ export function MatchScreen({
               undefined,
               shotBurstIntensity(shotDangerAtLaunchRef.current),
             );
-          } else if (origin !== undefined && !suppressCosmeticEffects) {
+          } else if (
+            origin !== undefined &&
+            !suppressCosmeticEffectsRef.current
+          ) {
             // Ordinary shots retain the small legacy puff. A graded shot owns
             // the new burst instead, so the two treatments never stack.
             puffRef.current = {
@@ -2527,7 +2546,7 @@ export function MatchScreen({
             });
           }
           scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
-          if (!suppressCosmeticEffects) {
+          if (!suppressCosmeticEffectsRef.current) {
             setGoalConfettiBurst((burst) => burst + 1);
             goalShakeElapsed.value = 0;
             goalShakeElapsed.value = withTiming(GOAL_SHAKE_MS, {
@@ -2971,9 +2990,10 @@ export function MatchScreen({
           });
         }
       }
-      // Every frame, not every tick: the beat sheet runs on wall clock so its
-      // brief camera and tint effects stay smooth at every selected match speed.
-      advanceJuice(now);
+      // At 1x and 2x the beat sheet runs every frame on wall clock. Entering 3x
+      // clears an in-flight beat once, then prevents new camera and tint juice.
+      if (threeXLiteRef.current && juiceRef.current !== null) resetJuice();
+      else advanceJuice(now);
       if (
         advanced &&
         firstMatchTutorial &&
@@ -3192,7 +3212,6 @@ export function MatchScreen({
     publishAtlasFrame,
     reduceMotion,
     resumeAtlasFrame,
-    suppressCosmeticEffects,
     away,
   ]);
 
@@ -3747,13 +3766,20 @@ export function MatchScreen({
         reduceMotion,
       }),
     ),
-    ...trailRef.current.flatMap((points, entity) => {
-      const player = match.players[entity] ?? match.decoyClones[entity - 22];
-      const ghosts = player == null ? 0 : trailGhostsFor(player);
-      return ghosts === 0 || points.length < 2
-        ? []
-        : superSpeedAfterimageActors(entity, points.map(screenPoint), ghosts);
-    }),
+    ...(threeXLite
+      ? []
+      : trailRef.current.flatMap((points, entity) => {
+          const player =
+            match.players[entity] ?? match.decoyClones[entity - 22];
+          const ghosts = player == null ? 0 : trailGhostsFor(player);
+          return ghosts === 0 || points.length < 2
+            ? []
+            : superSpeedAfterimageActors(
+                entity,
+                points.map(screenPoint),
+                ghosts,
+              );
+        })),
   ];
   const powerActorSprites: SkRect[] = powerEffectActors.map((actor) =>
     spriteRects(playerSpriteKeys[actor.player]),
@@ -4059,6 +4085,7 @@ export function MatchScreen({
     const allowed =
       next <= effectiveMaximumSpeed ? next : effectiveMaximumSpeed;
     speedRef.current = allowed;
+    threeXLiteRef.current = allowed === 3;
     resetFramePacingMonitor(performanceMonitorRef.current);
     performanceBadWindowsRef.current = 0;
     performanceResumeAtRef.current = performance.now() + 1000;
@@ -4458,26 +4485,30 @@ export function MatchScreen({
                       opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
                     />
                   ))}
-                  {trailRef.current.flatMap((points, entity) => {
-                    const player =
-                      match.players[entity] ?? match.decoyClones[entity - 22];
-                    const ghosts = player == null ? 0 : trailGhostsFor(player);
-                    if (ghosts === 0) return [];
-                    // Skip index 0 exactly as the atlas actors do, or these
-                    // circles sit one frame ahead of the sprites they trail.
-                    return points
-                      .slice(1, 1 + ghosts)
-                      .map((t, i) => (
-                        <Circle
-                          key={`${entity}:${i}`}
-                          cx={t.x * scale}
-                          cy={t.y * scale}
-                          r={Math.max(1.5, 7 - i)}
-                          color="#ffffff"
-                          opacity={0.55 * (1 - i / ghosts)}
-                        />
-                      ));
-                  })}
+                  {threeXLite
+                    ? null
+                    : trailRef.current.flatMap((points, entity) => {
+                        const player =
+                          match.players[entity] ??
+                          match.decoyClones[entity - 22];
+                        const ghosts =
+                          player == null ? 0 : trailGhostsFor(player);
+                        if (ghosts === 0) return [];
+                        // Skip index 0 exactly as the atlas actors do, or these
+                        // circles sit one frame ahead of the sprites they trail.
+                        return points
+                          .slice(1, 1 + ghosts)
+                          .map((t, i) => (
+                            <Circle
+                              key={`${entity}:${i}`}
+                              cx={t.x * scale}
+                              cy={t.y * scale}
+                              r={Math.max(1.5, 7 - i)}
+                              color="#ffffff"
+                              opacity={0.55 * (1 - i / ghosts)}
+                            />
+                          ));
+                      })}
                   {/* Fading arc history behind driven shots and every lifted kick.
                     A graded shot lengthens and recolours these same circles —
                     no extra draw call, and the trail starts meaning something. */}
@@ -4626,6 +4657,7 @@ export function MatchScreen({
                     devicePixelRatio={devicePixelRatio}
                     reduceMotion={reduceMotion}
                     reducedEffects={reducedEffects}
+                    hideDebris={threeXLite}
                   />
                   <WorkletSlideTackleEffects
                     layer="grass"
@@ -4637,6 +4669,7 @@ export function MatchScreen({
                     devicePixelRatio={devicePixelRatio}
                     reduceMotion={reduceMotion}
                     reducedEffects={reducedEffects}
+                    hideDebris={threeXLite}
                   />
                   <ProceduralMatchEffects
                     emitters={matchVfxRef.current}
@@ -4645,7 +4678,7 @@ export function MatchScreen({
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
                     reduceMotion={reduceMotion}
-                    reducedEffects={reducedEffects}
+                    reducedEffects={reducedEffects || threeXLite}
                   />
                   {presentedPowerEffects.map((effect) => (
                     <PowerEffectScene
@@ -4809,7 +4842,7 @@ export function MatchScreen({
                     // the entire end-of-match hold.
                     paused={paused && match.phase !== 'fulltime'}
                     reduceMotion={reduceMotion}
-                    reducedEffects={reducedEffects}
+                    reducedEffects={reducedEffects || threeXLite}
                   />
                 ))}
               </View>
@@ -5373,6 +5406,11 @@ export function MatchScreen({
           burstId={goalConfettiBurst}
           width={width}
           height={height}
+          pieceCount={
+            threeXLite
+              ? GOAL_CONFETTI_SPARSE_PIECE_COUNT
+              : GOAL_CONFETTI_PIECE_COUNT
+          }
         />
       )}
     </Animated.View>
