@@ -514,7 +514,9 @@ export function scheduleAssistantInboxWeek(
     ),
     ...pendingOneShotProductAlerts(state),
     ...(deliveredFlags.size === 0 ? [] : previouslyPendingOneShots),
-  ]);
+  ]).filter(
+    (alert) => !isAssistantInboxProductDismissedForCurrentWeek(state, alert.id),
+  );
   const remainingNewSlots = Math.max(
     0,
     MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK - deliveredFlags.size,

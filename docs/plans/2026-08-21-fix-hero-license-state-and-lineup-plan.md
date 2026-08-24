@@ -4,6 +4,12 @@
 **Scope:** D3, D2, D1 Hero License failures from the full-career playtest
 **Status:** implemented and verified in this change
 
+> Historical implementation record. The 2026-08-24 six-findings master spec
+> supersedes only the old rule that a relicensed former starter must stay
+> benched. Manual license changes and later awakenings now preserve the existing
+> `returnLineupSlot`, and relicensing restores that exact legal slot. Negotiated
+> contract-license reclaims remain the explicit signed exchange described here.
+
 ## Problem
 
 The career can own a valid permit, yet refuse to license or field the chosen
@@ -73,7 +79,7 @@ Edit `src/application/store.ts` and `App.tsx`.
   forces the newly licensed bench hero into that slot.
 - Delete the match-day confirmation that promises `License and swap`.
 - Keep the existing full-cap refusal: `Unlicense one hero before assigning this
-  permit.`
+permit.`
 - Keep the existing safe repair when a licensed starter loses their permit.
   This prevents an invalid XI and preserves old-save recovery.
 
@@ -104,9 +110,9 @@ Edit `src/ui/market-models.ts`, `src/application/market-view-model.ts`,
 
 - Add one localized consequence line to each reclaim option.
 - For a starting holder: `{holder} leaves the Starting XI. {incoming} takes
-  that exact slot.`
+that exact slot.`
 - For a bench holder: `{holder} gives up the permit. {incoming} enters the
-  Starting XI through the contract promise.`
+Starting XI through the contract promise.`
 - Show the consequence only for the selected option.
 - Replace the generic warning that can name or imply the wrong player.
 

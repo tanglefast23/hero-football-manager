@@ -222,3 +222,75 @@ export function trainingModifierLabel(
       return modifier.label;
   }
 }
+
+export interface PlayerDisplayLabelSource {
+  readonly id: string;
+  readonly name: string;
+  readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly shirtNumber?: number;
+}
+
+/** Clear display text for a visible player set; player IDs remain the identity. */
+export function playerDisplayLabels(
+  players: readonly PlayerDisplayLabelSource[],
+): ReadonlyMap<string, string> {
+  const duplicateNames = counts(players.map((player) => player.name));
+  const roleLabels = players.map((player) => ({
+    player,
+    label:
+      duplicateNames.get(player.name) === 1
+        ? player.name
+        : `${player.name} (${player.role})`,
+  }));
+  const duplicateRoles = counts(roleLabels.map(({ label }) => label));
+  const shirtLabels = roleLabels.map(({ player, label }) => ({
+    player,
+    label:
+      duplicateRoles.get(label) === 1 || player.shirtNumber === undefined
+        ? label
+        : `${player.name} (${player.role} #${player.shirtNumber})`,
+  }));
+  const duplicateShirts = counts(shirtLabels.map(({ label }) => label));
+
+  return new Map(
+    shirtLabels.map(({ player, label }) => {
+      const collisions = shirtLabels
+        .filter(
+          (candidate) =>
+            candidate.label === label && duplicateShirts.get(label)! > 1,
+        )
+        .map((candidate) => candidate.player.id);
+      return [
+        player.id,
+        collisions.length === 0
+          ? label
+          : `${label} · ${shortestUniquePrefix(player.id, collisions)}`,
+      ] as const;
+    }),
+  );
+}
+
+function counts(values: readonly string[]): ReadonlyMap<string, number> {
+  const result = new Map<string, number>();
+  for (const value of values) result.set(value, (result.get(value) ?? 0) + 1);
+  return result;
+}
+
+function shortestUniquePrefix(
+  value: string,
+  values: readonly string[],
+): string {
+  const limit = Math.max(...values.map((candidate) => candidate.length));
+  for (let length = Math.min(4, value.length); length <= limit; length += 1) {
+    const prefix = value.slice(0, length);
+    if (
+      values.every(
+        (candidate) =>
+          candidate === value || candidate.slice(0, length) !== prefix,
+      )
+    ) {
+      return prefix;
+    }
+  }
+  return value;
+}

@@ -1,10 +1,17 @@
 ---
 date: 2026-08-22
 topic: automatic-lineup-selection
-status: reviewed
+status: superseded-in-part
 ---
 
 # Automatic Lineup Selection
+
+> Superseded on 2026-08-24 by
+> `2026-08-24-six-career-findings-master-spec.md` where these rules conflict.
+> Formation selection now preserves every legal current starter while their
+> natural-role slot still exists. It rebuilds only surplus or empty slots. The
+> natural-role, conditioned-rating, promise, goalkeeper, and deterministic
+> tie-break rules below remain active.
 
 ## Problem
 

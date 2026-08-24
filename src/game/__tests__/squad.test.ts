@@ -229,6 +229,45 @@ describe('away players', () => {
 });
 
 describe('career squad integration', () => {
+  it('keeps an injured hero return claim until the player is fit and relicensed', () => {
+    const initial = career();
+    const heroId = `${CLUB_IDS[0]}-p10`;
+    const replacementHeroId = `${CLUB_IDS[0]}-p11`;
+    const slot = initial.lineups[0].playerIds.indexOf(heroId);
+    const injured = repairCareerLineupForInjuries({
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === heroId ? { ...player, injuryWeeks: 2 } : player,
+      ),
+    });
+    const unlicensed = selectCareerLicensedHeroes(injured, [
+      `${CLUB_IDS[0]}-p9`,
+      replacementHeroId,
+    ]);
+    const recovered = repairCareerLineupForInjuries({
+      ...unlicensed,
+      players: unlicensed.players.map((player) =>
+        player.id === heroId ? { ...player, injuryWeeks: 0 } : player,
+      ),
+    });
+
+    expect(recovered.lineups[0].playerIds).not.toContain(heroId);
+    expect(
+      recovered.players.find((player) => player.id === heroId)
+        ?.returnLineupSlot,
+    ).toBe(slot);
+
+    const relicensed = selectCareerLicensedHeroes(recovered, [
+      `${CLUB_IDS[0]}-p9`,
+      heroId,
+    ]);
+    expect(relicensed.lineups[0].playerIds[slot]).toBe(heroId);
+    expect(
+      relicensed.players.find((player) => player.id === heroId)
+        ?.returnLineupSlot,
+    ).toBeUndefined();
+  });
+
   it('turns the persistent lineup into a valid sim team and supports hero-slot competition', () => {
     const initial = career();
     expect(
@@ -416,6 +455,28 @@ describe('career squad integration', () => {
     expect(
       ids.filter((id) => initial.lineups[0].playerIds.includes(id)),
     ).toHaveLength(10);
+  });
+
+  it('clears a return claim when its slot changes role in a new formation', () => {
+    const initial = career();
+    const playerId = initial.lineups[0].playerIds[8];
+    const claimed: GameState = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === playerId
+          ? { ...player, awayWeeks: 2, returnLineupSlot: 8 }
+          : player,
+      ),
+    };
+
+    expect(formationRoleForSlot('4-4-2', 8)).toBe('MID');
+    expect(formationRoleForSlot('4-3-3', 8)).toBe('FWD');
+    const arranged = arrangeCareerLineupForFormation(claimed, '4-3-3');
+
+    expect(
+      arranged.players.find((player) => player.id === playerId)
+        ?.returnLineupSlot,
+    ).toBeUndefined();
   });
 
   it('trades formation slots when both players already start, never the keeper', () => {

@@ -20,6 +20,7 @@ import {
   archetypeName,
   coachSpecialtyName,
   personalityName,
+  playerDisplayLabels,
   scoutRegionName,
 } from '../name-copy';
 import { clubLegacyViewModel, squadTrainingViewModel } from '../view-models';
@@ -44,6 +45,28 @@ import { clubLegacyViewModel, squadTrainingViewModel } from '../view-models';
 const content = loadLaunchContent();
 const de = copyFor('de');
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+
+describe('player display labels', () => {
+  it('keeps unique names plain and disambiguates duplicate players by facts', () => {
+    const labels = playerDisplayLabels([
+      { id: 'unique', name: 'Ada Vale', role: 'GK' },
+      { id: 'role-a', name: 'Cal Moss', role: 'FWD' },
+      { id: 'role-b', name: 'Cal Moss', role: 'MID' },
+      { id: 'shirt-a', name: 'Jo Lane', role: 'DEF', shirtNumber: 4 },
+      { id: 'shirt-b', name: 'Jo Lane', role: 'DEF', shirtNumber: 5 },
+      { id: 'abcd-1', name: 'Ty Brooks', role: 'MID' },
+      { id: 'abce-2', name: 'Ty Brooks', role: 'MID' },
+    ]);
+
+    expect(labels.get('unique')).toBe('Ada Vale');
+    expect(labels.get('role-a')).toBe('Cal Moss (FWD)');
+    expect(labels.get('role-b')).toBe('Cal Moss (MID)');
+    expect(labels.get('shirt-a')).toBe('Jo Lane (DEF #4)');
+    expect(labels.get('shirt-b')).toBe('Jo Lane (DEF #5)');
+    expect(labels.get('abcd-1')).toBe('Ty Brooks (MID) · abcd');
+    expect(labels.get('abce-2')).toBe('Ty Brooks (MID) · abce');
+  });
+});
 
 /**
  * The unions, spelled out as exhaustive records so that adding a member to any

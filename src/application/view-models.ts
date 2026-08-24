@@ -18,6 +18,7 @@ import {
   archetypeName,
   coachSpecialtyName,
   personalityName,
+  playerDisplayLabels,
   trainingModifierLabel,
 } from './name-copy';
 import { managerNotes } from './manager-notes';
@@ -2197,6 +2198,41 @@ export function storyEventViewModel(
   };
 }
 
+type SeasonStoryKey =
+  | 'seasonEnd.unbeatenDouble'
+  | 'seasonEnd.double'
+  | 'seasonEnd.perfectLeagueSeason'
+  | 'seasonEnd.unbeatenLeagueTitle'
+  | 'seasonEnd.leagueTitle'
+  | 'seasonEnd.cupWinners'
+  | 'seasonEnd.headlinePromoted';
+
+function seasonStoryKey(
+  recap: NonNullable<ReturnType<typeof latestSeasonRecap>>,
+): SeasonStoryKey | undefined {
+  const leagueTitle = recap.finalPosition === 1;
+  const cupWinners =
+    recap.cupResultKey === 'recap.cupWinners' ||
+    (recap.cupResultKey === undefined && recap.cupResult === 'Winners');
+  const unbeaten = recap.played > 0 && recap.lost === 0;
+  const perfect =
+    leagueTitle &&
+    recap.played > 0 &&
+    recap.won === recap.played &&
+    recap.drawn === 0 &&
+    recap.lost === 0;
+
+  if (leagueTitle && cupWinners && unbeaten) return 'seasonEnd.unbeatenDouble';
+  if (leagueTitle && cupWinners) return 'seasonEnd.double';
+  if (perfect) return 'seasonEnd.perfectLeagueSeason';
+  if (leagueTitle && unbeaten) return 'seasonEnd.unbeatenLeagueTitle';
+  if (leagueTitle) return 'seasonEnd.leagueTitle';
+  if (cupWinners) return 'seasonEnd.cupWinners';
+  if (recap.division > 1 && recap.finalPosition <= 2)
+    return 'seasonEnd.headlinePromoted';
+  return undefined;
+}
+
 export function seasonEndViewModel(
   state: GameState,
   content: LaunchContent,
@@ -2326,21 +2362,18 @@ export function seasonEndViewModel(
       : content.events.events.find(
           (event) => event.id === recap.memorableEventId,
         );
+  const rankedStoryKey =
+    recap === undefined ? undefined : seasonStoryKey(recap);
   const memorableEventTitle =
-    memorableEvent === undefined
-      ? recap !== undefined &&
-        recap.won > 0 &&
-        recap.drawn === 0 &&
-        recap.lost === 0
-        ? t('seasonEnd.perfectLeagueSeason')
-        : recap?.finalPosition === 1
-          ? t('seasonEnd.leagueTitle')
-          : undefined
-      : copyOrEnglish(
-          t,
-          `event.${memorableEvent.id}.title`,
-          memorableEvent.title,
-        );
+    rankedStoryKey !== undefined
+      ? t(rankedStoryKey)
+      : memorableEvent === undefined
+        ? undefined
+        : copyOrEnglish(
+            t,
+            `event.${memorableEvent.id}.title`,
+            memorableEvent.title,
+          );
   const objectiveResults = state.clubBusiness.sponsorship.activeContracts
     .filter(
       (contract) =>
@@ -2691,6 +2724,7 @@ export function homeProductAlerts(
   const transferRequests = roster.filter(
     (player) => player.transferRequested === true,
   );
+  const transferRequestLabels = playerDisplayLabels(transferRequests);
   const negativeCashWeeks =
     state.financialSafety?.consecutiveNegativeWeeks ?? 0;
   const emergencyLoanUsed = state.financialSafety?.emergencyLoanUsed === true;
@@ -3143,7 +3177,9 @@ export function homeProductAlerts(
     })),
     ...transferRequests.map((player) => ({
       id: `transfer-request-${player.id}`,
-      title: t('clubHome.wantsToLeaveTitle', { player: player.name }),
+      title: t('clubHome.wantsToLeaveTitle', {
+        player: transferRequestLabels.get(player.id) ?? player.name,
+      }),
       detail: t('clubHome.wantsToLeaveDetail'),
       tone: 'urgent' as const,
     })),
@@ -4153,6 +4189,7 @@ export function matchDayViewModel(
   );
   if (lineup === undefined) throw new Error('the user club has no lineup');
   const roster = rosterForClub(state, state.userClubId);
+  const playerLabels = playerDisplayLabels(roster);
   const playerById = new Map(roster.map((player) => [player.id, player]));
   const powerNames = new Map(
     content.powers.powers.map((power) => [
@@ -4195,7 +4232,7 @@ export function matchDayViewModel(
     lineup: lineupPlayers.map((player, index) => {
       return {
         id: player.id,
-        name: player.name,
+        name: playerLabels.get(player.id) ?? player.name,
         role: player.role,
         formationRole: formationRoleForSlot(formation, index),
         lookId: player.lookId,
@@ -4221,7 +4258,7 @@ export function matchDayViewModel(
         const unlicensedHero = player.power !== undefined && !player.licensed;
         return {
           id: player.id,
-          name: player.name,
+          name: playerLabels.get(player.id) ?? player.name,
           role: player.role,
           lookId: player.lookId,
           shirtNumber:
@@ -4260,7 +4297,7 @@ export function matchDayViewModel(
       .filter((player) => player.power !== undefined)
       .map((player) => ({
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerLabels.get(player.id) ?? player.name,
         powerName: powerNames.get(player.power!) ?? player.power!,
         licensed: player.licensed,
       })),
@@ -4333,6 +4370,7 @@ export function squadTrainingViewModel(
           createdPlayer,
           ...roster.filter((player) => player.id !== createdPlayerId),
         ];
+  const playerLabels = playerDisplayLabels(roster);
   const playerById = new Map(roster.map((player) => [player.id, player]));
   const injuryRiskReductionPercent =
     state.facilities.grid === undefined
@@ -4400,7 +4438,7 @@ export function squadTrainingViewModel(
         .join(', ');
       return {
         id: player.id,
-        name: player.name,
+        name: playerLabels.get(player.id) ?? player.name,
         role: player.role,
         lookId: player.lookId,
         overall: overall(player.role, player.attrs),

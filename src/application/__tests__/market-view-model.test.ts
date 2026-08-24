@@ -441,10 +441,10 @@ describe('marketViewModel', () => {
       negotiationId: 'talks-55',
       playerId: 'target-1',
       personality: 'PROFESSIONAL',
-      weeklyAsk: 1000,
+      weeklyAsk: 10_000,
     });
     const countered = submitContractOffer(initial, {
-      weeklyWage: 700,
+      weeklyWage: 7_000,
       termSeasons: 1,
       perk: 'JERSEY_10',
     });
@@ -453,7 +453,7 @@ describe('marketViewModel', () => {
       negotiation: {
         state: countered,
         playerName: 'Milo Vale',
-        openingWeeklyWage: 600,
+        openingWeeklyWage: 6_000,
       },
     });
 
@@ -461,8 +461,8 @@ describe('marketViewModel', () => {
       playerName: 'Milo Vale',
       moodLabel: 'Unhappy',
       roundLabel: 'Round 2 of 3',
-      initialWeeklyWage: 700,
-      wageStep: 50,
+      initialWeeklyWage: 7_000,
+      wageStep: 500,
       status: 'OPEN',
     });
     expect(viewModel.negotiation?.cards).toHaveLength(3);

@@ -9,6 +9,7 @@ import {
   type SetStateAction,
 } from 'react';
 import {
+  AccessibilityInfo,
   ScrollView,
   Text,
   View,
@@ -143,11 +144,17 @@ export function MarketScreen({
       ? lockedSection
       : initialSection(viewModel),
   );
+  const [focusedScoutedPlayerId, setFocusedScoutedPlayerId] =
+    useState<string>();
+  const [focusedListingToken, setFocusedListingToken] = useState(0);
   const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] =
     useState<AssistantGuideFocus>();
   const visibleGuideFocus =
     scrollDismissedGuideFocus === guideFocus ? undefined : guideFocus;
   const marketViewportRef = useRef<View>(null);
+  const marketScrollRef = useRef<ScrollView>(null);
+  const focusedListingRef = useRef<View>(null);
+  const focusedScrollDoneRef = useRef<string | undefined>(undefined);
   const southAmericaScoutActionRef = useRef<View>(null);
   const latestScrollOffsetRef = useRef(0);
   const scoutDragStartOffsetRef = useRef(0);
@@ -170,6 +177,60 @@ export function MarketScreen({
   const dismissScrollGuide = (focus: AssistantGuideFocus) => {
     setScrollDismissedGuideFocus(focus);
     onDismissGuideFocus?.();
+  };
+
+  const handleSignPlayer = (playerId: string) => {
+    const listing = viewModel.transfers.find(
+      (candidate) =>
+        candidate.direction === 'BUY' && candidate.playerId === playerId,
+    );
+    if (listing === undefined) {
+      void AccessibilityInfo.announceForAccessibility(
+        t('market.scoutedPlayerUnavailable'),
+      );
+      return;
+    }
+    focusedScrollDoneRef.current = undefined;
+    setFocusedScoutedPlayerId(playerId);
+    setFocusedListingToken((token) => token + 1);
+    setSection('TRANSFERS');
+  };
+
+  const handleFocusedListingLayout = () => {
+    const playerId = focusedScoutedPlayerId;
+    const target = focusedListingRef.current;
+    const viewport = marketViewportRef.current;
+    if (
+      playerId === undefined ||
+      focusedScrollDoneRef.current === playerId ||
+      target === null ||
+      viewport === null
+    ) {
+      return;
+    }
+    focusedScrollDoneRef.current = playerId;
+    target.measureInWindow((_targetX, targetY) => {
+      viewport.measureInWindow((_viewportX, viewportY) => {
+        marketScrollRef.current?.scrollTo({
+          y: Math.max(
+            0,
+            latestScrollOffsetRef.current + targetY - viewportY - 16,
+          ),
+          animated: !reduceMotion,
+        });
+        const listing = viewModel.transfers.find(
+          (candidate) => candidate.playerId === playerId,
+        );
+        if (listing !== undefined) {
+          void AccessibilityInfo.announceForAccessibility(
+            t('market.a11y.actionForPlayer', {
+              action: listing.actionLabel,
+              player: listing.playerName,
+            }),
+          );
+        }
+      });
+    });
   };
 
   const handleScrollBeginDrag = (
@@ -232,6 +293,17 @@ export function MarketScreen({
     if (!viewModel.sections.includes(section))
       setSection(initialSection(viewModel));
   }, [section, viewModel]);
+
+  useEffect(() => {
+    if (
+      focusedScoutedPlayerId !== undefined &&
+      !viewModel.transfers.some(
+        (listing) => listing.playerId === focusedScoutedPlayerId,
+      )
+    ) {
+      setFocusedScoutedPlayerId(undefined);
+    }
+  }, [focusedScoutedPlayerId, viewModel.transfers]);
 
   useEffect(() => {
     if (guideFocus === 'scout-mission') {
@@ -368,6 +440,9 @@ export function MarketScreen({
             onBlockedSectionChange?.();
             return;
           }
+          if (nextSection !== 'TRANSFERS') {
+            setFocusedScoutedPlayerId(undefined);
+          }
           setSection(nextSection);
         }}
         flashTabId={
@@ -404,6 +479,7 @@ export function MarketScreen({
       onOpenScoutReport={onOpenScoutReport}
       onDismissScoutReport={onDismissScoutReport}
       onBuyDetailedScoutReport={onBuyDetailedScoutReport}
+      onSignPlayer={handleSignPlayer}
       southAmericaScoutActionRef={southAmericaScoutActionRef}
       guideFocus={visibleGuideFocus}
     />
@@ -411,8 +487,18 @@ export function MarketScreen({
   const transferDesk = transferSectionVisible ? (
     <TransferDesk
       viewModel={viewModel}
-      onTransferAction={onTransferAction}
+      onTransferAction={(playerId, direction, bidId) => {
+        if (playerId === focusedScoutedPlayerId) {
+          setFocusedScoutedPlayerId(undefined);
+        }
+        onTransferAction(playerId, direction, bidId);
+      }}
       guideFocus={visibleGuideFocus}
+      focusedPlayerId={focusedScoutedPlayerId}
+      focusedListingRef={focusedListingRef}
+      focusedListingToken={focusedListingToken}
+      onFocusedListingLayout={handleFocusedListingLayout}
+      reduceMotion={reduceMotion}
     />
   ) : null;
   const coachDesk = coachSectionVisible ? (
@@ -486,6 +572,7 @@ export function MarketScreen({
   return (
     <View ref={marketViewportRef} collapsable={false} className="flex-1">
       <ScrollView
+        ref={marketScrollRef}
         className="flex-1"
         contentContainerStyle={[
           { padding: 16, paddingBottom: 28 },
@@ -757,6 +844,7 @@ function ScoutingDesk({
   onOpenScoutReport,
   onDismissScoutReport,
   onBuyDetailedScoutReport,
+  onSignPlayer,
   southAmericaScoutActionRef,
   guideFocus,
 }: Pick<
@@ -768,6 +856,7 @@ function ScoutingDesk({
   | 'onBuyDetailedScoutReport'
   | 'guideFocus'
 > & {
+  onSignPlayer: (playerId: string) => void;
   southAmericaScoutActionRef: RefObject<View | null>;
 }) {
   const t = useCopy();
@@ -854,97 +943,101 @@ function ScoutingDesk({
             {t('market.scoutingReports')}
           </Text>
           {viewModel.scouting.reports.map((report) => (
-            <Pressable
+            <View
               key={report.playerId}
-              accessibilityRole="button"
-              accessibilityLabel={t('market.a11y.fullScoutingReportFor', {
-                player: report.playerName,
-              })}
-              onPress={() => onOpenScoutReport(report.playerId)}
-              className="relative border-2 border-b-4 border-ink bg-white p-3"
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.78 : 1,
-              })}
+              className="relative border-2 border-b-4 border-ink bg-white"
             >
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                  {/* A scouted player is not signed yet. Stock strip. */}
-                  <PixelPortrait
-                    playerId={report.playerId}
-                    role={report.role}
-                    lookId={report.lookId}
-                    stockKit
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text
-                    className="text-lg font-bold text-ink"
-                    numberOfLines={1}
-                  >
-                    {report.playerName}
-                  </Text>
-                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                    {report.role} · {report.ageLabel}
-                  </Text>
-                  <Text
-                    className="mt-1 font-pixel text-sm uppercase text-gold-dark"
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                  >
-                    {t('market.potentialValue', {
-                      grade: report.potentialLabel,
-                    })}
-                  </Text>
-                </View>
-              </View>
-              {report.powerLabel ? (
-                <View className="mt-3 flex-row items-center gap-1.5 border-2 border-gold-dark bg-gold-light px-3 py-2">
-                  {/* Glyph-only node: ★ is not in Silkscreen, so it stands alone
-                      and falls back to the system face on purpose — typed inside
-                      the pixel-font string it flipped the face mid-word. */}
-                  <Text className="text-sm text-ink">★</Text>
-                  <Text className="font-pixel text-sm uppercase text-ink">
-                    {t('market.confirmedPower', { power: report.powerLabel })}
-                  </Text>
-                </View>
-              ) : null}
-              {report.rumorLabel ? (
-                <View className="mt-3 flex-row items-center gap-1.5 border-2 border-gold-dark bg-gold-light px-3 py-2">
-                  <Text className="text-sm text-ink">★</Text>
-                  <Text className="font-pixel text-sm uppercase text-ink">
-                    {report.rumorLabel}
-                  </Text>
-                </View>
-              ) : null}
-              <View className="mt-3 flex-row flex-wrap gap-1.5">
-                {report.stats.map((stat) => (
-                  <View
-                    key={stat.label}
-                    className="min-w-[30%] flex-1 border border-ink/25 bg-paper px-2 py-1.5"
-                  >
-                    <PixelText className="text-sm uppercase text-ink/50">
-                      {stat.label}
-                    </PixelText>
-                    <Text className="mt-0.5 font-mono text-base text-ink">
-                      {stat.rangeLabel}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('market.a11y.fullScoutingReportFor', {
+                  player: report.playerName,
+                })}
+                onPress={() => onOpenScoutReport(report.playerId)}
+                className="p-3"
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.78 : 1,
+                })}
+              >
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="overflow-hidden border-2 border-ink bg-blue-light">
+                    {/* A scouted player is not signed yet. Stock strip. */}
+                    <PixelPortrait
+                      playerId={report.playerId}
+                      role={report.role}
+                      lookId={report.lookId}
+                      stockKit
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-lg font-bold text-ink"
+                      numberOfLines={1}
+                    >
+                      {report.playerName}
+                    </Text>
+                    <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
+                      {report.role} · {report.ageLabel}
+                    </Text>
+                    <Text
+                      className="mt-1 font-pixel text-sm uppercase text-gold-dark"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.7}
+                    >
+                      {t('market.potentialValue', {
+                        grade: report.potentialLabel,
+                      })}
                     </Text>
                   </View>
-                ))}
-              </View>
-              {report.aboveHundredNote ? (
-                // Body face, not the pixel face: this is a sentence explaining
-                // a number, and it has to stay readable in every locale.
-                <Text className="mt-2 text-xs leading-4 text-ink/70">
-                  {report.aboveHundredNote}
-                </Text>
-              ) : null}
-              {report.exactValues ? null : (
-                <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">
-                  {t('market.fullReportRangesShown')}
-                </Text>
-              )}
-              <View className="mt-3 flex-row flex-wrap justify-end gap-2">
+                </View>
+                {report.powerLabel ? (
+                  <View className="mt-3 flex-row items-center gap-1.5 border-2 border-gold-dark bg-gold-light px-3 py-2">
+                    {/* Glyph-only node: ★ is not in Silkscreen, so it stands alone
+                        and falls back to the system face on purpose — typed inside
+                        the pixel-font string it flipped the face mid-word. */}
+                    <Text className="text-sm text-ink">★</Text>
+                    <Text className="font-pixel text-sm uppercase text-ink">
+                      {t('market.confirmedPower', { power: report.powerLabel })}
+                    </Text>
+                  </View>
+                ) : null}
+                {report.rumorLabel ? (
+                  <View className="mt-3 flex-row items-center gap-1.5 border-2 border-gold-dark bg-gold-light px-3 py-2">
+                    <Text className="text-sm text-ink">★</Text>
+                    <Text className="font-pixel text-sm uppercase text-ink">
+                      {report.rumorLabel}
+                    </Text>
+                  </View>
+                ) : null}
+                <View className="mt-3 flex-row flex-wrap gap-1.5">
+                  {report.stats.map((stat) => (
+                    <View
+                      key={stat.label}
+                      className="min-w-[30%] flex-1 border border-ink/25 bg-paper px-2 py-1.5"
+                    >
+                      <PixelText className="text-sm uppercase text-ink/50">
+                        {stat.label}
+                      </PixelText>
+                      <Text className="mt-0.5 font-mono text-base text-ink">
+                        {stat.rangeLabel}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                {report.aboveHundredNote ? (
+                  // Body face, not the pixel face: this is a sentence explaining
+                  // a number, and it has to stay readable in every locale.
+                  <Text className="mt-2 text-xs leading-4 text-ink/70">
+                    {report.aboveHundredNote}
+                  </Text>
+                ) : null}
+                {report.exactValues ? null : (
+                  <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">
+                    {t('market.fullReportRangesShown')}
+                  </Text>
+                )}
+              </Pressable>
+              <View className="flex-row flex-wrap justify-end gap-2 px-3 pb-3">
                 {report.exactValues ? null : (
                   <SmallAction
                     label={report.detailedReportLabel}
@@ -956,6 +1049,16 @@ function ScoutingDesk({
                   />
                 )}
                 <SmallAction
+                  label={t('market.signThePlayer')}
+                  accessibilityLabel={t('market.a11y.signPlayerFromReport', {
+                    player: report.playerName,
+                  })}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    onSignPlayer(report.playerId);
+                  }}
+                />
+                <SmallAction
                   label={t('market.dismissReport')}
                   disabled={!report.dismissAvailable}
                   onPress={(event) => {
@@ -965,11 +1068,11 @@ function ScoutingDesk({
                 />
               </View>
               {report.detailedReportBlockedReason ? (
-                <Text className="mt-2 text-right text-sm font-bold text-stamp">
+                <Text className="px-3 pb-3 text-right text-sm font-bold text-stamp">
                   {report.detailedReportBlockedReason}
                 </Text>
               ) : null}
-            </Pressable>
+            </View>
           ))}
         </View>
       ) : null}
@@ -1132,7 +1235,18 @@ function TransferDesk({
   viewModel,
   onTransferAction,
   guideFocus,
-}: Pick<MarketScreenProps, 'viewModel' | 'onTransferAction' | 'guideFocus'>) {
+  focusedPlayerId,
+  focusedListingRef,
+  focusedListingToken,
+  onFocusedListingLayout,
+  reduceMotion,
+}: Pick<MarketScreenProps, 'viewModel' | 'onTransferAction' | 'guideFocus'> & {
+  focusedPlayerId?: string;
+  focusedListingRef: RefObject<View | null>;
+  focusedListingToken: number;
+  onFocusedListingLayout: () => void;
+  reduceMotion: boolean;
+}) {
   const t = useCopy();
   const guidedListing =
     guideFocus === 'transfer-list'
@@ -1164,176 +1278,197 @@ function TransferDesk({
         />
       ) : (
         <View className="gap-3">
-          {viewModel.transfers.map((listing) => (
-            <View
-              key={`${listing.direction}-${listing.playerId}`}
-              className="border-2 border-b-4 border-ink bg-white"
-            >
+          {viewModel.transfers.map((listing) => {
+            const focused =
+              listing.direction === 'BUY' &&
+              listing.playerId === focusedPlayerId;
+            return (
               <View
+                key={`${listing.direction}-${listing.playerId}`}
+                ref={focused ? focusedListingRef : undefined}
+                onLayout={focused ? onFocusedListingLayout : undefined}
                 className={
-                  listing.direction === 'BUY'
-                    ? 'flex-row items-start justify-between gap-3 border-b-2 border-blue-dark bg-blue-light px-3 py-3'
-                    : 'flex-row items-start justify-between gap-3 border-b-2 border-pitch-dark bg-pitch-light px-3 py-3'
+                  focused
+                    ? 'relative border-4 border-b-8 border-gold-dark bg-white'
+                    : 'relative border-2 border-b-4 border-ink bg-white'
                 }
               >
-                <View className="overflow-hidden border-2 border-ink bg-white">
-                  <PixelPortrait
-                    playerId={listing.playerId}
-                    role={listing.role}
-                    lookId={listing.lookId}
-                    // A sale is one of ours in our kit; a buy is not ours yet.
-                    stockKit={listing.direction === 'BUY'}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text
-                    className="text-lg font-bold text-ink"
-                    numberOfLines={1}
-                  >
-                    {listing.playerName}
-                  </Text>
-                  <Text className="mt-1 font-pixel text-sm uppercase text-ink/60">
-                    {t('market.roleAndAge', {
-                      role: listing.role,
-                      age: listing.age,
-                    })}
-                  </Text>
-                  <Text
-                    className="mt-1 font-pixel text-sm uppercase text-gold-dark"
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                  >
-                    {t('market.potentialValue', {
-                      grade: listing.potentialLabel,
-                    })}
-                  </Text>
-                </View>
-                <View className="border-2 border-ink bg-white px-2 py-1">
-                  <PixelText className="text-sm uppercase text-ink">
-                    {listing.direction === 'BUY'
-                      ? t('market.target')
-                      : listing.listed
-                        ? t('market.bidsIn')
-                        : t('market.available')}
-                  </PixelText>
-                </View>
-              </View>
-              <View className="p-3">
-                {/* No ★ prefix: the glyph is missing from Silkscreen and flipped
-                    the chip to the system face mid-string; the gold hero tone
-                    already marks the power. */}
-                {listing.powerLabel ? (
-                  <StatusChip label={listing.powerLabel} tone="hero" />
-                ) : null}
+                <GuidanceDoubleFlash
+                  trigger={focused ? focusedListingToken : undefined}
+                  reduceMotion={reduceMotion}
+                />
                 <View
                   className={
-                    listing.powerLabel
-                      ? 'mt-3 flex-row gap-2'
-                      : 'flex-row gap-2'
+                    listing.direction === 'BUY'
+                      ? 'flex-row items-start justify-between gap-3 border-b-2 border-blue-dark bg-blue-light px-3 py-3'
+                      : 'flex-row items-start justify-between gap-3 border-b-2 border-pitch-dark bg-pitch-light px-3 py-3'
                   }
                 >
-                  <Metric
-                    label={t('market.valuation')}
-                    value={formatCurrency(t, listing.valuation)}
-                  />
-                  <Metric
-                    label={listing.quoteLabel}
-                    value={formatCurrency(t, listing.quote)}
-                    tone={listing.direction === 'BUY' ? 'negative' : 'positive'}
-                  />
-                </View>
-                <View className="mt-3 flex-row items-center justify-between gap-3">
-                  <Text className="flex-1 text-sm text-ink/55">
-                    {listing.blockedReason ??
-                      (listing.direction === 'BUY'
-                        ? t('market.feeFirstPlayerTerms')
-                        : listing.listed
-                          ? t('market.reviewTheSavedBid')
-                          : t('market.listThePlayerTo'))}
-                  </Text>
-                  {listing.direction === 'BUY' || !listing.listed ? (
-                    <GuidedAction
-                      enabled={
-                        guideFocus === 'transfer-list' &&
-                        listing === guidedListing
-                      }
-                      detail={t('market.requestTheBids')}
+                  <View className="overflow-hidden border-2 border-ink bg-white">
+                    <PixelPortrait
+                      playerId={listing.playerId}
+                      role={listing.role}
+                      lookId={listing.lookId}
+                      // A sale is one of ours in our kit; a buy is not ours yet.
+                      stockKit={listing.direction === 'BUY'}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-lg font-bold text-ink"
+                      numberOfLines={1}
                     >
-                      <SmallAction
-                        label={listing.actionLabel}
-                        accessibilityLabel={t('market.a11y.actionForPlayer', {
-                          action: listing.actionLabel,
-                          player: listing.playerName,
-                        })}
-                        disabled={!listing.available}
-                        onPress={() =>
-                          onTransferAction(listing.playerId, listing.direction)
+                      {listing.playerName}
+                    </Text>
+                    <Text className="mt-1 font-pixel text-sm uppercase text-ink/60">
+                      {t('market.roleAndAge', {
+                        role: listing.role,
+                        age: listing.age,
+                      })}
+                    </Text>
+                    <Text
+                      className="mt-1 font-pixel text-sm uppercase text-gold-dark"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.7}
+                    >
+                      {t('market.potentialValue', {
+                        grade: listing.potentialLabel,
+                      })}
+                    </Text>
+                  </View>
+                  <View className="border-2 border-ink bg-white px-2 py-1">
+                    <PixelText className="text-sm uppercase text-ink">
+                      {listing.direction === 'BUY'
+                        ? t('market.target')
+                        : listing.listed
+                          ? t('market.bidsIn')
+                          : t('market.available')}
+                    </PixelText>
+                  </View>
+                </View>
+                <View className="p-3">
+                  {/* No ★ prefix: the glyph is missing from Silkscreen and flipped
+                    the chip to the system face mid-string; the gold hero tone
+                    already marks the power. */}
+                  {listing.powerLabel ? (
+                    <StatusChip label={listing.powerLabel} tone="hero" />
+                  ) : null}
+                  <View
+                    className={
+                      listing.powerLabel
+                        ? 'mt-3 flex-row gap-2'
+                        : 'flex-row gap-2'
+                    }
+                  >
+                    <Metric
+                      label={t('market.valuation')}
+                      value={formatCurrency(t, listing.valuation)}
+                    />
+                    <Metric
+                      label={listing.quoteLabel}
+                      value={formatCurrency(t, listing.quote)}
+                      tone={
+                        listing.direction === 'BUY' ? 'negative' : 'positive'
+                      }
+                    />
+                  </View>
+                  <View className="mt-3 flex-row items-center justify-between gap-3">
+                    <Text className="flex-1 text-sm text-ink/55">
+                      {listing.blockedReason ??
+                        (listing.direction === 'BUY'
+                          ? t('market.feeFirstPlayerTerms')
+                          : listing.listed
+                            ? t('market.reviewTheSavedBid')
+                            : t('market.listThePlayerTo'))}
+                    </Text>
+                    {listing.direction === 'BUY' || !listing.listed ? (
+                      <GuidedAction
+                        enabled={
+                          guideFocus === 'transfer-list' &&
+                          listing === guidedListing
                         }
-                      />
-                    </GuidedAction>
+                        detail={t('market.requestTheBids')}
+                      >
+                        <SmallAction
+                          label={listing.actionLabel}
+                          accessibilityLabel={t('market.a11y.actionForPlayer', {
+                            action: listing.actionLabel,
+                            player: listing.playerName,
+                          })}
+                          disabled={!listing.available}
+                          selected={focused}
+                          onPress={() =>
+                            onTransferAction(
+                              listing.playerId,
+                              listing.direction,
+                            )
+                          }
+                        />
+                      </GuidedAction>
+                    ) : null}
+                  </View>
+                  {listing.direction === 'SELL' && listing.listed ? (
+                    <View className="mt-3 gap-2 border-t-2 border-ink/15 pt-3">
+                      {listing.bids.length === 0 ? (
+                        <View className="items-center border-2 border-dashed border-ink/25 bg-white/50 px-3 py-4">
+                          <PixelText className="text-sm uppercase text-ink/60">
+                            {t('market.listedNoBidsYet')}
+                          </PixelText>
+                          <Text className="mt-1 text-center text-sm leading-5 text-ink/55">
+                            {t('market.rivalClubsReviewThe')}
+                          </Text>
+                        </View>
+                      ) : (
+                        listing.bids.map((bid, index) => (
+                          <View
+                            key={bid.id}
+                            className="flex-row items-center gap-3 border-2 border-ink bg-paper px-3 py-2"
+                          >
+                            <View className="flex-1">
+                              <Text className="font-bold text-ink">
+                                {index + 1}. {bid.buyerName}
+                              </Text>
+                              <Text className="mt-1 font-mono text-sm text-pitch-ink">
+                                {t('market.feeAmount', {
+                                  fee: formatCurrency(t, bid.fee),
+                                })}
+                              </Text>
+                            </View>
+                            <GuidedAction
+                              enabled={
+                                guideFocus === 'transfer-bid' &&
+                                listing === guidedListing &&
+                                index === 0
+                              }
+                              detail={t('market.reviewThisBid')}
+                            >
+                              <SmallAction
+                                label={t('market.accept')}
+                                accessibilityLabel={t('market.a11y.acceptBid', {
+                                  club: bid.buyerName,
+                                  fee: formatCurrency(t, bid.fee),
+                                  player: listing.playerName,
+                                })}
+                                disabled={!listing.available}
+                                onPress={() =>
+                                  onTransferAction(
+                                    listing.playerId,
+                                    'SELL',
+                                    bid.id,
+                                  )
+                                }
+                              />
+                            </GuidedAction>
+                          </View>
+                        ))
+                      )}
+                    </View>
                   ) : null}
                 </View>
-                {listing.direction === 'SELL' && listing.listed ? (
-                  <View className="mt-3 gap-2 border-t-2 border-ink/15 pt-3">
-                    {listing.bids.length === 0 ? (
-                      <View className="items-center border-2 border-dashed border-ink/25 bg-white/50 px-3 py-4">
-                        <PixelText className="text-sm uppercase text-ink/60">
-                          {t('market.listedNoBidsYet')}
-                        </PixelText>
-                        <Text className="mt-1 text-center text-sm leading-5 text-ink/55">
-                          {t('market.rivalClubsReviewThe')}
-                        </Text>
-                      </View>
-                    ) : (
-                      listing.bids.map((bid, index) => (
-                        <View
-                          key={bid.id}
-                          className="flex-row items-center gap-3 border-2 border-ink bg-paper px-3 py-2"
-                        >
-                          <View className="flex-1">
-                            <Text className="font-bold text-ink">
-                              {index + 1}. {bid.buyerName}
-                            </Text>
-                            <Text className="mt-1 font-mono text-sm text-pitch-ink">
-                              {t('market.feeAmount', {
-                                fee: formatCurrency(t, bid.fee),
-                              })}
-                            </Text>
-                          </View>
-                          <GuidedAction
-                            enabled={
-                              guideFocus === 'transfer-bid' &&
-                              listing === guidedListing &&
-                              index === 0
-                            }
-                            detail={t('market.reviewThisBid')}
-                          >
-                            <SmallAction
-                              label={t('market.accept')}
-                              accessibilityLabel={t('market.a11y.acceptBid', {
-                                club: bid.buyerName,
-                                fee: formatCurrency(t, bid.fee),
-                                player: listing.playerName,
-                              })}
-                              disabled={!listing.available}
-                              onPress={() =>
-                                onTransferAction(
-                                  listing.playerId,
-                                  'SELL',
-                                  bid.id,
-                                )
-                              }
-                            />
-                          </GuidedAction>
-                        </View>
-                      ))
-                    )}
-                  </View>
-                ) : null}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </View>

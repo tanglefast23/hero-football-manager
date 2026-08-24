@@ -9,6 +9,7 @@ import { powerIsCompatibleWithRole } from './power-catalog';
 import { hasActiveCareerContractPromise } from './contract-promises';
 import { isAvailableForSelection } from './lineup';
 import { leagueWeekForRound } from './schedule';
+import { tryRepairCareerLineupForInjuries } from './squad';
 
 interface PostMatchAwakeningTuning {
   /**
@@ -252,13 +253,9 @@ export function resolvePostMatchAwakening(
         }
       : candidate,
   );
-  const nextLineups = firstHero
-    ? state.lineups
-    : benchUnlicensedAwakening(state, nextPlayers, playerId);
-  const next: GameState = {
+  const awakenedState: GameState = {
     ...state,
     players: nextPlayers,
-    lineups: nextLineups,
     awakening: {
       matchesSinceLastAwakening: 0,
       usedTriggerIds,
@@ -275,6 +272,14 @@ export function resolvePostMatchAwakening(
         }
       : {}),
   };
+  const next = firstHero
+    ? awakenedState
+    : tryRepairCareerLineupForInjuries(awakenedState);
+  if (next === undefined) {
+    throw new Error(
+      'the unlicensed awakening player has no safe bench replacement',
+    );
+  }
   return { state: next, awakened: true };
 }
 
@@ -393,38 +398,6 @@ function canSafelyAwaken(state: GameState, playerId: string): boolean {
   return (
     replacementForAwakenedStarter(state, lineup.playerIds, playerId) !==
     undefined
-  );
-}
-
-function benchUnlicensedAwakening(
-  state: GameState,
-  players: GameState['players'],
-  playerId: string,
-): GameState['lineups'] {
-  const lineup = state.lineups.find(
-    (candidate) => candidate.clubId === state.userClubId,
-  );
-  if (lineup === undefined || !lineup.playerIds.includes(playerId))
-    return state.lineups;
-  const replacementId = replacementForAwakenedStarter(
-    { ...state, players },
-    lineup.playerIds,
-    playerId,
-  );
-  if (replacementId === undefined) {
-    throw new Error(
-      'the unlicensed awakening player has no safe bench replacement',
-    );
-  }
-  return state.lineups.map((candidate) =>
-    candidate.clubId === state.userClubId
-      ? {
-          ...candidate,
-          playerIds: candidate.playerIds.map((id) =>
-            id === playerId ? replacementId : id,
-          ),
-        }
-      : candidate,
   );
 }
 
