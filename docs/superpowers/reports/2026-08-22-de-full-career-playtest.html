@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="German full-career optimal playtest report for Hero Football Manager."
+    />
+    <title>German Full-Career Playtest · Hero Football Manager</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #13202a;
+        --muted: #59666d;
+        --paper: #f6f1e6;
+        --card: #fffdf7;
+        --navy: #102d3a;
+        --green: #1d684f;
+        --lime: #bfe25c;
+        --orange: #ef7b45;
+        --red: #a83832;
+        --line: #d8d0c1;
+        --shadow: 0 18px 50px rgb(16 45 58 / 11%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgb(16 45 58 / 4%) 1px, transparent 1px) 0 0 / 32px 32px,
+          var(--paper);
+        font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        background: var(--navy);
+        border-bottom: 8px solid var(--lime);
+      }
+
+      .hero::after {
+        position: absolute;
+        right: -6rem;
+        bottom: -9rem;
+        width: 28rem;
+        height: 28rem;
+        border: 5rem solid rgb(191 226 92 / 12%);
+        border-radius: 50%;
+        content: "";
+      }
+
+      .hero-inner,
+      .page {
+        width: min(1120px, calc(100% - 40px));
+        margin-inline: auto;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        padding: 72px 0 58px;
+      }
+
+      .eyebrow,
+      .label,
+      nav,
+      h1,
+      h2,
+      h3,
+      .stat strong {
+        font-family: "Avenir Next Condensed", "Franklin Gothic Condensed", sans-serif;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--lime);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 820px;
+        margin: 0;
+        font-size: clamp(3rem, 8vw, 6.8rem);
+        font-weight: 900;
+        letter-spacing: -0.055em;
+        line-height: 0.88;
+      }
+
+      .subtitle {
+        max-width: 720px;
+        margin: 28px 0 0;
+        color: #dce7e8;
+        font-size: 1.12rem;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 42px;
+      }
+
+      .stat {
+        min-height: 118px;
+        padding: 20px;
+        color: var(--ink);
+        background: var(--lime);
+        border: 1px solid rgb(255 255 255 / 35%);
+        box-shadow: 6px 6px 0 rgb(0 0 0 / 16%);
+      }
+
+      .stat:nth-child(even) {
+        background: #fff;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 2rem;
+        letter-spacing: -0.025em;
+        line-height: 1;
+      }
+
+      .stat span {
+        display: block;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        line-height: 1.25;
+        text-transform: uppercase;
+      }
+
+      .page {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr);
+        gap: 48px;
+        padding-block: 42px 80px;
+      }
+
+      nav {
+        position: sticky;
+        top: 24px;
+        align-self: start;
+        padding: 22px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      nav .label {
+        display: block;
+        margin-bottom: 12px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      nav a {
+        display: block;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.88rem;
+        font-weight: 750;
+        line-height: 1.25;
+        text-decoration: none;
+      }
+
+      nav a:last-child {
+        border-bottom: 0;
+      }
+
+      nav a:hover,
+      nav a:focus-visible {
+        color: var(--green);
+        transform: translateX(3px);
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .alert {
+        margin-bottom: 30px;
+        padding: 24px 26px;
+        color: #fff;
+        background: var(--red);
+        border-left: 8px solid var(--orange);
+        box-shadow: var(--shadow);
+      }
+
+      .alert strong {
+        display: block;
+        margin-bottom: 4px;
+        font-family: "Avenir Next Condensed", sans-serif;
+        font-size: 1.25rem;
+      }
+
+      .alert p {
+        margin: 0;
+      }
+
+      .report-body > p:first-child {
+        margin: 0 0 30px;
+        padding: 24px 28px;
+        color: var(--navy);
+        background: #e5edcf;
+        border-left: 7px solid var(--green);
+        font-size: 1.08rem;
+      }
+
+      h2 {
+        margin: 54px 0 18px;
+        padding-bottom: 10px;
+        color: var(--navy);
+        border-bottom: 4px solid var(--navy);
+        font-size: clamp(2rem, 5vw, 3.25rem);
+        font-weight: 900;
+        letter-spacing: -0.035em;
+        line-height: 1;
+      }
+
+      h2::before {
+        display: inline-block;
+        width: 0.55em;
+        height: 0.55em;
+        margin-right: 0.22em;
+        background: var(--lime);
+        content: "";
+      }
+
+      h3 {
+        margin: 36px 0 14px;
+        color: var(--green);
+        font-size: 1.5rem;
+        line-height: 1.15;
+      }
+
+      p {
+        margin: 0 0 18px;
+      }
+
+      ul {
+        display: grid;
+        gap: 12px;
+        margin: 0 0 30px;
+        padding: 0;
+        list-style: none;
+      }
+
+      li {
+        position: relative;
+        padding: 17px 20px 17px 46px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: 0 6px 22px rgb(16 45 58 / 6%);
+      }
+
+      li::before {
+        position: absolute;
+        top: 23px;
+        left: 20px;
+        width: 10px;
+        height: 10px;
+        background: var(--orange);
+        border-radius: 50%;
+        content: "";
+      }
+
+      li strong:first-child {
+        color: var(--red);
+      }
+
+      code {
+        padding: 0.1em 0.35em;
+        color: #fff;
+        background: var(--navy);
+        border-radius: 3px;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 0.82em;
+        overflow-wrap: anywhere;
+      }
+
+      footer {
+        padding: 28px 20px;
+        color: #dce7e8;
+        background: var(--navy);
+        text-align: center;
+      }
+
+      footer p {
+        margin: 0;
+        font-size: 0.85rem;
+      }
+
+      :focus-visible {
+        outline: 4px solid var(--orange);
+        outline-offset: 4px;
+      }
+
+      @media (max-width: 820px) {
+        .hero-inner {
+          padding-top: 50px;
+        }
+
+        .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .page {
+          grid-template-columns: 1fr;
+          gap: 28px;
+        }
+
+        nav {
+          position: static;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0 16px;
+        }
+
+        nav .label {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 520px) {
+        body {
+          font-size: 16px;
+        }
+
+        .hero-inner,
+        .page {
+          width: min(100% - 24px, 1120px);
+        }
+
+        .stats,
+        nav {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .stat {
+          min-height: 104px;
+          padding: 16px;
+        }
+
+        li {
+          padding: 15px 16px 15px 40px;
+        }
+
+        li::before {
+          left: 16px;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+          font-size: 11pt;
+        }
+
+        .hero {
+          color: var(--ink);
+          background: #fff;
+          border-color: var(--ink);
+        }
+
+        .hero-inner {
+          padding: 28px 0;
+        }
+
+        .eyebrow,
+        .subtitle {
+          color: var(--ink);
+        }
+
+        nav,
+        footer {
+          display: none;
+        }
+
+        .page {
+          display: block;
+          padding: 20px 0;
+        }
+
+        .stat,
+        li,
+        .alert {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+
+        h2,
+        h3 {
+          break-after: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">QA Report · German Locale · 22 August 2026</p>
+        <h1>Full-career playtest</h1>
+        <p class="subtitle">
+          A fresh Cozy career played for speed, efficiency, and complete-game
+          balance. The run won Division 1 and the Hero Cup.
+        </p>
+        <div class="stats" aria-label="Career summary">
+          <div class="stat"><strong>7</strong><span>Seasons to finish</span></div>
+          <div class="stat"><strong>18–0–0</strong><span>Division 1 record</span></div>
+          <div class="stat"><strong>98–11</strong><span>Division 1 goals</span></div>
+          <div class="stat"><strong>2×</strong><span>Hero Cup winner</span></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page">
+      <nav aria-label="Report sections">
+        <span class="label">Jump to</span>
+        <a href="#starting-state">Starting state</a>
+        <a href="#running-findings">Running findings</a>
+        <a href="#d5-season-review">Division 5</a>
+        <a href="#d4-running-review">Division 4</a>
+        <a href="#d3-running-review">Division 3</a>
+        <a href="#d2-season-review">Division 2</a>
+        <a href="#d1-season-review">Division 1</a>
+        <a href="#critical-ending-bug">Ending bug</a>
+        <a href="#german-localization-and-layout-summary">German UI</a>
+        <a href="#final-verdict">Final verdict</a>
+      </nav>
+
+      <main>
+        <aside class="alert" role="note">
+          <strong>Critical result</strong>
+          <p>
+            The career was completed, but the true-ending screen crashed after
+            the perfect Division 1 season.
+          </p>
+        </aside>
+        <article class="report-body">
+          <p>Fresh Cozy career on merged main <code>2fcaecbb</code>, played in the built-in browser from
+an isolated local origin. The production Season 3 save was not replaced.</p>
+<h2 id="starting-state">Starting state</h2>
+<ul>
+<li>Bramble Rovers, Season 1, D5, Week 1.</li>
+<li>$53,000, 12 TP, 15 players, two free Hero Licenses.</li>
+<li>Created forward Kai Sturm: 55 Pace, 60 Shooting, other stored stats 50.</li>
+<li>Master volume 0%; Quick Result enabled.</li>
+<li>Completion requires both the D1 title and the Hero Cup.</li>
+</ul>
+<h2 id="running-findings">Running findings</h2>
+<ul>
+<li>The first two D5 fixtures both ended in 0-3 defeats: Quartz FC at home and
+Harbor Comets away. The team was improving each week, but the opening level
+still felt intentionally severe even on Cozy.</li>
+<li>The natural-role lineup persisted after a manual change. Milo Oak remained
+in defense for the next match. The initial bench choice was defensible only
+if the selector heavily values 100% condition over his stronger attributes;
+keep watching this before calling it a lineup bug.</li>
+<li><strong>Bug — formation change rebuilt the wrong goalkeeper.</strong> Switching from
+4-4-2 to 3-4-3 in Week 8 started Nora Vale (38 overall, 51 REF, 100%
+condition) and benched Sam Mitts (38 overall, 70 REF, 92% condition). Both
+were natural-role goalkeepers. An eight-point condition edge should not
+outweigh a 19-point gap in the position&#39;s primary attribute. Manual swapping
+worked. Switching again to 5-3-2 in Week 9 reproduced the same bug, even
+after Sam&#39;s REF had risen to 73.</li>
+<li>The Week 3 first-match awakening worked. Kai Sturm received Gravity Pull and
+automatically occupied one of two Hero Licenses.</li>
+<li>TP use followed the handoff. Week 3 spent 21/21, Week 4 spent 21/27, and Week
+5 spent 35/36 across forward, midfield, defense, goalkeeper, and stamina.</li>
+<li>Facility order followed the handoff: Training Pitch, Coaching Office, then a
+Stadium Stand. Two Stand/Fan Shop pairs, a Dorm, and a Scout Office followed
+before specialist training buildings. Leila Haddad joined as assistant coach
+for defensive training.</li>
+<li>German copy has been clear and complete so far. No English leakage or visible
+text overflow has appeared through Week 5.</li>
+<li>The Week 5 finance page calls the under-construction Stadium Stand &quot;Nicht
+gebaut&quot;. This is not wrong, but &quot;Im Bau&quot; would describe the state more clearly.</li>
+<li>Results through Week 8: L 0-3, L 0-3, W 1-0, W 2-1, L 0-1. The attacking
+3-4-3 experiment against last-place Meadow City produced no goals and a loss;
+4-4-2 remains the safer Quick Result baseline.</li>
+<li>Results from Weeks 9-16: L 0-4, Cup W 4-0, W 3-0, W 3-2, Hero Cup L 0-12,
+W 4-0, W 1-0. The stored 5-3-2 became effective once the natural-role lineup
+and both available Hero Licenses were correct.</li>
+<li><strong>Balance concern — early Hero Cup draw.</strong> The Week 14 round-of-32 opponent
+was Zephyr Vanguard from D2, three divisions above the D5 club. The 0-12
+result was not competitive. Cross-division Cup variety is good, but this draw
+gave a developing first-season club no practical chance to participate.</li>
+<li>The late-scout warning works. A Week 16 three-week mission opened a clear
+confirmation explaining that the report would miss the deadline and expire.
+Choosing <code>Warten</code> safely returned to mission setup. A two-week mission could
+then be sent for a Week 18 return.</li>
+<li>German copy remains complete through Week 16. No English leakage or visible
+text overflow has appeared. The scout deadline warning was especially clear.</li>
+<li><strong>Bug — the scouting recovery path still breaks at the deadline.</strong> The safe
+two-week Week 16 mission returned in Week 18 with three reports. Every report
+still showed only wide attribute ranges, every $2,500 detail report was
+disabled because it would return too late, and no player had a signing action.
+The $4,750 mission therefore could not produce a midseason transfer.</li>
+<li><strong>Contract controls use percentage steps.</strong> Kai Sturm&#39;s early renewal used
+$50 steps because that was about five percent of his asking wage. Later
+renewals scaled to $70, $200, and $430 steps as asking wages increased.</li>
+</ul>
+<h2 id="d5-season-review">D5 season review</h2>
+<ul>
+<li>Finished second and earned promotion: 12 wins, 0 draws, 6 losses, 36 points,
+54 scored and 22 conceded.</li>
+<li>The turning point was a disciplined 4-4-2 with Kai and Dario trained for
+shooting, Ravi and Gio for passing, and Milo for defense. Its late results
+included 7-0, 10-1, 2-0, 7-0, and 6-0 wins.</li>
+<li>TP discipline held. Useful drills consumed nearly every weekly grant. The
+Week 19 Green Bull trip used exactly that week&#39;s 36 TP and gave all 15 players
++1 to every attribute; it was excellent value, not a hoarding artifact.</li>
+<li>Useful money was spent on two Stand/Fan Shop pairs, Dorm, Scout Office, Youth
+Field, Strength Room, Shooting Range, and Technique Lab. One weak reserve was
+sold before the midseason deadline. Cash was not left idle.</li>
+<li>Fun: the visible late-season power curve and promotion race felt rewarding.
+The head-to-head 2-0 win over second-place Neon was a strong climax.</li>
+<li>Not fun: scouting charged meaningful money but could not produce a signing.
+The D2 Cup draw and 0-12 exit felt like a foregone conclusion.</li>
+<li>German copy remained readable and natural through the full D5 season. No
+English leakage or layout overflow was visible.</li>
+</ul>
+<h2 id="d4-running-review">D4 running review</h2>
+<ul>
+<li><strong>Bug — unexplained season-reset players remain.</strong> Season 2 began with two
+new 17-year-old forwards, Cal Ash and Gio Oak, already in the 17-player squad.
+No inbox item, youth decision, or season-review copy explained their arrival.
+Cal was sold to make room for the actual youth intake.</li>
+<li><strong>Bug — automatic lineup still benches a better natural-role player.</strong> Youth
+midfielder Nico Moss (49 overall, 100% condition) was benched for Ken Ash
+(46 overall, 100% condition) in the first D4 match sheet. Manual swapping
+worked and then persisted.</li>
+<li><strong>Bug — German finance copy leaks English.</strong> The Week 4 finance report used
+<code>Current Sponsor · Sponsor monatlich</code> inside an otherwise German screen.</li>
+<li>The season reset correctly preserved the chosen 4-4-2 and Sam Mitts in goal.
+The earlier poor-formation reset did not reproduce.</li>
+<li>Scouting failed again in the first D4 window. A Week 1 two-week mission
+returned in Week 3, but every report still had wide ranges, every detail
+report was disabled as too late, and no signing action existed. This makes
+the Scout Office and mission fee a repeated dead end, not a one-off deadline
+mistake.</li>
+<li>D4 opened with four losses: 2-3, 3-4, 2-4, and 2-4. The matches were closer
+than the earlier first-season D5 losses, but repeated defensive training and
+a 5-3-2 did not yet stop four-goal concessions. Mae Thorn awakened after the
+fourth loss, creating a useful defensive-license choice.</li>
+</ul>
+<h3>D4 Season 2 result</h3>
+<ul>
+<li>Relegation removal worked. Bramble finished ninth at 3-2-13, with 11 points,
+42 goals scored, and 69 conceded. The review said <code>GERETTET</code> and kept the
+club in D4.</li>
+<li>This was better than relegation. The team was improving late in the season,
+so replaying D5 would have removed challenge and delayed useful D4 upgrades.</li>
+<li>The Week 19 Team Trip was excellent value when used correctly. It consumed
+the current 46 TP and gave every player +2 to every attribute.</li>
+<li>By season end, all seven drills were Level 2. The club also had all three
+stands, all three fan shops, and every unlocked training facility at least
+at Level 1.</li>
+</ul>
+<h3>D4 Season 3 result</h3>
+<ul>
+<li>Bramble won D4 at 14-1-3. It scored 73, conceded 34, and finished on 43
+points. The final title decider was a 5-2 away win over second-place Opal.</li>
+<li>The second D4 season was a strong recovery story. First-half losses kept the
+race uncertain. Regular drills, the Team Trip, and facility upgrades then
+produced a clear second-half surge.</li>
+<li>Fun: the three-way promotion race stayed close until the final weeks. The
+last match still decided the title even though promotion was already safe.</li>
+<li>Balance: a small TP bank makes Team Trip feel strong rather than punitive.
+Entering with 46 TP produced a large, clear team-wide gain.</li>
+<li>Facilities reached Level 2 for all three stands, all three fan shops, the
+Strength Room, Shooting Range, Keeper Area, and the Technique Lab upgrade in
+progress. This made home income and targeted drills feel connected.</li>
+<li><strong>German copy leak:</strong> the title celebration displayed <code>YOU WON THE LEAGUE!</code>
+inside an otherwise German presentation.</li>
+<li><strong>Review copy issue:</strong> after a title-winning 14-1-3 season, the review still
+said no single story shaped the season.</li>
+</ul>
+<h2 id="d3-running-review">D3 running review</h2>
+<ul>
+<li>The first five league matches were all wins: 2-0, 3-2, 5-0, 3-0, and 4-1.
+The D3 opening therefore feels challenging but fair after optimized D4 play.</li>
+<li>Green Bull worked as the intended money sink. A Week 6 visit cost $50,000
+and 43 TP, then gave all 15 players +2 to every attribute. Its next displayed
+price rose to $75,000.</li>
+<li>Three Level 2 stands are extremely strong. The first two D3 home wins earned
+$41,382 and $43,224 in gate receipts. This supports building stands and shops
+before miscellaneous facilities.</li>
+<li><strong>Bug — season-reset filler players remain.</strong> D3 began with Paz Flint and Cal
+Hart without explanation. The squad had room before they appeared. Both were
+sold, and their fees funded wages and useful upgrades.</li>
+<li><strong>Bug — detailed scouting still cannot produce a signing.</strong> A Week 1
+three-week mission returned in Week 4. All three reports only showed ranges,
+detail reports were disabled because the window would close, and no signing
+action existed. Selling players before the report created two empty squad
+slots, so squad capacity was not the cause.</li>
+<li><strong>Bug — automatic lineup still ignores a newly licensed hero.</strong> Activating
+Mae Thorn as the third licensed hero left her on the bench behind lower-rated
+Ty Brooks. A manual same-role swap worked and persisted.</li>
+<li><strong>Contract issue:</strong> Ravi&#39;s negotiation controls used $70 steps, which is
+about five percent of his $1,310 asking wage. This confirms percentage-based
+steps are present in this build. However, the final counteroffer included a
+<code>Stammplatz</code> promise after the visible offer was made without a promise.</li>
+<li><strong>German copy leak persists:</strong> monthly finance reports still use
+<code>Current Sponsor 1</code> and <code>Current Sponsor 2</code> beside <code>Sponsor monatlich</code>.</li>
+<li><strong>Cup volatility:</strong> Bramble beat Zircon 3-2 away in the league, then lost 3-4
+at home to the same club in the Hero Cup preliminary round.</li>
+</ul>
+<h3>D3 Season 4 result</h3>
+<ul>
+<li>Bramble finished third at 12-2-4. It scored 59, conceded 31, and earned 38
+points. Alder and Elm both promoted on 39 points.</li>
+<li>The season missed promotion by one point despite a +28 goal difference. The
+final 1-1 draw at first-place Alder left Bramble second, but Elm won its last
+match and moved ahead.</li>
+<li>Fun: the promotion race was excellent. Week 28 was a 3-1 home win over the
+leader, and Week 30 still decided all three top positions.</li>
+<li>Frustrating but fair: the margin was extremely small, but the decisive
+defeats were visible results against strong opponents. No relegation meant
+the close season still felt like progress rather than lost time.</li>
+<li>League form was much more stable than the Cup: 12 wins from 18 matches, with
+a 7-2 league revenge win over Zircon after the preliminary Cup loss.</li>
+<li>Green Bull was used four times at $50,000, $75,000, $100,000, and $125,000.
+The rising price made each trip a real money decision while home-match income
+kept later visits possible.</li>
+<li>All seven drill paths reached Level 3. Because each Level 3 drill costs 17 TP,
+weekly TP often left a 9-12 point remainder. Carryover fixed this on the next
+week, when three drills could usually be completed.</li>
+<li><strong>Balance spike:</strong> a Week 21 home loss, 4-5 to one-hero Lumen, came directly
+after a $100,000 Green Bull trip. The same optimized team also beat comparable
+opponents by five or more goals. D3 Quick Result variance remains wide.</li>
+<li><strong>Review copy issue persists:</strong> the review said no story shaped a 38-point
+promotion chase decided on the final day.</li>
+<li><strong>Contract bug reproduced twice:</strong> final counteroffers for Ravi and Kai added
+a <code>Stammplatz</code> promise even though the visible offers were sent without a
+promise. The percentage steps themselves worked: Ravi used $70 steps and Kai
+used $200 steps, both close to five percent of the original asking wage.</li>
+</ul>
+<h3>D3 Season 5 result</h3>
+<ul>
+<li>Bramble won D3 at 17-1-0 with 52 points and a +96 goal difference. The only
+dropped points were a 2-2 draw in the final match.</li>
+<li>This season was too easy after the close Season 4 promotion race. League
+wins included 10-0, 8-1, 8-0, 7-0, and 6-0. Optimized drills, Green Bull,
+and retained player growth caused a sharp one-season snowball.</li>
+<li>The Hero Cup run produced the best upset so far. Bramble drew 3-3 with D1
+Cinder Swifts and won the shootout 3-2. Redmarch Albion then ended the run
+2-0 in the round of 16.</li>
+<li>Green Bull cost $150,000 and then $175,000. It remained a useful money sink.
+TP was spent every week; Level 3 drills cost 17 TP and carryover supported
+two or three drills each week.</li>
+<li><strong>Bug — more unexplained filler players.</strong> Milo Flint, Finn Flint, and Cal
+Ward appeared at the season reset without a story. Two were sold immediately.</li>
+<li><strong>Bug — stale transfer-request notification.</strong> The inbox said Ravi wanted a
+transfer because of poor morale. His player page showed 46% morale, and the
+Requests tab had no active request or decision path.</li>
+<li><strong>Accessibility bug — stale resource labels.</strong> After drills, the visible TP
+number changed but the button&#39;s accessible name continued to announce the
+old TP amount.</li>
+<li><strong>German copy issue:</strong> the fire-event risk text stacked <code>Chance</code> and <code>Risiko</code>
+in one sentence, making the 70% outcome hard to parse.</li>
+</ul>
+<h2 id="d2-season-review">D2 season review</h2>
+<ul>
+<li>Bramble finished second at 16-0-2 with 48 points and a +71 goal difference.
+Ashford won the division with 51 points and +74. Bramble handed Ashford its
+only loss, 3-2 away in the final match.</li>
+<li>The two league losses were both 1-2: away at Hollow and home to Ashford.
+This made D2 the best-balanced division. The top clubs could punish mistakes,
+but optimized play still earned promotion in one season.</li>
+<li>Bramble won the Hero Cup. Results were 7-1 Ember, 9-0 Northgate, 3-1 Inkwell,
+4-1 Redmarch, 3-0 Vellum, and 1-0 Verdant in the final.</li>
+<li>The Cup run felt excellent. The 1-0 final was tense after several dominant
+rounds, and beating Redmarch answered the prior season&#39;s 0-2 elimination.</li>
+<li>All seven drills reached Level 4. Four key paths were bought immediately,
+with the remaining paths bought as home income arrived.</li>
+<li>Green Bull was used at $200,000, $225,000, and $250,000. The rising price
+forced real timing choices without making the money sink unusable.</li>
+<li>D2 wages created about a $12,000 weekly loss before matches. Three Level 2
+stands and shops made home weeks strongly profitable, so salaries were a
+constraint rather than a punishment.</li>
+<li><strong>Bug — automatic lineup remained wrong.</strong> The first D2 sheet started
+lower-rated Gio Vale over newly signed A-potential defender Ivo Gray. A
+manual same-role swap fixed the lineup and persisted.</li>
+<li><strong>Bug — season reset added three unexplained fillers.</strong> Eli Ash, Nico Cole,
+and Ivo Ward appeared without story copy. Two surplus fillers were sold.</li>
+<li><strong>Bug — contract controls had stale accessible names.</strong> The visible player,
+wage, and selected term changed, but the action button continued announcing
+Sam Mitts or Ravi Chan and the old one-year term.</li>
+<li><strong>German copy leak:</strong> finance reports continued to show <code>Current Sponsor 1</code>,
+<code>Current Sponsor 2</code>, and <code>Current Sponsor 3</code>.</li>
+</ul>
+<h2 id="d1-season-review">D1 season review</h2>
+<ul>
+<li>Bramble won D1 in its first attempt with a perfect 18-0-0 record: 54 points,
+98 goals scored, 11 conceded, and a +87 goal difference.</li>
+<li>Bramble also won a second consecutive Hero Cup. It beat Zephyr 5-0, Hollow
+6-0, Verdant 5-0, Tarn 5-0, and Cinder 7-0. The Cup aggregate was 28-0.</li>
+<li>The D1 title was mathematically secure after Week 28. The final league match
+was a 7-0 away win over Vellum.</li>
+<li>Tarn was not overpowered in this run. Bramble beat it 4-1 away, 5-0 at home,
+and 5-0 in the Cup semifinal. Ashford lost 7-0 and 4-0.</li>
+<li>D1 was much too easy for this optimized squad. The first half ended 9-0, and
+the only close league result was a 2-1 away win at Kestrel after Green Bull.
+The strongest opponents did not create a title race.</li>
+<li>The team reached this power level through weekly TP spending, all Level 4
+drills, four Level 5 drill upgrades, repeated Green Bull use, and four active
+Hero Licenses. Kai&#39;s Shooting and Mae&#39;s Defense both reached the 999 cap.</li>
+<li>Green Bull was used whenever cash safely covered the next weekly bill. Late
+prices reached $300,000, $325,000, and $350,000. This kept cash moving while
+avoiding an emergency loan.</li>
+<li>D1 wages were not the cause of the old long journey. Weekly player wages were
+$22,520, and the normal pre-match weekly loss was about $13,000-$14,000.
+Home gates regularly restored more than $120,000. Negotiating Kai from an
+$8,658 ask to $5,971 for three seasons also mattered.</li>
+<li>The D1 economy felt fair. Salaries limited pre-season upgrades, but strong
+home income funded later Level 5 drills and Green Bull sessions.</li>
+<li><strong>Bug — automatic lineup still preferred roster order.</strong> Cal Oak, rated 53,
+started over Ivo Moss, rated 74, at equal role suitability. The game also left
+newly licensed Ivo Ward on the bench until a manual swap.</li>
+<li><strong>Bug — two more unexplained fillers.</strong> Ari Lane and Cal Oak appeared at the
+D1 season reset. A youth signing then filled the final legitimate squad slot.</li>
+<li><strong>Bug — money-themed requests do not show money costs.</strong> Requests for a
+drone, golden shoes, and diamonds only applied training multipliers. If D2+
+money requests are meant to cost triple, the current choices do not expose
+that rule or any money amount.</li>
+<li><strong>Good license behavior:</strong> the fourth permit activated Ivo Ward without an
+error. Later awakenings correctly said they were waiting for a license and
+did not consume one automatically.</li>
+</ul>
+<h2 id="critical-ending-bug">Critical ending bug</h2>
+<ul>
+<li><strong>The true-ending screen crashes after the perfect D1 season.</strong> Returning
+from the Week 30 result produced this player-facing error:
+<code>inputRange must be monotonically non-decreasing 0,0.21999999999999997,0.88,0.040000000000000036,1</code>.</li>
+<li>The error screen was entirely English in the German career.</li>
+<li>The error said the last action might already be saved. Returning to the title
+showed <code>Saison 7 · Woche 30</code>, confirming the win had persisted.</li>
+<li>Reloading and continuing the save reproduced the same crash. The D1 title and
+Hero Cup were won in simulation, but the player cannot view the final D1
+celebration or true-ending presentation.</li>
+<li>The web log points to <code>DeferredEndgameCelebrationScreen</code> in
+<code>src/ui/DeferredSkiaSurfaces.web.tsx</code>, rendered through <code>ScreenTransition</code> in
+<code>src/ui/components/ScreenTransition.tsx</code>. The ending animation builds an
+<code>inputRange</code> where the fourth value, about 0.04, comes after 0.88. The range
+must be sorted or the animation phases must use separate interpolations.</li>
+</ul>
+<h2 id="german-localization-and-layout-summary">German localization and layout summary</h2>
+<ul>
+<li>Most German gameplay copy was readable and natural. Long request text,
+transfer details, training confirmations, and match sheets fit the desktop
+layout without visible clipping.</li>
+<li>Repeated English leaks remained in high-value screens: <code>YOU WON THE LEAGUE!</code>,
+<code>Current Sponsor</code>, and the full ending-crash recovery screen.</li>
+<li>Several controls exposed stale accessible names after their visible text had
+changed. This affected TP and cash headers, contract player names, contract
+terms, contract wages, and some post-animation buttons.</li>
+</ul>
+<h2 id="final-verdict">Final verdict</h2>
+<ul>
+<li>Completion reached in Season 7: D1 champion and Hero Cup champion.</li>
+<li>Efficient route: D5 promotion, two D4 seasons, two D3 seasons, one D2 season,
+and one D1 season.</li>
+<li>Best division: D2. It gave optimized play a strong but fair one-season test.</li>
+<li>Weakest balance: the second D3 season and D1. Both became rout-heavy after
+the optimized economy and training loop compounded.</li>
+<li>Best feature: Green Bull. It converted excess cash and current-week TP into a
+visible squad-wide gain without needing a third currency.</li>
+<li>Highest-priority fixes: the D1 ending crash, automatic lineup selection,
+scouting&#39;s unusable signing path, unexplained filler-player creation, stale
+contract accessibility text, and remaining German-English copy leaks.</li>
+</ul>
+        </article>
+      </main>
+    </div>
+
+    <footer>
+      <p>Hero Football Manager · German full-career optimal playtest</p>
+    </footer>
+  </body>
+</html>

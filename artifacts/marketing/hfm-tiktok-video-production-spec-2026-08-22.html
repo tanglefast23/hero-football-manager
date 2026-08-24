@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hero Football Manager — TikTok Video Playbook</title>
+  <style>
+    @font-face { font-family: HFM; src: url("../../assets/fonts/HFMSilkscreen_700Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+    @font-face { font-family: HFM; src: url("../../assets/fonts/HFMSilkscreen_400Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+    :root {
+      --ink-deep: #16121f;
+      --ink: #241f2e;
+      --cream: #f4f1e8;
+      --paper: #fffdf6;
+      --gold: #edb54a;
+      --gold-light: #f7d894;
+      --blue: #5a8fd6;
+      --blue-light: #a3c8f0;
+      --red: #d94f52;
+      --green: #207553;
+      --line: #342e41;
+      --shadow: 8px 8px 0 var(--ink-deep);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--ink-deep); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 48px 48px,
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 48px 48px,
+        var(--ink-deep);
+      font: 17px/1.65 "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+    }
+    a { color: #285eaa; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    code { padding: .12em .35em; color: #7f2630; background: #f6e7d8; border: 1px solid #ddc3aa; font: .88em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    strong { font-weight: 800; }
+    .progress { position: fixed; inset: 0 auto auto 0; z-index: 50; height: 5px; width: 0; background: linear-gradient(90deg, var(--gold), var(--red)); }
+    .shell { width: min(1500px, 100%); margin: 0 auto; display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 0; }
+    .rail {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 42px 26px;
+      color: var(--cream);
+      border-right: 2px solid #3f374d;
+      background: rgba(22,18,31,.96);
+    }
+    .rail-mark { color: var(--gold); font: 700 14px/1.25 HFM, monospace; letter-spacing: .08em; }
+    .rail h2 { margin: 18px 0 32px; color: white; font: 700 26px/1.15 HFM, monospace; text-transform: uppercase; }
+    .rail nav { display: grid; gap: 8px; }
+    .rail a { display: block; padding: 10px 12px; color: #d9d3e2; border: 1px solid transparent; text-decoration: none; font-size: 14px; line-height: 1.3; }
+    .rail a:hover, .rail a:focus-visible { color: white; border-color: var(--gold); background: #251f31; outline: none; transform: translateX(4px); }
+    .rail .asset-link { color: var(--gold-light); }
+    .rail-note { margin-top: 28px; color: #9d95a8; font-size: 12px; }
+    main { min-width: 0; padding: 56px clamp(28px, 6vw, 94px) 120px; background: var(--cream); box-shadow: 0 0 70px #000; }
+    main > h1:first-child {
+      position: relative;
+      margin: -56px calc(clamp(28px, 6vw, 94px) * -1) 34px;
+      padding: clamp(70px, 10vw, 130px) clamp(28px, 6vw, 94px) 64px;
+      overflow: hidden;
+      color: white;
+      background:
+        radial-gradient(circle at 82% 30%, rgba(237,181,74,.25), transparent 28%),
+        linear-gradient(135deg, #211a2b 0 60%, #2e243a 60%);
+      border-bottom: 12px solid var(--gold);
+      font: 700 clamp(38px, 6vw, 82px)/1.02 HFM, monospace;
+      letter-spacing: -.03em;
+      text-transform: uppercase;
+      text-shadow: 5px 5px 0 var(--red), 9px 9px 0 #000;
+    }
+    main > h1:first-child::after { content: "9:16\A THREE VIDEOS"; white-space: pre; position: absolute; right: 5%; bottom: 28px; color: var(--gold); font: 700 12px/1.6 HFM, monospace; letter-spacing: .08em; text-shadow: none; }
+    h1.video-title {
+      margin: 88px -18px 0;
+      padding: 32px 34px 28px;
+      color: white;
+      background: var(--ink);
+      border-left: 12px solid var(--red);
+      box-shadow: var(--shadow);
+      font: 700 clamp(30px, 4vw, 52px)/1.08 HFM, monospace;
+      text-transform: uppercase;
+      scroll-margin-top: 24px;
+    }
+    h1.video-title.video-b { border-left-color: var(--blue); }
+    h1.video-title.video-c { border-left-color: var(--gold); }
+    h2 { margin: 52px 0 16px; font: 700 clamp(24px, 3vw, 36px)/1.15 HFM, monospace; letter-spacing: -.03em; text-transform: uppercase; scroll-margin-top: 24px; }
+    h3 { margin: 30px 0 10px; color: #4e4260; font: 700 17px/1.3 HFM, monospace; text-transform: uppercase; }
+    p { max-width: 920px; }
+    ul, ol { padding-left: 1.45em; }
+    li { margin: .42em 0; }
+    hr { margin: 60px 0; border: 0; border-top: 3px dashed #c9c0b6; }
+    blockquote { margin: 22px 0; padding: 16px 22px; border-left: 7px solid var(--gold); background: #fff8df; }
+    .asset-panel {
+      position: relative;
+      margin: 28px -18px 70px;
+      padding: 34px;
+      background: var(--gold-light);
+      border: 4px solid var(--ink);
+      box-shadow: var(--shadow);
+      scroll-margin-top: 22px;
+    }
+    .asset-panel::before { content: "START HERE"; position: absolute; top: -17px; right: 24px; padding: 8px 12px; color: white; background: var(--red); border: 3px solid var(--ink); font: 700 11px HFM, monospace; letter-spacing: .07em; transform: rotate(1deg); }
+    .asset-panel > h2 { margin: 0 0 18px; font-size: clamp(26px, 3.5vw, 44px); }
+    .asset-panel > p:first-of-type { padding: 16px 18px; background: white; border-left: 8px solid var(--green); font-size: 18px; }
+    .asset-panel h3 { margin-top: 34px; color: var(--ink); }
+    .asset-panel ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 0; list-style: none; counter-reset: assets; }
+    .asset-panel ol > li { position: relative; min-height: 170px; margin: 0; padding: 22px 20px 20px 74px; background: var(--paper); border: 3px solid var(--ink); box-shadow: 5px 5px 0 rgba(36,31,46,.2); counter-increment: assets; }
+    .asset-panel ol > li::before { content: counter(assets); position: absolute; top: 18px; left: 18px; display: grid; place-items: center; width: 40px; height: 40px; color: white; background: var(--ink); font: 700 18px HFM, monospace; box-shadow: 4px 4px 0 var(--red); }
+    .asset-panel ol strong { display: block; margin-bottom: 7px; font: 700 15px/1.4 HFM, monospace; text-transform: uppercase; }
+    .asset-panel .decisions { padding: 18px 22px; background: #dcecff; border: 3px solid var(--blue); }
+    .asset-panel .covered { padding: 18px 22px; background: #e3f2e8; border: 3px solid var(--green); }
+    .purpose-card { padding: 20px 24px; background: white; border: 2px solid #c9c0b6; }
+    details.beat { margin: 18px 0; background: var(--paper); border: 2px solid var(--line); box-shadow: 5px 5px 0 #d4cbc0; }
+    details.beat[open] { border-color: var(--blue); box-shadow: 6px 6px 0 var(--blue-light); }
+    details.beat summary { padding: 20px 54px 20px 22px; cursor: pointer; color: white; background: var(--ink); list-style: none; font: 700 18px/1.35 HFM, monospace; text-transform: uppercase; }
+    details.beat summary::-webkit-details-marker { display: none; }
+    details.beat summary::after { content: "+"; float: right; margin-right: -30px; color: var(--gold); font-size: 24px; }
+    details.beat[open] summary::after { content: "–"; }
+    .beat-body { padding: 8px 26px 28px; }
+    .beat-body > p:first-child { display: inline-block; padding: 5px 10px; color: white; background: var(--red); font: 700 12px HFM, monospace; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: 13px; border: 2px solid #bbb1a6; text-align: left; vertical-align: top; }
+    th { color: white; background: var(--ink); font: 700 12px HFM, monospace; }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); vertical-align: -3px; }
+    .top-link { position: fixed; right: 22px; bottom: 22px; z-index: 20; display: grid; place-items: center; width: 50px; height: 50px; color: white; background: var(--red); border: 3px solid var(--ink); box-shadow: 4px 4px 0 #000; text-decoration: none; font: 700 18px HFM, monospace; }
+    @media (max-width: 980px) {
+      .shell { display: block; }
+      .rail { position: relative; height: auto; padding: 22px; border-right: 0; border-bottom: 4px solid var(--gold); }
+      .rail h2, .rail-note { display: none; }
+      .rail nav { display: flex; gap: 8px; overflow-x: auto; }
+      .rail a { flex: 0 0 auto; }
+      main { padding-right: 28px; padding-left: 28px; }
+      .asset-panel ol { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      body { font-size: 15px; }
+      main > h1:first-child::after { display: none; }
+      .asset-panel { margin-right: -10px; margin-left: -10px; padding: 22px 16px; }
+      .asset-panel ol > li { min-height: 0; }
+    }
+    @media print {
+      body { background: white; font-size: 11pt; }
+      .rail, .progress, .top-link { display: none; }
+      .shell { display: block; }
+      main { padding: 0; box-shadow: none; }
+      details.beat { break-inside: avoid; box-shadow: none; }
+      details.beat > * { display: block !important; }
+      .asset-panel { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body id="top">
+  <div class="progress" aria-hidden="true"></div>
+  <div class="shell">
+    <aside class="rail">
+      <div class="rail-mark">HFM / CAMPAIGN LAB</div>
+      <h2>TikTok Video Playbook</h2>
+      <nav id="nav" aria-label="Document sections"></nav>
+      <p class="rail-note">The gold sections show exactly what Joe needs to provide.</p>
+    </aside>
+    <main id="content">
+<h1>Hero Football Manager — TikTok Creative Playbook</h1>
+<p>Date: 22 August 2026<br>Format: 1080×1920, 9:16 portrait, 30 fps, Rec.709, H.264<br>Primary destination: TikTok organic post, then Spark Ad if the organic post wins<br>Secondary exports: Instagram Reels and YouTube Shorts without a watermark</p>
+<h2>Creative goal</h2>
+<p>These are not shortened App Store trailers. Each video is one small story with a strong open loop, truthful gameplay, a visible payoff, and one purchase message.</p>
+<p>The three videos test different buyer motivations:</p>
+<ol>
+<li><strong>Video A — “He Caught Fire”</strong> sells spectacle and immediate curiosity.</li>
+<li><strong>Video B — “His Agent Noticed”</strong> sells management depth, humor, and attachment to a player.</li>
+<li><strong>Video C — “From Stand-Up to Superpowers”</strong> sells trust through the creator&#39;s real story, then uses Video A&#39;s strongest gameplay payoff.</li>
+</ol>
+<p>All three repeat the four store messages without listing them mechanically:</p>
+<ul>
+<li>Ordinary players can wake up with superpowers.</li>
+<li>The player runs the whole club and watches the plan play out.</li>
+<li>It is one purchase with no ads or in-app purchases.</li>
+<li>It works offline and keeps the career on the device.</li>
+</ul>
+<h2>Shared production contract</h2>
+<h3>TikTok-native structure</h3>
+<ul>
+<li>Start on a human problem or impossible event. Do not start on a logo.</li>
+<li>Make the first frame understandable before sound starts.</li>
+<li>Resolve the first open loop by 7–10 seconds.</li>
+<li>Use only real game interfaces and deterministic game outcomes.</li>
+<li>Keep cuts fast, but let the best payoff breathe for at least 0.6 seconds.</li>
+<li>End on one direct action: <strong>Tap to run your club.</strong></li>
+</ul>
+<p>Current TikTok guidance favors honest, process-led material over corporate perfection. The videos should look authored and beautiful, but still feel like a developer showing a surprising game moment.</p>
+<h3>Composition and safe area</h3>
+<ul>
+<li>Master canvas: <code>1080×1920</code>.</li>
+<li>Frame rate: <code>30 fps</code>.</li>
+<li>Keep all essential text inside <code>x=72–900</code> and <code>y=170–1560</code>.</li>
+<li>Reserve the rightmost 180 px for TikTok buttons.</li>
+<li>Reserve the bottom 300 px for the caption and CTA interface.</li>
+<li>Use the TikTok preview tool before export because its safe area changes with caption length and ad format.</li>
+<li>Center existing <code>886×1920</code> iPhone footage at native height. Do not stretch it.</li>
+<li>Fill the 97 px side rails with ink-deep <code>#16121f</code>, animated palette marks, or a cropped duplicate at 15% opacity. Never use a soft blurred duplicate because it fights the pixel style.</li>
+</ul>
+<h3>Visual language</h3>
+<p>Reuse the game&#39;s canonical palette:</p>
+<ul>
+<li>Ink-deep: <code>#16121f</code></li>
+<li>Ink: <code>#241f2e</code></li>
+<li>Cream: <code>#f4f1ea</code></li>
+<li>Blue: <code>#5a8fd6</code></li>
+<li>Blue light: <code>#a3c8f0</code></li>
+<li>Hero gold: <code>#edb54a</code></li>
+<li>Gold light: <code>#f7d894</code></li>
+<li>Red: <code>#d94f52</code></li>
+<li>Flame: <code>#ff6a00</code></li>
+</ul>
+<p>Use <code>HFMSilkscreen_700Bold.ttf</code> for short labels and display text. Use an ordinary readable sans only for a sentence longer than eight words.</p>
+<p>Pixel rules:</p>
+<ul>
+<li>Use integer scale values whenever pixel art is enlarged.</li>
+<li>Use nearest-neighbor sampling.</li>
+<li>Do not blur gameplay, sprites, or the pixel font.</li>
+<li>Use hard-edged shadows and stepped motion.</li>
+<li>Reserve gold for powers, rewards, and the purchase payoff.</li>
+</ul>
+<h3>Title system — create this once</h3>
+<p><strong>[CREATE ASSET: <code>ComicStompTitle</code>]</strong></p>
+<p>This title must look different from the game&#39;s normal UI while still belonging to its world.</p>
+<ul>
+<li>Main face: cream or blue.</li>
+<li>Inner highlight: one 2 px cream edge on the upper-left.</li>
+<li>Main outline: 6 px ink.</li>
+<li>First offset shadow: 8 px hero gold, down-right.</li>
+<li>Second offset shadow: 14 px red, down-right.</li>
+<li>Final contact shadow: 18 px ink-deep, down-right.</li>
+<li>No box, ribbon, panel, or rounded rectangle.</li>
+<li>Maximum two lines.</li>
+<li>Slightly compress the bottom line to 96% width so the silhouette feels hand-lettered.</li>
+</ul>
+<p>Entrance over 10 frames:</p>
+<ol>
+<li>Frames 0–2: scale 160%→108%, rotate <code>-5°→1°</code>, opacity 0→1.</li>
+<li>Frames 3–6: scale 108%→96%; the gold and red shadows arrive two frames late.</li>
+<li>Frames 7–10: scale 96%→100%; rotation settles to zero.</li>
+<li>On frame 3, emit four 8×8 pixel star chips from the word with 90° paths.</li>
+<li>Play a short whoosh on frame 0 and a paper/wood impact on frame 3.</li>
+</ol>
+<p>Exit over 6 frames:</p>
+<ul>
+<li>Split the words on their horizontal pixel rows.</li>
+<li>Odd rows move 70 px left; even rows move 70 px right.</li>
+<li>Opacity stays solid for four frames, then cuts to zero.</li>
+<li>Pair the exit with a 90 ms digital zipper sound.</li>
+</ul>
+<h3>Small caption system</h3>
+<p><strong>[CREATE ASSET: <code>DeveloperNote</code>]</strong></p>
+<ul>
+<li>Looks like a developer&#39;s quick note, not a game button.</li>
+<li>Silkscreen Bold, 42–54 px.</li>
+<li>Cream type with 4 px ink outline.</li>
+<li>One important word can use gold or red.</li>
+<li>No more than seven words.</li>
+<li>Appears with a two-frame vertical tick: <code>y+12 → y-3 → y</code>.</li>
+<li>A 2 px cursor block blinks once after the final word, then disappears.</li>
+</ul>
+<h3>Transition system</h3>
+<p>Use only four transition types across the three videos:</p>
+<ol>
+<li><strong>Pixel rewind:</strong> 5–7 reversed source frames, each held twice, with a three-step horizontal tear.</li>
+<li><strong>Action match cut:</strong> cut on the ball, a finger tap, or a title impact. No dissolve.</li>
+<li><strong>Ink snap:</strong> one frame of ink-deep, one frame of cream, then the new scene.</li>
+<li><strong>Paper whip:</strong> the current management screen slides up while the next slides from below, with a 2 px ink seam.</li>
+</ol>
+<p>Avoid generic spins, liquid morphs, lens flares, and smooth zoom transitions.</p>
+<h3>Audio contract</h3>
+<ul>
+<li>The video must make sense muted.</li>
+<li>The ad version must contain audio.</li>
+<li>Target complete master: about <code>-14 LUFS integrated</code>, with true peak below <code>-1 dBTP</code>.</li>
+<li>Keep music 8–12 dB below the main SFX or voice.</li>
+<li>Duck music 6 dB for every spoken line and 3 dB for power ignition.</li>
+<li>Never stack more than three foreground effects at once.</li>
+</ul>
+<p><strong>[FIND ASSET: swappable music bed]</strong></p>
+<p>Choose music from TikTok&#39;s Commercial Music Library on publishing day. Use a current, commercially cleared track with:</p>
+<ul>
+<li>125–150 BPM.</li>
+<li>A clean first downbeat.</li>
+<li>A small drop or empty half-beat around second 3–4.</li>
+<li>No dense vocals under narration.</li>
+</ul>
+<p>Do not bake an expiring trend song into the source composition. Export a music-free master with SFX and voice, plus a version with a temporary guide beat.</p>
+<h3>Existing reusable assets</h3>
+<p>From the game repository:</p>
+<ul>
+<li>Fonts: <code>assets/fonts/HFMSilkscreen_400Regular.ttf</code>, <code>assets/fonts/HFMSilkscreen_700Bold.ttf</code></li>
+<li>Icon: <code>assets/icon.png</code> — Caped Ball</li>
+<li>Fire: <code>assets/audio/sfx/fire-torch-ignite.wav</code></li>
+<li>Flame rise: <code>assets/audio/sfx/flame-up.wav</code></li>
+<li>Flame hit: <code>assets/audio/sfx/flame-hit.wav</code></li>
+<li>Fire shot: <code>assets/audio/sfx/shot-scorch.wav</code></li>
+<li>Goal impact: <code>assets/audio/sfx/goal-net-hit.wav</code></li>
+<li>Goal crowd: <code>assets/audio/sfx/goal-crowd.m4a</code></li>
+<li>Goal fanfare: <code>assets/audio/sfx/goal-fanfare.m4a</code></li>
+<li>UI tap: <code>assets/audio/sfx/ui-single-click.m4a</code></li>
+<li>Positive result: <code>assets/audio/sfx/positive.m4a</code></li>
+<li>Negative result: <code>assets/audio/sfx/negative.m4a</code></li>
+<li>Stamp/thunk: <code>assets/audio/sfx/ledger-thunk.wav</code></li>
+<li>Awakening bed: <code>assets/audio/music/awakening-limp.m4a</code></li>
+<li>Awakening reveal: <code>assets/audio/sfx/awakening-angels.m4a</code>, <code>assets/audio/sfx/awakening-harps.m4a</code></li>
+</ul>
+<p>From the existing Remotion project:</p>
+<ul>
+<li><code>public/clips/fire-goal.mp4</code></li>
+<li><code>public/clips/super-speed.mp4</code></li>
+<li><code>public/clips/contract-negotiation.mp4</code></li>
+<li><code>public/clips/drill-training.mp4</code></li>
+<li><code>public/clips/facility-build.mp4</code></li>
+<li><code>public/audio/title-whoosh.wav</code></li>
+<li>Existing composition baseline: <code>remotion/src/Trailer.tsx</code></li>
+</ul>
+<p>Any supplied recording cleared only for App Store use needs separate paid-social clearance. Use the Commercial Music Library or owned audio when that clearance is absent.</p>
+<hr>
+<h1>Video A — “He Caught Fire”</h1>
+<h2>ASSETS NEEDED FROM YOU — VIDEO A</h2>
+<p><strong>Nothing is required from you to build the first draft.</strong> The game already provides the gameplay, Fire Torch animation, Caped Ball icon, font, palette, and sound effects.</p>
+<h3>Send these to make the video better</h3>
+<ol>
+<li><p><strong>Your voice recording — optional, recommended</strong><br>Record two separate lines: “My striker caught fire” and “I gave ordinary footballers superpowers.” Use a quiet room. Send WAV or M4A with no music. Leave one second of silence before and after each line. If you do not send this, the video will use captions only.</p>
+</li>
+<li><p><strong>One personal vertical clip — optional</strong><br>Record 0.5–1.0 seconds of your hand holding the game on an iPhone, or your face reacting to the goal. Use portrait <code>1080×1920</code>, 30 fps, natural light, and no filter. If you do not send this, the video stays fully gameplay-led.</p>
+</li>
+<li><p><strong>TikTok music choice — needed before publishing</strong><br>Choose one current track from TikTok&#39;s Commercial Music Library. It should be 125–150 BPM, with a clean beat and a small drop near second 3–4. Send the track title and region availability. A temporary guide beat will be used until then.</p>
+</li>
+<li><p><strong>Live App Store link — needed before running the ad</strong><br>Send the U.S. App Store URL after release. It will be placed in TikTok Ads Manager, not baked into the video.</p>
+</li>
+</ol>
+<h3>Two quick decisions</h3>
+<ul>
+<li>Approve <strong>Dario Flint + Fire Torch</strong> as the featured hero. Dario is the default.</li>
+<li>Confirm the U.S. price is still <strong>$3.99</strong> before publishing. A no-price version will also be exported.</li>
+</ul>
+<h3>You do not need to provide</h3>
+<ul>
+<li>Gameplay footage.</li>
+<li>Fire, ball, goal, crowd, or interface sound effects.</li>
+<li>The game icon, player art, title art, fonts, or color palette.</li>
+<li>A custom animation or edited video.</li>
+</ul>
+<h2>Purpose</h2>
+<p>This is the primary acquisition video. It should stop a non-fan with an impossible football moment, prove it is real gameplay, show one layer of tactics, and finish with the premium-value message.</p>
+<p>Length: <strong>15.0 seconds / 450 frames</strong><br>Primary hook: <strong>“I gave an ordinary striker superpowers.”</strong><br>Payoff: Fire Torch burns through three defenders and scores.<br>Tone: astonished developer showing a real result, not a cinematic narrator.</p>
+<h2>Required source state</h2>
+<p>Use real deterministic match footage with:</p>
+<ul>
+<li>Dario Flint as the Fire Torch hero.</li>
+<li>Fire Torch fully charged.</li>
+<li>Three goal-side defenders in range.</li>
+<li>A successful Fire Torch run.</li>
+<li>A goal at the end of the same attack.</li>
+<li>Full formation, playstyle, swap, and energy controls visible at least once.</li>
+</ul>
+<p>The existing <code>public/clips/fire-goal.mp4</code> already contains the core activation and goal. If a cleaner capture is created, preserve the same truthful game state.</p>
+<h2>Beat A0 — impossible first frame</h2>
+<p>Time: <code>0.00–0.47</code> / frames <code>0–13</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Cold-open on the peak Fire Torch goal frame, not the beginning of the move.</li>
+<li>Crop 112% around Dario, the goal, and the burning defender trail.</li>
+<li>Show the confetti burst and goal lettering at full color.</li>
+<li>Freeze the best frame for only the final four frames of this beat.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li>Top-quarter, centered: <code>MY STRIKER CAUGHT FIRE.</code></li>
+<li>Use <code>ComicStompTitle</code>.</li>
+<li>“CAUGHT FIRE” uses blue face, gold inner shadow, red outer shadow.</li>
+<li>Let the word <code>FIRE</code> flicker between red and flame for two frames. Do not glow or blur it.</li>
+</ul>
+<p><strong>Micro animation</strong></p>
+<ul>
+<li>Add three 12×12 flame pixels that travel upward in stepped 8 px moves.</li>
+<li>Add a tiny <code>REAL GAMEPLAY</code> stamp at x=72, y=172. It appears in one frame with no animation.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Start with the loudest clean 180 ms of <code>goal-net-hit.wav</code>.</li>
+<li>Layer <code>goal-crowd.m4a</code> 80 ms later.</li>
+<li>Music begins under the impact, not before it.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<p>Optional creator voice: “My striker caught fire.”</p>
+<h2>Beat A1 — rewind the answer</h2>
+<p>Time: <code>0.47–1.10</code> / frames <code>14–32</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Run a pixel rewind from goal to the charged Fire Torch state.</li>
+<li>Use seven reverse frames from the real source.</li>
+<li>Hold each frame for two frames.</li>
+<li>On every new frame, offset one 8 px horizontal band left or right by 16 px.</li>
+<li>End on a clean frame with Dario at 100% and the power dock visible.</li>
+</ul>
+<p><strong>Caption</strong></p>
+<ul>
+<li>Replace the first title with <code>HERE&#39;S HOW.</code> in <code>DeveloperNote</code> style.</li>
+<li>Place it at y=310. It types in three chunks: <code>HERE&#39;S</code> / <code>HOW</code> / <code>.</code>.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li><strong>[CREATE SFX: <code>pixel-rewind-630ms.wav</code>]</strong> A short reversed tape pull mixed with three 8-bit pitch steps.</li>
+<li>Cut the crowd sound to silence on the first rewind frame.</li>
+<li>Add one quiet ball bounce at the end.</li>
+</ul>
+<h2>Beat A2 — ordinary player, clear danger</h2>
+<p>Time: <code>1.10–2.30</code> / frames <code>33–68</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Show the full portrait match screen at normal scale.</li>
+<li>Dario carries the ball in the final third.</li>
+<li>Add a 2 px cream diamond around Dario. It expands by 8 px, then holds.</li>
+<li>Draw thin red stepped brackets around the three defenders. Do not cover them.</li>
+</ul>
+<p><strong>Labels</strong></p>
+<ul>
+<li>Above Dario: <code>DARIO — YOUR STRIKER</code>.</li>
+<li>Under it, in gold: <code>POWER READY</code>.</li>
+<li>Add a small counter at left: <code>DEFENDERS: 3</code>.</li>
+</ul>
+<p><strong>Micro animation</strong></p>
+<ul>
+<li>Dario&#39;s label follows at 8-frame intervals, not every frame. This deliberate stepped tracking keeps the pixel feel.</li>
+<li>The gold meter gives one 105% pulse when it reaches 100%.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Use real kick/pass sound.</li>
+<li>Add a low two-note tension pulse.</li>
+<li>Do not use flame audio yet.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<p>“I gave ordinary footballers superpowers.”</p>
+<h2>Beat A3 — power activation</h2>
+<p>Time: <code>2.30–3.30</code> / frames <code>69–98</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Hold one clean frame of the gold <code>FIRE TORCH</code> power dock.</li>
+<li>The dock rises 14 px with a two-frame overshoot.</li>
+<li>Snap-cut to the first ignition frame.</li>
+<li>Camera zoom goes <code>100% → 118%</code> in six frames around Dario.</li>
+<li>Keep Dario within the center 60% of the screen.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>FIRE TORCH</code> appears behind Dario as huge outline-only letters.</li>
+<li>Use red outline, gold inner line, transparent center.</li>
+<li>The letters remain for 12 frames and split apart as Dario runs through them.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li><code>fire-torch-ignite.wav</code> on the exact ignition frame.</li>
+<li><code>flame-up.wav</code> starts 80 ms earlier at low volume to make the hit feel larger.</li>
+<li>Music drops to near silence for 120 ms before ignition, then returns.</li>
+</ul>
+<h2>Beat A4 — three-defender payoff</h2>
+<p>Time: <code>3.30–6.60</code> / frames <code>99–197</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Play the Fire Torch run at real speed.</li>
+<li>Track Dario with a stepped camera pan. Never rotate the pitch.</li>
+<li>At each defeated defender, freeze for three frames and punch the crop to 125%.</li>
+<li>Return to 112% over four frames.</li>
+</ul>
+<p><strong>Counter stamps</strong></p>
+<ul>
+<li>First hit: <code>1 / 3</code>.</li>
+<li>Second hit: <code>2 / 3</code>.</li>
+<li>Third hit: <code>3 / 3 — CLEAR</code>.</li>
+<li>Each stamp lands near the defeated defender, then slides to a fixed stack at left.</li>
+<li>Use cream face, red outline, ink shadow.</li>
+</ul>
+<p><strong>Micro FX</strong></p>
+<ul>
+<li>Emit six rectangular flame fragments at each hit.</li>
+<li>Use only red, gold, gold-light, and flame.</li>
+<li>Each fragment moves on a straight 8 px grid path for 8–12 frames.</li>
+<li>Add one-frame cream impact star. No bloom.</li>
+<li>Reduce background saturation by 15% during each three-frame freeze so the player reads immediately.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Loop a low layer of <code>flame-up.wav</code> or the existing flame loop.</li>
+<li>Use <code>flame-hit.wav</code> once per defender.</li>
+<li>Pitch hits up by 0, +2, and +4 semitones.</li>
+<li>Add a quiet crowd “ooh” after defender two.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<p>No voice. Let the action and counter explain the moment.</p>
+<h2>Beat A5 — goal and release</h2>
+<p>Time: <code>6.60–7.83</code> / frames <code>198–234</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Return to full match framing for the shot.</li>
+<li>On boot contact, insert one cream frame at 35% opacity.</li>
+<li>The ball gets a three-frame flame trail.</li>
+<li>Hold the completed goal and confetti for 18 frames.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>HE BURNED THROUGH ALL THREE.</code></li>
+<li>Use <code>ComicStompTitle</code>, one line if possible.</li>
+<li>Enter from 125%, settle in 8 frames.</li>
+<li>Add a small handwritten-style sans note below: <code>...and scored.</code></li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li><code>shot-scorch.wav</code> on contact.</li>
+<li><code>goal-net-hit.wav</code>, then <code>goal-crowd.m4a</code>.</li>
+<li>Use only the first 700 ms of the goal fanfare.</li>
+</ul>
+<h2>Beat A6 — prove the manager game</h2>
+<p>Time: <code>7.83–11.17</code> / frames <code>235–334</code></p>
+<p>Use four cuts of 0.7–0.9 seconds. Every cut happens on a tap or panel movement.</p>
+<ol>
+<li><strong>Formation</strong> — tap the formation control. Caption: <code>SET THE SHAPE.</code></li>
+<li><strong>Playstyle</strong> — change playstyle. Caption: <code>CHANGE THE PLAN.</code></li>
+<li><strong>Training</strong> — show a drill result with visible stat gains. Caption: <code>TRAIN THE HEROES.</code></li>
+<li><strong>Facilities</strong> — place a building next to a useful neighbor. Caption: <code>BUILD THE CLUB.</code></li>
+</ol>
+<p><strong>Transition</strong></p>
+<ul>
+<li>Use action match cuts for the first three.</li>
+<li>Use one paper whip into facilities.</li>
+<li>A thin progress rail along the left fills in four gold blocks. This creates forward momentum without a countdown timer.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Real <code>ui-single-click.m4a</code> on every choice.</li>
+<li><code>drill-complete-heavy.wav</code> on the training result.</li>
+<li><code>facility-start-work.wav</code> on the building placement.</li>
+<li>Keep music steady. No voice.</li>
+</ul>
+<h2>Beat A7 — conversion end card</h2>
+<p>Time: <code>11.17–15.00</code> / frames <code>335–449</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Ink-deep background.</li>
+<li>Caped Ball icon rises from y=1,010 to y=600 over 12 frames with a small cape-like squash.</li>
+<li>A thin pitch line draws behind it from left to right in 10 stepped segments.</li>
+<li>One tiny Fire Torch player runs across the line and exits right.</li>
+</ul>
+<p><strong>Title hierarchy</strong></p>
+<ol>
+<li><code>HERO FOOTBALL MANAGER</code> — cream, 70 px, Silkscreen Bold.</li>
+<li><code>$3.99 • ONE PURCHASE</code> — gold, 52 px.</li>
+<li><code>NO ADS • NO IAP • OFFLINE</code> — blue-light, 42 px.</li>
+<li><code>TAP TO RUN YOUR CLUB</code> — cream, 46 px, placed above TikTok&#39;s bottom UI.</li>
+</ol>
+<p>Place the CTA baseline at <code>y=1440</code>. Keep every line within <code>x=72–900</code>.</p>
+<p><strong>CTA micro animation</strong></p>
+<ul>
+<li>The CTA arrow moves 8 px down, returns, waits 14 frames, then repeats.</li>
+<li>Do not imitate TikTok&#39;s button.</li>
+<li>The final frame holds for at least 24 frames.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Short <code>positive.m4a</code> cue when the price appears.</li>
+<li>Music resolves on the last downbeat.</li>
+<li>Do not end on an abrupt audio cut; use an 8-frame fade.</li>
+</ul>
+<p><strong>Caption for the post</strong></p>
+<p><code>I made a football manager where ordinary players wake up with powers. Dario got fire. 🔥 $3.99, no ads, plays offline.</code></p>
+<hr>
+<h1>Video B — “His Agent Noticed”</h1>
+<h2>ASSETS NEEDED FROM YOU — VIDEO B</h2>
+<p><strong>Nothing is required from you to build the first draft.</strong> The game can create the full contract, awakening, and match story.</p>
+<h3>Send these to make the video better</h3>
+<ol>
+<li><p><strong>Your voice recording — optional, recommended</strong><br>Record four separate lines: “He earned seventy-two dollars a week.” “Then he woke up with superpowers.” “His agent noticed.” “Worth it.” Send WAV or M4A with no music. Speak like you are telling a friend a funny story. If you do not send this, the same words appear as captions.</p>
+</li>
+<li><p><strong>One real-phone negotiation clip — optional</strong><br>Record 0.7–1.2 seconds of your thumb tapping the wage <code>+</code> button on an iPhone. Use portrait <code>1080×1920</code>, 30 fps, no glare, and keep the amount readable. If you do not send this, the video uses a deterministic screen capture.</p>
+</li>
+<li><p><strong>TikTok music choice — needed before publishing</strong><br>Choose a current track from TikTok&#39;s Commercial Music Library. It needs a restrained opening, a lift during the awakening, and a clean beat for the <code>SIGNED</code> stamp. Send the track title and region availability. A temporary guide beat will be used until then.</p>
+</li>
+<li><p><strong>Live App Store link — needed before running the ad</strong><br>Send the U.S. App Store URL or Apple campaign link after release. It will be added inside TikTok Ads Manager.</p>
+</li>
+</ol>
+<h3>Four quick decisions</h3>
+<ul>
+<li>Approve the contract story: <strong>$72/wk → $314/wk</strong>, three years, Starter promise, accepted renewal, then a Fire Torch goal.</li>
+<li>Choose the pitch card: <strong>MONEY TALKS</strong> if the real save owns it; otherwise <strong>STRAIGHT TALK</strong>.</li>
+<li>Approve <strong>Dario Flint + Fire Torch</strong> for campaign continuity. Dario is the default.</li>
+<li>Confirm the U.S. price is still <strong>$3.99</strong> before publishing. A no-price version will also be exported.</li>
+</ul>
+<h3>You do not need to provide</h3>
+<ul>
+<li>Contract, awakening, or match footage.</li>
+<li>Fire, ball, goal, crowd, negotiation, or interface sound effects.</li>
+<li>The game icon, player art, title art, fonts, or color palette.</li>
+<li>A custom animation or edited video.</li>
+</ul>
+<h2>Purpose</h2>
+<p>This is the deeper conversion video. It turns one player into a tiny story: unknown player, impossible awakening, expensive renewal, manager choice, match payoff. It proves this is a real club-management game rather than a passive match viewer.</p>
+<p>Length: <strong>18.0 seconds / 540 frames</strong><br>Primary hook: <strong>“He made $72 a week. Then he became a superhero.”</strong><br>Payoff: the manager signs the hero and the hero changes the next match.<br>Tone: funny, intimate, and slightly stressful.</p>
+<h2>Required deterministic capture state</h2>
+<p>Create one controlled career fixture with:</p>
+<ul>
+<li>Dario Flint or another named ordinary player.</li>
+<li>Old weekly wage: <code>$72 / wk</code>.</li>
+<li>New agent opening demand: <code>$314 / wk</code>.</li>
+<li>Fire Torch awakening.</li>
+<li>Renewal panel with the wage, three-year term, Starter promise, and one pitch card visibly selected.</li>
+<li>A successful negotiated renewal.</li>
+<li>The signed player scoring or creating a Fire Torch goal in the next match.</li>
+</ul>
+<p>If the real wage logic produces different values, use the actual values. Never animate numbers that the captured state does not contain.</p>
+<h2>Beat B0 — wage shock</h2>
+<p>Time: <code>0.00–0.80</code> / frames <code>0–23</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Start on the agent panel with <code>$314 / WK</code> centered.</li>
+<li>Crop so the player&#39;s face, mood, wage, and plus button are visible.</li>
+<li>On frame 0, the number is already present.</li>
+<li>The agent portrait changes from rest to angry or unhappy on frame 6.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>HE WANTS A 4× RAISE?!</code></li>
+<li>Use <code>ComicStompTitle</code> at y=320.</li>
+<li>Animate <code>4×</code> separately: rotate 3°, scale to 118%, then stamp down.</li>
+<li>Add a tiny red <code>AGENT ON LINE TWO</code> label above the portrait.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li><code>ledger-thunk.wav</code> on frame 0.</li>
+<li><code>negative.m4a</code> at low volume on the portrait change.</li>
+<li>Add a 250 ms phone-line click.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<p>“He earned seventy-two dollars a week.”</p>
+<h2>Beat B1 — yesterday versus today</h2>
+<p>Time: <code>0.80–1.70</code> / frames <code>24–50</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Split the canvas with a hard ink seam.</li>
+<li>Left: renewal queue or player contract showing <code>$72 / WK</code>, labeled <code>YESTERDAY</code>.</li>
+<li>Right: agent panel showing <code>$314 / WK</code>, labeled <code>TODAY</code>.</li>
+<li>A red pixel line crosses out <code>$72</code> from left to right.</li>
+<li><code>$314</code> counts upward in four hard steps: 72 → 150 → 240 → 314.</li>
+</ul>
+<p><strong>Caption</strong></p>
+<ul>
+<li>Bottom-safe center: <code>THEN HE WOKE UP.</code></li>
+<li>Gold type. No shadow until the word <code>UP</code>, when a gold shadow snaps on.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Four quiet stat-step taps for the number changes.</li>
+<li>Music low-pass filter closes slightly as the count rises.</li>
+</ul>
+<h2>Beat B2 — the awakening</h2>
+<p>Time: <code>1.70–4.63</code> / frames <code>51–138</code></p>
+<p>Use the production <code>AwakeningCutsceneScreen</code> with Fire Torch. Compress its three beats without changing their order.</p>
+<p><strong>B2.1 Hush — 0.70 s</strong></p>
+<ul>
+<li>Player limps two steps and falls.</li>
+<li>Teammates rush in.</li>
+<li>Camera makes the existing 4 pt opening jolt.</li>
+<li>Caption: <code>SOMETHING IS WRONG.</code></li>
+<li>Audio: first 0.7 seconds of the awakening limp bed.</li>
+</ul>
+<p><strong>B2.2 Omen — 0.73 s</strong></p>
+<ul>
+<li>Red light pulses under the shirt.</li>
+<li>Warm palette creeps into the surrounding players one 8 px band at a time.</li>
+<li>Caption: <code>THE SHIRT IS GETTING HOT.</code></li>
+<li>Add one heartbeat at the end.</li>
+</ul>
+<p><strong>B2.3 Ascension — 1.50 s</strong></p>
+<ul>
+<li>Use the production white flash.</li>
+<li>Player rises 70 pt while teammates burst outward.</li>
+<li>Fire crown appears.</li>
+<li>Display <code>NEW HERO</code> and <code>FIRE TORCH</code> as two staggered title impacts.</li>
+<li><code>NEW HERO</code> lands first in cream and gold.</li>
+<li><code>FIRE TORCH</code> lands six frames later in red, gold, and ink.</li>
+<li>Audio: <code>awakening-angels.m4a</code>; start <code>awakening-harps.m4a</code> 1.17 seconds later if the beat remains long enough. Layer <code>fire-torch-ignite.wav</code> at 60% on the title impact.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<p>“Then he woke up with superpowers.”</p>
+<h2>Beat B3 — the agent noticed</h2>
+<p>Time: <code>4.63–5.50</code> / frames <code>139–164</code></p>
+<p><strong>Transition</strong></p>
+<ul>
+<li>Pixel rewind the last ascension frame for only four frames.</li>
+<li>Match-cut the gold awakening label to the gold wage number.</li>
+</ul>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Return to the agent panel.</li>
+<li>Add a small developer note above it: <code>HIS AGENT NOTICED.</code></li>
+<li>The angry mood face gives one two-frame horizontal shake.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Phone reconnect click.</li>
+<li>One dry comedic silence of 120 ms.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<p>“His agent noticed.”</p>
+<h2>Beat B4 — build the offer</h2>
+<p>Time: <code>5.50–9.20</code> / frames <code>165–275</code></p>
+<p>Show the actual decision surface. Do not montage so quickly that choices cannot be read.</p>
+<p><strong>Choice 1 — wage</strong></p>
+<ul>
+<li>Tap plus until the chosen offer is shown.</li>
+<li>Magnify only the wage row by 110% for 12 frames.</li>
+<li>Caption: <code>MONEY</code>.</li>
+</ul>
+<p><strong>Choice 2 — term</strong></p>
+<ul>
+<li>Select <code>3Y</code>.</li>
+<li>The chosen card drops 2 px and shows its blue lip.</li>
+<li>Caption: <code>SECURITY</code>.</li>
+</ul>
+<p><strong>Choice 3 — promise</strong></p>
+<ul>
+<li>Select <code>STARTER — A • HUGE</code>.</li>
+<li>Add a red micro-caption: <code>THIS PROMISE HAS A COST.</code></li>
+<li>Briefly show its full consequence text.</li>
+</ul>
+<p><strong>Choice 4 — pitch card</strong></p>
+<ul>
+<li>Select one real available card.</li>
+<li>Use <code>MONEY TALKS</code> only if that card exists in the deterministic fixture.</li>
+<li>Caption: <code>LEVERAGE</code>.</li>
+</ul>
+<p><strong>Progress display</strong></p>
+<ul>
+<li>Four small labels stack at left: MONEY / SECURITY / PROMISE / LEVERAGE.</li>
+<li>Each turns from grey to blue when selected.</li>
+<li>This is not a fake game UI. It is an editorial overlay outside the captured phone frame.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li><code>ui-single-click.m4a</code> for each selection.</li>
+<li>Raise pitch by one semitone per choice.</li>
+<li>Keep music tension low and rhythmic.</li>
+</ul>
+<h2>Beat B5 — send and wait</h2>
+<p>Time: <code>9.20–10.40</code> / frames <code>276–311</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Tap the real offer button.</li>
+<li>Crop to the agent portrait and outcome area.</li>
+<li>Add a three-dot typing indicator made from square 8×8 pixels.</li>
+<li>Dot timing: 1–2–3, blank, repeat once.</li>
+<li>Hold the second repeat for six frames longer than expected.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>PLEASE SAY YES.</code> in <code>DeveloperNote</code> style.</li>
+<li>It enters one word per agent-dot pulse.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Remove the beat from the music, leaving only the bass note.</li>
+<li>Three muted button ticks.</li>
+<li>No voice.</li>
+</ul>
+<h2>Beat B6 — signed</h2>
+<p>Time: <code>10.40–11.47</code> / frames <code>312–343</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Show the real accepted outcome.</li>
+<li>A <code>SIGNED</code> stamp hits diagonally at <code>-6°</code>.</li>
+<li>Stamp uses red outline, cream face, ink shadow.</li>
+<li>The player&#39;s portrait swaps to joy.</li>
+<li>A thin gold line connects the player portrait to the Fire Torch icon.</li>
+</ul>
+<p><strong>Micro animation</strong></p>
+<ul>
+<li>Stamp lands at 112%, compresses to 92%, returns to 100%.</li>
+<li>Emit four paper flecks, not confetti.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li><code>ledger-thunk.wav</code> and <code>positive.m4a</code> together.</li>
+<li>Restore the full music beat after the impact.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<p>“Worth it.”</p>
+<h2>Beat B7 — the plan plays out</h2>
+<p>Time: <code>11.47–14.53</code> / frames <code>344–435</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Match-cut from the signed Fire Torch icon to Dario&#39;s charged Fire Torch meter.</li>
+<li>Show 0.6 seconds of ignition.</li>
+<li>Show 1.4 seconds of the defender run.</li>
+<li>Show 1.0 second of the shot and goal.</li>
+<li>Use no title over the first 1.5 seconds. Let the payoff read.</li>
+</ul>
+<p><strong>Caption</strong></p>
+<ul>
+<li>After the second defender falls: <code>THE PLAN PLAYED OUT.</code></li>
+<li>Cream type, gold shadow, no red.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Fire ignition, one defender hit, shot scorch, goal impact.</li>
+<li>Do not repeat the three-counter treatment from Video A. This video needs a different identity.</li>
+</ul>
+<h2>Beat B8 — whole-club montage</h2>
+<p>Time: <code>14.53–16.20</code> / frames <code>436–485</code></p>
+<p>Three 0.55-second action cuts:</p>
+<ol>
+<li>Drill result: <code>TRAIN THEM.</code></li>
+<li>Facility placement: <code>BUILD FOR THEM.</code></li>
+<li>Hero Cup bracket: <code>CLIMB WITH THEM.</code></li>
+</ol>
+<p>Each title is one word group in the same screen position. The background changes under it on the downbeat.</p>
+<p><strong>Transition</strong></p>
+<ul>
+<li>Ink snap between scenes.</li>
+<li>Keep the action location aligned near the center to prevent visual whiplash.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Drill complete hit.</li>
+<li>Facility construction cue.</li>
+<li>One short crowd lift on the cup.</li>
+</ul>
+<h2>Beat B9 — conversion end card</h2>
+<p>Time: <code>16.20–18.00</code> / frames <code>486–539</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Ink-deep background with a small cream paper strip behind the product name.</li>
+<li>Caped Ball icon is centered at x=540, y=520.</li>
+<li>Product name is centered at y=720, split across two lines, with a maximum width of 820 px.</li>
+<li>A tiny Dario sprite with flame crown stands on the final letter.</li>
+</ul>
+<p><strong>Copy</strong></p>
+<ol>
+<li><code>HERO FOOTBALL MANAGER</code></li>
+<li><code>$3.99 • ONE PURCHASE</code></li>
+<li><code>NO ADS • NO IAP • OFFLINE</code></li>
+<li><code>TAP TO RUN YOUR CLUB</code></li>
+</ol>
+<p>Place the CTA baseline at <code>y=1440</code>. Keep every line within <code>x=72–900</code>.</p>
+<p><strong>Micro animation</strong></p>
+<ul>
+<li>The flame crown loops on a three-frame cycle.</li>
+<li>The price receives one gold underline drawn left-to-right.</li>
+<li>The CTA gives one 104% pulse, then remains still.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Small positive chime.</li>
+<li>End the music on a full beat.</li>
+<li>Final 120 ms fade.</li>
+</ul>
+<p><strong>Caption for the post</strong></p>
+<p><code>He was cheap until he became a superhero. Then the agent called. 😭 Hero Football Manager is $3.99, with no ads or IAP.</code></p>
+<hr>
+<h1>Video C — “From Stand-Up to Superpowers”</h1>
+<h2>ASSETS NEEDED FROM YOU — VIDEO C</h2>
+<p><strong>This personal version needs four items from you.</strong> They are the only new assets required. The game already provides all gameplay, animations, fonts, icons, and game sound effects.</p>
+<h3>Send these four items</h3>
+<ol>
+<li><p><strong>Stand-up comedy photo or video — required</strong><br>Send one strong stage photo or a 1–3 second video. You should be visible with a microphone. Use the highest-resolution original. Confirm that you can use the image in paid advertising. A real, imperfect club recording is better than a polished stock image.</p>
+</li>
+<li><p><strong>Personal Vietnam photo or video — required</strong><br>Send one photo or a 1–3 second clip from your life after moving to Vietnam. Use an ordinary, specific moment: arriving with luggage, working in a café, walking your neighborhood, or sitting at your desk. Avoid a generic tourist image. Confirm that every visible person permits paid-ad use.</p>
+</li>
+<li><p><strong>Making-the-game material — required</strong><br>Send two or three items from the two-year build: an early screenshot, notebook page, old UI, development photo, short screen recording, or dated progress image. The best set shows one rough early build and one later build. Do not create fake old material.</p>
+</li>
+<li><p><strong>Your final voice-over — required</strong><br>Record: “So I retired from stand-up comedy, moved to Vietnam, and learned how to make a football game. Two years later… here it is.” Send one clean WAV or M4A file with no music. Record in a quiet room. Leave one second of silence at the start and end. Speak as if you are telling one person the story.</p>
+</li>
+</ol>
+<h3>Optional upgrades</h3>
+<ol start="5">
+<li><p><strong>A present-day creator clip</strong><br>Record 0.5–1.0 seconds of yourself holding the game or looking at it on your phone. Use portrait <code>1080×1920</code>, 30 fps, natural light, and no beauty filter.</p>
+</li>
+<li><p><strong>TikTok music choice</strong><br>Choose a warm, commercially cleared track from TikTok&#39;s Commercial Music Library. It needs a quiet opening, a lift on “Two years later,” and a clean beat when Fire Torch activates.</p>
+</li>
+<li><p><strong>Live App Store link</strong><br>Send the U.S. App Store URL before running the ad. It will be added in TikTok Ads Manager, not baked into the video.</p>
+</li>
+</ol>
+<h3>Four quick decisions</h3>
+<ul>
+<li>Confirm that “retired from stand-up comedy,” “moved to Vietnam,” and “two years later” are accurate.</li>
+<li>Confirm whether your face and full name can appear in the paid version.</li>
+<li>Approve <strong>Dario Flint + Fire Torch</strong> as the gameplay payoff.</li>
+<li>Confirm the U.S. price is still <strong>$3.99</strong> before publishing.</li>
+</ul>
+<h3>You do not need to provide</h3>
+<ul>
+<li>Edited footage or a finished personal montage.</li>
+<li>Match, training, facility, or contract footage.</li>
+<li>Ball, goal, crowd, fire, interface, or transition sound effects.</li>
+<li>The game icon, player art, title art, fonts, or color palette.</li>
+</ul>
+<h2>Purpose</h2>
+<p>This is the trust and connection video. It gives the game a real person, a surprising life change, and a two-year effort before showing the Fire Torch payoff from Video A. It should feel like a developer telling the truth, not a brand biography.</p>
+<p>Length: <strong>22.0 seconds / 660 frames</strong><br>Primary hook: <strong>“I retired from stand-up comedy.”</strong><br>Payoff: the microphone cable becomes a pitch line, then Fire Torch takes over the match.<br>Tone: personal, dry, warm, and proud without sounding self-important.</p>
+<h2>Voice-over script and timing</h2>
+<p>Use one continuous natural recording:</p>
+<blockquote>
+<p>“So I retired from stand-up comedy, moved to Vietnam, and learned how to make a football game. Two years later… here it is.”</p>
+</blockquote>
+<p>Target delivery: <strong>8.0–9.0 seconds</strong>. Do not speed up the recording. Build the picture edit around the natural pauses.</p>
+<h2>Visual thesis</h2>
+<p>The microphone cable is the connecting line through the opening. It begins on the comedy stage, travels across the Vietnam and development images, and becomes the white touchline of the football pitch. This is one simple programmatic animation, not a different effect for every photo.</p>
+<p>Keep personal images visibly real. Do not remove all grain, stabilize every movement, replace backgrounds, or use AI-generated stand-ins.</p>
+<h2>Beat C0 — the strange first sentence</h2>
+<p>Time: <code>0.00–1.00</code> / frames <code>0–29</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Start on the strongest real stand-up image. Your face and microphone must be readable on frame 0.</li>
+<li>Crop vertically around you. Preserve some stage darkness and audience context.</li>
+<li>Add a small cream label at top-left: <code>REAL STORY</code>.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>I RETIRED FROM STAND-UP.</code></li>
+<li>Use cream text with an ink outline and one red offset shadow.</li>
+<li>Do not use the full <code>ComicStompTitle</code> entrance. The words appear in two hard cuts: <code>I RETIRED</code> then <code>FROM STAND-UP.</code></li>
+<li>Keep the title in the top quarter without covering your face.</li>
+<li>Add a smaller fixed line near y=1450: <code>...TO BUILD THIS FOOTBALL GAME.</code> This must be readable on frame 0.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Voice starts on frame 0: “So I retired from stand-up comedy…”</li>
+<li>Keep 250 ms of real room or stage sound under the first word if the source recording is cleared.</li>
+<li>Music enters quietly after “retired.”</li>
+</ul>
+<h2>Beat C1 — leave the stage</h2>
+<p>Time: <code>1.00–2.90</code> / frames <code>30–86</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Show a second stand-up image or continue the real clip.</li>
+<li>A 4 px cream microphone cable traces from the microphone toward the lower edge.</li>
+<li>On “moved,” the cable pulls the image left like a physical wipe.</li>
+<li>Reveal the Vietnam image behind it. Do not use an airplane animation or stock skyline.</li>
+</ul>
+<p><strong>Caption</strong></p>
+<ul>
+<li><code>THEN I MOVED TO VIETNAM.</code></li>
+<li>Use <code>DeveloperNote</code> style at y=330.</li>
+<li><code>VIETNAM</code> lands in gold six frames after the rest of the sentence.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>One dry microphone-switch click at the wipe.</li>
+<li>A short room-tone change sells the location cut. Do not add cliché travel music.</li>
+</ul>
+<h2>Beat C2 — a new life, not a postcard</h2>
+<p>Time: <code>2.90–4.80</code> / frames <code>87–143</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Hold the personal Vietnam image long enough to recognize it.</li>
+<li>If using video, keep its natural handheld movement.</li>
+<li>Add a tiny location tag: <code>VIETNAM</code> and the real year. Use no fake date.</li>
+<li>The microphone cable continues across the lower third as one steady line.</li>
+</ul>
+<p><strong>Micro animation</strong></p>
+<ul>
+<li>Place three small pixel marks along the cable on spoken syllables.</li>
+<li>Each mark appears once and stays. Do not make them bounce.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<ul>
+<li>“…moved to Vietnam…”</li>
+</ul>
+<h2>Beat C3 — learning by building</h2>
+<p>Time: <code>4.80–7.20</code> / frames <code>144–215</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Show three real development items for about 0.8 seconds each.</li>
+<li>Cut 1: early game screenshot or notebook page.</li>
+<li>Cut 2: code, desk, or test build.</li>
+<li>Cut 3: later playable build.</li>
+<li>Place each inside a slightly rotated cream photo border with a real date or year.</li>
+<li>The cable crosses behind each image and straightens after every cut.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>LEARNED BY MAKING IT.</code></li>
+<li>Type one word per cut: <code>LEARNED</code> / <code>BY MAKING</code> / <code>IT.</code></li>
+<li>Use blue face, ink outline, and no red shadow.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Use a soft key tap, UI click, and ball kick on the three cuts.</li>
+<li>Keep each effect below the voice.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<ul>
+<li>“…and learned how to make a football game.”</li>
+</ul>
+<h2>Beat C4 — two years later</h2>
+<p>Time: <code>7.20–8.80</code> / frames <code>216–263</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Show the rough early build on the left and the current game on the right.</li>
+<li>A hard vertical seam moves left, replacing old with current.</li>
+<li>Use only real screenshots from the two dates.</li>
+<li>As the current game fills the frame, the microphone cable snaps into a straight white pitch touchline.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>TWO YEARS LATER…</code></li>
+<li>Use <code>ComicStompTitle</code>, but enter at 105% instead of 160% so it feels reflective.</li>
+<li>Hold the ellipsis for eight frames, then remove the title on “here it is.”</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Music drops to one sustained note under the ellipsis.</li>
+<li>Add <code>title-whoosh.wav</code> quietly as the seam moves.</li>
+</ul>
+<p><strong>Voice</strong></p>
+<ul>
+<li>“Two years later…”</li>
+</ul>
+<h2>Beat C5 — here it is</h2>
+<p>Time: <code>8.80–10.20</code> / frames <code>264–305</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>The touchline expands into the full current match screen.</li>
+<li>Show the score, both teams, moving players, and the full control row.</li>
+<li>Add the Caped Ball icon for only 12 frames, then clear it so gameplay owns the screen.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li><code>HERO FOOTBALL MANAGER</code></li>
+<li>Center it in the top quarter with cream face, blue shadow, red second shadow, and no box.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Voice finishes: “…here it is.”</li>
+<li>Let one clean crowd lift answer the final word.</li>
+<li>Music reaches its first full beat.</li>
+</ul>
+<h2>Beat C6 — the impossible result</h2>
+<p>Time: <code>10.20–15.30</code> / frames <code>306–458</code></p>
+<p>Reuse the strongest part of Video A instead of inventing a third gameplay language.</p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Start with Dario carrying the ball and Fire Torch fully charged.</li>
+<li>Show the <code>FIRE TORCH</code> activation.</li>
+<li>Show two defender impacts, then the shot and goal.</li>
+<li>Use real-speed gameplay. Keep the full third hit only if the action still reads within 5.1 seconds.</li>
+</ul>
+<p><strong>Title</strong></p>
+<ul>
+<li>First 0.8 seconds: <code>ORDINARY PLAYERS.</code></li>
+<li>On ignition, replace it with <code>SUPERPOWERS.</code></li>
+<li>The second word uses the full cream, gold, red, and ink title stack.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Fire ignition, defender hits, shot scorch, goal-net impact, then crowd.</li>
+<li>No voice. Let the game provide the proof.</li>
+</ul>
+<h2>Beat C7 — it is a manager game</h2>
+<p>Time: <code>15.30–18.70</code> / frames <code>459–560</code></p>
+<p>Use four quick actions:</p>
+<ol>
+<li>Change playstyle: <code>COACH THE MATCH.</code></li>
+<li>Complete a drill: <code>TRAIN THE TEAM.</code></li>
+<li>Place a facility: <code>BUILD THE CLUB.</code></li>
+<li>Show the filled Hero Cup bracket: <code>CHASE THE CUP.</code></li>
+</ol>
+<p><strong>Transition</strong></p>
+<ul>
+<li>Cut on real taps and panel motion.</li>
+<li>The microphone cable/touchline stays as a thin progress rail at the bottom and fills gold after each action.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>One real interface or result sound per cut.</li>
+<li>Music stays warm and forward. Do not restart the track after the goal.</li>
+</ul>
+<h2>Beat C8 — personal conversion card</h2>
+<p>Time: <code>18.70–22.00</code> / frames <code>561–659</code></p>
+<p><strong>Picture</strong></p>
+<ul>
+<li>Use ink-deep background.</li>
+<li>Place a small circular crop of the present-day creator clip at x=190, y=560 if supplied.</li>
+<li>Place the Caped Ball icon at x=540, y=520 if no creator clip is supplied.</li>
+<li>A tiny Dario Fire Torch sprite runs from the creator image to the product name.</li>
+</ul>
+<p><strong>Copy</strong></p>
+<ol>
+<li><code>I MADE THIS.</code></li>
+<li><code>HERO FOOTBALL MANAGER</code></li>
+<li><code>$3.99 • ONE PURCHASE</code></li>
+<li><code>NO ADS • NO IAP • OFFLINE</code></li>
+<li><code>TAP TO RUN YOUR CLUB</code></li>
+</ol>
+<p>Keep every line within <code>x=72–900</code>. Place the CTA baseline at <code>y=1440</code>.</p>
+<p><strong>Micro animation</strong></p>
+<ul>
+<li><code>I MADE THIS.</code> types on like a developer note.</li>
+<li>The product name lands once. Do not bounce it repeatedly.</li>
+<li>The CTA receives one gold underline, then the final frame holds for at least 24 frames.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li>Use a restrained positive chime.</li>
+<li>End on a complete beat with a 120 ms fade.</li>
+</ul>
+<p><strong>Caption for the post</strong></p>
+<p><code>I retired from stand-up, moved to Vietnam, and spent two years learning how to make a football game. Here it is. Hero Football Manager — $3.99, no ads, no IAP, plays offline.</code></p>
+<hr>
+<h1>Implementation notes for an LLM</h1>
+<h2>Reuse the existing Remotion project</h2>
+<p>Add three new compositions beside the existing trailer:</p>
+<ul>
+<li><code>TikTokFireTorch15</code></li>
+<li><code>TikTokHeroWage18</code></li>
+<li><code>TikTokFounderStory22</code></li>
+</ul>
+<p>Do not rewrite the current App Store trailer composition. Reuse its font registration, colors, <code>staticFile</code> pattern, <code>Audio</code>, <code>Video</code>, <code>Sequence</code>, <code>spring</code>, and <code>interpolate</code> setup.</p>
+<p>Recommended component list:</p>
+<ul>
+<li><code>TikTokSafeFrame</code></li>
+<li><code>ComicStompTitle</code></li>
+<li><code>DeveloperNote</code></li>
+<li><code>PixelRewind</code></li>
+<li><code>CounterStamp</code></li>
+<li><code>ChoiceProgress</code></li>
+<li><code>PremiumEndCard</code></li>
+<li><code>MicCableTimeline</code></li>
+</ul>
+<p>Do not build a general motion-design framework. These components only need the props used by the three videos.</p>
+<h2>Capture truth before decorating it</h2>
+<ol>
+<li>Create deterministic dev-harness routes for any missing source scene.</li>
+<li>Capture each scene without marketing overlays.</li>
+<li>Save the route, seed, viewport, state fixture, and clip time range in a provenance JSON file.</li>
+<li>Verify every displayed wage, promise, score, player, and outcome against the captured state.</li>
+<li>Add editorial titles and transitions only after raw clips are approved.</li>
+</ol>
+<h2>Export set</h2>
+<p>For each video, create:</p>
+<ul>
+<li>SFX + voice master without music.</li>
+<li>Guide-music review version.</li>
+<li>Final TikTok version with commercially cleared music.</li>
+<li>Clean version without platform watermark for Reels and Shorts.</li>
+<li>One poster frame at the strongest readable hook.</li>
+<li>One JSON timing manifest listing every beat, title, clip range, and audio cue.</li>
+</ul>
+<h2>Acceptance checklist</h2>
+<ul>
+<li><input disabled="" type="checkbox"> The first frame explains the hook without sound.</li>
+<li><input disabled="" type="checkbox"> Videos A and B show real gameplay or game UI within the first 0.5 seconds.</li>
+<li><input disabled="" type="checkbox"> Video C explains “stand-up to football game” on frame 0 and reveals full gameplay by 10.2 seconds.</li>
+<li><input disabled="" type="checkbox"> No title blocks the ball, hero, contract amount, or decision control.</li>
+<li><input disabled="" type="checkbox"> Every essential title remains in the safe area.</li>
+<li><input disabled="" type="checkbox"> No static image occupies more than half of the ad.</li>
+<li><input disabled="" type="checkbox"> Captions remain readable at 50% phone preview size.</li>
+<li><input disabled="" type="checkbox"> Pixel art uses nearest-neighbor sampling.</li>
+<li><input disabled="" type="checkbox"> Price is exactly <code>$3.99</code> for the U.S. version.</li>
+<li><input disabled="" type="checkbox"> “No ads,” “No IAP,” and “Offline” match the shipped game.</li>
+<li><input disabled="" type="checkbox"> Every result is produced by the real deterministic game state.</li>
+<li><input disabled="" type="checkbox"> Music and every external sound are cleared for paid commercial use.</li>
+<li><input disabled="" type="checkbox"> Final audio is clear, with no clipped peak.</li>
+<li><input disabled="" type="checkbox"> The TikTok preview confirms the CTA and titles are unobstructed.</li>
+<li><input disabled="" type="checkbox"> All three videos export as 1080×1920 H.264 with Rec.709 tags.</li>
+</ul>
+<h2>Grok Audit changes incorporated</h2>
+<p>Grok 4.6 reviewed Videos A and B at high reasoning. Its useful top-level findings were checked against the document before editing. The detailed finding body returned a placeholder, and one retry stalled, so no unverified claim was copied into this spec. Video C was added after that audit.</p>
+<ul>
+<li>Standardized both videos on one conversion action: <code>TAP TO RUN YOUR CLUB</code>.</li>
+<li>Removed the contract beat from Video A. Video A now owns spectacle, tactics, training, and facilities. Video B owns the contract story.</li>
+<li>Changed <code>DARIO — ORDINARY STRIKER</code> to <code>DARIO — YOUR STRIKER</code> because he is already awakened in that scene.</li>
+<li>Moved Video B&#39;s icon and product name away from the right-side TikTok controls.</li>
+<li>Added exact end-card CTA coordinates to keep both calls to action above TikTok&#39;s bottom interface.</li>
+</ul>
+<h2>Current TikTok guidance used</h2>
+<ul>
+<li>Vertical 9:16 is recommended for in-feed ads.</li>
+<li>Dynamic motion and clear audio are required for ads.</li>
+<li>A game-related hook should lead immediately into gameplay.</li>
+<li>Simulation and strategy creative should use hook → gameplay → CTA.</li>
+<li>TikTok&#39;s 2026 trend guidance favors honest, behind-the-scenes storytelling over overly polished brand distance.</li>
+<li>Music for paid promotion should come from the Commercial Music Library or have separate commercial clearance.</li>
+</ul>
+<p>Official references:</p>
+<ul>
+<li><a href="https://ads.tiktok.com/business/en-US/next">TikTok 2026 trend forecast</a></li>
+<li><a href="https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads">TikTok in-feed ad specifications</a></li>
+<li><a href="https://ads.tiktok.com/help/article/tiktok-ads-policy-ad-format-and-functionality">TikTok ad format rules</a></li>
+<li><a href="https://ads.tiktok.com/business/creativecenter/quicktok/online/creative-tips-for-simulation-games/pc/en">TikTok simulation-game creative guidance</a></li>
+<li><a href="https://ads.tiktok.com/business/creativecenter/quicktok/online/creative-tips-for-strategic-games/pc/en">TikTok strategy-game creative guidance</a></li>
+<li><a href="https://ads.tiktok.com/help/article/how-to-use-the-commercial-music-library">TikTok Commercial Music Library</a></li>
+</ul>
+    </main>
+  </div>
+  <a class="top-link" href="#top" aria-label="Back to top">↑</a>
+  <script>
+    (() => {
+      const main = document.querySelector('main');
+      const slug = (text) => text.toLowerCase().replace(/[“”'’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      main.querySelectorAll('h1, h2').forEach((heading, index) => {
+        if (!heading.id) heading.id = slug(heading.textContent) || `section-${index}`;
+      });
+
+      const videos = [...main.querySelectorAll('h1')].filter((h) => h.textContent.startsWith('Video '));
+      const videoClasses = ['video-a', 'video-b', 'video-c'];
+      videos.forEach((h, index) => h.classList.add('video-title', videoClasses[index] || 'video-c'));
+
+      [...main.querySelectorAll('h2')].filter((h) => h.textContent.startsWith('ASSETS NEEDED')).forEach((heading) => {
+        const panel = document.createElement('section');
+        panel.className = 'asset-panel';
+        panel.id = `${heading.id}-panel`;
+        heading.before(panel);
+        panel.appendChild(heading);
+        while (panel.nextElementSibling && !panel.nextElementSibling.matches('h1, h2')) panel.appendChild(panel.nextElementSibling);
+        [...panel.querySelectorAll('h3')].forEach((h3) => {
+          const next = h3.nextElementSibling;
+          if (h3.textContent.includes('quick decisions') && next) next.classList.add('decisions');
+          if (h3.textContent.includes('do not need') && next) next.classList.add('covered');
+        });
+      });
+
+      [...main.querySelectorAll('h2')].filter((h) => h.textContent.startsWith('Beat ')).forEach((heading, index) => {
+        const details = document.createElement('details');
+        details.className = 'beat';
+        if (index === 0 || heading.textContent.includes('B0')) details.open = true;
+        const summary = document.createElement('summary');
+        summary.textContent = heading.textContent;
+        const body = document.createElement('div');
+        body.className = 'beat-body';
+        heading.before(details);
+        details.append(summary, body);
+        heading.remove();
+        while (details.nextElementSibling && !details.nextElementSibling.matches('h1, h2, hr')) body.appendChild(details.nextElementSibling);
+      });
+
+      [...main.querySelectorAll('h2')].filter((h) => h.textContent === 'Purpose').forEach((heading) => {
+        let node = heading.nextElementSibling;
+        while (node && !node.matches('h1, h2')) {
+          node.classList.add('purpose-card');
+          node = node.nextElementSibling;
+        }
+      });
+
+      const nav = document.querySelector('#nav');
+      const navItems = [
+        ['Overview', main.querySelector('h1')],
+        ['Video A', videos[0]],
+        ['A: Assets needed', main.querySelector('[id^="assets-needed-from-you-video-a"]')],
+        ['Video B', videos[1]],
+        ['B: Assets needed', main.querySelector('[id^="assets-needed-from-you-video-b"]')],
+        ['Video C', videos[2]],
+        ['C: Assets needed', main.querySelector('[id^="assets-needed-from-you-video-c"]')],
+        ['Build notes', [...main.querySelectorAll('h1')].find((h) => h.textContent.includes('Implementation notes'))],
+        ['Checklist', [...main.querySelectorAll('h2')].find((h) => h.textContent === 'Acceptance checklist')]
+      ];
+      navItems.forEach(([label, target]) => {
+        if (!target) return;
+        const link = document.createElement('a');
+        link.href = `#${target.id}`;
+        link.textContent = label;
+        if (label.includes('Assets')) link.className = 'asset-link';
+        nav.appendChild(link);
+      });
+
+      const progress = document.querySelector('.progress');
+      const updateProgress = () => {
+        const max = document.documentElement.scrollHeight - innerHeight;
+        progress.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+      };
+      addEventListener('scroll', updateProgress, { passive: true });
+      updateProgress();
+    })();
+  </script>
+</body>
+</html>
