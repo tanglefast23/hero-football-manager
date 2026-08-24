@@ -2,9 +2,10 @@
 title: Fix Six Full-Career Findings
 type: fix
 date: 2026-08-24
-status: delivery-pending
+status: complete
 source_spec: docs/superpowers/specs/2026-08-24-six-career-findings-master-spec.md
 branch: codex/fix-six-career-findings
+pull_request: https://github.com/tanglefast23/hero-football-manager/pull/219
 ---
 
 # Fix Six Full-Career Findings
@@ -321,9 +322,9 @@ were removed. Evidence:
 - [x] Apply confirmed in-scope fixes.
 - [x] Re-run affected checks.
 - [x] Review the final diff for unrelated files and secrets.
-- [ ] Commit only this plan, both Council spec files, implementation, tests, and reconciled docs.
-- [ ] Push `codex/fix-six-career-findings`.
-- [ ] Open a PR to `main` with summary, exact checks, Council status, Grok status, and UI evidence.
+- [x] Commit only this plan, both Council spec files, implementation, tests, and reconciled docs.
+- [x] Push `codex/fix-six-career-findings`.
+- [x] Open [PR #219](https://github.com/tanglefast23/hero-football-manager/pull/219) to `main` with summary, exact checks, Council status, Grok status, and UI evidence.
 
 Grok 4.6 high completed normally. Three findings were confirmed and fixed:
 
@@ -350,4 +351,4 @@ The three affected suites passed: 54 tests. TypeScript and `git diff --check` al
 - [x] All focused tests, TypeScript, formatting, and runtime checks pass.
 - [x] Council Audit ran before product implementation.
 - [x] Final Grok Audit completed and all confirmed findings were resolved.
-- [ ] The branch is pushed and the PR URL is recorded here.
+- [x] The branch is pushed and the PR URL is recorded here.
