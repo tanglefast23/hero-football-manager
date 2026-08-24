@@ -130,8 +130,11 @@ describe('active-manager economy rail', () => {
       // plays, so it collects the bonus every league week at the tier it has
       // climbed to, and the sampled peaks are now 1,356,554 / 1,355,579 /
       // 1,386,723. 1.45M keeps the guardrail narrow over the new worst case.
+      // Raising the Hero Cup winner prize from $25k to $100k moved the same
+      // peaks to 1,821,796 / 1,811,167 / 1,799,811. 1.9M keeps about four
+      // percent headroom over the measured worst case.
       expect(Math.max(...balances)).toBeLessThanOrEqual(
-        /* CEILING */ 1_450_000,
+        /* CEILING */ 1_900_000,
       );
       expect(balances.every((b) => Number.isSafeInteger(b))).toBe(true);
       expect(state.trainingPoints).toBeGreaterThanOrEqual(0);
