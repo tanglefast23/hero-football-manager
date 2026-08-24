@@ -8,6 +8,7 @@ import {
   completeAssistantGuideSequence,
   createBoardUltimatum,
   createCareer,
+  dismissAssistantInboxProductForCurrentWeek,
   M2_ASSISTANT_GUIDE_SEQUENCE_IDS,
   listCareerPlayer,
   protectBoardUltimatumPlayer,
@@ -24,6 +25,7 @@ import { reconcileStoryYouthIntake } from '../../game/youth-intake';
 import { createLaunchCareerSetup } from '../launch';
 import {
   homeViewModel,
+  homeProductAlerts,
   matchDayViewModel,
   postMatchViewModel,
   reconcileHomeAssistantInbox,
@@ -86,6 +88,49 @@ describe('management injury and lineup presentation', () => {
     expect(
       matchday.lineup.filter((player) => player.formationRole === 'FWD'),
     ).toHaveLength(2);
+  });
+
+  it('uses ID suffixes instead of invented shirt numbers for duplicate labels', () => {
+    const initial = createCareer(
+      createLaunchCareerSetup(20260824, undefined, content),
+    );
+    const fixture = initial.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === initial.userClubId ||
+        candidate.awayClubId === initial.userClubId,
+    )!;
+    const duplicates = initial.players
+      .filter(
+        (player) =>
+          player.clubId === initial.userClubId && player.role === 'DEF',
+      )
+      .slice(0, 2);
+    const matchday = matchDayViewModel(
+      {
+        ...initial,
+        week: fixture.week,
+        phase: 'matchday',
+        players: initial.players.map((player) => {
+          if (!duplicates.some((duplicate) => duplicate.id === player.id))
+            return player;
+          const { shirtNumber: _shirtNumber, ...withoutShirt } = player;
+          return { ...withoutShirt, name: 'Cal Moss' };
+        }),
+      },
+      content,
+    );
+    const labels = [...matchday.lineup, ...matchday.bench]
+      .filter((player) =>
+        duplicates.some((duplicate) => duplicate.id === player.id),
+      )
+      .map((player) => player.name);
+
+    expect(new Set(labels).size).toBe(2);
+    expect(labels).toEqual([
+      expect.stringMatching(/^Cal Moss \(DEF\) · /),
+      expect.stringMatching(/^Cal Moss \(DEF\) · /),
+    ]);
+    expect(labels.join(' ')).not.toContain('#');
   });
 
   it('shows the active sponsor challenge only on its match day', () => {
@@ -311,8 +356,9 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('removes the transfer-request message as soon as the request ends', () => {
-    const initial = createCareer(
-      createLaunchCareerSetup(20260823, undefined, content),
+    const initial = completeAssistantGuideSequence(
+      createCareer(createLaunchCareerSetup(20260823, undefined, content)),
+      'first-transfer-request',
     );
     const requester = initial.players.find(
       (player) => player.clubId === initial.userClubId,
@@ -340,6 +386,68 @@ describe('management injury and lineup presentation', () => {
     expect(homeViewModel(withdrawn).alerts).not.toContainEqual(
       expect.objectContaining({ id: `transfer-request-${requester.id}` }),
     );
+
+    const departed: GameState = {
+      ...requested,
+      players: requested.players.filter((player) => player.id !== requester.id),
+    };
+    expect(homeViewModel(departed).alerts).not.toContainEqual(
+      expect.objectContaining({ id: `transfer-request-${requester.id}` }),
+    );
+
+    const delivered = reconcileHomeAssistantInbox(requested);
+    const resolvedAfterDelivery: GameState = {
+      ...delivered,
+      players: delivered.players.map((player) =>
+        player.id === requester.id
+          ? { ...player, transferRequested: false }
+          : player,
+      ),
+    };
+    expect(homeViewModel(resolvedAfterDelivery).alerts).not.toContainEqual(
+      expect.objectContaining({ id: `transfer-request-${requester.id}` }),
+    );
+
+    const dismissed = dismissAssistantInboxProductForCurrentWeek(
+      requested,
+      `transfer-request-${requester.id}`,
+    );
+    expect(homeViewModel(dismissed).alerts).not.toContainEqual(
+      expect.objectContaining({ id: `transfer-request-${requester.id}` }),
+    );
+    expect(
+      homeViewModel({ ...dismissed, week: dismissed.week + 1 }).alerts,
+    ).toContainEqual(
+      expect.objectContaining({ id: `transfer-request-${requester.id}` }),
+    );
+  });
+
+  it('keeps same-name transfer requests distinct by player ID', () => {
+    const initial = createCareer(
+      createLaunchCareerSetup(20260824, undefined, content),
+    );
+    const [first, second] = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const requested: GameState = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === first.id || player.id === second.id
+          ? { ...player, name: 'Ty Brooks', transferRequested: true }
+          : player,
+      ),
+    };
+    const alerts = homeProductAlerts(requested).filter((alert) =>
+      alert.id.startsWith('transfer-request-'),
+    );
+
+    expect(alerts.map((alert) => alert.id)).toEqual(
+      expect.arrayContaining([
+        `transfer-request-${first.id}`,
+        `transfer-request-${second.id}`,
+      ]),
+    );
+    expect(new Set(alerts.map((alert) => alert.title)).size).toBe(2);
   });
 
   it('keeps a retirement announcement visible during the player final season', () => {

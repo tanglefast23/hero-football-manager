@@ -37,6 +37,8 @@ import {
   archetypeName,
   coachSpecialtyName,
   personalityName,
+  playerDisplayLabels,
+  type PlayerDisplayLabelSource,
   powerDisplayName,
   readableToken,
   scoutRegionName,
@@ -359,14 +361,22 @@ function heroLicenseReclaimViewModel(
       (lineup) => lineup.clubId === context.state.userClubId,
     )?.playerIds ?? [],
   );
+  const playerLabels = playerDisplayLabels(
+    context.state.players.filter(
+      (player) => player.clubId === context.state.userClubId,
+    ),
+  );
+  const promisedPlayerName =
+    playerLabels.get(context.player.id) ?? context.player.name;
   const options = reclaimableHeroLicenseHolders(
     context.state,
     context.player,
   ).map((holder) => {
     const starting = starters.has(holder.id);
+    const holderName = playerLabels.get(holder.id) ?? holder.name;
     return {
       playerId: holder.id,
-      name: holder.name,
+      name: holderName,
       role: holder.role,
       statusLabel: starting
         ? t('market.reclaimHolderStarting')
@@ -375,7 +385,7 @@ function heroLicenseReclaimViewModel(
         starting
           ? 'market.reclaimHeroLicenseStartingPreview'
           : 'market.reclaimHeroLicenseBenchPreview',
-        { holder: holder.name, player: context.player.name },
+        { holder: holderName, player: promisedPlayerName },
       ),
     };
   });
@@ -383,7 +393,7 @@ function heroLicenseReclaimViewModel(
     ? undefined
     : {
         prompt: t('market.reclaimHeroLicensePrompt', {
-          player: context.player.name,
+          player: promisedPlayerName,
         }),
         options,
       };
@@ -468,6 +478,22 @@ export function marketViewModel(
   const identities = new Map(
     (source.scoutedPlayerIdentities ?? []).map((player) => [player.id, player]),
   );
+  const visiblePlayers = new Map<string, PlayerDisplayLabelSource>(
+    source.transferListings.map(
+      (listing) => [listing.player.id, listing.player] as const,
+    ),
+  );
+  for (const report of source.scoutResult?.reports ?? []) {
+    const identity = identities.get(report.playerId);
+    if (!visiblePlayers.has(report.playerId)) {
+      visiblePlayers.set(report.playerId, {
+        id: report.playerId,
+        name: identity?.name ?? report.playerId,
+        role: report.role,
+      });
+    }
+  }
+  const playerLabels = playerDisplayLabels([...visiblePlayers.values()]);
 
   return {
     sections: [...unlockedSections],
@@ -516,7 +542,10 @@ export function marketViewModel(
           );
         return {
           playerId: report.playerId,
-          playerName: identity?.name ?? report.playerId,
+          playerName:
+            playerLabels.get(report.playerId) ??
+            identity?.name ??
+            report.playerId,
           role: report.role,
           lookId: identity?.lookId,
           ageLabel: t('market.ageLabel', { age: report.age }),
@@ -600,7 +629,13 @@ export function marketViewModel(
       }),
     },
     transfers: source.transferListings.map((listing) =>
-      transferListing(source, listing, transferWindowOpen, t),
+      transferListing(
+        source,
+        listing,
+        transferWindowOpen,
+        t,
+        playerLabels.get(listing.player.id),
+      ),
     ),
     coaches: source.coachCandidates.slice(0, 3).map((candidate) => {
       const eligible = isCoachCandidateEligible(
@@ -892,6 +927,7 @@ function transferListing(
   listing: TransferListingSource,
   windowOpen: boolean,
   t: CopyFn,
+  playerName = listing.player.name,
 ): TransferListingViewModel {
   const context = {
     careerSeed: source.careerSeed,
@@ -907,7 +943,7 @@ function transferListing(
   const affordable = listing.direction === 'SELL' || source.cash >= quote.fee;
   return {
     playerId: listing.player.id,
-    playerName: listing.player.name,
+    playerName,
     role: listing.player.role,
     lookId: listing.player.lookId,
     age: listing.player.age,

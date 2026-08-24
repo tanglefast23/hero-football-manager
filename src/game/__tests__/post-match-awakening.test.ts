@@ -7,6 +7,7 @@ import {
   buildCareerMatchTeamDef,
   buildCareerTeamDef,
   repairCareerLineupForInjuries,
+  selectCareerLicensedHeroes,
 } from '../squad';
 import {
   awakeningChancePercent,
@@ -149,6 +150,10 @@ describe('automatic post-match awakenings', () => {
       result.state.players.find((player) => player.id === targetId),
     ).toMatchObject({ power: expect.any(String), licensed: false });
     expect(userLineup(result.state)).not.toContain(targetId);
+    expect(
+      result.state.players.find((player) => player.id === targetId)
+        ?.returnLineupSlot,
+    ).toBe(2);
   });
 
   it('uses one stable roll and always grants a power when it triggers', () => {
@@ -581,6 +586,16 @@ describe('automatic post-match awakenings', () => {
     expect(() =>
       buildCareerTeamDef(result.state, result.state.userClubId),
     ).not.toThrow();
+
+    const returned = selectCareerLicensedHeroes(result.state, [
+      licensedBefore[0]!,
+      targetId,
+    ]);
+    expect(userLineup(returned)[2]).toBe(targetId);
+    expect(
+      returned.players.find((player) => player.id === targetId)
+        ?.returnLineupSlot,
+    ).toBeUndefined();
   });
 
   it('skips a fit promised starter when every Hero License is already in use', () => {

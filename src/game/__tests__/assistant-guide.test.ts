@@ -256,6 +256,19 @@ describe('assistant guide milestones', () => {
         'financial-warning',
       ),
     ).toBe(false);
+    expect(
+      scheduleAssistantInboxWeek(reloaded, {
+        productAlerts: [{ id: 'financial-warning', priority: 'urgent' }],
+      }).productAlertIds,
+    ).not.toContain('financial-warning');
+    expect(
+      scheduleAssistantInboxWeek(
+        { ...reloaded, week: reloaded.week + 1 },
+        {
+          productAlerts: [{ id: 'financial-warning', priority: 'urgent' }],
+        },
+      ).productAlertIds,
+    ).toContain('financial-warning');
   });
 
   test('permanently dismisses a one-time product lesson after its hand-off', () => {

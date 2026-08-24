@@ -47,6 +47,10 @@ import { careerMarketScoutOptions } from '../market-source-adapter';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 import { copyFor } from '../../i18n';
 import {
+  parseStoredGameState,
+  serializeGameState,
+} from '../../persistence/game-state-codec';
+import {
   outstandingInboxDuties,
   type OpeningInboxDutyId,
 } from '../assistant-guide';
@@ -135,6 +139,7 @@ describe('M1 app store integration', () => {
         player.role !== 'GK',
     )!;
     const licensedIds = starters.slice(0, 4).map((player) => player.id);
+    const revokedId = licensedIds[0];
     const career: GameState = {
       ...initial,
       purchasedHeroLicenseCap: 5,
@@ -143,6 +148,9 @@ describe('M1 app store integration', () => {
         licensedIds.includes(player.id) || player.id === target.id
           ? {
               ...player,
+              ...(player.id === revokedId || player.id === target.id
+                ? { name: 'Cal Moss' }
+                : {}),
               power: 'SUPER_SPEED' as const,
               powerTier: 1 as const,
               licensed: licensedIds.includes(player.id),
@@ -161,12 +169,14 @@ describe('M1 app store integration', () => {
       ),
     ).toHaveLength(5);
     expect(
+      withFifth.players.find((player) => player.id === revokedId)?.licensed,
+    ).toBe(true);
+    expect(
       withFifth.lineups.find(
         (candidate) => candidate.clubId === withFifth.userClubId,
       )?.playerIds,
     ).toEqual(lineup.playerIds);
 
-    const revokedId = licensedIds[0];
     useM1Store.getState().toggleHeroLicense(revokedId);
     const repairedIds = useM1Store
       .getState()
@@ -175,6 +185,11 @@ describe('M1 app store integration', () => {
           candidate.clubId === useM1Store.getState().career!.userClubId,
       )!.playerIds;
     expect(repairedIds).not.toContain(revokedId);
+    expect(
+      useM1Store
+        .getState()
+        .career!.players.find((player) => player.id === target.id)?.licensed,
+    ).toBe(true);
 
     useM1Store.getState().toggleHeroLicense(revokedId);
     const restored = useM1Store.getState().career!;
@@ -185,7 +200,14 @@ describe('M1 app store integration', () => {
       restored.lineups.find(
         (candidate) => candidate.clubId === restored.userClubId,
       )?.playerIds,
-    ).toEqual(repairedIds);
+    ).toEqual(lineup.playerIds);
+    const reloaded = parseStoredGameState(serializeGameState(restored));
+    expect(
+      reloaded.players
+        .filter((player) => player.name === 'Cal Moss')
+        .map((player) => player.id)
+        .sort(),
+    ).toEqual([revokedId, target.id].sort());
   });
 
   it('explains why an unavailable goalkeeper blocks a formation', () => {

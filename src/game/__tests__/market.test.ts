@@ -734,6 +734,7 @@ describe('contract negotiation', () => {
 
   it('scales contract wage taps from the original ask', () => {
     expect(contractWageStep(1_000)).toBe(50);
+    expect(contractWageStep(10_000)).toBe(500);
     expect(contractWageStep(63_631)).toBe(3_180);
     expect(contractWageStep(176_472)).toBe(8_820);
   });

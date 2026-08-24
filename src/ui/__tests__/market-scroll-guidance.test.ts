@@ -87,4 +87,35 @@ describe('market scroll guidance', () => {
       /guideFocus === 'assistant-coach-hire'[\s\S]*?setSection\('COACHES'\)/,
     );
   });
+
+  it('routes Sign the player to the exact Deals row without starting talks', () => {
+    const market = readFileSync(
+      join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
+      'utf8',
+    );
+
+    expect(market).toContainSource("label={t('market.signThePlayer')}");
+    expect(market).toContainSource('event.stopPropagation();');
+    expect(market).toMatchSource(
+      /candidate\.direction === 'BUY' && candidate\.playerId === playerId/,
+    );
+    expect(market).toContainSource("setSection('TRANSFERS');");
+    expect(market).toContainSource(
+      'ref={focused ? focusedListingRef : undefined}',
+    );
+    expect(market).toContainSource(
+      'onLayout={focused ? onFocusedListingLayout : undefined}',
+    );
+    expect(market).not.toContainSource('accessible={focused}');
+    expect(market).toContainSource('selected={focused}');
+    expect(market).toContainSource('animated: !reduceMotion');
+    expect(market).toContainSource(
+      'AccessibilityInfo.announceForAccessibility',
+    );
+    const handler = market.slice(
+      market.indexOf('const handleSignPlayer'),
+      market.indexOf('const handleFocusedListingLayout'),
+    );
+    expect(handler).not.toContainSource('onTransferAction(');
+  });
 });

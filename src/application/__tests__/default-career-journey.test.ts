@@ -216,6 +216,108 @@ describe('full-career retirement boundary', () => {
 });
 
 describe('season review story', () => {
+  it.each([
+    [
+      'unbeaten double',
+      { finalPosition: 1, won: 16, drawn: 2, lost: 0, cup: true },
+      'Unbeaten league and Cup double',
+    ],
+    [
+      'double',
+      { finalPosition: 1, won: 14, drawn: 1, lost: 3, cup: true },
+      'League and Cup double',
+    ],
+    [
+      'perfect title',
+      { finalPosition: 1, won: 18, drawn: 0, lost: 0, cup: false },
+      'Perfect league season',
+    ],
+    [
+      'unbeaten title',
+      { finalPosition: 1, won: 15, drawn: 3, lost: 0, cup: false },
+      'Unbeaten league champions',
+    ],
+    [
+      'league title',
+      { finalPosition: 1, won: 13, drawn: 2, lost: 3, cup: false },
+      'League champions',
+    ],
+    [
+      'Cup before promotion',
+      { finalPosition: 2, won: 12, drawn: 3, lost: 3, cup: true },
+      'Cup winners',
+    ],
+    [
+      'promotion',
+      { finalPosition: 2, won: 12, drawn: 3, lost: 3, cup: false },
+      'The climb continues.',
+    ],
+  ])('ranks %s above a routine authored event', (_name, result, expected) => {
+    const content = loadLaunchContent();
+    const initial = createCareer(
+      createLaunchCareerSetup(24_685, undefined, content),
+    );
+    const state: GameState = {
+      ...initial,
+      phase: 'season-end',
+      seasonRecaps: [
+        {
+          season: initial.season,
+          division: 5,
+          finalPosition: result.finalPosition,
+          played: 18,
+          won: result.won,
+          drawn: result.drawn,
+          lost: result.lost,
+          goalsFor: 42,
+          goalsAgainst: 16,
+          cashChange: 0,
+          closingCash: 100_000,
+          trainingCapsReached: 0,
+          cupResult: result.cup ? 'Winners' : 'Round 1',
+          ...(result.cup ? { cupResultKey: 'recap.cupWinners' } : {}),
+          memorableEventId: content.events.events[0]!.id,
+        },
+      ],
+    };
+
+    expect(
+      seasonEndViewModel(state, content, 1).recap?.memorableEventTitle,
+    ).toBe(expected);
+  });
+
+  it('recognizes the authored English Cup fallback only when the old key is absent', () => {
+    const content = loadLaunchContent();
+    const initial = createCareer(
+      createLaunchCareerSetup(24_686, undefined, content),
+    );
+    const state: GameState = {
+      ...initial,
+      phase: 'season-end',
+      seasonRecaps: [
+        {
+          season: initial.season,
+          division: 1,
+          finalPosition: 3,
+          played: 18,
+          won: 10,
+          drawn: 4,
+          lost: 4,
+          goalsFor: 32,
+          goalsAgainst: 22,
+          cashChange: 0,
+          closingCash: 100_000,
+          trainingCapsReached: 0,
+          cupResult: 'Winners',
+        },
+      ],
+    };
+
+    expect(
+      seasonEndViewModel(state, content, 1).recap?.memorableEventTitle,
+    ).toBe('Cup winners');
+  });
+
   it('calls out a perfect league season when no event story exists', () => {
     const content = loadLaunchContent();
     const initial = createCareer(
