@@ -1,5 +1,9 @@
 import { loadLaunchContent } from '../../content';
-import { createCareer, createFacilityGrid } from '../../game';
+import {
+  createCareer,
+  createFacilityGrid,
+  deterministicCareerEventRoll,
+} from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import {
   eventChoiceUnavailableReason,
@@ -396,7 +400,7 @@ describe('M4 event selection', () => {
     });
   });
 
-  it('can re-offer an authored repeatable event after its dry-spell guarantee', () => {
+  it('gives a repeatable story one full intervening season', () => {
     const initial = createCareer(createLaunchCareerSetup(88));
     const repeatable = content.events.find(
       (event) => event.id === 'the-double-session',
@@ -404,6 +408,40 @@ describe('M4 event selection', () => {
     const repeatableOnly = { ...content, events: [repeatable] };
     const state = {
       ...initial,
+      season: 3,
+      week: 12,
+      phase: 'manage' as const,
+      eventClock: { weeksWithoutEvent: 8, riskyChoices: 0 },
+      resolvedEventIds: [],
+      resolvedEventHistory: [
+        { eventId: repeatable.id, season: 1, week: 8 },
+        { eventId: repeatable.id, season: 2, week: 7 },
+      ],
+    };
+
+    expect(
+      eventOfferForWeek({ ...state, season: 2 }, repeatableOnly, {
+        deskClear: true,
+      }).eventId,
+    ).toBeUndefined();
+    expect(
+      eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId,
+    ).toBeUndefined();
+    expect(
+      eventOfferForWeek({ ...state, season: 4 }, repeatableOnly, {
+        deskClear: true,
+      }).eventId,
+    ).toBe(repeatable.id);
+  });
+
+  it('lets a history-less save repeat normally until it records history', () => {
+    const initial = createCareer(createLaunchCareerSetup(88));
+    const { resolvedEventHistory: _history, ...historyless } = initial;
+    const repeatable = content.events.find(
+      (event) => event.id === 'the-double-session',
+    )!;
+    const state = {
+      ...historyless,
       season: 2,
       week: 12,
       phase: 'manage' as const,
@@ -412,8 +450,65 @@ describe('M4 event selection', () => {
     };
 
     expect(
-      eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId,
+      eventOfferForWeek(
+        state,
+        { ...content, events: [repeatable] },
+        { deskClear: true },
+      ).eventId,
     ).toBe(repeatable.id);
+  });
+
+  it('doubles unseen story weight only when season history exists', () => {
+    const initial = createCareer(createLaunchCareerSetup(4_242));
+    const repeatable = content.events.find(
+      (event) => event.id === 'the-double-session',
+    )!;
+    const events = [
+      { ...repeatable, id: 'seen-repeatable', rarity: 'common' as const },
+      { ...repeatable, id: 'unseen-repeatable', rarity: 'common' as const },
+    ];
+    const state = {
+      ...initial,
+      season: 3,
+      week: 12,
+      phase: 'manage' as const,
+      eventClock: { weeksWithoutEvent: 8, riskyChoices: 0 },
+      resolvedEventIds: [],
+      resolvedEventHistory: [
+        { eventId: 'seen-repeatable', season: 1, week: 12 },
+      ],
+    };
+    const context = {
+      careerSeed: state.careerSeed,
+      season: state.season,
+      week: state.week,
+      riskyChoices: state.eventClock.riskyChoices,
+    };
+    const weightedRoll = deterministicCareerEventRoll(
+      context,
+      '__event_catalog__',
+      1,
+      18,
+    );
+    expect(
+      eventOfferForWeek(state, { ...content, events }, { deskClear: true })
+        .eventId,
+    ).toBe(weightedRoll < 6 ? 'seen-repeatable' : 'unseen-repeatable');
+
+    const { resolvedEventHistory: _history, ...historyless } = state;
+    const normalRoll = deterministicCareerEventRoll(
+      context,
+      '__event_catalog__',
+      1,
+      12,
+    );
+    expect(
+      eventOfferForWeek(
+        historyless,
+        { ...content, events },
+        { deskClear: true },
+      ).eventId,
+    ).toBe(normalRoll < 6 ? 'seen-repeatable' : 'unseen-repeatable');
   });
   /**
    * The deck's order decides which story a seeded career fires, so the

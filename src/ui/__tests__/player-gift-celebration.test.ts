@@ -18,6 +18,15 @@ test('the gift flow shows the requested art, values, and live player sprite', ()
   expect(source).toContain('<GiftIcon />');
   expect(source).toContain("t('playerGift.costResult'");
   expect(source).toContain("t('playerGift.moraleResult'");
+  expect(source).toContain("t('playerGift.transferRequestWithdrawn')");
+  expect(source).toContain("t('playerGift.transferRequestStillActive'");
+  expect(source).toContain(
+    '<Text style={styles.requestStatus}>{requestStatus}</Text>',
+  );
+  expect(source).toContain('accessibilityLabel={resultLabel}');
+  expect(source).toContain(
+    'AccessibilityInfo.announceForAccessibility(resultLabel)',
+  );
   expect(source).toContain('<PlayerRunSprite');
   expect(source).not.toContain('<PixelPortrait');
   expect(source).toContain('playPositiveSfx();');

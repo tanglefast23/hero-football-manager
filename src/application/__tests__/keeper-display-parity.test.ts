@@ -78,6 +78,34 @@ describe('keeper drill rows', () => {
 });
 
 describe('keeper confirm card', () => {
+  it('quotes only the last visible point at 998', () => {
+    const state = careerState();
+    const player = state.players.find(
+      (candidate) =>
+        candidate.clubId === state.userClubId && candidate.role !== 'GK',
+    )!;
+    const nearMax: GameState = {
+      ...state,
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, attrs: { ...candidate.attrs, pac: 998 } }
+          : candidate,
+      ),
+    };
+    const sprints = squadTrainingViewModel(
+      nearMax,
+      content,
+      player.id,
+    ).selectedPlayerStatOptions!.find((option) => option.pathId === 'sprints')!;
+
+    expect(sprints).toMatchObject({
+      currentValue: 998,
+      baseValueAfter: 999,
+      gain: 1,
+      atSafetyCeiling: false,
+    });
+  });
+
   it('agrees with the row it was opened from, base line included', () => {
     const state = careerState();
     const gk = keeper(state);
@@ -146,11 +174,11 @@ describe('keeper confirm card', () => {
     expect(drills.currentValue).toBe(gk.attrs.ref + 9);
   });
 
-  it('flips the safety ceiling on the stored value, never the displayed one', () => {
+  it('marks a keeper maxed when the displayed value reaches 999', () => {
     const state = careerState();
     const gk = keeper(state);
-    // Displayed is over 999, stored is not. The drill is still legal, so the
-    // row must not claim the keeper is maxed out.
+    // The stored stat still has room, but the manager can only see the capped
+    // value. Paid training must stop at that visible boundary.
     const nearCeiling: GameState = {
       ...state,
       players: state.players.map((p) =>
@@ -166,8 +194,7 @@ describe('keeper confirm card', () => {
     ).selectedPlayerStatOptions!;
     const drills = options.find((option) => option.pathId === 'keeper-drills')!;
 
-    expect(drills.atSafetyCeiling).toBe(false);
-    // And the display stalls rather than printing past the shared ceiling.
+    expect(drills.atSafetyCeiling).toBe(true);
     expect(drills.currentValue).toBe(999);
   });
 });

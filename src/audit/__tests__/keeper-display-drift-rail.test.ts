@@ -115,6 +115,15 @@ describe('keeper display drift', () => {
 
     let previousBonus = 0;
     for (let tap = 0; tap < KEEPER_DISPLAY_DRIFT_TAPS; tap += 1) {
+      const current = state.players.find((player) => player.id === keeper.id)!;
+      if (
+        Math.min(
+          MAX_PLAYER_ATTRIBUTE,
+          current.attrs.ref + (current.refDisplayBonus ?? 0),
+        ) >= MAX_PLAYER_ATTRIBUTE
+      ) {
+        break;
+      }
       state = trainPlayerInstantly(
         restedWeek(state, keeper.id),
         keeper.id,

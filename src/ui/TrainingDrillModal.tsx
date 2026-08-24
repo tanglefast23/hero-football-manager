@@ -13,6 +13,7 @@ import { drillPresentationMs } from '../render/drill-presentation-timing';
 import { BertFullBody } from './BertFullBody';
 import { energyBand } from '../render/match-energy-ui';
 import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import {
   playDrillCompleteSfx,
   playDrillResultSfx,
@@ -28,6 +29,7 @@ import { PixelText } from './components/PixelText';
 import {
   maximumAffordableTrainingRuns,
   maximumSafeTrainingRuns,
+  maximumVisibleTrainingRuns,
   riskyTrainingRunCount,
 } from './training-repeat';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
@@ -104,6 +106,13 @@ interface DrillBatch {
 const REPEAT_PICKER_CELL_WIDTH = 48;
 /** How long the drill list ignores presses after a presentation closes under it. */
 const PRESENTATION_SETTLE_MS = drillPresentationMs(350);
+
+function ordinaryVisibleGain(option: TrainingSlotStatOption): number {
+  return Math.max(
+    0,
+    option.baseValueAfter - option.currentValue + option.trainingAdjustment,
+  );
+}
 
 /**
  * The whole training loop lives here: tap a stat, the drill resolves instantly,
@@ -211,7 +220,13 @@ export function TrainingDrillModal({
     if (pendingConfirm === null) return;
     const maximum = Math.max(
       1,
-      maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
+      Math.min(
+        maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
+        maximumVisibleTrainingRuns(
+          pendingConfirm.currentValue,
+          ordinaryVisibleGain(pendingConfirm),
+        ),
+      ),
     );
     setRepeatCount((current) => Math.min(current, maximum));
   }, [pendingConfirm, trainingPoints]);
@@ -301,7 +316,8 @@ export function TrainingDrillModal({
       if (
         batch !== null &&
         batch.remaining > 0 &&
-        activeResult?.injury === undefined
+        activeResult?.injury === undefined &&
+        (activeResult?.displayedAfter ?? 0) < MAX_PLAYER_ATTRIBUTE
       ) {
         const nextBatch: DrillBatch = {
           ...batch,
@@ -330,13 +346,15 @@ export function TrainingDrillModal({
 
   const startTrainingBatch = useCallback(
     (option: TrainingSlotStatOption, runs: number) => {
-      const queuedRuns = Math.max(
-        1,
-        Math.min(
-          runs,
-          maximumAffordableTrainingRuns(trainingPoints, option.tpCost),
+      const queuedRuns = Math.min(
+        runs,
+        maximumAffordableTrainingRuns(trainingPoints, option.tpCost),
+        maximumVisibleTrainingRuns(
+          option.currentValue,
+          ordinaryVisibleGain(option),
         ),
       );
+      if (queuedRuns < 1) return;
       const batch: DrillBatch = {
         pathId: option.pathId,
         total: queuedRuns,
@@ -365,7 +383,8 @@ export function TrainingDrillModal({
     if (
       batch !== null &&
       batch.remaining > 0 &&
-      activeResult?.injury === undefined
+      activeResult?.injury === undefined &&
+      (activeResult?.displayedAfter ?? 0) < MAX_PLAYER_ATTRIBUTE
     ) {
       onTrainDrillBatch(playerId, batch.pathId, batch.remaining);
     }
@@ -388,17 +407,29 @@ export function TrainingDrillModal({
       ? 1
       : Math.max(
           1,
-          maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
+          Math.min(
+            maximumAffordableTrainingRuns(
+              trainingPoints,
+              pendingConfirm.tpCost,
+            ),
+            maximumVisibleTrainingRuns(
+              pendingConfirm.currentValue,
+              ordinaryVisibleGain(pendingConfirm),
+            ),
+          ),
         );
   const maximumSafeRuns = maximumSafeTrainingRuns(condition);
   const selectedRiskyRuns = riskyTrainingRunCount(condition, repeatCount);
-  const ordinaryBatchEstimate =
+  const nextOrdinaryGain =
+    pendingConfirm === null ? 0 : ordinaryVisibleGain(pendingConfirm);
+  const visibleHeadroom =
     pendingConfirm === null
       ? 0
-      : repeatCount *
-        (pendingConfirm.baseValueAfter -
-          pendingConfirm.currentValue +
-          pendingConfirm.trainingAdjustment);
+      : MAX_PLAYER_ATTRIBUTE - pendingConfirm.currentValue;
+  const ordinaryBatchEstimate = Math.min(
+    visibleHeadroom,
+    repeatCount * nextOrdinaryGain,
+  );
   const superGuaranteedInBatch = repeatCount >= drillsUntilGuaranteedSuper;
   const repeatOptions = Array.from(
     { length: maximumAffordableRuns },
@@ -662,24 +693,28 @@ export function TrainingDrillModal({
                         stat: option.label,
                       })}
                       accessibilityHint={
-                        injured
-                          ? t('trainingDrill.a11y.injuredCannotTrain', {
-                              player: playerName,
+                        option.atSafetyCeiling
+                          ? t('trainingDrill.a11y.atMaximum', {
+                              stat: option.label,
                             })
-                          : unaffordable
-                            ? t('trainingDrill.a11y.costsTrainingPoints', {
-                                cost: option.tpCost,
-                                available: trainingPoints,
+                          : injured
+                            ? t('trainingDrill.a11y.injuredCannotTrain', {
+                                player: playerName,
                               })
-                            : t('trainingDrill.a11y.drillHint', {
-                                drill: option.drillName,
-                                cost: option.tpCost,
-                                value: option.currentValue,
-                                risk:
-                                  injuryRiskPercent > 0
-                                    ? ` ${t('trainingDrill.a11y.percentInjuryRisk', { percent: injuryRiskPercent })}`
-                                    : '',
-                              })
+                            : unaffordable
+                              ? t('trainingDrill.a11y.costsTrainingPoints', {
+                                  cost: option.tpCost,
+                                  available: trainingPoints,
+                                })
+                              : t('trainingDrill.a11y.drillHint', {
+                                  drill: option.drillName,
+                                  cost: option.tpCost,
+                                  value: option.currentValue,
+                                  risk:
+                                    injuryRiskPercent > 0
+                                      ? ` ${t('trainingDrill.a11y.percentInjuryRisk', { percent: injuryRiskPercent })}`
+                                      : '',
+                                })
                       }
                       accessibilityState={{ disabled }}
                       disabled={disabled}
@@ -760,7 +795,9 @@ export function TrainingDrillModal({
                         className="font-mono text-base text-ink"
                         numberOfLines={1}
                       >
-                        +{option.gain} {option.label}
+                        {option.atSafetyCeiling
+                          ? t('trainingDrill.maximum')
+                          : `+${option.gain} ${option.label}`}
                       </Text>
                     </Pressable>
                   );
@@ -974,10 +1011,14 @@ export function TrainingDrillModal({
                     ) : null}
                     <View className="flex-row items-center justify-between border-2 border-blue-dark bg-blue-light px-3 py-2">
                       <PixelText className="text-xs uppercase text-blue-dark">
-                        {t('trainingDrill.ordinaryBatchEstimate')}
+                        {repeatCount === 1
+                          ? t('trainingDrill.nextOrdinaryResult')
+                          : t('trainingDrill.ordinaryBatchEstimate')}
                       </PixelText>
                       <Text className="font-pixel text-base text-blue-dark">
-                        ~+{ordinaryBatchEstimate}
+                        {repeatCount === 1
+                          ? `+${nextOrdinaryGain}`
+                          : `~+${ordinaryBatchEstimate}`}
                       </Text>
                     </View>
                     {pendingConfirm.fractionalBonusBanks.length > 0 ? (

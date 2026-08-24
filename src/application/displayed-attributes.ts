@@ -37,12 +37,11 @@ export function displayedAttributeValue(
 }
 
 /**
- * The display stalls at the shared ceiling while the true stat keeps climbing.
+ * The display stalls at the shared ceiling, which is also the paid-drill limit.
  *
- * Deliberate (plan Q3): every other attribute stops at 999, letting this one
- * print above would break the range they are all validated on, and dropping the
- * bonus to reveal the truth would make a keeper's Reflexes visibly fall
- * mid-career with no in-game cause.
+ * Every other attribute stops at 999. Letting this one print above would break
+ * the shared range, while dropping the banked display bonus would make a
+ * keeper's Reflexes visibly fall with no in-game cause.
  */
 export function displayedAttributeCeiling(value: number): number {
   return Math.min(MAX_PLAYER_ATTRIBUTE, value);

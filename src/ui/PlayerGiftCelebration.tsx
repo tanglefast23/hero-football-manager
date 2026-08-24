@@ -43,6 +43,20 @@ export function PlayerGiftCelebration({
   const pop = useRef(new Animated.Value(0)).current;
   const beat = staticMode ? LAST_BEAT : beatState;
   const cost = formatCurrency(t, result.cost);
+  const requestStatus =
+    result.transferRequestOutcome === undefined
+      ? ''
+      : result.transferRequestOutcome.status === 'WITHDRAWN'
+        ? t('playerGift.transferRequestWithdrawn')
+        : t('playerGift.transferRequestStillActive', {
+            morale: result.transferRequestOutcome.moraleTarget,
+          });
+  const resultLabel = t('playerGift.a11y.result', {
+    player: result.playerName,
+    cost,
+    gain: result.moraleGain,
+    requestStatus,
+  });
 
   const advance = useCallback(() => {
     if (staticMode) {
@@ -73,13 +87,8 @@ export function PlayerGiftCelebration({
 
   useEffect(() => {
     playPositiveSfx();
-    const label = t('playerGift.a11y.result', {
-      player: result.playerName,
-      cost,
-      gain: result.moraleGain,
-    });
-    void AccessibilityInfo.announceForAccessibility(label);
-  }, [cost, result.moraleGain, result.playerName, result.sequence, t]);
+    void AccessibilityInfo.announceForAccessibility(resultLabel);
+  }, [result.sequence, resultLabel]);
 
   useEffect(() => {
     if (staticMode) {
@@ -116,11 +125,7 @@ export function PlayerGiftCelebration({
       <Pressable
         ref={pressableRef}
         accessibilityRole="button"
-        accessibilityLabel={t('playerGift.a11y.result', {
-          player: result.playerName,
-          cost,
-          gain: result.moraleGain,
-        })}
+        accessibilityLabel={resultLabel}
         accessibilityHint={t('playerGift.continue')}
         accessibilityViewIsModal
         onPress={advance}
@@ -192,6 +197,9 @@ export function PlayerGiftCelebration({
                       gain: result.moraleGain,
                     })}
                   </Text>
+                  {requestStatus === '' ? null : (
+                    <Text style={styles.requestStatus}>{requestStatus}</Text>
+                  )}
                 </View>
               ) : null}
             </Animated.View>
@@ -327,5 +335,13 @@ const makeStyles = (faces: LocaleFaces) =>
       fontFamily: faces.data,
       fontSize: 13,
       textTransform: 'uppercase',
+    },
+    requestStatus: {
+      marginTop: 8,
+      color: '#245332',
+      fontFamily: faces.data,
+      fontSize: 14,
+      lineHeight: 19,
+      textAlign: 'center',
     },
   });

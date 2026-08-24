@@ -1,6 +1,7 @@
 import {
   maximumAffordableTrainingRuns,
   maximumSafeTrainingRuns,
+  maximumVisibleTrainingRuns,
   riskyTrainingRunCount,
 } from '../training-repeat';
 
@@ -9,6 +10,12 @@ describe('repeat training safety', () => {
     expect(maximumAffordableTrainingRuns(80, 10)).toBe(8);
     expect(maximumAffordableTrainingRuns(100, 10)).toBe(9);
     expect(maximumAffordableTrainingRuns(9, 10)).toBe(0);
+  });
+
+  it('offers only the drills needed to reach visible 999', () => {
+    expect(maximumVisibleTrainingRuns(998, 4)).toBe(1);
+    expect(maximumVisibleTrainingRuns(990, 4)).toBe(3);
+    expect(maximumVisibleTrainingRuns(999, 4)).toBe(0);
   });
 
   it('treats 30% as the last safe starting condition', () => {

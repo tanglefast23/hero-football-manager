@@ -1,5 +1,9 @@
 import { recordCashTransaction } from './cash-transactions';
-import { LOW_MORALE_THRESHOLD, shouldWithdrawTransferRequest } from './pyramid';
+import {
+  LOW_MORALE_THRESHOLD,
+  shouldWithdrawTransferRequest,
+  transferRequestWithdrawalMorale,
+} from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
 export const PLAYER_GIFT_MORALE_GAIN = 20;
@@ -32,6 +36,9 @@ export interface PlayerGiftResult {
   readonly cost: number;
   readonly moraleGain: number;
   readonly moraleAfter: number;
+  readonly transferRequestOutcome?:
+    | { readonly status: 'WITHDRAWN' }
+    | { readonly status: 'STILL_ACTIVE'; readonly moraleTarget: number };
 }
 
 export function playerGiftCost(weeklyWage: number): number {
@@ -106,20 +113,23 @@ export function givePlayerGift(
     throw new Error('player gift blocked: PLAYER_NOT_AT_CLUB');
 
   const moraleAfter = player.morale + quote.moraleGain;
+  const personality = player.personality ?? 'Professional';
+  const hadTransferRequest = player.transferRequested === true;
+  const withdrawsTransferRequest =
+    hadTransferRequest &&
+    shouldWithdrawTransferRequest({
+      morale: moraleAfter,
+      condition: player.condition ?? 100,
+      personality,
+      consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks ?? 0,
+    });
   const players = state.players.map((candidate) => {
     if (candidate.id !== playerId || candidate.clubId !== state.userClubId) {
       return candidate;
     }
-    const transferRequested =
-      candidate.transferRequested === true &&
-      shouldWithdrawTransferRequest({
-        morale: moraleAfter,
-        condition: candidate.condition ?? 100,
-        personality: candidate.personality ?? 'Professional',
-        consecutiveLowMoraleWeeks: candidate.consecutiveLowMoraleWeeks ?? 0,
-      })
-        ? false
-        : candidate.transferRequested;
+    const transferRequested = withdrawsTransferRequest
+      ? false
+      : candidate.transferRequested;
     return { ...candidate, morale: moraleAfter, transferRequested };
   });
   const charged: GameState = {
@@ -146,6 +156,16 @@ export function givePlayerGift(
     cost: quote.cost,
     moraleGain: quote.moraleGain,
     moraleAfter,
+    ...(hadTransferRequest
+      ? {
+          transferRequestOutcome: withdrawsTransferRequest
+            ? ({ status: 'WITHDRAWN' } as const)
+            : ({
+                status: 'STILL_ACTIVE',
+                moraleTarget: transferRequestWithdrawalMorale(personality),
+              } as const),
+        }
+      : {}),
   };
 }
 

@@ -1,4 +1,5 @@
 import { createLaunchCareerSetup } from '../launch';
+import { loadLaunchContent } from '../../content';
 import { contractDraftPerk, marketViewModel } from '../market-view-model';
 import {
   careerMarketScoutOptions,
@@ -9,9 +10,11 @@ import { buildCareerFacility } from '../../game/management';
 import { advanceFacilityConstruction } from '../../game/facilities';
 import {
   beginCareerTransferTalks,
+  completeCareerTransfer,
   hireCareerCoach,
   listCareerPlayer,
   startCareerScoutMission,
+  submitCareerTransferOffer,
   type CareerMarketState,
 } from '../../game/market-career';
 import type { CareerPlayer, GameState } from '../../game/types';
@@ -23,6 +26,7 @@ import {
 } from '../../game/market';
 import { careerContractPromiseHeroLimit } from '../../game/contract-promises';
 import { copyFor } from '../../i18n';
+import { squadTrainingViewModel } from '../view-models';
 
 function fullCareer(seed = 20260719): GameState {
   return createCareer(createLaunchCareerSetup(seed));
@@ -218,7 +222,7 @@ describe('career market view-model source adapter', () => {
         potentialRange: { minimum: 2, maximum: 4 },
       },
     });
-    expect(buy?.player).not.toHaveProperty('potentialGrade');
+    expect(buy?.player.potentialGrade).toBe(playerGrowthGrade(target));
     expect(sells.length).toBeGreaterThan(0);
     expect(sells.every((listing) => listing.player.id !== target.id)).toBe(
       true,
@@ -271,14 +275,37 @@ describe('career market view-model source adapter', () => {
   });
 
   it('maps a scouted player from outside the active division into a buy listing', () => {
-    const state = fullCareer(714);
-    const division = state.m2!.pyramid.divisions.find(
+    const initial = fullCareer(714);
+    const division = initial.m2!.pyramid.divisions.find(
       (candidate) => candidate.level === 4,
     )!;
     const target = division.clubs[0].squad.find(
       (player) => player.role === 'DEF',
     )!;
-    expect(state.players.some((player) => player.id === target.id)).toBe(false);
+    expect(initial.players.some((player) => player.id === target.id)).toBe(
+      false,
+    );
+    const lineupIds = new Set(
+      initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+        .playerIds,
+    );
+    const reserve = initial.players.find(
+      (player) =>
+        player.clubId === initial.userClubId && !lineupIds.has(player.id),
+    )!;
+    const state: GameState = {
+      ...initial,
+      players: initial.players.filter((player) => player.id !== reserve.id),
+      clubs: initial.clubs.map((club) =>
+        club.id === initial.userClubId
+          ? {
+              ...club,
+              cash: 1_000_000,
+              weeklyWages: club.weeklyWages - reserve.weeklyWage,
+            }
+          : club,
+      ),
+    };
     const market: CareerMarketState = {
       ...state.market!,
       scoutReports: [
@@ -298,6 +325,9 @@ describe('career market view-model source adapter', () => {
     };
 
     const source = careerMarketViewModelSource(state, market);
+    const grade = source.transferListings.find(
+      (listing) => listing.direction === 'BUY',
+    )!.player.potentialGrade!;
 
     expect(
       source.transferListings.find((listing) => listing.direction === 'BUY'),
@@ -305,12 +335,42 @@ describe('career market view-model source adapter', () => {
       expect.objectContaining({
         direction: 'BUY',
         sellingClubDivision: 4,
-        player: expect.objectContaining({ id: target.id, name: target.name }),
+        player: expect.objectContaining({
+          id: target.id,
+          name: target.name,
+          potentialGrade: grade,
+        }),
       }),
     );
     expect(source.scoutedPlayerIdentities).toEqual([
-      expect.objectContaining({ id: target.id, name: target.name }),
+      expect.objectContaining({
+        id: target.id,
+        name: target.name,
+        potentialGrade: grade,
+      }),
     ]);
+    const visible = marketViewModel(source);
+    const scoutGrade = visible.scouting.reports[0].potentialLabel;
+    const buyGrade = visible.transfers.find(
+      (listing) => listing.direction === 'BUY',
+    )!.potentialLabel;
+    expect(scoutGrade).toBe(buyGrade);
+    expect(scoutGrade).toMatch(new RegExp(`^${grade} · SUPER \\d+%$`));
+
+    let talks = beginCareerTransferTalks(state, market, target.id, 5);
+    talks = submitCareerTransferOffer(state, talks, {
+      weeklyWage: talks.transferTalks!.negotiation.weeklyAsk,
+      termSeasons: 2,
+      perk: 'GUARANTEED_STARTER',
+    });
+    const completed = completeCareerTransfer(state, talks);
+    const squadPlayer = squadTrainingViewModel(
+      completed.state,
+      loadLaunchContent(),
+      target.id,
+    ).players.find((player) => player.id === target.id)!;
+    expect(completed.state.week).toBe(state.week);
+    expect(squadPlayer.potentialGrade).toBe(grade);
   });
 
   it('passes coach candidates and current contract talks through with the target wage context', () => {

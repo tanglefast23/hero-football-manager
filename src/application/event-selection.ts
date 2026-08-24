@@ -139,11 +139,13 @@ export function eventOfferForWeek(
     // random deck would either re-cast its target or show part two first.
     .filter((event) => !carriedOnly.has(event.id))
     .filter((event) => eventIsEligible(state, event))
-    .filter(
-      (event) =>
-        event.trigger.repeatable === true ||
-        !state.resolvedEventIds.includes(event.id),
-    )
+    .filter((event) => {
+      if (event.trigger.repeatable !== true) {
+        return !state.resolvedEventIds.includes(event.id);
+      }
+      const latestSeason = latestResolvedEventSeason(state, event.id);
+      return latestSeason === undefined || state.season - latestSeason >= 2;
+    })
     // The weighted draw indexes into this array, so the order decides which
     // story a seeded career fires. `localeCompare` reads the JS engine's own
     // collation table, so Hermes on device need not agree with V8 under Jest —
@@ -159,7 +161,13 @@ export function eventOfferForWeek(
     };
   }
 
-  const weights = candidates.map((event) => RARITY_WEIGHT[event.rarity]);
+  const weights = candidates.map((event) => {
+    const base = RARITY_WEIGHT[event.rarity];
+    const unseen =
+      state.resolvedEventHistory !== undefined &&
+      latestResolvedEventSeason(state, event.id) === undefined;
+    return unseen ? base * 2 : base;
+  });
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   const roll = deterministicCareerEventRoll(
     eventRollContext(state),
@@ -180,6 +188,20 @@ export function eventOfferForWeek(
     eventId: selected.id,
     eventClock: { ...eventClock, weeksWithoutEvent: 0 },
   };
+}
+
+function latestResolvedEventSeason(
+  state: Pick<GameState, 'resolvedEventHistory'>,
+  eventId: string,
+): number | undefined {
+  return state.resolvedEventHistory?.reduce<number | undefined>(
+    (latest, entry) =>
+      entry.eventId !== eventId ||
+      (latest !== undefined && latest >= entry.season)
+        ? latest
+        : entry.season,
+    undefined,
+  );
 }
 
 function scheduleGuaranteedEvent(

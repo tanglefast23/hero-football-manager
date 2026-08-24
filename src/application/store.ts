@@ -2722,6 +2722,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
           lookId: player.lookId,
           cost: result.cost,
           moraleGain: result.moraleGain,
+          ...(result.transferRequestOutcome === undefined
+            ? {}
+            : { transferRequestOutcome: result.transferRequestOutcome }),
         },
       });
     } catch (error) {
@@ -2793,6 +2796,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           injuredAfter = result.injury.recoveryWeeks;
           break;
         }
+        if (result.displayedAfter >= 999) break;
       }
 
       if (last === null) return;

@@ -837,6 +837,65 @@ describe('M1 app store integration', () => {
     ).toBeGreaterThan(watched.after);
   });
 
+  it('stops a skipped batch when the visible stat reaches 999', () => {
+    startCreatedCareer(789);
+    const playerId = 'bramble-rovers-created-player';
+    const started = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...started,
+        trainingPoints: 21,
+        players: started.players.map((player) =>
+          player.id === playerId
+            ? { ...player, attrs: { ...player.attrs, pac: 998 } }
+            : player,
+        ),
+      },
+    });
+
+    useM1Store.getState().trainPlayerBatch(playerId, 'sprints', 3);
+
+    const finished = useM1Store.getState().career!;
+    expect(finished.trainingPoints).toBe(14);
+    expect(finished.totalInstantDrills).toBe(1);
+    expect(useM1Store.getState().lastDrillResult).toMatchObject({
+      displayedAfter: 999,
+      sequence: 1,
+    });
+  });
+
+  it('reports an injury when the skipped drill also reaches visible 999', () => {
+    startCreatedCareer(1);
+    const playerId = 'bramble-rovers-created-player';
+    const started = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...started,
+        trainingPoints: 7,
+        players: started.players.map((player) =>
+          player.id === playerId
+            ? {
+                ...player,
+                attrs: { ...player.attrs, pac: 998 },
+                condition: 0,
+              }
+            : player,
+        ),
+      },
+    });
+
+    useM1Store.getState().trainPlayerBatch(playerId, 'sprints', 2);
+
+    expect(useM1Store.getState().lastDrillResult).toMatchObject({
+      displayedAfter: 999,
+      injury: { recoveryWeeks: expect.any(Number) },
+    });
+    expect(useM1Store.getState().notice).toEqual({
+      tone: 'info',
+      message: expect.stringContaining('pulled up'),
+    });
+  });
+
   it('trains nobody when the skipped batch belongs to a player who has pulled up', () => {
     startCreatedCareer(789);
     useM1Store.getState().buildFacility();

@@ -389,6 +389,57 @@ describe('trainPlayerInstantly', () => {
     expect(() => trainPlayerInstantly(maxed, outfielder.id, 'sprints')).toThrow(
       'already at the maximum',
     );
+
+    const gk = state.players.find(
+      (player) => player.clubId === state.userClubId && player.role === 'GK',
+    )!;
+    const visiblyMaxed: GameState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === gk.id
+          ? {
+              ...player,
+              attrs: { ...player.attrs, ref: 990 },
+              refDisplayBonus: 9,
+            }
+          : player,
+      ),
+    };
+    const beforeBlockedTap = JSON.stringify(visiblyMaxed);
+
+    expect(() =>
+      trainPlayerInstantly(visiblyMaxed, gk.id, 'keeper-drills'),
+    ).toThrow('already at the maximum');
+    expect(JSON.stringify(visiblyMaxed)).toBe(beforeBlockedTap);
+    expect(visiblyMaxed.trainingPoints).toBe(state.trainingPoints);
+    expect(visiblyMaxed.players.find((player) => player.id === gk.id)).toEqual(
+      expect.objectContaining({
+        attrs: expect.objectContaining({ ref: 990 }),
+        refDisplayBonus: 9,
+      }),
+    );
+  });
+
+  it('allows the last visible point, then blocks the next paid drill', () => {
+    const state = fullCareerState();
+    const player = userPlayer(state);
+    const nearMax: GameState = {
+      ...state,
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, attrs: { ...candidate.attrs, pac: 998 } }
+          : candidate,
+      ),
+    };
+
+    const result = trainPlayerInstantly(nearMax, player.id, 'sprints');
+    expect(result.displayedAfter).toBe(999);
+    expect(result.state.trainingPoints).toBe(
+      nearMax.trainingPoints - result.tpSpent,
+    );
+    expect(() =>
+      trainPlayerInstantly(result.state, player.id, 'sprints'),
+    ).toThrow('already at the maximum');
   });
 
   it('only trains before a match', () => {

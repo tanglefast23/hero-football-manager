@@ -1,4 +1,5 @@
 import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 
 export const MAX_CONSECUTIVE_DRILLS = 9;
 export const INJURY_RISK_CONDITION_THRESHOLD = 30;
@@ -16,6 +17,17 @@ export function maximumAffordableTrainingRuns(
       Math.floor(trainingPoints / trainingPointCost),
     ),
   );
+}
+
+/** Repeat choices stop at the first drill that can fill the visible headroom. */
+export function maximumVisibleTrainingRuns(
+  currentValue: number,
+  nextOrdinaryGain: number,
+): number {
+  const headroom = MAX_PLAYER_ATTRIBUTE - currentValue;
+  return headroom <= 0
+    ? 0
+    : Math.ceil(headroom / Math.max(1, nextOrdinaryGain));
 }
 
 /**
