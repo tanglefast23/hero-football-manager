@@ -2,7 +2,7 @@
 title: "perf: Smooth 3x live matches on iPhone"
 type: perf
 date: 2026-08-24
-status: proposed
+status: implemented-device-verification-pending
 scope: renderer and measurement only
 source_specs: ./2026-08-24-iphone-3x-live-match-performance-council-sources.md
 ---
@@ -452,3 +452,17 @@ The correct final result is the first measured rung that works:
 `no change -> measured 3x Lite -> 2x fallback`
 
 Do not build the next rung after the device passes.
+
+## Implementation status
+
+The safe code subset is implemented:
+
+- recorded pause, background, resize, and graphics-recovery boundaries still
+  reset the pacing monitor;
+- adaptive effect changes no longer restart the RAF loop or reset active power
+  juice;
+- existing reduced-effect paths remain the 3x Lite concession.
+
+Severe active-gap counting and the faster one-window 3x trigger remain off. No
+second known-good physical iPhone Release trace exists. The current 250 ms
+backstop and two-plus-two trigger stay until their acceptance gates pass.

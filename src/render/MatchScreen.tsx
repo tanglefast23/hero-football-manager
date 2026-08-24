@@ -1077,6 +1077,8 @@ export function MatchScreen({
   const graphicsStatusRef = useRef(graphicsStatus);
   graphicsStatusRef.current = graphicsStatus;
   const suppressCosmeticEffects = reduceMotion || reducedEffects;
+  const suppressCosmeticEffectsRef = useRef(suppressCosmeticEffects);
+  suppressCosmeticEffectsRef.current = suppressCosmeticEffects;
   /** Opt-in bench cover: a manager who only wants to watch should not be
    * punished with eleven exhausted players and five unused substitutions.
    * Seeded from the saved preference, so the choice is made once, not weekly. */
@@ -1682,7 +1684,8 @@ export function MatchScreen({
      * bodies read as a handover.
      */
     const startSubstitutionWalk = (s: MatchState, e: MatchEvent) => {
-      if (suppressCosmeticEffects || e.kind !== 'SUBSTITUTION') return;
+      if (suppressCosmeticEffectsRef.current || e.kind !== 'SUBSTITUTION')
+        return;
       const incoming = s.players[e.player];
       const outgoing = playerDefById.get(e.outPlayerId);
       if (incoming === undefined || outgoing === undefined) {
@@ -1778,7 +1781,7 @@ export function MatchScreen({
     };
 
     const startJuice = (power: PowerId, player: number, now: number) => {
-      if (suppressCosmeticEffects) return;
+      if (suppressCosmeticEffectsRef.current) return;
       const juice = powerJuice(power);
       const { scale: pitchScale } = layoutRef.current;
       juiceRef.current = {
@@ -1912,6 +1915,7 @@ export function MatchScreen({
             performanceResumeAtRef.current = now + 1000;
             if (decision.action === 'reduce-effects') {
               reducedEffectsRef.current = true;
+              suppressCosmeticEffectsRef.current = true;
               setReducedEffects(true);
             } else if (!performanceLimitActiveRef.current) {
               performanceLimitActiveRef.current = true;
@@ -2084,7 +2088,7 @@ export function MatchScreen({
         for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
           const entity = playerAt(s, i);
           const ghosts =
-            entity === undefined || suppressCosmeticEffects
+            entity === undefined || suppressCosmeticEffectsRef.current
               ? 0
               : trailGhostsFor(entity);
           trailRef.current[i] =
@@ -2374,7 +2378,10 @@ export function MatchScreen({
               undefined,
               shotBurstIntensity(shotDangerAtLaunchRef.current),
             );
-          } else if (origin !== undefined && !suppressCosmeticEffects) {
+          } else if (
+            origin !== undefined &&
+            !suppressCosmeticEffectsRef.current
+          ) {
             // Ordinary shots retain the small legacy puff. A graded shot owns
             // the new burst instead, so the two treatments never stack.
             puffRef.current = {
@@ -2527,7 +2534,7 @@ export function MatchScreen({
             });
           }
           scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
-          if (!suppressCosmeticEffects) {
+          if (!suppressCosmeticEffectsRef.current) {
             setGoalConfettiBurst((burst) => burst + 1);
             goalShakeElapsed.value = 0;
             goalShakeElapsed.value = withTiming(GOAL_SHAKE_MS, {
@@ -3192,7 +3199,6 @@ export function MatchScreen({
     publishAtlasFrame,
     reduceMotion,
     resumeAtlasFrame,
-    suppressCosmeticEffects,
     away,
   ]);
 
