@@ -48,7 +48,7 @@ const CUP_PRIZE_BY_ROUND: Readonly<Record<NationalCupRound['label'], number>> =
     'Round of 16': 4_000,
     'Quarter-final': 6_000,
     'Semi-final': 8_000,
-    Final: 25_000,
+    Final: 100_000,
   };
 
 const CUP_FANS_BY_ROUND: Readonly<Record<NationalCupRound['label'], number>> = {

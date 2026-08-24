@@ -27,7 +27,9 @@ export function PlayerRequestDecisionCard({
 }) {
   const t = useCopy();
   const grantDetail = request.canAfford
-    ? request.grantLabel
+    ? request.grantMoneyCost === undefined
+      ? t('playerRequestCard.downside', { detail: request.grantLabel })
+      : request.grantLabel
     : t('playerRequestCard.notEnoughInTheBooks');
 
   return (
@@ -48,7 +50,20 @@ export function PlayerRequestDecisionCard({
             </Text>
           </View>
 
-          {request.grantMoneyCost === undefined ? null : (
+          {request.grantMoneyCost === undefined ? (
+            <View
+              accessible
+              accessibilityLabel={grantDetail}
+              className="mt-4 flex-row items-center gap-3 border-2 border-b-4 border-stamp bg-red-light px-3 py-2"
+            >
+              <View className="h-9 w-12 items-center justify-center border-2 border-stamp bg-white">
+                <PixelText className="text-xl text-stamp">!</PixelText>
+              </View>
+              <PixelText className="min-w-0 flex-1 text-base uppercase text-stamp">
+                {grantDetail}
+              </PixelText>
+            </View>
+          ) : (
             <View
               accessible
               accessibilityLabel={t('playerRequestCard.moneyCost', {
