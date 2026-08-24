@@ -402,7 +402,7 @@ describe('assistant guide application flow', () => {
       'league',
     ] as const) {
       expect(currentAssistantObjective(state, activeTab)).toEqual({
-        text: 'INBOX CLEAR. ADVANCE WEEK.',
+        text: 'NO MESSAGES. ADVANCE WEEK.',
         textKey: 'assistantObjective.inboxClear',
         target: 'advance-week',
       });
@@ -448,7 +448,7 @@ describe('assistant guide application flow', () => {
       'league',
     ] as const) {
       expect(currentAssistantObjective(state, activeTab)).toEqual({
-        text: 'INBOX CLEAR. ADVANCE WEEK.',
+        text: 'NO MESSAGES. ADVANCE WEEK.',
         textKey: 'assistantObjective.inboxClear',
         target: 'advance-week',
       });
@@ -517,7 +517,7 @@ describe('assistant guide application flow', () => {
       ),
     };
     expect(currentAssistantObjective(state, 'home')).toEqual({
-      text: 'INBOX CLEAR. ADVANCE WEEK.',
+      text: 'NO MESSAGES. ADVANCE WEEK.',
       textKey: 'assistantObjective.inboxClear',
       target: 'advance-week',
     });

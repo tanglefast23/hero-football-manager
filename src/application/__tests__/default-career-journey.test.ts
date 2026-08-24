@@ -412,7 +412,7 @@ describe('promotion reward presentation', () => {
         {
           title: 'Recruitment fund · $15,000',
           detail:
-            'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
+            'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive in D4.',
         },
         // Promotion puts the next drill tier on sale, one path at a time. It
         // does not hand it over, so this line names a price.

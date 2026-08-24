@@ -3043,6 +3043,7 @@ export function parseStoredGameState(serialized: string): GameState {
   // resolve, and saves written before it did must still load.
   value = dropUnresolvableScoutReports(value);
   value = dropUnresolvableTransferTalks(value);
+  value = restoreLegacyContinuitySponsorCopyKeys(value);
   value = sanitizeLedgerReveals(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
@@ -3235,6 +3236,45 @@ function sanitizeLedgerReveals(value: unknown): unknown {
       linesChanged = true;
       const { reveal: _reveal, ...withoutReveal } = line;
       return withoutReveal;
+    });
+    if (!linesChanged) return ledger;
+    changed = true;
+    return { ...ledger, lines };
+  });
+  return changed ? { ...value, ledgers } : value;
+}
+
+/** Old saves stored this UI placeholder as English with no translation key. */
+function restoreLegacyContinuitySponsorCopyKeys(value: unknown): unknown {
+  if (!isRecord(value) || !Array.isArray(value.ledgers)) return value;
+  let changed = false;
+  const ledgers = value.ledgers.map((ledger) => {
+    if (!isRecord(ledger) || !Array.isArray(ledger.lines)) return ledger;
+    let linesChanged = false;
+    const lines = ledger.lines.map((line) => {
+      if (
+        !isRecord(line) ||
+        line.kind !== 'sponsor' ||
+        line.labelKey !== undefined ||
+        typeof line.label !== 'string'
+      )
+        return line;
+      const match = /^Current Sponsor(?: ([1-3]))? · Monthly sponsor$/.exec(
+        line.label,
+      );
+      if (match === null) return line;
+      linesChanged = true;
+      const number = match[1];
+      return {
+        ...line,
+        labelKey:
+          number === undefined
+            ? 'ledger.monthlyContinuitySponsor'
+            : 'ledger.monthlyContinuitySponsorNumbered',
+        ...(number === undefined
+          ? {}
+          : { labelParams: { number: Number(number) } }),
+      };
     });
     if (!linesChanged) return ledger;
     changed = true;

@@ -132,7 +132,7 @@ const PROMOTION_REWARDS: Readonly<
       ...reward(
         'promotion.recruitmentFund',
         `Recruitment fund · $${FIRST_D4_PROMOTION_RECRUITMENT_FUND.toLocaleString('en-US')}`,
-        `The board added $${FIRST_D4_PROMOTION_RECRUITMENT_FUND.toLocaleString('en-US')} to club funds. Use it to recruit a player who can help the club survive the County League.`,
+        `The board added $${FIRST_D4_PROMOTION_RECRUITMENT_FUND.toLocaleString('en-US')} to club funds. Use it to recruit a player who can help the club survive in D4.`,
       ),
       params: { amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND },
     },

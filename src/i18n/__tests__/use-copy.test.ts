@@ -50,6 +50,31 @@ describe('copyFor', () => {
     }
   });
 
+  test('promotion and empty-inbox copy stay clear in every shipped locale', () => {
+    const noMessages = {
+      en: 'No messages.',
+      es: 'No hay mensajes.',
+      'pt-BR': 'Sem mensagens.',
+      fr: 'Aucun message.',
+      de: 'Keine Nachrichten.',
+      id: 'Tidak ada pesan.',
+      vi: 'Không có tin nhắn.',
+    } as const;
+
+    for (const locale of LOCALES) {
+      const t = copyFor(locale);
+      expect(
+        t('assistantObjective.inboxClear').startsWith(noMessages[locale]),
+      ).toBe(true);
+      expect(
+        t('clubHome.deskClearTheBoard').startsWith(noMessages[locale]),
+      ).toBe(true);
+      expect(
+        t('promotion.recruitmentFund.detail', { amount: '$15,000' }),
+      ).toContain('D4');
+    }
+  });
+
   test('Hero License purchase copy says the permit works now', () => {
     const expected = {
       en: 'The league registers one more permit for $50,000. Your club can now field 6 heroes at once.',

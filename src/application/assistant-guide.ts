@@ -782,7 +782,7 @@ export function currentAssistantObjective(
   }
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
     return {
-      text: 'INBOX CLEAR. ADVANCE WEEK.',
+      text: 'NO MESSAGES. ADVANCE WEEK.',
       textKey: 'assistantObjective.inboxClear',
       target: 'advance-week',
     };

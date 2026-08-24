@@ -46,6 +46,24 @@ describe('persisted copy carries keys alongside English', () => {
     expect(line.labelKey).toBeUndefined();
   });
 
+  test.each([
+    [
+      'Current Sponsor · Monthly sponsor',
+      'ledger.monthlyContinuitySponsor',
+      undefined,
+    ],
+    [
+      'Current Sponsor 2 · Monthly sponsor',
+      'ledger.monthlyContinuitySponsorNumbered',
+      { number: 2 },
+    ],
+  ])('repairs an old continuity sponsor label: %s', (label, key, params) => {
+    const line = roundTrip({ kind: 'sponsor', label, amount: 120 });
+
+    expect(line.labelKey).toBe(key);
+    expect(line.labelParams).toEqual(params);
+  });
+
   test('English stays required, so a writer cannot emit keys alone', () => {
     const { label: _dropped, ...withoutEnglish } = ENGLISH_LINE;
 
