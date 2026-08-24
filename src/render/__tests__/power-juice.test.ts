@@ -262,7 +262,7 @@ describe('renderer juice wiring', () => {
       'const suppressCosmeticEffectsRef = useRef(suppressCosmeticEffects);',
     );
     expect(source).toContainSource(
-      'const startJuice = (power: PowerId, player: number, now: number) => {\n      if (suppressCosmeticEffectsRef.current) return;',
+      'const startJuice = (power: PowerId, player: number, now: number) => {\n      if (suppressCosmeticEffectsRef.current || threeXLiteRef.current) return;',
     );
     expect(takeover).toContainSource('reduceMotion ? null : shellStyle');
     expect(takeover).toContainSource(

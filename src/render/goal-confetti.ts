@@ -5,7 +5,8 @@
 /** Burst, hang, drop, fade. The goal SFX clip is cut to exactly this long. */
 export const GOAL_CONFETTI_MS = 2_200;
 /** Dense enough to read as "everywhere" without a per-piece cost that shows. */
-const PIECE_COUNT = 220;
+export const GOAL_CONFETTI_PIECE_COUNT = 220;
+export const GOAL_CONFETTI_SPARSE_PIECE_COUNT = 60;
 const COLORS = [
   '#edb54a',
   '#d94f52',
@@ -44,8 +45,9 @@ export interface ConfettiPiece {
 export function makeGoalConfetti(
   width: number,
   height: number,
+  pieceCount = GOAL_CONFETTI_PIECE_COUNT,
 ): ConfettiPiece[] {
-  return Array.from({ length: PIECE_COUNT }, (_unused, index) => {
+  return Array.from({ length: pieceCount }, (_unused, index) => {
     const w = 6 + (index % 3) * 3;
     const h = 9 + (index % 2) * 6;
     return {

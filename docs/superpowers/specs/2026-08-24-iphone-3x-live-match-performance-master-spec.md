@@ -23,13 +23,13 @@ The current iOS config does not opt into 120 Hz ProMotion. It is already likely
 limited to 60 Hz. Verify this in the Release baseline. Do not add a native
 frame-rate module for this work.
 
-The preferred fix order is measured, not fixed:
+The owner approved a targeted 3x Lite preset after reviewing each visual cost:
 
-1. Measure the same match at 1x, 2x, and 3x on the affected iPhone.
-2. On a bad 3x window, enter a measured 3x Lite effects mode.
-3. Keep UI-runtime interpolation at display rate and simulate every tick.
-4. If 3x Lite is still bad, fall back to 2x.
-5. Stop after the first mode that passes the device targets.
+1. Selecting 3x enables the approved Lite preset immediately.
+2. Keep UI-runtime interpolation at display rate and simulate every tick.
+3. Measure the same match at 1x, 2x, and 3x on the affected iPhone.
+4. If targeted Lite is still bad, use the existing adaptive reduction.
+5. If adaptive reduction is still bad, fall back to 2x.
 
 ## Council synthesis
 
@@ -45,6 +45,10 @@ Opus and Grok agreed on these points:
 They differed on which concession should come first. This spec uses device
 evidence. It starts with the existing effects gates because they are small and
 already tested.
+
+The owner later approved a fixed, targeted 3x preset. This is narrower than the
+existing adaptive reduction. Physical Release evidence still gates severe-gap
+accounting and the faster one-window adaptive trigger.
 
 The current adaptive ladder waits for two 300-frame bad windows before cutting
 effects, then two more before the 2x cap. That can leave a player watching a
@@ -216,14 +220,15 @@ measurably cold.
 If the trace does not isolate the cause, let the device enter 3x Lite after its
 first confirmed bad window. A capable device keeps full effects.
 
-## Concession A: measured 3x Lite effects
+## Concession A: approved 3x Lite effects
 
-3x starts with full effects. One completed bad window enables the existing
-in-match `reducedEffects` state. This is 3x Lite. It is not persisted.
+3x starts with the approved targeted Lite preset. Returning manually to 1x or
+2x restores full effects unless adaptive reduction already activated.
 
-After the one-second settling delay, one more completed bad window falls back to
-2x and saves the existing performance limit. A good window resets the bad-window
-count.
+The existing adaptive ladder remains as the deeper fallback. Two completed bad
+windows enable `reducedEffects`. After the one-second settling delay, two more
+bad windows fall back to 2x and save the existing performance limit. A good
+window resets the bad-window count.
 
 The faster count is 3x-only. Pass the current speed or required-window count
 into the decision helper. Keep 2x on its current two-bad-window effects step and
@@ -237,33 +242,31 @@ Validate that signal against Instruments and the Metal HUD before it can trigger
 Lite or the cap. Severe active-play gaps must count as bad; recorded lifecycle
 boundaries reset the window.
 
-Keep the draw-time name `reducedEffects`. Use it for every named reduction. This
-includes component props, procedural VFX, ticker art, slide debris, and the
-scorching-shot ref.
+Keep `reducedEffects` for the broader adaptive fallback. Use `threeXLite` only
+for the fixed speed-specific preset. Neither may restart the RAF loop.
 
-Remove the existing `suppressCosmeticEffects` entry from the RAF effect
-dependency list. Convert its in-loop reads in substitution walks, power juice,
-trails, ordinary shot puffs, and goal confetti to a render-time ref. Changing
-quality or speed must not tear down the RAF loop, discard the sub-tick
-accumulator, or reset active power juice.
+Keep `suppressCosmeticEffects` and `threeXLite` out of the RAF effect dependency
+list. Read both through live refs in the loop. Changing quality or speed must
+not tear down the RAF loop or discard the sub-tick accumulator.
 
-Reuse the existing gates. At 3x they may cut:
+The approved 3x preset cuts:
 
 - pass-combo and Super Speed ghost trails;
-- substitution walk decoration, while keeping the substitution itself;
 - activation camera punch, speed lines, and the four-step body flash;
-- ordinary shot puffs;
-- goal confetti and goal shake;
-- the ball-behind-player x-ray decoration;
-- extra slide-tackle dust, grass, and trail samples;
+- goal confetti from 220 to 60 pieces, while keeping goal shake;
+- all slide-tackle dust, grass, and trail debris;
 - secondary procedural VFX marks;
-- ticker extrusion and held motion;
-- the continuous tier-two scorching flame.
+- ticker movement, shadow, and extrusion.
 
 Keep:
 
 - player and ball Atlas motion;
 - carrier ring and carrier card;
+- substitution walk-on and walk-off decoration;
+- ordinary shot puffs and the ball flight trail;
+- the ball-behind-player x-ray decoration;
+- the continuous tier-two scorching flame;
+- goal shake and 60 evenly spread confetti pieces;
 - score, clock, banners, and coaching confirmations;
 - primary shot, save, tackle, interruption, goal, and power marks;
 - authored power art and power title treatment;
@@ -271,8 +274,9 @@ Keep:
 - Heat, Zone, `ARMED`, `FIRE!`, save-window drain, and `WASTED POWER`;
 - all audio and haptics.
 
-Switching from 3x to 2x keeps the current match's reduced state. The next match
-starts with full effects unless Reduce Motion is on.
+Manually switching from 3x to 1x or 2x restores the targeted decorations. An
+automatic adaptive fallback may keep broader `reducedEffects` until full time.
+The next match starts without adaptive reduction unless Reduce Motion is on.
 
 Re-measure the same fixture. Stop if it passes.
 
@@ -449,7 +453,7 @@ No server flag, new setting, or migration is needed.
 
 The correct final result is the first measured rung that works:
 
-`no change -> measured 3x Lite -> 2x fallback`
+`targeted 3x Lite -> adaptive reduction -> 2x fallback`
 
 Do not build the next rung after the device passes.
 
@@ -461,7 +465,9 @@ The safe code subset is implemented:
   reset the pacing monitor;
 - adaptive effect changes no longer restart the RAF loop or reset active power
   juice;
-- existing reduced-effect paths remain the 3x Lite concession.
+- selecting 3x immediately applies the approved targeted Lite preset;
+- 3x goal confetti uses 60 evenly spread pieces instead of 220;
+- manually returning to 1x or 2x restores the targeted decorations.
 
 Severe active-gap counting and the faster one-window 3x trigger remain off. No
 second known-good physical iPhone Release trace exists. The current 250 ms
