@@ -172,10 +172,9 @@ describe('App screen routing', () => {
 describe('management tab routing', () => {
   const shell = source('src/ui/ManagementShell.tsx');
 
-  it('keeps the chrome still while the selected desk dissolves', () => {
-    expect(shell).toContain(
-      '<ScreenTransition screenKey={activeTab} reduceMotion={reduceMotion}>',
-    );
+  it('cuts directly between desks without flashing the departed desk', () => {
+    expect(shell).not.toContain('<ScreenTransition');
+    expect(shell).toContain('<View className="flex-1 bg-paper">');
   });
 
   it('makes the selected main tab obvious without styling every tab', () => {

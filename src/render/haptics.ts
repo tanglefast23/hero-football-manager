@@ -52,9 +52,7 @@ export function playManagementHaptic(cue: ManagementHapticCue): void {
           : Haptics.impactAsync(
               cue === 'hero' || cue === 'commit'
                 ? Haptics.ImpactFeedbackStyle.Heavy
-                : cue === 'tap'
-                  ? Haptics.ImpactFeedbackStyle.Light
-                  : Haptics.ImpactFeedbackStyle.Medium,
+                : Haptics.ImpactFeedbackStyle.Rigid,
             );
   void feedback.catch(() => undefined);
 }

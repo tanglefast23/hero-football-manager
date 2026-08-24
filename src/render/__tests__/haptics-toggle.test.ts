@@ -6,7 +6,12 @@ jest.mock('expo-haptics', () => ({
   selectionAsync: mockSelectionAsync,
   impactAsync: mockImpactAsync,
   notificationAsync: mockNotificationAsync,
-  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+    Rigid: 'rigid',
+  },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
 
@@ -48,9 +53,9 @@ describe('persistent haptics gate', () => {
     expect(mockImpactAsync).toHaveBeenCalledWith('heavy');
   });
 
-  it('weights tap below commit so a list press does not feel like spending money', () => {
+  it('makes taps clear without matching a heavy commit', () => {
     playManagementHaptic('tap');
-    expect(mockImpactAsync).toHaveBeenCalledWith('light');
+    expect(mockImpactAsync).toHaveBeenCalledWith('rigid');
 
     mockImpactAsync.mockClear();
     playManagementHaptic('commit');

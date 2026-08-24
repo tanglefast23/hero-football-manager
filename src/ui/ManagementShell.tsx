@@ -32,7 +32,6 @@ import {
   GuidanceDoubleFlash,
   type GuidanceNudgeTarget,
 } from './GuidanceDoubleFlash';
-import { ScreenTransition } from './components/ScreenTransition';
 
 const TABS: ReadonlyArray<{
   id: ManagementTab;
@@ -601,9 +600,7 @@ export function ManagementShell({
       </View>
 
       <View className="flex-1 bg-paper">
-        <ScreenTransition screenKey={activeTab} reduceMotion={reduceMotion}>
-          {children}
-        </ScreenTransition>
+        {children}
       </View>
 
       <View
