@@ -23,9 +23,7 @@ export function withManagementFeedbackActivation<T>(
 }
 
 /** True only for the first feedback of this kind in one physical activation. */
-export function claimManagementFeedback(
-  kind: 'sound' | 'haptic',
-): boolean {
+export function claimManagementFeedback(kind: 'sound' | 'haptic'): boolean {
   if (active === null) return true;
   const field = kind === 'sound' ? 'soundPlayed' : 'hapticPlayed';
   if (active[field]) return false;
