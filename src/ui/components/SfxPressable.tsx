@@ -40,9 +40,9 @@ type SfxPressableProps = NativePressableProps & {
   /** Which side of the control the tip opens on. Defaults to above. */
   tipSide?: 'top' | 'bottom';
   /**
-   * Removes react-native-web's 50ms press-in delay for latency-sensitive
-   * controls. Native React Native already defaults to zero, so this is a web
-   * compatibility opt-in rather than a global interaction-policy change.
+   * Removes react-native-web's 50ms press-in delay. It defaults on because the
+   * delay made short clicks on navigation and dismiss controls feel ignored.
+   * Native React Native already defaults to zero.
    */
   immediatePress?: boolean;
 };
@@ -107,7 +107,7 @@ export function SfxPressable({
   pressSfx = 'click',
   tip,
   tipSide = 'top',
-  immediatePress = false,
+  immediatePress = true,
   style,
   children,
   disabled,

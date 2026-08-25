@@ -3637,7 +3637,7 @@
     "storyEvent.weakestUsefulAttribute": "atribut berguna terlemah",
     "storyEvent.rewardLoseSmallFacilities.one": "Kehilangan {count} fasilitas kecil",
     "storyEvent.rewardLoseSmallFacilities.other": "Kehilangan {count} fasilitas kecil",
-    "storyEvent.rewardRiskPrimaryFacility": "Peluang 70% kehilangan Toko Klub terbaik atau fasilitas terbesar",
+    "storyEvent.rewardRiskPrimaryFacility": "Kehilangan Toko Klub terbaik atau fasilitas terbesar",
     "storyEvent.riskyChance": "{percent}%: {reward}.",
     "storyEvent.riskyChanceOrNothing": "{percent}%: {reward}. Kalau tidak, nol.",
     "storyEvent.riskyChanceWithFailure": "{percent}%: {reward}. Jika gagal: {failure}.",

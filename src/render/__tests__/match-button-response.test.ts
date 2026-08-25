@@ -13,11 +13,11 @@ const openingFor = (text: string, component: string, handler: string) => {
 };
 
 describe('match button response contract', () => {
-  it('offers a match-only web delay override without changing native timing', () => {
+  it('removes the shared web press delay without changing native timing', () => {
     const pressable = source('src/ui/components/SfxPressable.tsx');
 
     expect(pressable).toContainSource('immediatePress?: boolean;');
-    expect(pressable).toContainSource('immediatePress = false');
+    expect(pressable).toContainSource('immediatePress = true');
     expect(pressable).toContainSource(
       "immediatePress && Platform.OS === 'web'",
     );

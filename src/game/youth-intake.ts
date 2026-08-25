@@ -130,6 +130,23 @@ export const YOUTH_LAST_NAMES = [
   'Vale',
   'Ward',
 ] as const;
+
+/** Keeps generated youth distinct from the active squad without changing IDs. */
+export function availableYouthName(
+  firstName: string,
+  preferredLastNameIndex: number,
+  usedNames: ReadonlySet<string>,
+): string {
+  for (let offset = 0; offset < YOUTH_LAST_NAMES.length; offset += 1) {
+    const lastName =
+      YOUTH_LAST_NAMES[
+        (preferredLastNameIndex + offset) % YOUTH_LAST_NAMES.length
+      ];
+    const name = `${firstName} ${lastName}`;
+    if (!usedNames.has(name)) return name;
+  }
+  return `${firstName} ${YOUTH_LAST_NAMES[preferredLastNameIndex % YOUTH_LAST_NAMES.length]} II`;
+}
 const ROLE_TARGETS: Readonly<Record<Role, number>> = {
   GK: 2,
   DEF: 5,
@@ -151,13 +168,22 @@ export function createPreseasonYouthIntake(state: GameState): YouthIntakeState {
   const fieldLevel = youthFieldLevel(state);
   const roles = youthRoles(roster, offeredCount, random);
   const appearancePool = [...state.players];
+  const usedNames = new Set(roster.map((player) => player.name));
   const offers = roles.map((role, index) => {
-    const offer = createOffer(state, role, index, fieldLevel, random);
+    const offer = createOffer(
+      state,
+      role,
+      index,
+      fieldLevel,
+      random,
+      usedNames,
+    );
     const player = {
       ...offer.player,
       lookId: nextDistinctPlayerLook(offer.player, appearancePool),
     };
     appearancePool.push(player);
+    usedNames.add(player.name);
     return { ...offer, player };
   });
 
@@ -422,7 +448,15 @@ export function createEmergencyYouthReplacement(
   return {
     id,
     clubId: state.userClubId,
-    name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${YOUTH_LAST_NAMES[integerRoll(random, 0, YOUTH_LAST_NAMES.length - 1)]}`,
+    name: availableYouthName(
+      FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)],
+      integerRoll(random, 0, YOUTH_LAST_NAMES.length - 1),
+      new Set(
+        state.players
+          .filter((player) => player.clubId === state.userClubId)
+          .map((player) => player.name),
+      ),
+    ),
     role,
     lookId: nextDistinctPlayerLook({ id, role }, state.players),
     attrs,
@@ -463,6 +497,7 @@ function createOffer(
   index: number,
   fieldLevel: 0 | 1 | 2 | 3,
   random: Rng,
+  usedNames: ReadonlySet<string>,
 ): YouthIntakeOffer {
   const division = userDivisionLevel(state);
   const targetStrength =
@@ -493,7 +528,11 @@ function createOffer(
   const player: CareerPlayer = {
     id,
     clubId: state.userClubId,
-    name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${YOUTH_LAST_NAMES[integerRoll(random, 0, YOUTH_LAST_NAMES.length - 1)]}`,
+    name: availableYouthName(
+      FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)],
+      integerRoll(random, 0, YOUTH_LAST_NAMES.length - 1),
+      usedNames,
+    ),
     role,
     attrs,
     licensed: false,

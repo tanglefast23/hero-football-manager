@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="German full-career playtest report for Hero Football Manager, completed through the Division 1 and Hero Cup true ending."
+    />
+    <title>German Full-Career Playtest · Hero Football Manager</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #13202a;
+        --muted: #59656b;
+        --paper: #f4efe3;
+        --card: #fffdf7;
+        --navy: #0f2d3a;
+        --green: #17634a;
+        --lime: #bee45b;
+        --orange: #ef7b45;
+        --red: #a83832;
+        --amber: #9c6900;
+        --blue: #2c6b83;
+        --line: #d7cebe;
+        --shadow: 0 16px 42px rgb(15 45 58 / 10%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgb(15 45 58 / 4%) 1px, transparent 1px) 0 0 /
+            32px 32px,
+          var(--paper);
+        font-family: Charter, 'Iowan Old Style', Georgia, serif;
+        font-size: 18px;
+        line-height: 1.58;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        background:
+          radial-gradient(
+            circle at 83% 30%,
+            rgb(190 228 91 / 13%) 0 11rem,
+            transparent 11.1rem
+          ),
+          var(--navy);
+        border-bottom: 8px solid var(--lime);
+      }
+
+      .hero::after {
+        position: absolute;
+        right: -7rem;
+        bottom: -17rem;
+        width: 37rem;
+        height: 37rem;
+        border: 5.5rem solid rgb(190 228 91 / 9%);
+        border-radius: 50%;
+        content: '';
+      }
+
+      .hero-inner,
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin-inline: auto;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        padding: 62px 0 52px;
+      }
+
+      h1,
+      h2,
+      h3,
+      .eyebrow,
+      .tag,
+      nav,
+      .stat strong,
+      .division strong,
+      .season-label,
+      .recommendation strong {
+        font-family:
+          'Avenir Next Condensed', 'Franklin Gothic Condensed', sans-serif;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--lime);
+        font-size: 0.82rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 920px;
+        margin: 0;
+        font-size: clamp(3.2rem, 8vw, 6.8rem);
+        font-weight: 900;
+        letter-spacing: -0.058em;
+        line-height: 0.88;
+      }
+
+      .subtitle {
+        max-width: 820px;
+        margin: 24px 0 0;
+        color: #dce7e8;
+        font-size: 1.08rem;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 38px;
+      }
+
+      .stat {
+        min-height: 112px;
+        padding: 18px;
+        color: var(--ink);
+        background: var(--lime);
+        box-shadow: 6px 6px 0 rgb(0 0 0 / 17%);
+        animation: rise 420ms ease-out both;
+      }
+
+      .stat:nth-child(even) {
+        background: #fff;
+      }
+
+      .stat:nth-child(2) {
+        animation-delay: 60ms;
+      }
+
+      .stat:nth-child(3) {
+        animation-delay: 120ms;
+      }
+
+      .stat:nth-child(4) {
+        animation-delay: 180ms;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 2rem;
+        line-height: 1;
+      }
+
+      .stat span {
+        display: block;
+        margin-top: 9px;
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        line-height: 1.25;
+        text-transform: uppercase;
+      }
+
+      .page {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr);
+        gap: 44px;
+        padding-block: 42px 80px;
+      }
+
+      nav {
+        position: sticky;
+        top: 20px;
+        align-self: start;
+        padding: 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      nav span {
+        display: block;
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      nav a {
+        display: block;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.86rem;
+        font-weight: 800;
+        line-height: 1.25;
+        text-decoration: none;
+      }
+
+      nav a:last-child {
+        border-bottom: 0;
+      }
+
+      nav a:hover,
+      nav a:focus-visible {
+        color: var(--green);
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .verdict,
+      .recommendation {
+        padding: 24px 26px;
+        color: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .verdict {
+        background: var(--green);
+        border-left: 8px solid var(--lime);
+      }
+
+      .recommendation {
+        margin-top: 18px;
+        background: var(--red);
+        border-left: 8px solid var(--orange);
+      }
+
+      .verdict strong,
+      .recommendation strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 1.4rem;
+      }
+
+      p {
+        margin: 0 0 18px;
+      }
+
+      .verdict p,
+      .recommendation p,
+      .card p:last-child,
+      .division p:last-child {
+        margin-bottom: 0;
+      }
+
+      h2 {
+        margin: 52px 0 18px;
+        padding-bottom: 9px;
+        color: var(--navy);
+        border-bottom: 4px solid var(--navy);
+        font-size: clamp(2rem, 5vw, 3.1rem);
+        font-weight: 900;
+        letter-spacing: -0.038em;
+        line-height: 1;
+      }
+
+      h2::before {
+        display: inline-block;
+        width: 0.52em;
+        height: 0.52em;
+        margin-right: 0.22em;
+        background: var(--lime);
+        content: '';
+      }
+
+      h3 {
+        margin: 0 0 9px;
+        color: var(--navy);
+        font-size: 1.48rem;
+        line-height: 1.12;
+      }
+
+      .grid,
+      .division-grid,
+      .strength-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .card,
+      .division,
+      .strength-card {
+        padding: 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: 0 7px 24px rgb(15 45 58 / 6%);
+      }
+
+      .critical {
+        border-top: 7px solid var(--red);
+      }
+
+      .high {
+        border-top: 7px solid var(--orange);
+      }
+
+      .medium {
+        border-top: 7px solid var(--amber);
+      }
+
+      .working {
+        border-top: 7px solid var(--green);
+      }
+
+      .watch {
+        border-top: 7px solid var(--blue);
+      }
+
+      .tag {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 3px 8px;
+        color: #fff;
+        background: var(--navy);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .critical .tag {
+        background: var(--red);
+      }
+
+      .high .tag {
+        background: #b34f20;
+      }
+
+      .medium .tag {
+        background: var(--amber);
+      }
+
+      .working .tag {
+        background: var(--green);
+      }
+
+      .watch .tag {
+        background: var(--blue);
+      }
+
+      .quote {
+        margin-top: 18px;
+        padding: 18px 22px;
+        background: #e5edcf;
+        border-left: 7px solid var(--green);
+        font-size: 1.04rem;
+      }
+
+      table {
+        width: 100%;
+        margin: 12px 0 28px;
+        border-collapse: collapse;
+        background: var(--card);
+        box-shadow: var(--shadow);
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #fff;
+        background: var(--navy);
+      }
+
+      tbody tr:nth-child(even) {
+        background: #f2eddf;
+      }
+
+      .season-label {
+        color: var(--green);
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .division strong {
+        display: block;
+        color: var(--navy);
+        font-size: 1.6rem;
+      }
+
+      .division .record {
+        margin: 5px 0 12px;
+        color: var(--green);
+        font-weight: 800;
+      }
+
+      .strength-card {
+        display: grid;
+        grid-template-columns: 70px 1fr;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .strength-number {
+        color: var(--navy);
+        font-family: 'Avenir Next Condensed', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .meter {
+        height: 10px;
+        margin-top: 8px;
+        overflow: hidden;
+        background: #e8e0d2;
+        border-radius: 99px;
+      }
+
+      .meter span {
+        display: block;
+        width: var(--width);
+        height: 100%;
+        background: linear-gradient(90deg, var(--green), var(--lime));
+      }
+
+      ul {
+        display: grid;
+        gap: 11px;
+        margin: 0 0 28px;
+        padding: 0;
+        list-style: none;
+      }
+
+      li {
+        position: relative;
+        padding: 15px 18px 15px 44px;
+        background: var(--card);
+        border: 1px solid var(--line);
+      }
+
+      li::before {
+        position: absolute;
+        top: 21px;
+        left: 18px;
+        width: 10px;
+        height: 10px;
+        background: var(--orange);
+        border-radius: 50%;
+        content: '';
+      }
+
+      li strong:first-child {
+        color: var(--red);
+      }
+
+      code {
+        padding: 0.1em 0.35em;
+        color: #fff;
+        background: var(--navy);
+        border-radius: 3px;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 0.82em;
+        overflow-wrap: anywhere;
+      }
+
+      .small {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      footer {
+        padding: 26px 20px;
+        color: #dce7e8;
+        background: var(--navy);
+        text-align: center;
+      }
+
+      footer p {
+        margin: 0;
+        font-size: 0.86rem;
+      }
+
+      :focus-visible {
+        outline: 4px solid var(--orange);
+        outline-offset: 4px;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .stat {
+          animation: none;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .stats,
+        .grid,
+        .division-grid,
+        .strength-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .page {
+          grid-template-columns: 1fr;
+        }
+
+        nav {
+          position: static;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0 14px;
+        }
+
+        nav span {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 580px) {
+        body {
+          font-size: 16px;
+        }
+
+        .hero-inner,
+        .page {
+          width: min(100% - 24px, 1180px);
+        }
+
+        .stats,
+        .grid,
+        .division-grid,
+        .strength-grid,
+        nav {
+          grid-template-columns: 1fr;
+        }
+
+        .stat {
+          min-height: 96px;
+        }
+
+        .strength-card {
+          grid-template-columns: 58px 1fr;
+        }
+
+        th,
+        td {
+          padding: 10px;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+          font-size: 11pt;
+        }
+
+        nav,
+        footer {
+          display: none;
+        }
+
+        .page {
+          display: block;
+          padding: 20px 0;
+        }
+
+        .hero {
+          color: var(--ink);
+          background: #fff;
+          border-color: var(--ink);
+        }
+
+        .eyebrow,
+        .subtitle {
+          color: var(--ink);
+        }
+
+        .card,
+        .division,
+        .strength-card,
+        table,
+        .stat {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">QA Report · German Locale · 25 August 2026</p>
+        <h1>Ten seasons to the true ending</h1>
+        <p class="subtitle">
+          A fresh German career played with Quick Result, weekly TP spending,
+          complete facility upgrades, and selective Green Bull training. Bramble
+          Rovers won Division 1 and the Hero Cup in Season 10.
+        </p>
+        <div class="stats" aria-label="Career summary">
+          <div class="stat">
+            <strong>10</strong><span>Seasons to true ending</span>
+          </div>
+          <div class="stat">
+            <strong>17–1–0</strong><span>Final D1 season</span>
+          </div>
+          <div class="stat">
+            <strong>53–7</strong><span>Final D1 goals</span>
+          </div>
+          <div class="stat">
+            <strong>3×</strong><span>Hero Cup winner</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page">
+      <nav aria-label="Report sections">
+        <span>Jump to</span>
+        <a href="#result">Final result</a>
+        <a href="#priority">Fix first</a>
+        <a href="#journey">Season journey</a>
+        <a href="#divisions">Division reviews</a>
+        <a href="#strength">Strength ladder</a>
+        <a href="#d1">D1 deep dive</a>
+        <a href="#working">What now works</a>
+        <a href="#language">German UI</a>
+        <a href="#strategy">Optimal strategy</a>
+        <a href="#experience">Fun and fairness</a>
+        <a href="#actions">Change order</a>
+      </nav>
+
+      <main>
+        <aside class="verdict" id="result" role="note">
+          <strong>True ending reached without a crash</strong>
+          <p>
+            Bramble beat Cinder Vikings 4–0 away to win D1. The club had already
+            won the Hero Cup final 2–1 against Alder Vanguard. The German true
+            ending rendered, completed, and returned cleanly to the title
+            screen.
+          </p>
+        </aside>
+
+        <aside class="recommendation" role="note">
+          <strong>Main balance decision: lower the strongest D1 club</strong>
+          <p>
+            The strongest D1 club begins around 124 average starting strength,
+            including its special players. The preferred next test is 120. D1
+            took three seasons even after efficient upgrades and training.
+          </p>
+        </aside>
+
+        <p class="quote">
+          The final season felt earned. The problem is the wait before it. D1
+          demanded two runner-up seasons before optimized play finally produced
+          a 17–1–0 title season.
+        </p>
+
+        <h2 id="priority">Fix first</h2>
+        <div class="grid">
+          <section class="card critical">
+            <span class="tag">Balance</span>
+            <h3>D1’s strongest club starts too high</h3>
+            <p>
+              The top D1 starting XI is about 124 average strength, including
+              special players. Bramble finished second twice despite focused
+              weekly drills, maxed facilities, repeated Green Bull sessions, and
+              a legal four-hero lineup.
+            </p>
+            <p>
+              <strong>Next change:</strong> tune that complete starting XI to
+              about 120. Keep its identity and special players. Test whether an
+              efficient club can now win D1 in one or two seasons.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">German copy</span>
+            <h3>Fire risk repeats the percentage</h3>
+            <p>
+              One German fire event displayed <code>70%: 70 % Risiko</code>. The
+              repeated number makes the choice harder to scan.
+            </p>
+            <p>
+              <strong>Fix:</strong> keep one localized percentage and one risk
+              label. Check the same composition in every language.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">Input</span>
+            <h3>Some taps need a retry</h3>
+            <p>
+              Training close buttons and navigation tabs occasionally ignored
+              the first click. Retrying immediately worked. This did not block
+              progress, but it made the interface feel less reliable.
+            </p>
+            <p>
+              <strong>Fix:</strong> trace the shared press path before changing
+              individual screens. The likely win is one root fix, not many local
+              retry handlers.
+            </p>
+          </section>
+
+          <section class="card medium">
+            <span class="tag">Data risk</span>
+            <h3>Duplicate player names remain possible</h3>
+            <p>
+              The active squad can contain duplicate display names. This run did
+              not reproduce the old license collision, but duplicate names still
+              make reports, promises, and license choices ambiguous.
+            </p>
+            <p>
+              <strong>Fix:</strong> keep player IDs as the only identity key and
+              prevent duplicate full names inside one active squad when
+              possible.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="journey">Season journey</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Season</th>
+              <th>Division</th>
+              <th>League result</th>
+              <th>Career effect</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="season-label">S1</td>
+              <td>D5</td>
+              <td>12–4–2 · second</td>
+              <td>Promoted immediately.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S2</td>
+              <td>D4</td>
+              <td>7–4–7 · fourth</td>
+              <td>Useful consolidation season.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S3</td>
+              <td>D4</td>
+              <td>17–1–0 · champion</td>
+              <td>Promoted with a dominant rebuild.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S4</td>
+              <td>D3</td>
+              <td>13–1–4 · second</td>
+              <td>Promoted immediately.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S5</td>
+              <td>D2</td>
+              <td>7–4–7 · sixth</td>
+              <td>First serious progression wall.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S6</td>
+              <td>D2</td>
+              <td>Third · 39 points</td>
+              <td>Close, but still below promotion.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S7</td>
+              <td>D2</td>
+              <td>16–2–0 · champion</td>
+              <td>Promoted and won the Hero Cup 2–0.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S8</td>
+              <td>D1</td>
+              <td>12–3–3 · second · 39 points</td>
+              <td>Cinder went 17–1–0. Cup semifinal loss.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S9</td>
+              <td>D1</td>
+              <td>15–2–1 · second · 47 points</td>
+              <td>Lost the title by two points. Won the Cup 5–1.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S10</td>
+              <td>D1</td>
+              <td>17–1–0 · champion · 52 points</td>
+              <td>Won D1, the Cup, and the true ending.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="divisions">Division reviews</h2>
+        <div class="division-grid">
+          <section class="division">
+            <strong>D5 · Clear opening test</strong>
+            <p class="record">One season · promoted second</p>
+            <p>
+              The first squad could compete immediately. Early drills and basic
+              role discipline mattered, but the division did not overstay its
+              welcome.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D4 · Good first rebuild</strong>
+            <p class="record">Two seasons · fourth, then champion</p>
+            <p>
+              The first D4 year exposed weak depth. The second showed visible
+              payoff from facilities and repeat training. This was a fair wall.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D3 · Efficient and readable</strong>
+            <p class="record">One season · promoted second</p>
+            <p>
+              D3 rewarded the upgraded club quickly. Hero License decisions were
+              meaningful without blocking a valid lineup.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D2 · Long but productive</strong>
+            <p class="record">Three seasons · sixth, third, champion</p>
+            <p>
+              D2 was the first long wall. Unlike D1, each repeat season still
+              unlocked or funded obvious improvements. The final unbeaten title
+              felt like a clear result of those choices.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D1 · Too demanding at the top</strong>
+            <p class="record">Three seasons · second, second, champion</p>
+            <p>
+              The final rivalry was exciting, but the strongest club required a
+              near-perfect response. Lowering its full starting XI from about
+              124 to 120 should reduce repetition without removing the climax.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>Hero Cup · Strong side objective</strong>
+            <p class="record">Three titles · S7, S9, and S10</p>
+            <p>
+              The Cup created useful spikes in tension. The Season 10 semifinal
+              ended 1–1 against Cinder and went to a 5–4 shootout. The $100,000
+              champion reward now matched the event better.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="strength">Top-club strength ladder</h2>
+        <p>
+          These are approximate starting-XI references for the strongest club in
+          each division. Generated players and season growth can move the exact
+          value.
+        </p>
+        <div
+          class="strength-grid"
+          aria-label="Top club starting strength by division"
+        >
+          <section class="strength-card">
+            <div class="strength-number">52</div>
+            <div>
+              <strong>D5</strong>
+              <div class="meter"><span style="--width: 42%"></span></div>
+            </div>
+          </section>
+          <section class="strength-card">
+            <div class="strength-number">65</div>
+            <div>
+              <strong>D4</strong>
+              <div class="meter"><span style="--width: 52%"></span></div>
+            </div>
+          </section>
+          <section class="strength-card">
+            <div class="strength-number">79</div>
+            <div>
+              <strong>D3</strong>
+              <div class="meter"><span style="--width: 64%"></span></div>
+            </div>
+          </section>
+          <section class="strength-card">
+            <div class="strength-number">94</div>
+            <div>
+              <strong>D2</strong>
+              <div class="meter"><span style="--width: 76%"></span></div>
+            </div>
+          </section>
+          <section class="strength-card critical">
+            <div class="strength-number">124</div>
+            <div>
+              <strong>D1 current</strong>
+              <div class="meter"><span style="--width: 100%"></span></div>
+            </div>
+          </section>
+          <section class="strength-card working">
+            <div class="strength-number">120</div>
+            <div>
+              <strong>D1 next test</strong>
+              <div class="meter"><span style="--width: 97%"></span></div>
+            </div>
+          </section>
+        </div>
+
+        <h2 id="d1">Division 1 deep dive</h2>
+        <div class="grid">
+          <section class="card watch">
+            <span class="tag">Season 8</span>
+            <h3>The first warning</h3>
+            <p>
+              Bramble went 12–3–3 with a +25 goal difference. Cinder finished
+              17–1–0 on 52 points with a +69 goal difference. Optimized play was
+              competitive, but not close to the title pace.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">Season 9</span>
+            <h3>The painful near miss</h3>
+            <p>
+              Bramble improved to 15–2–1 and 47 points. A 0–2 final-day loss to
+              Cinder decided the title by two points. This was dramatic, but it
+              required another full season after an already elite campaign.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Season 10</span>
+            <h3>The complete answer</h3>
+            <p>
+              Bramble finished 17–1–0, scored 53, conceded seven, and beat
+              Cinder 4–0 away in the decider. The final season strongly rewarded
+              the long upgrade plan.
+            </p>
+          </section>
+
+          <section class="card medium">
+            <span class="tag">Verdict</span>
+            <h3>Excellent climax, one season too late</h3>
+            <p>
+              D1 should remain the hardest division. The goal is not to make it
+              easy. The goal is to let excellent play challenge the title
+              sooner. A four-point top-club reduction is a small first move.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="working">What now works</h2>
+        <div class="grid">
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>True ending and D1 copy</h3>
+            <p>
+              D1 used correct championship language. The German ending said
+              <code>DER AUFSTIEG IST FERTIG</code> only after D1 and the Hero
+              Cup were both won. It completed without the old animation crash.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Hero Licenses and awakenings</h3>
+            <p>
+              Cal Hart’s awakening waited for a license. It did not consume the
+              spare permit automatically. Manual assignment then worked, and the
+              valid four-hero lineup remained playable.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Scouting and transfers</h3>
+            <p>
+              Completed reports showed exact values and produced signing paths.
+              Listings, bids, and confirmations worked. Mission duration still
+              matters near the transfer deadline.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Economy tools</h3>
+            <p>
+              Green Bull remained available as a rising money sink. Contract
+              controls used percentage wage steps. The Hero Cup paid $100,000.
+              Gift, facility, drill, and request costs behaved clearly.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Training boundaries</h3>
+            <p>
+              Paid training stopped at the visible 999 cap. All seven drills
+              reached Tier 5. Weekly TP could be spent on role-relevant
+              attributes without crashes or lost progress.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Season continuity</h3>
+            <p>
+              Youth arrivals were explained. Season reset kept a valid lineup.
+              Dynamic sponsor labels were localized. Quick Result completed the
+              entire career without the old saved-after-error crash.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="language">German UI and copy</h2>
+        <div class="grid">
+          <section class="card working">
+            <span class="tag">Good</span>
+            <h3>The ending is clear</h3>
+            <p>
+              The Cup screen correctly said the division remained the goal. The
+              true ending appeared only after the D1 title. The final thank-you
+              sequence was readable and emotionally effective.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Good</span>
+            <h3>Dynamic labels stayed German</h3>
+            <p>
+              Sponsor names, finance labels, contract controls, requests, and
+              Hero License messages did not leak the old English fallback copy.
+            </p>
+          </section>
+
+          <section class="card medium">
+            <span class="tag">Copy</span>
+            <h3>One fire sentence needs cleanup</h3>
+            <p>
+              The duplicated <code>70%: 70 % Risiko</code> was the clearest
+              remaining German composition issue found in this run.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">Watch</span>
+            <h3>Long labels remained readable</h3>
+            <p>
+              No important German control was clipped during this desktop run.
+              This does not replace a separate physical-phone layout check.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="strategy">Efficient strategy that worked</h2>
+        <ol>
+          <li>
+            <strong>Spend useful TP every week.</strong> Train primary role
+            attributes first. Rotate to the next useful player when an attribute
+            reaches 999.
+          </li>
+          <li>
+            <strong>Upgrade income before luxury facilities.</strong> Build and
+            max the Stadium Stands and Fan Shops, then finish the useful
+            training buildings and all seven drills.
+          </li>
+          <li>
+            <strong>Use Green Bull before drills.</strong> It consumes all
+            current TP. Enter with a small TP bank and keep enough cash for
+            wages, renewals, and the next planned action.
+          </li>
+          <li>
+            <strong>Treat Green Bull as a late money sink.</strong> This run
+            used it at $550,000, $575,000, $600,000, and $625,000. The rising
+            price made each purchase a real choice.
+          </li>
+          <li>
+            <strong>Keep a legal natural-role lineup.</strong> The successful D1
+            shape was 5–3–2 with deep counter play, four licensed heroes, and
+            manual checks after awakenings.
+          </li>
+          <li>
+            <strong>Use Quick Result for the full career.</strong> It made a
+            ten-season balance test practical and did not require manual power
+            input.
+          </li>
+        </ol>
+
+        <h2 id="experience">Fun, fairness, and pacing</h2>
+        <div class="grid">
+          <section class="card working">
+            <span class="tag">Fun</span>
+            <h3>Long-term investment is visible</h3>
+            <p>
+              Tier 5 drills, maxed facilities, and repeated Green Bull sessions
+              changed the team in ways the player could see. The final 4–0 win
+              at Cinder felt like a payoff, not a random gift.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Fun</span>
+            <h3>License pressure creates choices</h3>
+            <p>
+              Awakened players sometimes forced a formation or permit decision.
+              The game supplied valid answers: buy a permit, train role depth,
+              or change the lineup. That is useful difficulty.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">Not fun</span>
+            <h3>D1 repeats the same rivalry too long</h3>
+            <p>
+              Two second-place finishes made the final climb longer than the
+              rest of the career. The club was visibly improving, but the target
+              still required almost perfect league form.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">Fair</span>
+            <h3>The wall has real solutions</h3>
+            <p>
+              D1 was not broken. Better drills, facilities, heroes, role depth,
+              and Green Bull training all helped. The recommended 124-to-120
+              adjustment should shorten the wait, not remove these choices.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="actions">Recommended change order</h2>
+        <ol>
+          <li>
+            <strong>Lower the strongest D1 starting XI to about 120.</strong>
+            Include every special player in that target.
+          </li>
+          <li>
+            <strong>Run one fresh efficient career.</strong> Check whether D1
+            can now be won in one or two seasons without weakening the earlier
+            divisions.
+          </li>
+          <li>
+            <strong>Fix the shared German fire-risk composition.</strong> Verify
+            the equivalent sentence in all seven languages.
+          </li>
+          <li>
+            <strong>Trace ignored presses at the shared input layer.</strong>
+            Fix the root cause only if it reproduces outside browser automation.
+          </li>
+          <li>
+            <strong>Keep duplicate names on the regression list.</strong>
+            Confirm licenses, promises, and reports always use immutable player
+            IDs.
+          </li>
+        </ol>
+
+        <p class="small">
+          Scope: one seeded German desktop-web career using Quick Result. This
+          is strong pacing and usability evidence, but not a multi-seed balance
+          sample or physical-phone layout test.
+        </p>
+      </main>
+    </div>
+
+    <footer>
+      <p>
+        Hero Football Manager · German full-career playtest · Bramble Rovers ·
+        Season 10 true ending
+      </p>
+    </footer>
+  </body>
+</html>

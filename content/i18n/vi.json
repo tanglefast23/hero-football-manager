@@ -3637,7 +3637,7 @@
     "storyEvent.weakestUsefulAttribute": "chỉ số hữu ích yếu nhất",
     "storyEvent.rewardLoseSmallFacilities.one": "Mất {count} cơ sở nhỏ",
     "storyEvent.rewardLoseSmallFacilities.other": "Mất {count} cơ sở nhỏ",
-    "storyEvent.rewardRiskPrimaryFacility": "70% nguy cơ mất Cửa Hàng CLB tốt nhất hoặc cơ sở lớn nhất",
+    "storyEvent.rewardRiskPrimaryFacility": "Mất Cửa Hàng CLB tốt nhất hoặc cơ sở lớn nhất",
     "storyEvent.riskyChance": "{percent}%: {reward}.",
     "storyEvent.riskyChanceOrNothing": "{percent}%: {reward}. Không thì trắng tay.",
     "storyEvent.riskyChanceWithFailure": "{percent}%: {reward}. Nếu không: {failure}.",

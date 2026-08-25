@@ -216,6 +216,32 @@ describe('pre-season youth intake', () => {
     expect(JSON.stringify(state)).toBe(before);
   });
 
+  it('avoids duplicate generated youth names inside the active squad', () => {
+    const state = careerWithRosterSize(14, 101);
+    const firstName = createPreseasonYouthIntake(state).offers[0].player.name;
+    const colliding = {
+      ...state,
+      players: state.players.map((player) =>
+        player.clubId === state.userClubId &&
+        player.id ===
+          state.players.find(
+            (candidate) => candidate.clubId === state.userClubId,
+          )?.id
+          ? { ...player, name: firstName }
+          : player,
+      ),
+    };
+    const intake = createPreseasonYouthIntake(colliding);
+    const names = [
+      ...colliding.players
+        .filter((player) => player.clubId === colliding.userClubId)
+        .map((player) => player.name),
+      ...intake.offers.map((offer) => offer.player.name),
+    ];
+
+    expect(new Set(names).size).toBe(names.length);
+  });
+
   it('offers archetypes that help each prospect in their own role', () => {
     for (let seed = 1; seed <= 40; seed += 1) {
       for (const offer of createPreseasonYouthIntake(
