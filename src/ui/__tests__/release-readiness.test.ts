@@ -67,6 +67,7 @@ describe('App Store release surface', () => {
     expect(config.expo.ios.supportsTablet).toBe(true);
     expect(config.expo.ios.requireFullScreen).toBe(false);
     expect(config.expo.ios.buildNumber).toMatchSource(/^\d+$/);
+    expect(Number(config.expo.ios.buildNumber)).toBeGreaterThanOrEqual(2);
 
     const titleLanding = source('src/ui/screens/TitleLandingScreen.tsx');
     expect(titleLanding).toContainSource(

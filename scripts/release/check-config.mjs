@@ -52,8 +52,13 @@ if (config.ios?.requireFullScreen !== false)
   failures.push(
     'expo.ios.requireFullScreen must be false for iPad multitasking',
   );
-if (!/^\d+$/.test(config.ios?.buildNumber ?? ''))
+const buildNumber = config.ios?.buildNumber ?? '';
+if (!/^\d+$/.test(buildNumber))
   failures.push('expo.ios.buildNumber must be a numeric string');
+else if (Number(buildNumber) < 2)
+  failures.push(
+    'expo.ios.buildNumber must be at least 2 because build 1 already exists',
+  );
 if (config.ios?.infoPlist?.ITSAppUsesNonExemptEncryption !== false) {
   failures.push('ITSAppUsesNonExemptEncryption must be declared false');
 }
