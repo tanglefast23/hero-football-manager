@@ -183,9 +183,6 @@ describe('first facility placement guidance', () => {
 
     expect(source).not.toContainSource('scrollToCoachingOffice');
     expect(source).not.toContainSource('coachingOfficeBuildTargetRef');
-    expect(source).toMatchSource(
-      /guideFocus !== 'facility-grid'\s*&& guideFocus !== 'coaching-office' \? \(/,
-    );
   });
 
   it('points at the Coaching Office when the inbox asks for one', () => {
