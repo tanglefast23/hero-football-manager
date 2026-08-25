@@ -107,9 +107,7 @@ describe('first training guidance', () => {
       'setConditionCuePlayerId(lastDrillResult.playerId);',
     );
     expect(source).toContainSource('onClearDrillResult?.();');
-    expect(app).toContainSource(
-      'onClearDrillResult={store.clearDrillResult}',
-    );
+    expect(app).toContainSource('onClearDrillResult={store.clearDrillResult}');
     // The drill popup covers the roster, so the cue waits for it to close.
     expect(source).toContainSource(
       'conditionCuePlayerId={drillPickerOpen ? null : conditionCuePlayerId}',
