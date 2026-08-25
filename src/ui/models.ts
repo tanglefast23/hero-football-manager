@@ -559,7 +559,7 @@ export interface SquadPlayerViewModel {
     'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10';
   /** Set only within one season of the announcement; absent while it is far off. */
   retirementLabel?: string;
-  shirtNumber?: number;
+  shirtNumber: number;
   isCaptain: boolean;
   powerName?: string;
   licensed: boolean;
@@ -667,7 +667,7 @@ export interface TrainingSlotStatOption {
   trainingModifiers: readonly TrainingModifierLabel[];
   /** Decimal progress saved until this ledger reaches one whole stat point. */
   fractionalBonusBanks: readonly TrainingFractionBankLabel[];
-  /** True at the invisible 999 safety ceiling; never shown as a number. */
+  /** True when the player-visible stat has reached the 999 paid-drill ceiling. */
   atSafetyCeiling: boolean;
   /** False when the TP bank cannot cover this drill right now. */
   affordable: boolean;
@@ -770,6 +770,8 @@ export interface PlayerGiftCelebrationViewModel {
   lookId?: string;
   cost: number;
   moraleGain: number;
+  transferRequestOutcome?:
+    { status: 'WITHDRAWN' } | { status: 'STILL_ACTIVE'; moraleTarget: number };
 }
 
 export interface TrainingGroundDecisionViewModel {

@@ -267,7 +267,7 @@ export function trainPlayerInstantly(
       `${trainingPathLabel(pathId)} does nothing for a ${player.role}`,
     );
   }
-  if (player.attrs[attribute] >= MAX_PLAYER_ATTRIBUTE) {
+  if (displayedValue(player, attribute) >= MAX_PLAYER_ATTRIBUTE) {
     throw new Error(
       `${player.name}'s ${trainingPathLabel(pathId)} is already at the maximum`,
     );
@@ -333,7 +333,9 @@ export function trainPlayerInstantly(
    * then fell to 5 while the card still read a stalled 999. That made the field
    * mean "whatever fits under the ceiling" rather than "how far the display has
    * been allowed to run ahead", and left §6's drift rail measuring nothing.
-   * `displayedValue` applies the ceiling on the way out instead.
+   * `displayedValue` applies the ceiling on the way out instead. Paid training
+   * now stops when that visible value reaches 999, so this ledger records only
+   * the display parity earned before the card is maxed.
    */
   // `drill.id`, not `pathId`. `pathId` is the TIER-1 drill id, so the resolve was
   // banking the display bonus at tier 1's ratio however far the path had been

@@ -211,6 +211,7 @@ export function careerMarketViewModelSource(
       id: player.id,
       name: player.name,
       lookId: player.lookId,
+      potentialGrade: playerGrowthGrade(player),
       ...(report.power === undefined || player.power === undefined
         ? {}
         : {
@@ -434,8 +435,9 @@ function transferListing(
       ...valuationPlayer(player),
       name: player.name,
       lookId: player.lookId,
+      potentialGrade: playerGrowthGrade(player),
       ...(scoutReport === undefined
-        ? { potentialGrade: playerGrowthGrade(player) }
+        ? {}
         : { potentialRange: { ...scoutReport.potentialRange } }),
       ...(revealPower && player.power !== undefined
         ? {

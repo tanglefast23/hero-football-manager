@@ -60,6 +60,7 @@ describe('player gifts', () => {
 
     expect(afterPlayer.morale).toBe(81);
     expect(result.moraleGain).toBe(20);
+    expect(result).not.toHaveProperty('transferRequestOutcome');
     expect(transaction).toMatchObject({
       kind: 'player-gift',
       label: `Gift for ${player.name}`,
@@ -175,6 +176,34 @@ describe('player gifts', () => {
     expect(crossingAfter.transferRequested).toBe(false);
     expect(crossingAfter.consecutiveLowMoraleWeeks).toBe(9);
   });
+
+  test.each([
+    ['below', 'Fiery', 24, 'STILL_ACTIVE', 45],
+    ['exact', 'Fiery', 25, 'WITHDRAWN', undefined],
+    ['above', 'Fiery', 26, 'WITHDRAWN', undefined],
+    ['greedy 25 to 45', 'Greedy', 25, 'STILL_ACTIVE', 50],
+  ] as const)(
+    'reports the transfer-request outcome at %s threshold',
+    (_case, personality, morale, status, moraleTarget) => {
+      const initial = richCareer();
+      const player = roster(initial)[0]!;
+      const before = replacePlayer(initial, player.id, {
+        morale,
+        personality,
+        transferRequested: true,
+      });
+
+      const result = givePlayerGift(before, player.id);
+
+      expect(result.transferRequestOutcome).toEqual(
+        status === 'WITHDRAWN' ? { status } : { status, moraleTarget },
+      );
+      expect(
+        result.state.players.find((candidate) => candidate.id === player.id)
+          ?.transferRequested,
+      ).toBe(status !== 'WITHDRAWN');
+    },
+  );
 
   test('is deterministic for the same state and player', () => {
     const initial = richCareer(97);

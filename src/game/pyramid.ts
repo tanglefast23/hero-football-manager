@@ -1066,6 +1066,15 @@ function transferRequestRule(personality: PlayerPersonality): {
  */
 export const TRANSFER_REQUEST_WITHDRAW_MARGIN = 20;
 
+/** Morale required for one personality to withdraw an active request. */
+export function transferRequestWithdrawalMorale(
+  personality: PlayerPersonality,
+): number {
+  return (
+    transferRequestRule(personality).morale + TRANSFER_REQUEST_WITHDRAW_MARGIN
+  );
+}
+
 /** A predictable request rule: personality changes patience, but a single bad week never triggers it. */
 export function shouldRequestTransfer(player: WellbeingState): boolean {
   validatePercentage(player.morale, 'player morale');
@@ -1099,11 +1108,7 @@ export function shouldRequestTransfer(player: WellbeingState): boolean {
  */
 export function shouldWithdrawTransferRequest(player: WellbeingState): boolean {
   validatePercentage(player.morale, 'player morale');
-  return (
-    player.morale >=
-    transferRequestRule(player.personality).morale +
-      TRANSFER_REQUEST_WITHDRAW_MARGIN
-  );
+  return player.morale >= transferRequestWithdrawalMorale(player.personality);
 }
 
 function generateSquad(
@@ -1363,12 +1368,18 @@ function createCupRound(
         round === 1
         ? unpairedClubIds
         : round === 2
-          ? roundOf32PairingOrder(
-              unpairedClubIds,
+          ? protectedCupPairingOrder(
+              roundOf32PairingOrder(unpairedClubIds, seedDivisionByClubId),
               seedDivisionByClubId,
               protectedClubId,
             )
-          : highLowPairingOrder(unpairedClubIds);
+          : round === 3
+            ? protectedCupPairingOrder(
+                highLowPairingOrder(unpairedClubIds),
+                seedDivisionByClubId,
+                protectedClubId,
+              )
+            : highLowPairingOrder(unpairedClubIds);
   const fixtures: NationalCupFixture[] = [];
   for (let index = 0; index < playingClubIds.length; index += 2) {
     const firstClubId = playingClubIds[index];
@@ -1439,7 +1450,6 @@ function highLowPairingOrder(seededClubIds: readonly string[]): string[] {
 function roundOf32PairingOrder(
   seededClubIds: readonly string[],
   divisionByClubId: Readonly<Record<string, DivisionLevel>>,
-  protectedClubId?: string,
 ): string[] {
   const paired = highLowPairingOrder(seededClubIds);
   const d1D5Pairs: number[] = [];
@@ -1458,30 +1468,60 @@ function roundOf32PairingOrder(
     if (d2D3 === undefined) break;
     [paired[d1D5 + 1], paired[d2D3 + 1]] = [paired[d2D3 + 1], paired[d1D5 + 1]];
   }
-  const protectedIndex =
-    protectedClubId === undefined ? -1 : paired.indexOf(protectedClubId);
-  if (protectedIndex >= 0 && (divisionByClubId[protectedClubId!] ?? 5) <= 2) {
-    const opponentIndex =
-      protectedIndex % 2 === 0 ? protectedIndex + 1 : protectedIndex - 1;
-    if ((divisionByClubId[paired[opponentIndex]] ?? 5) > 3) {
-      const strongerOpponentIndex = paired.reduce((best, clubId, index) => {
-        if (index === protectedIndex || index === opponentIndex) return best;
-        const division = divisionByClubId[clubId] ?? 5;
-        if (division > 3) return best;
-        if (best < 0 || division > (divisionByClubId[paired[best]] ?? 0)) {
-          return index;
-        }
-        return best;
-      }, -1);
-      if (strongerOpponentIndex >= 0) {
-        [paired[opponentIndex], paired[strongerOpponentIndex]] = [
-          paired[strongerOpponentIndex],
-          paired[opponentIndex],
-        ];
-      }
-    }
-  }
   return paired;
+}
+
+/** Gives a protected D1/D2 club a D1-D3 opponent when one safe swap exists. */
+function protectedCupPairingOrder(
+  pairedClubIds: readonly string[],
+  divisionByClubId: Readonly<Record<string, DivisionLevel>>,
+  protectedClubId?: string,
+): string[] {
+  const protectedIndex =
+    protectedClubId === undefined ? -1 : pairedClubIds.indexOf(protectedClubId);
+  if (protectedIndex < 0 || (divisionByClubId[protectedClubId!] ?? 5) > 2) {
+    return [...pairedClubIds];
+  }
+  const opponentIndex =
+    protectedIndex % 2 === 0 ? protectedIndex + 1 : protectedIndex - 1;
+  if ((divisionByClubId[pairedClubIds[opponentIndex]] ?? 5) <= 3) {
+    return [...pairedClubIds];
+  }
+
+  const candidateIndexes = pairedClubIds
+    .map((clubId, index) => ({
+      division: divisionByClubId[clubId] ?? 5,
+      index,
+    }))
+    .filter(
+      (candidate) =>
+        candidate.index !== protectedIndex &&
+        candidate.index !== opponentIndex &&
+        candidate.division <= 3,
+    )
+    .sort(
+      (left, right) =>
+        right.division - left.division || left.index - right.index,
+    );
+
+  for (const candidate of candidateIndexes) {
+    const swapped = [...pairedClubIds];
+    [swapped[opponentIndex], swapped[candidate.index]] = [
+      swapped[candidate.index],
+      swapped[opponentIndex],
+    ];
+    const createsD1D5 = swapped.some((clubId, index) => {
+      if (index % 2 !== 0) return false;
+      const divisions = [
+        divisionByClubId[clubId],
+        divisionByClubId[swapped[index + 1]],
+      ];
+      return divisions.includes(1) && divisions.includes(5);
+    });
+    if (!createsD1D5) return swapped;
+  }
+
+  return [...pairedClubIds];
 }
 
 /** @i18n-fallback Persisted cup-round enum values; app consumers resolve their keys. */

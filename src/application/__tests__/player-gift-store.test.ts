@@ -23,7 +23,14 @@ test('shows the gift celebration only after the gifted career is saved', async (
   const career: GameState = reconcileLowMoraleGiftTutorialTarget({
     ...base,
     players: base.players.map((candidate) =>
-      candidate.id === player.id ? { ...candidate, morale: 5 } : candidate,
+      candidate.id === player.id
+        ? {
+            ...candidate,
+            morale: 25,
+            personality: 'Greedy',
+            transferRequested: true,
+          }
+        : candidate,
     ),
     clubs: base.clubs.map((club) =>
       club.id === base.userClubId ? { ...club, cash: 1_000_000 } : club,
@@ -67,6 +74,10 @@ test('shows the gift celebration only after the gifted career is saved', async (
   expect(useM1Store.getState().lastPlayerGiftResult).toMatchObject({
     playerId: player.id,
     moraleGain: 20,
+    transferRequestOutcome: {
+      status: 'STILL_ACTIVE',
+      moraleTarget: 50,
+    },
   });
 });
 

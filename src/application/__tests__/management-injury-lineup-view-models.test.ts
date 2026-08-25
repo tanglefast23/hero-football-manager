@@ -133,6 +133,109 @@ describe('management injury and lineup presentation', () => {
     expect(labels.join(' ')).not.toContain('#');
   });
 
+  it('derives one stable unique shirt number per active player', () => {
+    const story = addCreatedPlayer(
+      beginStoryOnboarding(
+        createCareer(createLaunchCareerSetup(20260824, undefined, content)),
+      ),
+      { name: 'Jo Rook', ratings: DEFAULT_CREATION_RATINGS },
+    );
+    const fixture = story.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === story.userClubId ||
+        candidate.awayClubId === story.userClubId,
+    )!;
+    const lineup = story.lineups.find(
+      (candidate) => candidate.clubId === story.userClubId,
+    )!;
+    const roster = story.players.filter(
+      (player) => player.clubId === story.userClubId,
+    );
+    const numberTenHolder = roster.find(
+      (player) => !lineup.playerIds.includes(player.id),
+    )!;
+    const derivedCollision = lineup.playerIds[9];
+    const prepared: GameState = {
+      ...story,
+      week: fixture.week,
+      phase: 'matchday',
+      players: story.players.map((player) => {
+        if (player.clubId !== story.userClubId) return player;
+        const { shirtNumber: _shirtNumber, ...withoutShirt } = player;
+        if (player.id === numberTenHolder.id) {
+          return {
+            ...withoutShirt,
+            name: 'Léo Costa',
+            shirtNumber: 10,
+            contractPromise: {
+              perk: 'JERSEY_10' as const,
+              agreedSeason: story.season,
+            },
+          };
+        }
+        return player.id === derivedCollision
+          ? { ...withoutShirt, name: 'Léo Costa' }
+          : withoutShirt;
+      }),
+    };
+    const snapshot = JSON.stringify(prepared);
+
+    const matchday = matchDayViewModel(prepared, content);
+    const squad = squadTrainingViewModel(
+      prepared,
+      content,
+      story.onboarding!.createdPlayerId,
+    );
+    const matchdayPlayers = [...matchday.lineup, ...matchday.bench];
+    const matchdayNumbers = matchdayPlayers.map((player) => player.shirtNumber);
+
+    expect(matchdayNumbers).toHaveLength(roster.length);
+    expect(new Set(matchdayNumbers).size).toBe(roster.length);
+    expect(
+      matchdayPlayers.find((player) => player.id === numberTenHolder.id)
+        ?.shirtNumber,
+    ).toBe(10);
+    expect(
+      matchdayPlayers.find((player) => player.id === derivedCollision)
+        ?.shirtNumber,
+    ).not.toBe(10);
+    for (const player of matchdayPlayers) {
+      expect(
+        squad.players.find((candidate) => candidate.id === player.id)
+          ?.shirtNumber,
+      ).toBe(player.shirtNumber);
+    }
+    expect(
+      squad.players.find(
+        (player) => player.id === story.onboarding!.createdPlayerId,
+      )?.shirtNumber,
+    ).toBeDefined();
+    expect(JSON.stringify(prepared)).toBe(snapshot);
+
+    const swapped: GameState = {
+      ...prepared,
+      lineups: prepared.lineups.map((candidate) =>
+        candidate.clubId !== prepared.userClubId
+          ? candidate
+          : {
+              ...candidate,
+              playerIds: candidate.playerIds.map((playerId, index) =>
+                index === 0
+                  ? candidate.playerIds[1]
+                  : index === 1
+                    ? candidate.playerIds[0]
+                    : playerId,
+              ),
+            },
+      ),
+    };
+    const swappedMatchday = matchDayViewModel(swapped, content);
+    expect(swappedMatchday.lineup[0].shirtNumber).toBe(1);
+    expect(swappedMatchday.lineup[1].shirtNumber).toBe(2);
+    expect(swappedMatchday.lineup[0].id).toBe(lineup.playerIds[1]);
+    expect(swappedMatchday.lineup[1].id).toBe(lineup.playerIds[0]);
+  });
+
   it('shows the active sponsor challenge only on its match day', () => {
     const initial = createCareer(
       createLaunchCareerSetup(20260820, undefined, content),

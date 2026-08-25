@@ -16,7 +16,15 @@ import type { SquadSort } from '../../squad-sort';
 import { devHarnessCareerAtWeek } from '../career';
 import type { DevHarnessEntry } from '../registry';
 
-function PlayerGiftReel({ locale }: { locale: Locale }) {
+type TransferRequestCase = 'withdrawn' | 'still-active';
+
+function PlayerGiftReel({
+  locale,
+  transferRequestCase,
+}: {
+  locale: Locale;
+  transferRequestCase?: TransferRequestCase;
+}) {
   const [ready, setReady] = useState(locale === 'en');
 
   useEffect(() => {
@@ -30,19 +38,47 @@ function PlayerGiftReel({ locale }: { locale: Locale }) {
     };
   }, [locale]);
 
-  return ready ? <LoadedPlayerGiftReel locale={locale} /> : null;
+  return ready ? (
+    <LoadedPlayerGiftReel
+      locale={locale}
+      {...(transferRequestCase === undefined ? {} : { transferRequestCase })}
+    />
+  ) : null;
 }
 
-function LoadedPlayerGiftReel({ locale }: { locale: Locale }) {
+function LoadedPlayerGiftReel({
+  locale,
+  transferRequestCase,
+}: {
+  locale: Locale;
+  transferRequestCase?: TransferRequestCase;
+}) {
   const initial = useMemo(() => devHarnessCareerAtWeek(1, 12), []);
   const firstPlayer = initial.players.find(
     (player) => player.clubId === initial.userClubId,
   )!;
   const [career, setCareer] = useState<GameState>(() => ({
     ...initial,
-    players: initial.players.map((player) =>
-      player.id === firstPlayer.id ? { ...player, morale: 60 } : player,
-    ),
+    players: initial.players.map((player) => {
+      if (player.id !== firstPlayer.id) return player;
+      if (transferRequestCase === 'withdrawn') {
+        return {
+          ...player,
+          morale: 25,
+          personality: 'Fiery' as const,
+          transferRequested: true,
+        };
+      }
+      if (transferRequestCase === 'still-active') {
+        return {
+          ...player,
+          morale: 25,
+          personality: 'Greedy' as const,
+          transferRequested: true,
+        };
+      }
+      return { ...player, morale: 60 };
+    }),
     clubs: initial.clubs.map((club) =>
       club.id === initial.userClubId ? { ...club, cash: 1_000_000 } : club,
     ),
@@ -86,6 +122,9 @@ function LoadedPlayerGiftReel({ locale }: { locale: Locale }) {
               lookId: player.lookId,
               cost: gift.cost,
               moraleGain: gift.moraleGain,
+              ...(gift.transferRequestOutcome === undefined
+                ? {}
+                : { transferRequestOutcome: gift.transferRequestOutcome }),
             });
           }}
           lastPlayerGiftResult={result}
@@ -106,14 +145,33 @@ export const playerGiftEntry: DevHarnessEntry = Object.freeze({
   group: 'Squad',
   title: 'Player gift',
   summary: 'The real Player File action and its four-beat morale celebration.',
-  cases: Object.freeze(
-    (['en', 'de', 'vi'] as const).map((locale) =>
+  cases: Object.freeze([
+    ...(['en', 'de', 'vi'] as const).map((locale) =>
       Object.freeze({
         id: locale,
         label: locale.toUpperCase(),
         note: 'Tap the gift action, then tap each celebration beat',
       }),
     ),
-  ),
-  render: (caseId: string) => <PlayerGiftReel locale={caseId as Locale} />,
+    Object.freeze({
+      id: 'withdrawn',
+      label: 'Request withdrawn',
+      note: 'A Fiery player reaches the exact withdrawal threshold',
+    }),
+    Object.freeze({
+      id: 'still-active',
+      label: 'Request stays active',
+      note: 'A Greedy player rises from 25 to 45, below the target of 50',
+    }),
+  ]),
+  render: (caseId: string) => {
+    const transferRequestCase =
+      caseId === 'withdrawn' || caseId === 'still-active' ? caseId : undefined;
+    return (
+      <PlayerGiftReel
+        locale={transferRequestCase === undefined ? (caseId as Locale) : 'en'}
+        {...(transferRequestCase === undefined ? {} : { transferRequestCase })}
+      />
+    );
+  },
 });

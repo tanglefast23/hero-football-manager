@@ -20,6 +20,7 @@ import {
   retirementAnnouncementAge,
   shouldRequestTransfer,
   shouldWithdrawTransferRequest,
+  transferRequestWithdrawalMorale,
   TRANSFER_REQUEST_WITHDRAW_MARGIN,
   trainingMultiplierForAge,
   updatePlayerWellbeing,
@@ -367,42 +368,136 @@ describe('Hero Cup', () => {
     }
   });
 
-  it('gives a D2 user only a D3-or-higher Round of 32 opponent', () => {
-    for (let careerSeed = 1; careerSeed <= 25; careerSeed += 1) {
-      const pyramid = generateLeaguePyramid(careerSeed);
-      const divisionByClubId = Object.fromEntries(
-        pyramid.divisions.flatMap((division) =>
-          division.clubs.map((club) => [club.id, division.level] as const),
-        ),
-      );
-      const clubIds = Object.keys(divisionByClubId);
-      const playIn = createNationalCup(
-        clubIds,
-        1,
-        careerSeed,
-        divisionByClubId,
-      );
-      const protectedClubId = playIn.rounds[0].byeClubIds.find(
-        (clubId) => divisionByClubId[clubId] === 2,
-      )!;
-      const roundOf32 = advanceNationalCup(
-        playIn,
-        winResults(playIn),
-        protectedClubId,
-      ).rounds[1];
-      const fixture = roundOf32.fixtures.find(
-        (candidate) =>
-          candidate.homeClubId === protectedClubId ||
-          candidate.awayClubId === protectedClubId,
-      )!;
-      const opponentId =
-        fixture.homeClubId === protectedClubId
-          ? fixture.awayClubId
-          : fixture.homeClubId;
+  it('gives a D1 or D2 user a D1-D3 opponent through the Round of 16', () => {
+    for (const protectedDivision of [1, 2] as const) {
+      for (let careerSeed = 1; careerSeed <= 25; careerSeed += 1) {
+        const pyramid = generateLeaguePyramid(careerSeed);
+        const divisionByClubId = Object.fromEntries(
+          pyramid.divisions.flatMap((division) =>
+            division.clubs.map((club) => [club.id, division.level] as const),
+          ),
+        );
+        const clubIds = Object.keys(divisionByClubId);
+        let cup = createNationalCup(clubIds, 1, careerSeed, divisionByClubId);
+        const protectedClubId = cup.rounds[0].byeClubIds.find(
+          (clubId) => divisionByClubId[clubId] === protectedDivision,
+        )!;
+        cup = advanceNationalCup(cup, winResults(cup), protectedClubId);
 
-      expect(divisionByClubId[opponentId]).toBeGreaterThanOrEqual(2);
-      expect(divisionByClubId[opponentId]).toBeLessThanOrEqual(3);
+        for (const roundNumber of [2, 3]) {
+          const round = cup.rounds.at(-1)!;
+          expect(round.number).toBe(roundNumber);
+          expect(new Set(round.entrantClubIds).size).toBe(
+            round.entrantClubIds.length,
+          );
+          expect(
+            round.fixtures.every(
+              (fixture) =>
+                round.entrantClubIds.includes(fixture.homeClubId) &&
+                round.entrantClubIds.includes(fixture.awayClubId) &&
+                fixture.homeClubId !== fixture.awayClubId,
+            ),
+          ).toBe(true);
+
+          const fixture = round.fixtures.find(
+            (candidate) =>
+              candidate.homeClubId === protectedClubId ||
+              candidate.awayClubId === protectedClubId,
+          )!;
+          const opponentId =
+            fixture.homeClubId === protectedClubId
+              ? fixture.awayClubId
+              : fixture.homeClubId;
+          expect(divisionByClubId[opponentId]).toBeLessThanOrEqual(3);
+          if (roundNumber === 2) {
+            expect(
+              round.fixtures.some((candidate) => {
+                const divisions = [
+                  divisionByClubId[candidate.homeClubId],
+                  divisionByClubId[candidate.awayClubId],
+                ];
+                return divisions.includes(1) && divisions.includes(5);
+              }),
+            ).toBe(false);
+          }
+
+          if (roundNumber === 2) {
+            const results = round.fixtures.map((candidate) => {
+              const winnerClubId =
+                candidate.homeClubId === protectedClubId ||
+                candidate.awayClubId === protectedClubId
+                  ? protectedClubId
+                  : divisionByClubId[candidate.homeClubId] <=
+                      divisionByClubId[candidate.awayClubId]
+                    ? candidate.homeClubId
+                    : candidate.awayClubId;
+              return {
+                fixtureId: candidate.id,
+                homeGoals: winnerClubId === candidate.homeClubId ? 1 : 0,
+                awayGoals: winnerClubId === candidate.awayClubId ? 1 : 0,
+                winnerClubId,
+              };
+            });
+            cup = advanceNationalCup(cup, results, protectedClubId);
+          }
+        }
+
+        const roundOf16Results = winResults(cup);
+        const quarterFinalWithProtection = advanceNationalCup(
+          cup,
+          roundOf16Results,
+          protectedClubId,
+        );
+        expect(quarterFinalWithProtection).toEqual(
+          advanceNationalCup(cup, roundOf16Results),
+        );
+
+        let laterCup = quarterFinalWithProtection;
+        while (laterCup.rounds.at(-1)!.number < 6) {
+          const results = winResults(laterCup);
+          expect(
+            advanceNationalCup(laterCup, results, protectedClubId),
+          ).toEqual(advanceNationalCup(laterCup, results));
+          laterCup = advanceNationalCup(laterCup, results, protectedClubId);
+        }
+      }
     }
+  });
+
+  it('does not protect a D3 club', () => {
+    const pyramid = generateLeaguePyramid(77);
+    const divisionByClubId = Object.fromEntries(
+      pyramid.divisions.flatMap((division) =>
+        division.clubs.map((club) => [club.id, division.level] as const),
+      ),
+    );
+    const cup = createNationalCup(
+      Object.keys(divisionByClubId),
+      1,
+      77,
+      divisionByClubId,
+    );
+    const protectedClubId = cup.rounds[0].fixtures
+      .flatMap((fixture) => [fixture.homeClubId, fixture.awayClubId])
+      .find((clubId) => divisionByClubId[clubId] === 3)!;
+    const results = winResults(cup).map((result) => {
+      const fixture = cup.rounds[0].fixtures.find(
+        (candidate) => candidate.id === result.fixtureId,
+      )!;
+      return fixture.homeClubId === protectedClubId ||
+        fixture.awayClubId === protectedClubId
+        ? {
+            ...result,
+            homeGoals: fixture.homeClubId === protectedClubId ? 1 : 0,
+            awayGoals: fixture.awayClubId === protectedClubId ? 1 : 0,
+            winnerClubId: protectedClubId,
+          }
+        : result;
+    });
+
+    expect(advanceNationalCup(cup, results, protectedClubId)).toEqual(
+      advanceNationalCup(cup, results),
+    );
   });
 
   it('accepts a named penalty winner after a draw and rejects contradictory results', () => {
@@ -594,6 +689,8 @@ describe('morale and condition', () => {
       personality: 'Greedy' as const,
       consecutiveLowMoraleWeeks: 0,
     };
+    expect(transferRequestWithdrawalMorale('Greedy')).toBe(50);
+    expect(transferRequestWithdrawalMorale('Fiery')).toBe(45);
     expect(shouldWithdrawTransferRequest({ ...greedy, morale: 31 })).toBe(
       false,
     );

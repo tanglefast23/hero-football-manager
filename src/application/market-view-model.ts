@@ -104,6 +104,8 @@ export interface ScoutedPlayerIdentitySource {
   readonly name: string;
   readonly lookId?: string;
   readonly powerName?: string;
+  /** Current-growth grade used when a report's potential tier is exact. */
+  readonly potentialGrade?: PotentialGrade;
 }
 
 export interface TransferListingSource {
@@ -553,6 +555,7 @@ export function marketViewModel(
             report.playerId,
             report.potentialRange.minimum,
             report.potentialRange.maximum,
+            identity?.potentialGrade,
           ),
           ...(report.power === undefined
             ? {}
@@ -958,6 +961,7 @@ function transferListing(
             listing.player.id,
             listing.player.potentialRange.minimum,
             listing.player.potentialRange.maximum,
+            listing.player.potentialGrade,
           ),
     direction: listing.direction,
     ...(listing.player.powerName === undefined
@@ -1020,12 +1024,14 @@ function scoutPotentialLabel(
   playerId: string,
   minimum: number,
   maximum: number,
+  growthGrade?: PotentialGrade,
 ): string {
   const minTier = Math.max(1, Math.min(5, Math.round(minimum))) as
     1 | 2 | 3 | 4 | 5;
   const maxTier = Math.max(1, Math.min(5, Math.round(maximum))) as
     1 | 2 | 3 | 4 | 5;
-  if (minTier === maxTier) return exactPotentialLabel(playerId, minTier);
+  if (minTier === maxTier)
+    return exactPotentialLabel(playerId, minTier, growthGrade);
   const lowGrade = POTENTIAL_GRADES[(minTier - 1) * 3];
   const highGrade = POTENTIAL_GRADES[(maxTier - 1) * 3 + 2];
   return `${lowGrade}–${highGrade}`;

@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Portuguese full-career playtest report for Hero Football Manager."
+    />
+    <title>Portuguese Full-Career Playtest · Hero Football Manager</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #13202a;
+        --muted: #5c676d;
+        --paper: #f5f0e5;
+        --card: #fffdf8;
+        --navy: #102d3a;
+        --green: #17634a;
+        --lime: #bfe25c;
+        --orange: #ef7b45;
+        --red: #a83832;
+        --amber: #956200;
+        --line: #d8d0c1;
+        --shadow: 0 14px 38px rgb(16 45 58 / 10%);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgb(16 45 58 / 4%) 1px, transparent 1px) 0 0 / 32px 32px,
+          var(--paper);
+        font-family: Charter, 'Iowan Old Style', Georgia, serif;
+        font-size: 18px;
+        line-height: 1.55;
+      }
+
+      .hero {
+        color: #fff;
+        background: var(--navy);
+        border-bottom: 8px solid var(--lime);
+      }
+      .hero-inner,
+      .page { width: min(1160px, calc(100% - 40px)); margin-inline: auto; }
+      .hero-inner { padding: 56px 0 48px; }
+      h1, h2, h3, .eyebrow, .tag, nav, .stat strong {
+        font-family: 'Avenir Next Condensed', 'Franklin Gothic Condensed', sans-serif;
+      }
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--lime);
+        font-size: 0.8rem;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 900px;
+        margin: 0;
+        font-size: clamp(3rem, 8vw, 6.2rem);
+        letter-spacing: -0.055em;
+        line-height: 0.9;
+      }
+      .subtitle { max-width: 820px; margin: 22px 0 0; color: #dce7e8; }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 34px;
+      }
+      .stat {
+        min-height: 108px;
+        padding: 18px;
+        color: var(--ink);
+        background: var(--lime);
+        box-shadow: 6px 6px 0 rgb(0 0 0 / 16%);
+      }
+      .stat:nth-child(even) { background: #fff; }
+      .stat strong { display: block; font-size: 2rem; line-height: 1; }
+      .stat span {
+        display: block;
+        margin-top: 8px;
+        font-size: 0.74rem;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .page {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 42px;
+        padding: 40px 0 76px;
+      }
+      nav {
+        position: sticky;
+        top: 18px;
+        align-self: start;
+        padding: 18px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+      nav span {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      nav a {
+        display: block;
+        padding: 7px 0;
+        color: inherit;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.84rem;
+        font-weight: 800;
+        line-height: 1.25;
+        text-decoration: none;
+      }
+      nav a:last-child { border-bottom: 0; }
+      nav a:hover, nav a:focus-visible { color: var(--green); }
+      main { min-width: 0; }
+      .verdict {
+        padding: 24px 26px;
+        color: #fff;
+        background: var(--green);
+        border-left: 8px solid var(--lime);
+        box-shadow: var(--shadow);
+      }
+      .verdict strong {
+        display: block;
+        margin-bottom: 5px;
+        font-family: 'Avenir Next Condensed', sans-serif;
+        font-size: 1.4rem;
+      }
+      p { margin: 0 0 16px; }
+      .verdict p, .card p:last-child { margin-bottom: 0; }
+      h2 {
+        margin: 48px 0 18px;
+        padding-bottom: 9px;
+        color: var(--navy);
+        border-bottom: 4px solid var(--navy);
+        font-size: clamp(2rem, 5vw, 3rem);
+        letter-spacing: -0.035em;
+        line-height: 1;
+      }
+      h2::before {
+        display: inline-block;
+        width: 0.5em;
+        height: 0.5em;
+        margin-right: 0.22em;
+        background: var(--lime);
+        content: '';
+      }
+      h3 { margin: 0 0 8px; color: var(--navy); font-size: 1.42rem; line-height: 1.1; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .card {
+        padding: 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: 0 7px 24px rgb(16 45 58 / 6%);
+      }
+      .critical { border-top: 7px solid var(--red); }
+      .high { border-top: 7px solid var(--orange); }
+      .medium { border-top: 7px solid var(--amber); }
+      .working { border-top: 7px solid var(--green); }
+      .tag {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 3px 8px;
+        color: #fff;
+        background: var(--navy);
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .critical .tag { background: var(--red); }
+      .high .tag { background: #b34f20; }
+      .medium .tag { background: var(--amber); }
+      .working .tag { background: var(--green); }
+      table {
+        width: 100%;
+        margin: 12px 0 26px;
+        border-collapse: collapse;
+        background: var(--card);
+        box-shadow: var(--shadow);
+      }
+      th, td { padding: 11px 13px; border: 1px solid var(--line); text-align: left; }
+      th { color: #fff; background: var(--navy); }
+      tbody tr:nth-child(even) { background: #f2eddf; }
+      ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+      li {
+        position: relative;
+        padding: 14px 17px 14px 42px;
+        background: var(--card);
+        border: 1px solid var(--line);
+      }
+      li::before {
+        position: absolute;
+        top: 20px;
+        left: 17px;
+        width: 10px;
+        height: 10px;
+        background: var(--orange);
+        border-radius: 50%;
+        content: '';
+      }
+      .note {
+        padding: 18px 21px;
+        background: #e5edcf;
+        border-left: 7px solid var(--green);
+      }
+      code {
+        padding: 0.1em 0.35em;
+        color: #fff;
+        background: var(--navy);
+        border-radius: 3px;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 0.82em;
+      }
+      footer { padding: 24px 20px; color: #dce7e8; background: var(--navy); text-align: center; }
+      footer p { margin: 0; font-size: 0.84rem; }
+      :focus-visible { outline: 4px solid var(--orange); outline-offset: 4px; }
+      @media (max-width: 850px) {
+        .page { grid-template-columns: 1fr; }
+        nav { position: static; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 12px; }
+        nav span { grid-column: 1 / -1; }
+      }
+      @media (max-width: 600px) {
+        body { font-size: 16px; }
+        .hero-inner, .page { width: min(100% - 24px, 1160px); }
+        .stats, .grid, nav { grid-template-columns: 1fr; }
+      }
+      @media print {
+        body { background: #fff; font-size: 11pt; }
+        nav, footer { display: none; }
+        .page { display: block; padding: 20px 0; }
+        .hero { color: var(--ink); background: #fff; border-color: var(--ink); }
+        .eyebrow, .subtitle { color: var(--ink); }
+        .card, table, .stat { break-inside: avoid; box-shadow: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">QA report · Portuguese (Brazil) · 24 August 2026</p>
+        <h1>Full-career playtest</h1>
+        <p class="subtitle">
+          A fresh career played for fast, efficient completion. Bramble Rovers
+          won D1 with a perfect season, won the Hero Cup, and completed the
+          Portuguese true ending without a crash.
+        </p>
+        <div class="stats" aria-label="Career summary">
+          <div class="stat"><strong>10</strong><span>Seasons to true ending</span></div>
+          <div class="stat"><strong>18–0–0</strong><span>Final D1 season</span></div>
+          <div class="stat"><strong>63–3</strong><span>Final D1 goals</span></div>
+          <div class="stat"><strong>7–0</strong><span>Hero Cup Final</span></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page">
+      <nav aria-label="Report sections">
+        <span>Jump to</span>
+        <a href="#result">Final result</a>
+        <a href="#priority">Fix first</a>
+        <a href="#working">What works</a>
+        <a href="#d1">D1 seasons</a>
+        <a href="#divisions">Division view</a>
+        <a href="#strategy">Optimal strategy</a>
+        <a href="#language">Portuguese copy</a>
+        <a href="#order">Change order</a>
+      </nav>
+
+      <main>
+        <aside class="verdict" id="result" role="note">
+          <strong>True ending reached and verified</strong>
+          <p>
+            Bramble won all 18 D1 matches and the Hero Cup. The full Portuguese
+            ending displayed <em>A ESCALADA ACABOU</em>, completed every dialogue
+            beat, and returned to the title screen without the old animation crash.
+          </p>
+        </aside>
+
+        <h2 id="priority">Fix first</h2>
+        <div class="grid">
+          <section class="card critical">
+            <span class="tag">Critical economy</span>
+            <h3>A maxed stat still accepts a paid drill</h3>
+            <p>
+              Sam Mitts had 999 Reflexes. The goalkeeper drill still promised
+              +20, charged 39 TP, and then awarded +0.
+            </p>
+            <p><strong>Fix:</strong> disable the drill at 999. Near the cap, show the exact gain before payment.</p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">High balance</span>
+            <h3>Early Cup rounds are not competitive</h3>
+            <p>
+              The final run won 12–0 in the round of 32 and 16–0 in the round of 16.
+              These matches add time but no decision or tension.
+            </p>
+            <p><strong>Fix:</strong> from D2 onward, draw only D3-or-stronger clubs. Keep later D1 rounds difficult.</p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">High state bug</span>
+            <h3>Transfer requests can stay after morale recovers</h3>
+            <p>
+              Dara Moss rose from 25 to 45 morale after a gift. Her transfer
+              request stayed visible that week and the next week.
+            </p>
+            <p><strong>Fix:</strong> re-evaluate the request after a morale change and explain whether it ended or remains active.</p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">High lineup</span>
+            <h3>License changes can leave a weak replacement</h3>
+            <p>
+              Milo Dunn awakened and became unlicensed. Ivo Ward, overall 74,
+              replaced him. After licenses changed, the weak replacement could
+              remain until the correct hero became eligible.
+            </p>
+            <p><strong>Fix:</strong> rebuild only the affected role. Choose the best eligible natural-role player and preserve all valid starters.</p>
+          </section>
+
+          <section class="card medium">
+            <span class="tag">Copy and identity</span>
+            <h3>Two starters still share shirt number 10</h3>
+            <p>Gio Gray and Léo Costa both appeared as number 10 in the same lineup.</p>
+            <p><strong>Fix:</strong> assign unique active-squad shirt numbers after signings, season resets, and lineup changes.</p>
+          </section>
+
+          <section class="card medium">
+            <span class="tag">Content repetition</span>
+            <h3>The same request repeats too often</h3>
+            <p>
+              <em>Ele pediu por escrito</em> appeared repeatedly across Seasons 8–10,
+              sometimes close to another request. It became predictable.
+            </p>
+            <p><strong>Fix:</strong> add a season cooldown for the exact request and weight unseen requests higher.</p>
+          </section>
+
+          <section class="card medium">
+            <span class="tag">Scouting</span>
+            <h3>Potential grades can disagree</h3>
+            <p>Milo Dunn showed C− in a scout report but B− after joining the club.</p>
+            <p><strong>Fix:</strong> use one potential-grade function for reports, Deals, and player files.</p>
+          </section>
+
+          <section class="card medium">
+            <span class="tag">Contract flow</span>
+            <h3>A starter promise can block a valid offer</h3>
+            <p>
+              One negotiation returned “not possible” with a starter promise.
+              A captain promise worked. Direct full-ask renewals remained safe.
+            </p>
+            <p><strong>Fix:</strong> validate the selected promise before submission and name the exact conflict.</p>
+          </section>
+        </div>
+
+        <h2 id="working">What now works</h2>
+        <div class="grid">
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>The true ending is stable</h3>
+            <p>The D1-and-Cup ending rendered in Portuguese and returned safely to the title screen.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Hero Cup prize is now $100,000</h3>
+            <p>The larger prize appeared in the Cup result economy and felt suitable for a major title.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Top-seed sponsor suppression works</h3>
+            <p>No unrealistic sponsor target appeared before the first-place Cinder match.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Request downsides are visible</h3>
+            <p>Portuguese choices clearly showed costs such as condition, loyalty, morale, or training multipliers.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Gifts are useful and readable</h3>
+            <p>The gift flow was localized, quick, animated, and raised morale by 20. Its effective rate matched one weekly salary per +5 morale.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Detailed scouting is immediate</h3>
+            <p>Completed missions returned exact reports without a second timed report step.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Seven Hero Licenses worked</h3>
+            <p>The seventh permit activated immediately. Ravi Chan returned to the lineup without a blocked-license error.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Season reset kept the intended shape</h3>
+            <p>Season 10 retained the 3–4–3 and the established natural-role core.</p>
+          </section>
+        </div>
+
+        <h2 id="d1">Division 1 seasons</h2>
+        <table>
+          <thead>
+            <tr><th>Season</th><th>League</th><th>Hero Cup</th><th>What changed</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>8</td><td>2nd · 43 points<br />Cinder 48</td><td>Won 3–1 vs Cinder</td>
+              <td>The squad could win elite one-off matches but lacked league consistency.</td>
+            </tr>
+            <tr>
+              <td>9</td><td>2nd · 13–3–2 · 42 points<br />33–5 goals · Cinder 48</td><td>Won 4–0 vs Fernhill</td>
+              <td>Three 999 shooters and a 999 goalkeeper were not enough. Draws and two losses still decided the title.</td>
+            </tr>
+            <tr>
+              <td>10</td><td><strong>1st · 18–0–0 · 54 points</strong><br /><strong>63–3 goals</strong></td><td><strong>Won 7–0 vs Cinder</strong></td>
+              <td>Defense-first drills, timely Green Bull trips, and a seventh Hero License removed the weak lineup slot.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="note">
+          D1 did reward optimized play in Season 10. Cinder stayed strong, but
+          the player could overtake it through focused training and one costly
+          license decision. The final perfect season was powerful, not automatic.
+        </p>
+
+        <h2 id="divisions">Division view</h2>
+        <div class="grid">
+          <section class="card">
+            <h3>D5</h3>
+            <p>The first growth loop was readable, but one promotion reward leaked the English label <code>County League</code>.</p>
+          </section>
+          <section class="card">
+            <h3>D4</h3>
+            <p>Progress became more interesting once stands, shops, and useful drill paths competed for cash. No relegation repeated an already-beaten division.</p>
+          </section>
+          <section class="card">
+            <h3>D3</h3>
+            <p>Hero License choices began to matter. The system was fun when it forced adaptation and clear when the permit state stayed correct.</p>
+          </section>
+          <section class="card">
+            <h3>D2</h3>
+            <p>Scouting and recovery mattered more. Exact reports helped, but Cup seeding became too weak once the club had D2 strength.</p>
+          </section>
+          <section class="card">
+            <h3>D1</h3>
+            <p>The strongest division produced the best strategic decisions. The main risk was length: two second-place seasons preceded the perfect title season.</p>
+          </section>
+          <section class="card">
+            <h3>Whole journey</h3>
+            <p>Ten seasons was long but understandable. The final three D1 seasons gave clear evidence that defense and license depth were the missing pieces.</p>
+          </section>
+        </div>
+
+        <h2 id="strategy">Optimal strategy used</h2>
+        <ul>
+          <li><strong>TP:</strong> spend useful TP every week. Alternate one-drill and two-drill weeks as the 60-point income crosses the 39-point drill cost.</li>
+          <li><strong>Drills:</strong> max every drill path. In D1, focus the three starting defenders after shooting, passing, and goalkeeper stats reach 999.</li>
+          <li><strong>Green Bull:</strong> use it before individual drills. Pay only when at least 60 TP is available and a wage reserve remains.</li>
+          <li><strong>Facilities:</strong> build three Level 3 stands and three Level 3 shops before miscellaneous facilities. Then max useful training, medical, academy, and lodging buildings.</li>
+          <li><strong>Licenses:</strong> buy the seventh permit when Milo awakens. Replacing a weak 74-overall midfielder was worth more than one extra Green Bull trip.</li>
+          <li><strong>Contracts:</strong> renew key players for three seasons at full asking wage when a promise conflict could endanger the squad.</li>
+          <li><strong>Cash:</strong> do not hoard it. Keep wages and renewals covered, then buy useful facilities, licenses, or Green Bull training.</li>
+          <li><strong>Matches:</strong> Quick Result was sufficient for the entire successful title season.</li>
+        </ul>
+
+        <h2 id="language">Portuguese UI and copy</h2>
+        <div class="grid">
+          <section class="card high">
+            <span class="tag">Copy leak</span>
+            <h3>English sponsor fallback appeared</h3>
+            <p>One finance report used <code>Current Sponsor 1</code> beside Portuguese copy. Later monthly sponsor labels were localized.</p>
+          </section>
+          <section class="card high">
+            <span class="tag">Copy leak</span>
+            <h3>D5 promotion label leaked English</h3>
+            <p>The promotion reward used <code>County League</code> inside the Portuguese career.</p>
+          </section>
+          <section class="card medium">
+            <span class="tag">Ambiguity</span>
+            <h3>“Caixa vazia” can sound financial</h3>
+            <p>Inside the inbox it means no messages, but “Caixa” is also the cash label. A longer empty-inbox line would remove the ambiguity.</p>
+          </section>
+          <section class="card working">
+            <span class="tag">Strong</span>
+            <h3>The ending translation is clear</h3>
+            <p><code>A ESCALADA ACABOU</code> appeared only after winning both D1 and the Cup. The final thank-you text was readable and emotionally effective.</p>
+          </section>
+        </div>
+
+        <h2 id="order">Recommended change order</h2>
+        <ol>
+          <li>Stop drills from charging TP when the selected stat is already 999.</li>
+          <li>Refresh or close transfer requests immediately after morale changes.</li>
+          <li>Strengthen Cup seeding from D2 onward.</li>
+          <li>Harden automatic lineup selection after Hero License changes.</li>
+          <li>Use one potential-grade function across scouting and player files.</li>
+          <li>Fix the remaining Portuguese fallback labels and duplicate shirt numbers.</li>
+          <li>Add cooldowns to repeated player requests.</li>
+        </ol>
+      </main>
+    </div>
+
+    <footer>
+      <p>Observed on the deployed web build at hero-football-manager.vercel.app · Portuguese (Brazil) · 24 August 2026</p>
+    </footer>
+  </body>
+</html>

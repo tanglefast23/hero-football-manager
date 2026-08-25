@@ -30,6 +30,10 @@ describe('training stat option rendering', () => {
   });
 
   it('greys out unusable drills and shows the live gamble state', () => {
+    const screen = readFileSync(
+      join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
+      'utf8',
+    );
     const source = readFileSync(
       join(process.cwd(), 'src/ui/TrainingDrillModal.tsx'),
       'utf8',
@@ -40,6 +44,9 @@ describe('training stat option rendering', () => {
     // slots or caps, which no longer exist.
     expect(source).toContainSource(
       'const blocked = injured || blockedByPromise || option.atSafetyCeiling;',
+    );
+    expect(screen).toContainSource(
+      'option !== undefined && !option.atSafetyCeiling && onTrainAttribute !== undefined',
     );
     expect(source).toContainSource('const disabled = blocked;');
     // Too little TP is different: the row stays tappable and says so, because a
@@ -102,8 +109,18 @@ describe('training stat option rendering', () => {
     expect(source).toContainSource("{t('trainingDrill.bonus')}{' '}");
     expect(loadCatalog('en').strings['trainingDrill.bonus']).toBe('Bonus:');
     expect(source).toContainSource('pendingConfirm.trainingAdjustment !== 0');
+    expect(source).toContainSource("t('trainingDrill.nextOrdinaryResult')");
+    expect(source).toContainSource('`+${nextOrdinaryGain}`');
     expect(source).toContainSource("t('trainingDrill.ordinaryBatchEstimate')");
-    expect(source).toContainSource('~+{ordinaryBatchEstimate}');
+    expect(source).toContainSource('`~+${ordinaryBatchEstimate}`');
+    expect(source).toContainSource(
+      'maximumVisibleTrainingRuns( pendingConfirm.currentValue, ordinaryVisibleGain(pendingConfirm), )',
+    );
+    expect(source).toContainSource('if (queuedRuns < 1) return;');
+    expect(source).toContainSource("t('trainingDrill.maximum')");
+    expect(source).toContainSource(
+      '(activeResult?.displayedAfter ?? 0) < MAX_PLAYER_ATTRIBUTE',
+    );
     expect(
       loadCatalog('en').strings['trainingDrill.ordinaryBatchEstimate'],
     ).toBe('Approx. ordinary total');

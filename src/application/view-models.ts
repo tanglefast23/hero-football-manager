@@ -4172,6 +4172,45 @@ export function leagueTableViewModel(
   };
 }
 
+function activeSquadShirtNumbers(
+  roster: readonly CareerPlayer[],
+  lineupPlayerIds: readonly string[],
+): ReadonlyMap<string, number> {
+  const playerById = new Map(roster.map((player) => [player.id, player]));
+  const lineup = lineupPlayerIds.map((playerId) => {
+    const player = playerById.get(playerId);
+    if (player === undefined)
+      throw new Error(`lineup references unknown player ${playerId}`);
+    return player;
+  });
+  const lineupIds = new Set(lineupPlayerIds);
+  const activeSquad = [
+    ...lineup,
+    ...roster.filter((player) => !lineupIds.has(player.id)),
+  ];
+  const assigned = new Map<string, number>();
+  const used = new Set<number>();
+
+  for (const player of activeSquad) {
+    if (player.shirtNumber === undefined) continue;
+    assigned.set(player.id, player.shirtNumber);
+    used.add(player.shirtNumber);
+  }
+  for (const [index, player] of activeSquad.entries()) {
+    if (assigned.has(player.id)) continue;
+    const preferred = index + 1;
+    let shirtNumber = preferred;
+    if (used.has(shirtNumber)) {
+      shirtNumber = 1;
+      while (used.has(shirtNumber)) shirtNumber += 1;
+    }
+    assigned.set(player.id, shirtNumber);
+    used.add(shirtNumber);
+  }
+
+  return assigned;
+}
+
 export function matchDayViewModel(
   state: GameState,
   content: LaunchContent,
@@ -4189,6 +4228,7 @@ export function matchDayViewModel(
   );
   if (lineup === undefined) throw new Error('the user club has no lineup');
   const roster = rosterForClub(state, state.userClubId);
+  const shirtNumbers = activeSquadShirtNumbers(roster, lineup.playerIds);
   const playerLabels = playerDisplayLabels(roster);
   const playerById = new Map(roster.map((player) => [player.id, player]));
   const powerNames = new Map(
@@ -4236,7 +4276,7 @@ export function matchDayViewModel(
         role: player.role,
         formationRole: formationRoleForSlot(formation, index),
         lookId: player.lookId,
-        shirtNumber: player.shirtNumber ?? index + 1,
+        shirtNumber: shirtNumbers.get(player.id)!,
         isHero: player.power !== undefined,
         overall: overall(player.role, player.attrs),
         condition: player.condition ?? 100,
@@ -4261,9 +4301,7 @@ export function matchDayViewModel(
           name: playerLabels.get(player.id) ?? player.name,
           role: player.role,
           lookId: player.lookId,
-          shirtNumber:
-            player.shirtNumber ??
-            roster.findIndex((candidate) => candidate.id === player.id) + 1,
+          shirtNumber: shirtNumbers.get(player.id)!,
           isHero: player.power !== undefined,
           overall: overall(player.role, player.attrs),
           condition: player.condition ?? 100,
@@ -4357,6 +4395,7 @@ export function squadTrainingViewModel(
     throw new Error('the user club has no starting lineup');
   const starterIds = new Set(lineup.playerIds);
   const roster = rosterForClub(state, state.userClubId);
+  const shirtNumbers = activeSquadShirtNumbers(roster, lineup.playerIds);
   const createdPlayerId = state.onboarding?.createdPlayerId;
   // Keep the first-training cue and its created-player target above the fold.
   const createdPlayer =
@@ -4501,9 +4540,7 @@ export function squadTrainingViewModel(
         // Absent while retirement is more than a season away. The squad list
         // deliberately knows less than the negotiating table does.
         ...retirementLabelField(player, state.careerSeed, t),
-        ...(player.shirtNumber === undefined
-          ? {}
-          : { shirtNumber: player.shirtNumber }),
+        shirtNumber: shirtNumbers.get(player.id)!,
         isCaptain: player.isCaptain === true,
         ...(player.power
           ? {
@@ -4548,11 +4585,6 @@ export function squadTrainingViewModel(
             attributeAffectsPlay(selectedPlayer.role, path.attribute),
           ).map((path) => {
             const drill = resolveTrainingDrillForPath(state, path.pathId);
-            const gain = displayedDrillGain(
-              state,
-              drill.id,
-              drill.gains[path.attribute] ?? 0,
-            );
             const currentValue = displayedAttributeValue(
               selectedPlayer,
               path.attribute,
@@ -4569,7 +4601,7 @@ export function squadTrainingViewModel(
                 path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
               drillName: drillName(drill.id),
               tpCost: drill.tpCost,
-              gain,
+              gain: preview.baseAfter - currentValue,
               currentValue,
               baseValueAfter: preview.baseAfter,
               trainingAdjustment: preview.adjustment,
@@ -4586,9 +4618,7 @@ export function squadTrainingViewModel(
                   hundredths: bank.hundredths,
                 }),
               ),
-              // The stored value, never the displayed one: a keeper whose card
-              // has stalled at 999 may still have real room to train.
-              atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,
+              atSafetyCeiling: currentValue >= 999,
               affordable: drill.tpCost <= state.trainingPoints,
             };
           }),

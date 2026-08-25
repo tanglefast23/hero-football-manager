@@ -1276,25 +1276,21 @@ function RosterSection({
                         {t('squadTraining.start')}
                       </Text>
                     ) : null}
-                    {player.isCaptain || player.contractPromiseLabel ? (
-                      <Text
-                        className="mt-0.5 font-pixel text-sm uppercase text-blue-dark"
-                        numberOfLines={1}
-                      >
-                        {[
-                          player.isCaptain &&
-                          player.contractPromisePerk !== 'CAPTAINCY'
-                            ? t('squadTraining.captain')
-                            : undefined,
-                          player.shirtNumber
-                            ? `#${player.shirtNumber}`
-                            : undefined,
-                          player.contractPromiseLabel,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </Text>
-                    ) : null}
+                    <Text
+                      className="mt-0.5 font-pixel text-sm uppercase text-blue-dark"
+                      numberOfLines={1}
+                    >
+                      {[
+                        player.isCaptain &&
+                        player.contractPromisePerk !== 'CAPTAINCY'
+                          ? t('squadTraining.captain')
+                          : undefined,
+                        `#${player.shirtNumber}`,
+                        player.contractPromiseLabel,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
                     <Text
                       className="mt-1 text-sm text-ink/60"
                       numberOfLines={1}
@@ -1963,7 +1959,9 @@ function PlayerFileSection({
                 (candidate) => candidate.shortCode === attribute.label,
               );
               const trainable =
-                option !== undefined && onTrainAttribute !== undefined;
+                option !== undefined &&
+                !option.atSafetyCeiling &&
+                onTrainAttribute !== undefined;
               return (
                 // Tap trains, hold explains. InfoTip's 500ms delay is chosen so
                 // an unhurried tap still counts as a tap, which is what lets one
