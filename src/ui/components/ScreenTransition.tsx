@@ -129,8 +129,29 @@ interface DissolveState {
 }
 
 export function ScreenTransition(props: ScreenTransitionProps) {
-  if (Platform.OS === 'ios') return <>{props.children}</>;
+  if (Platform.OS === 'ios') return <CutScreenTransition {...props} />;
   return <DissolvingScreenTransition {...props} />;
+}
+
+/** Hard cut for iPhone, while still swallowing taps already in flight. */
+function CutScreenTransition({ screenKey, children }: ScreenTransitionProps) {
+  const [settledKey, setSettledKey] = useState<unknown>(() => screenKey);
+  const inputSettled = settledKey === screenKey;
+
+  useEffect(() => {
+    if (inputSettled) return undefined;
+    const timer = setTimeout(
+      () => setSettledKey(() => screenKey),
+      SCREEN_INPUT_SETTLE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [inputSettled, screenKey]);
+
+  return (
+    <View pointerEvents={inputSettled ? 'auto' : 'none'} style={styles.root}>
+      {children}
+    </View>
+  );
 }
 
 function DissolvingScreenTransition({

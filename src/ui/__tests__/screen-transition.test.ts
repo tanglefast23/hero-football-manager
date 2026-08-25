@@ -16,11 +16,19 @@ function source(path: string): string {
 const TRANSITION = 'src/ui/components/ScreenTransition.tsx';
 
 describe('screen transition', () => {
-  it('cuts immediately and accepts input immediately on iOS', () => {
+  it('cuts immediately but still swallows stray taps on iOS', () => {
     const file = source(TRANSITION);
     expect(file).toContain(
-      "if (Platform.OS === 'ios') return <>{props.children}</>;",
+      "if (Platform.OS === 'ios') return <CutScreenTransition {...props} />;",
     );
+    const cut = file.slice(
+      file.indexOf('function CutScreenTransition'),
+      file.indexOf('function DissolvingScreenTransition'),
+    );
+    expect(cut).toContain('const inputSettled = settledKey === screenKey;');
+    expect(cut).toContain('SCREEN_INPUT_SETTLE_MS,');
+    expect(cut).toContain("pointerEvents={inputSettled ? 'auto' : 'none'}");
+    expect(cut).not.toContain('Animated');
     expect(file).toContain('<DissolvingScreenTransition {...props} />');
   });
 
