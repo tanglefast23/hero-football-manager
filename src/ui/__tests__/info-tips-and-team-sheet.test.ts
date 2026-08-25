@@ -119,6 +119,20 @@ describe('column and personality explanations', () => {
 });
 
 describe('starting eleven team sheet', () => {
+  it('keeps both club crests beside the versus tile', () => {
+    const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
+    const card =
+      screen.match(
+        /const fixtureCard = \(([\s\S]*?)\n  const teamSheet =/,
+      )?.[1] ?? '';
+
+    expect(card.indexOf('{fixture.homeTeam}')).toBeLessThan(
+      card.indexOf('<ClubCrest clubName={fixture.homeTeam}'),
+    );
+    expect(card).toContain('className="min-w-0 flex-1 text-right font-pixel');
+    expect(card).toContain('className="min-w-0 flex-1 font-pixel');
+  });
+
   it('draws starters in their assigned formation row rather than their natural role', () => {
     const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
 
@@ -142,6 +156,9 @@ describe('starting eleven team sheet', () => {
       'scale={wide ? PITCH_PORTRAIT_SCALE : PITCH_PORTRAIT_COMPACT_SCALE}',
     );
     expect(teamSheet).toContainSource('numberOfLines={2}');
+    expect(teamSheet).toContainSource(
+      '{player.role}\n                    </PixelText>',
+    );
     expect(teamSheet).toContainSource(
       "'min-w-0 max-w-24 flex-1 items-center border-2 border-transparent px-0.5 py-1'",
     );

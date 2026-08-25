@@ -201,6 +201,14 @@ describe('desktop match control rail', () => {
     );
   });
 
+  it('lets a full scorer name cross the pitch without shrinking', () => {
+    const source = styleSource();
+    expect(source).toContainSource(
+      "tickerGlyphs: { alignSelf: 'flex-start', flexDirection: 'row' }",
+    );
+    expect(source).toMatchSource(/banner: \{[\s\S]{0,260}flexShrink: 0/);
+  });
+
   it('reserves no bottom-dock height on desktop and none of the rail on phones', () => {
     const source = matchSource();
 

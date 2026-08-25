@@ -10,6 +10,10 @@ describe('match statement facility badges', () => {
     join(process.cwd(), 'src/ui/components/LedgerRowIcons.tsx'),
     'utf8',
   );
+  const slot = readFileSync(
+    join(process.cwd(), 'src/ui/components/SlotAmount.tsx'),
+    'utf8',
+  );
 
   it('counts shops and stands from the first one', () => {
     // The shop line used to stay bare below two shops, so a manager with one
@@ -109,5 +113,35 @@ describe('match statement facility badges', () => {
     // Same phrase on screen and in the label: both go through facilityCount.
     expect(source).toContainSource('? `, ${facilityCount(reveal, t)}`');
     expect(source).toContainSource("t('financialStatement.a11y.rowAmount', {");
+  });
+
+  it('keeps the net amount inside the total box in every language', () => {
+    const labels = {
+      en: 'Net cash',
+      es: 'Caja neta',
+      'pt-BR': 'Caixa líquido',
+      fr: 'Caisse nette',
+      de: 'Nettokasse',
+      id: 'Kas bersih',
+      vi: 'Tiền ròng',
+    };
+
+    for (const [locale, label] of Object.entries(labels)) {
+      const catalog = JSON.parse(
+        readFileSync(
+          join(process.cwd(), `content/i18n/${locale}.json`),
+          'utf8',
+        ),
+      ) as { strings: Record<string, string> };
+      expect(catalog.strings['financialStatement.netCashChange']).toBe(label);
+    }
+    expect(source).toContainSource(
+      '<View className="min-w-0 flex-1 items-end pl-2">',
+    );
+    expect(source).toMatchSource(
+      /<SlotAmount[\s\S]{0,700}\slarge\s+fit\s+reduceMotion/,
+    );
+    expect(slot).toContainSource('adjustsFontSizeToFit={fit}');
+    expect(slot).toContainSource('minimumFontScale={fit ? 0.5 : undefined}');
   });
 });

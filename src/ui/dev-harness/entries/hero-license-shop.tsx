@@ -144,6 +144,7 @@ export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
   return (
     <FixtureMatchDayScreen
       viewModel={viewModel}
+      clubKit={state.clubKit}
       onBack={() => {}}
       onToggleHeroLicense={(playerId) =>
         setState((current) => {

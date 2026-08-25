@@ -77,10 +77,12 @@ describe('youth prospect card on the narrowest phone', () => {
     expect(header).toContain('className="min-w-0 flex-1"');
   });
 
-  it('clamps every metadata line the way the name is clamped', () => {
+  it('keeps the name to one line and gives both metadata labels two', () => {
     const textNodes = header.match(/<Text[\s\S]*?>/g) ?? [];
     expect(textNodes).toHaveLength(3);
-    for (const node of textNodes) expect(node).toContain('numberOfLines={1}');
+    expect(textNodes[0]).toContain('numberOfLines={1}');
+    expect(textNodes[1]).toContain('numberOfLines={2}');
+    expect(textNodes[2]).toContain('numberOfLines={2}');
   });
 });
 

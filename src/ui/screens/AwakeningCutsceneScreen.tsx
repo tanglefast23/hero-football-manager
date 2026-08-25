@@ -541,10 +541,9 @@ export function AwakeningCutsceneScreen({
       return;
     }
     const action = nextAwakeningAction(beat);
-    if (action === 'continue') {
-      onContinue();
-      return;
-    }
+    // Beat 3 has its own WATCH EXAMPLE and SKIP buttons. The full-screen
+    // story tap must never finish the awakening from underneath those actions.
+    if (action === 'continue') return;
     setBeat(action);
   };
   const storyAccessibilityLabel =
@@ -745,6 +744,17 @@ export function AwakeningCutsceneScreen({
                 <Text style={styles.license}>{viewModel.licenseLabel}</Text>
                 <View style={styles.heroActions}>
                   <Pressable
+                    accessibilityLabel={`${t('awakening.skip')}. ${viewModel.continueLabel}`}
+                    accessibilityRole="button"
+                    onPress={onContinue}
+                    style={styles.heroAction}
+                  >
+                    <AwakeningCta
+                      label={t('awakening.skip')}
+                      reduceMotion={reduceMotion}
+                    />
+                  </Pressable>
+                  <Pressable
                     accessibilityLabel={t('awakening.watchExample')}
                     accessibilityRole="button"
                     onPress={() => setDemoVisible(true)}
@@ -752,17 +762,6 @@ export function AwakeningCutsceneScreen({
                   >
                     <AwakeningCta
                       label={t('awakening.watchExample')}
-                      reduceMotion={reduceMotion}
-                    />
-                  </Pressable>
-                  <Pressable
-                    accessibilityLabel={viewModel.continueLabel}
-                    accessibilityRole="button"
-                    onPress={onContinue}
-                    style={styles.heroAction}
-                  >
-                    <AwakeningCta
-                      label={t('powerAcquiredDemo.continue')}
                       reduceMotion={reduceMotion}
                     />
                   </Pressable>

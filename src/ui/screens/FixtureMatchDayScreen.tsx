@@ -27,6 +27,8 @@ import {
 import { useCopy } from '../../i18n';
 import { hasHoverPointer } from '../pointer-capability';
 import { ClubCrest } from '../components/ClubCrest';
+import { ClubKitProvider } from '../club-kit-context';
+import type { ClubKitChoice } from '../../render/sprites/club-kit';
 
 /**
  * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
@@ -63,6 +65,8 @@ export interface FixtureMatchDayScreenProps {
   /** The same switch the touchline board carries, set before kick-off. */
   autoSubs: boolean;
   onAutoSubsChange: (autoSubs: boolean) => void;
+  /** The saved strip shown by every own-player portrait on this screen. */
+  clubKit: ClubKitChoice | undefined;
 }
 
 const ROLE_ORDER: ReadonlyArray<'FWD' | 'MID' | 'DEF' | 'GK'> = [
@@ -204,7 +208,13 @@ function StarterStatsPanel({
  * whole second column doing nothing until a starter is picked, so the file
  * goes there at a size that can be read, and the pitch keeps its portraits.
  */
-function StarterDetailPanel({ player }: { player: LineupPlayerViewModel }) {
+function StarterDetailPanel({
+  player,
+  clubKit,
+}: {
+  player: LineupPlayerViewModel;
+  clubKit?: ClubKitChoice;
+}) {
   const t = useCopy();
   const cells = starterStatCells(player, t);
   return (
@@ -223,12 +233,14 @@ function StarterDetailPanel({ player }: { player: LineupPlayerViewModel }) {
                 : 'border-2 border-paper bg-blue-light'
             }
           >
-            <PixelPortrait
-              playerId={player.id}
-              role={player.role}
-              lookId={player.lookId}
-              scale={PITCH_PORTRAIT_SCALE}
-            />
+            <ClubKitProvider kit={clubKit}>
+              <PixelPortrait
+                playerId={player.id}
+                role={player.role}
+                lookId={player.lookId}
+                scale={PITCH_PORTRAIT_SCALE}
+              />
+            </ClubKitProvider>
           </View>
           <View className="min-w-0 flex-1">
             <PixelText className="text-base uppercase text-ink">
@@ -297,6 +309,7 @@ export function FixtureMatchDayScreen({
   onAutoPowersChange,
   autoSubs,
   onAutoSubsChange,
+  clubKit,
 }: FixtureMatchDayScreenProps) {
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
@@ -377,13 +390,13 @@ export function FixtureMatchDayScreen({
     <PaperPanel stamp={fixture.venueLabel}>
       <View className="flex-row items-center gap-3">
         <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
-          <ClubCrest clubName={fixture.homeTeam} size={24} />
           <Text
-            className="min-w-0 text-right font-pixel text-base uppercase leading-6 text-ink"
+            className="min-w-0 flex-1 text-right font-pixel text-base uppercase leading-6 text-ink"
             numberOfLines={2}
           >
             {fixture.homeTeam}
           </Text>
+          <ClubCrest clubName={fixture.homeTeam} size={24} />
         </View>
         <View className="border-2 border-ink bg-ink px-3 py-2">
           <Text className="font-pixel text-base text-signal">V</Text>
@@ -391,7 +404,7 @@ export function FixtureMatchDayScreen({
         <View className="min-w-0 flex-1 flex-row items-center gap-2">
           <ClubCrest clubName={fixture.awayTeam} size={24} />
           <Text
-            className="min-w-0 font-pixel text-base uppercase leading-6 text-ink"
+            className="min-w-0 flex-1 font-pixel text-base uppercase leading-6 text-ink"
             numberOfLines={2}
           >
             {fixture.awayTeam}
@@ -416,6 +429,7 @@ export function FixtureMatchDayScreen({
                   role={hero.role}
                   lookId={hero.lookId}
                   scale={PITCH_PORTRAIT_COMPACT_SCALE}
+                  stockKit
                 />
               </View>
               <PixelText className="max-w-40 text-sm uppercase text-ink">
@@ -464,9 +478,9 @@ export function FixtureMatchDayScreen({
       <Text className="mb-3 text-sm leading-5 text-paper/75">
         {t('fixtureMatchDay.toChangeStartersTap')}
       </Text>
-      {/* Every starter is identified by their face and name. Phone cells share
-          the full row rather than stopping at 64pt, so the space that used to
-          sit around the grid now belongs to names. */}
+      {/* Every starter is identified by their face, name and natural role.
+          Phone cells share the full row rather than stopping at 64pt, so the
+          space that used to sit around the grid now belongs to names. */}
       <View
         className={
           wide
@@ -588,16 +602,18 @@ export function FixtureMatchDayScreen({
                             : 'border-2 border-paper bg-blue-light'
                         }
                       >
-                        <PixelPortrait
-                          playerId={player.id}
-                          role={player.role}
-                          lookId={player.lookId}
-                          scale={
-                            wide
-                              ? PITCH_PORTRAIT_SCALE
-                              : PITCH_PORTRAIT_COMPACT_SCALE
-                          }
-                        />
+                        <ClubKitProvider kit={clubKit}>
+                          <PixelPortrait
+                            playerId={player.id}
+                            role={player.role}
+                            lookId={player.lookId}
+                            scale={
+                              wide
+                                ? PITCH_PORTRAIT_SCALE
+                                : PITCH_PORTRAIT_COMPACT_SCALE
+                            }
+                          />
+                        </ClubKitProvider>
                       </View>
                     )}
                     <Text
@@ -614,6 +630,19 @@ export function FixtureMatchDayScreen({
                     >
                       {player.name}
                     </Text>
+                    <PixelText
+                      className={
+                        selected
+                          ? 'mt-0.5 text-[10px] uppercase text-blue-dark'
+                          : conditionStatus?.kind === 'exhausted'
+                            ? 'mt-0.5 text-[10px] uppercase text-white'
+                            : conditionStatus !== null
+                              ? 'mt-0.5 text-[10px] uppercase text-ink/70'
+                              : 'mt-0.5 text-[10px] uppercase text-paper/75'
+                      }
+                    >
+                      {player.role}
+                    </PixelText>
                     <MatchdayConditionStamp
                       condition={player.condition}
                       showValue={wide}
@@ -968,7 +997,10 @@ export function FixtureMatchDayScreen({
             </View>
             <View className="flex-1 pt-1">
               {inspectedStarter === undefined ? null : (
-                <StarterDetailPanel player={inspectedStarter} />
+                <StarterDetailPanel
+                  player={inspectedStarter}
+                  clubKit={clubKit}
+                />
               )}
               {matchOrders}
               {bench}

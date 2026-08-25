@@ -134,13 +134,14 @@ const makeStyles = (faces: LocaleFaces) =>
     // line start genuinely off the left edge instead of half on screen.
     tickerRow: { position: 'absolute', left: 0, right: 0 },
     tickerRowHeld: { alignItems: 'center' },
-    tickerGlyphs: { alignSelf: 'flex-start' },
+    tickerGlyphs: { alignSelf: 'flex-start', flexDirection: 'row' },
     // Unplated announcement type. No background, no border, no padding and no
     // maxWidth: the ring around the glyphs is what holds the line off the
     // grass now, and any of those would clip it or wrap the longer locales.
     // The goal line doubles this (bannerBigFontSize); everything else keeps it.
     banner: {
       color: '#edb54a',
+      flexShrink: 0,
       fontFamily: faces.display,
       fontSize: BANNER_FONT_PX,
     },

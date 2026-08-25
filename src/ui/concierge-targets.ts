@@ -48,9 +48,12 @@ export function isIncomeFacilityType(type: FacilityTypeViewModel): boolean {
 export function firstGuidedFacilityUpgradeId(
   buildings: readonly ClubFacilityBuildingViewModel[],
 ): string | undefined {
-  return buildings.find(
-    (building) =>
-      building.upgradeCost !== undefined &&
-      building.upgradeBlockedReason === undefined,
+  const canUpgrade = (building: ClubFacilityBuildingViewModel) =>
+    building.upgradeCost !== undefined &&
+    building.upgradeBlockedReason === undefined;
+  return (
+    buildings.find(
+      (building) => building.type === 'training-pitch' && canUpgrade(building),
+    ) ?? buildings.find(canUpgrade)
   )?.id;
 }

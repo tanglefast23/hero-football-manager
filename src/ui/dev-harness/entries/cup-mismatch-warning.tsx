@@ -129,6 +129,7 @@ export function CupMismatchWarningReel({
     <View style={{ flex: 1 }}>
       <FixtureMatchDayScreen
         viewModel={viewModel}
+        clubKit={state.clubKit}
         onBack={() => {}}
         onToggleHeroLicense={() => {}}
         onBuyHeroLicense={() => {}}

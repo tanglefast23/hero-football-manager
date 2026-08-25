@@ -39,6 +39,8 @@ export interface SlotAmountProps {
   tone: SlotTone;
   surge: boolean;
   large?: boolean;
+  /** Keep a static amount on one line inside its available width. */
+  fit?: boolean;
   reduceMotion: boolean;
   /** Fires once per settleKey when the settle fully completes (pop included). */
   onSettled?: (settleKey: number) => void;
@@ -81,6 +83,7 @@ export function SlotAmount({
   tone,
   surge,
   large = false,
+  fit = false,
   reduceMotion,
   onSettled,
 }: SlotAmountProps) {
@@ -231,14 +234,19 @@ export function SlotAmount({
 
   if (reduceMotion || phase === 'pending') {
     return (
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={{ alignItems: 'flex-end', width: fit ? '100%' : undefined }}>
         <Text
           className={fontClass}
+          numberOfLines={fit ? 1 : undefined}
+          adjustsFontSizeToFit={fit}
+          minimumFontScale={fit ? 0.5 : undefined}
           style={{
             fontSize,
             lineHeight,
             color,
             opacity: phase === 'pending' ? 0 : 1,
+            textAlign: 'right',
+            width: fit ? '100%' : undefined,
             ...glow,
           }}
           importantForAccessibility="no"
@@ -248,6 +256,9 @@ export function SlotAmount({
         {phase === 'pending' ? (
           <Text
             className="font-mono"
+            numberOfLines={fit ? 1 : undefined}
+            adjustsFontSizeToFit={fit}
+            minimumFontScale={fit ? 0.5 : undefined}
             style={[
               StyleSheet.absoluteFill as object,
               {

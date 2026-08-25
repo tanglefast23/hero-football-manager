@@ -48,6 +48,28 @@ describe('concierge actionable targets', () => {
     );
   });
 
+  it('points the upgrade lesson at the Training Pitch before another facility', () => {
+    const gym = {
+      id: 'gym',
+      type: 'gym',
+      upgradeCost: 10_000,
+    } as ClubFacilityBuildingViewModel;
+    const pitch = {
+      id: 'pitch',
+      type: 'training-pitch',
+      upgradeCost: 12_000,
+    } as ClubFacilityBuildingViewModel;
+
+    expect(firstGuidedFacilityUpgradeId([gym, pitch])).toBe('pitch');
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
+      'utf8',
+    );
+    expect(source).toContainSource("guideFocus === 'facility-upgrade'");
+    expect(source).toContainSource('building.id === selectedBuildingId');
+    expect(source).toContainSource('const guidedUpgradeTarget =');
+  });
+
   it('requires a Training Pitch for the first-facility guide and accepts any valid pitch position', () => {
     expect(guidedFirstFacilityPhase(null)).toBe('build-menu');
     expect(guidedFirstFacilityPhase('gym')).toBe('build-menu');

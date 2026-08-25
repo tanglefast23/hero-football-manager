@@ -30,6 +30,11 @@ import {
   GuidanceDoubleFlash,
   type GuidanceNudgeTarget,
 } from '../GuidanceDoubleFlash';
+import {
+  CELL_MAX_FONT_MULTIPLIER,
+  HEADER_MAX_FONT_MULTIPLIER,
+  LEAGUE_COLUMN_WIDTH,
+} from '../league-table-columns';
 
 const HORIZONTAL_MARQUEE_BULBS = Array.from(
   { length: 12 },
@@ -197,15 +202,15 @@ export function ClubHomeScreen({
             <View className="border-y-2 border-ink py-4">
               <View className="flex-row items-center justify-between gap-2">
                 <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
-                  <ClubCrest clubName={fixture.homeTeam} size={24} />
                   <PixelText
-                    className="min-w-0 text-right text-xl uppercase text-ink"
+                    className="min-w-0 flex-1 text-right text-xl uppercase text-ink"
                     numberOfLines={2}
                     adjustsFontSizeToFit
                     minimumFontScale={0.65}
                   >
                     {fixture.homeTeam}
                   </PixelText>
+                  <ClubCrest clubName={fixture.homeTeam} size={24} />
                 </View>
                 <View className="border-2 border-ink bg-ink px-3 py-2">
                   <Text className="font-pixel text-base text-paper">
@@ -215,7 +220,7 @@ export function ClubHomeScreen({
                 <View className="min-w-0 flex-1 flex-row items-center gap-2">
                   <ClubCrest clubName={fixture.awayTeam} size={24} />
                   <PixelText
-                    className="min-w-0 text-xl uppercase text-ink"
+                    className="min-w-0 flex-1 text-xl uppercase text-ink"
                     numberOfLines={2}
                     adjustsFontSizeToFit
                     minimumFontScale={0.65}
@@ -797,19 +802,39 @@ export function ClubHomeScreen({
               style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
             >
               <View className="flex-row border-b-2 border-ink/20 px-3 py-2">
-                <Text className="w-8 font-mono text-sm text-ink/50">
+                <Text
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+                  className="font-mono text-sm text-ink/50"
+                  style={{ width: LEAGUE_COLUMN_WIDTH.position }}
+                >
                   {t('col.league.position')}
                 </Text>
                 <PixelText className="flex-1 text-sm uppercase text-ink/50">
                   {t('col.league.club')}
                 </PixelText>
-                <Text className="w-8 text-right font-mono text-sm text-ink/50">
+                <Text
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+                  className="text-right font-mono text-sm text-ink/50"
+                  style={{ width: LEAGUE_COLUMN_WIDTH.played }}
+                >
                   {t('col.league.played')}
                 </Text>
-                <Text className="w-10 text-right font-mono text-sm text-ink/50">
+                <Text
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+                  className="text-right font-mono text-sm text-ink/50"
+                  style={{ width: LEAGUE_COLUMN_WIDTH.goalDifference }}
+                >
                   {t('col.league.goalDifference')}
                 </Text>
-                <Text className="w-10 text-right font-mono text-sm text-ink/50">
+                <Text
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+                  className="text-right font-mono text-sm text-ink/50"
+                  style={{ width: LEAGUE_COLUMN_WIDTH.points }}
+                >
                   {t('col.league.points')}
                 </Text>
               </View>
@@ -825,11 +850,10 @@ export function ClubHomeScreen({
                     }
                   >
                     <Text
-                      className={
-                        isUser
-                          ? 'w-8 font-mono text-base text-ink'
-                          : 'w-8 font-mono text-base text-ink'
-                      }
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                      className="font-mono text-base text-ink"
+                      style={{ width: LEAGUE_COLUMN_WIDTH.position }}
                     >
                       {row.position}
                     </Text>
@@ -847,30 +871,27 @@ export function ClubHomeScreen({
                       </Text>
                     </View>
                     <Text
-                      className={
-                        isUser
-                          ? 'w-8 text-right font-mono text-base text-ink'
-                          : 'w-8 text-right font-mono text-base text-ink'
-                      }
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                      className="text-right font-mono text-sm text-ink"
+                      style={{ width: LEAGUE_COLUMN_WIDTH.played }}
                     >
                       {row.played}
                     </Text>
                     <Text
-                      className={
-                        isUser
-                          ? 'w-10 text-right font-mono text-base text-ink'
-                          : 'w-10 text-right font-mono text-base text-ink'
-                      }
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                      className="text-right font-mono text-sm text-ink"
+                      style={{ width: LEAGUE_COLUMN_WIDTH.goalDifference }}
                     >
                       {row.goalDifference > 0 ? '+' : ''}
                       {row.goalDifference}
                     </Text>
                     <Text
-                      className={
-                        isUser
-                          ? 'w-10 text-right font-mono text-base text-ink'
-                          : 'w-10 text-right font-mono text-base text-ink'
-                      }
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                      className="text-right font-mono text-base text-ink"
+                      style={{ width: LEAGUE_COLUMN_WIDTH.points }}
                     >
                       {row.points}
                     </Text>

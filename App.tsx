@@ -3263,6 +3263,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
       screen = (
         <FixtureMatchDayScreen
           viewModel={matchday}
+          clubKit={store.career.clubKit}
           onBack={() => store.setActiveTab('home')}
           onToggleHeroLicense={(playerId) => {
             performManagementAction(

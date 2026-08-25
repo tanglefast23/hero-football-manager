@@ -67,6 +67,7 @@ describe('awakening cutscene framing', () => {
     // exists, not which language it is in.
     expect(source).toContain("t('awakening.tapToSkip')");
     expect(source).toContain('onPress={advanceStory}');
+    expect(source).toContainSource("if (action === 'continue') return;");
     expect(source).toContain('{beat === 3 && advanceReady ? null : (');
     expect(source).toContain('{beat === 3 && advanceReady ? (');
     // Nothing may be disabled while a beat plays, or the skip tap goes nowhere.
@@ -75,14 +76,21 @@ describe('awakening cutscene framing', () => {
 
   it('offers separate accessible actions only after the reveal finishes', () => {
     const source = sceneSource();
+    const actions =
+      source.match(
+        /<View style=\{styles\.heroActions\}>([\s\S]*?)<\/View>/,
+      )?.[1] ?? '';
 
     expect(source).toContainSource(
       "accessibilityLabel={t('awakening.watchExample')}",
     );
-    expect(source).toContainSource(
-      'accessibilityLabel={viewModel.continueLabel}',
+    expect(source).toContainSource("label={t('awakening.skip')}");
+    expect(actions.indexOf("label={t('awakening.skip')}")).toBeLessThan(
+      actions.indexOf("label={t('awakening.watchExample')}"),
     );
-    expect(source).toContainSource("label={t('powerAcquiredDemo.continue')}");
+    for (const locale of ENABLED_LOCALES) {
+      expect(loadCatalog(locale).strings['awakening.skip']).toBeTruthy();
+    }
     expect(source).toContainSource(
       '{beat === 3 && advanceReady ? (\n              <View style={styles.heroFooter}>',
     );

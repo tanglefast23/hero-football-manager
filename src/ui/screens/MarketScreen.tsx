@@ -772,13 +772,13 @@ function YouthDesk({
                   </Text>
                   <Text
                     className="mt-1 font-pixel text-sm uppercase text-blue-dark"
-                    numberOfLines={1}
+                    numberOfLines={2}
                   >
                     {offer.role} · {offer.ageLabel} · {offer.archetypeLabel}
                   </Text>
                   <Text
                     className="mt-1 font-pixel text-sm uppercase text-gold-dark"
-                    numberOfLines={1}
+                    numberOfLines={2}
                   >
                     {t('market.potentialValue', {
                       grade: offer.potentialLabel,

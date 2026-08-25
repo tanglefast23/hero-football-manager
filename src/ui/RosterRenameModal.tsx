@@ -187,7 +187,8 @@ export function RosterRenameModal({
                       autoCapitalize="words"
                       autoCorrect={false}
                       maxLength={TYPED_NAME_MAX_LENGTH}
-                      className="min-h-12 flex-1 border-2 border-ink bg-white px-3 py-2 text-base font-bold text-ink"
+                      className="min-h-12 flex-1 border-2 border-ink bg-white px-3 text-base font-bold text-ink"
+                      style={{ paddingVertical: 0 }}
                     />
                   </View>
                 ))}

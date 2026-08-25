@@ -2343,23 +2343,6 @@ function GroundsSection({
           : 'relative'
       }
     >
-      {guideGrounds &&
-      guideFocus !== 'facility-grid' &&
-      guideFocus !== 'coaching-office' ? (
-        <TutorialTapCue
-          label={t('clubFinances.bertSays')}
-          detail={
-            guideFocus === 'facility-upgrade'
-              ? t('clubFinances.reviewTheUpgrade')
-              : t('clubFinances.useTheClubGrounds')
-          }
-          style={{
-            left: '50%',
-            marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-            top: -72,
-          }}
-        />
-      ) : null}
       <SectionLabel
         eyebrow={t('clubFinances.clubGrounds')}
         title={t('clubFinances.buildThePlaceAroundTheTeam')}
@@ -2424,7 +2407,8 @@ function GroundsSection({
             collapsable={false}
             className={
               placementActive ||
-              (guidedFirstFacility && guidedFacilityPhase === 'grid')
+              (guidedFirstFacility && guidedFacilityPhase === 'grid') ||
+              guideFocus === 'facility-upgrade'
                 ? 'relative overflow-visible border-2 border-ink bg-pitch-light'
                 : 'relative overflow-hidden border-2 border-ink bg-pitch-light'
             }
@@ -2621,6 +2605,9 @@ function GroundsSection({
                 const selected = building.id === selectedBuildingId;
                 const moving = building.id === relocatingBuildingId;
                 const comboActive = building.activeAdjacencyIds.length > 0;
+                const guidedUpgradeTarget =
+                  guideFocus === 'facility-upgrade' &&
+                  building.id === selectedBuildingId;
                 const cellSize = facilityGridWidth / facilities.width;
                 const artWidth = Math.max(24, building.width * cellSize - 10);
                 const artHeight = Math.max(24, building.height * cellSize - 10);
@@ -2655,8 +2642,25 @@ function GroundsSection({
                       shadowColor: comboActive ? '#3f8a4a' : undefined,
                       shadowOpacity: comboActive ? 0.9 : 0,
                       shadowRadius: comboActive ? 5 : 0,
+                      zIndex: guidedUpgradeTarget ? 4 : undefined,
                     }}
                   >
+                    {guidedUpgradeTarget ? (
+                      <TutorialTapCue
+                        label={t('clubFinances.bertSays')}
+                        detail={t('clubFinances.reviewTheUpgrade')}
+                        labelOffsetX={Math.max(
+                          0,
+                          TUTORIAL_TAP_CUE_WIDTH / 2 -
+                            (building.width * cellSize) / 2,
+                        )}
+                        style={{
+                          left: '50%',
+                          marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                          top: -72,
+                        }}
+                      />
+                    ) : null}
                     <View
                       style={{
                         flex: 1,

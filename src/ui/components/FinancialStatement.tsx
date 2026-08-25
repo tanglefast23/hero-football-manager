@@ -219,32 +219,35 @@ export function FinancialStatement({
             <PixelText
               className={
                 netAmount < 0
-                  ? 'text-base uppercase text-red-dark'
+                  ? 'shrink-0 text-base uppercase text-red-dark'
                   : netAmount > 0
-                    ? 'text-base uppercase text-pitch-ink'
-                    : 'text-base uppercase text-blue-dark'
+                    ? 'shrink-0 text-base uppercase text-pitch-ink'
+                    : 'shrink-0 text-base uppercase text-blue-dark'
               }
             >
               {t('financialStatement.netCashChange')}
             </PixelText>
-            <SlotAmount
-              value={netAmount}
-              finalValue={netAmount}
-              phase={
-                netRuntime.phase === 'pending'
-                  ? 'pending'
-                  : netRuntime.phase === 'spinning'
-                    ? 'spinning'
-                    : 'settled'
-              }
-              settleMode={netRuntime.settleMode}
-              settleKey={netRuntime.settleKey}
-              tone={netTone}
-              surge={false}
-              large
-              reduceMotion
-              onSettled={handleNetSettled}
-            />
+            <View className="min-w-0 flex-1 items-end pl-2">
+              <SlotAmount
+                value={netAmount}
+                finalValue={netAmount}
+                phase={
+                  netRuntime.phase === 'pending'
+                    ? 'pending'
+                    : netRuntime.phase === 'spinning'
+                      ? 'spinning'
+                      : 'settled'
+                }
+                settleMode={netRuntime.settleMode}
+                settleKey={netRuntime.settleKey}
+                tone={netTone}
+                surge={false}
+                large
+                fit
+                reduceMotion
+                onSettled={handleNetSettled}
+              />
+            </View>
           </View>
         </PaperPanel>
       </Pressable>

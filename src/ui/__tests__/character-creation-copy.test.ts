@@ -276,6 +276,12 @@ describe('roster rename sheet', () => {
     );
   });
 
+  it('leaves the full iOS glyph box available for name descenders', () => {
+    expect(source).toMatchSource(
+      /<TextInput[\s\S]{0,900}style=\{\{ paddingVertical: 0 \}\}/,
+    );
+  });
+
   it('keeps a blank field s original name and reports only real changes', () => {
     expect(source).toContainSource(
       'if (typed.length > 0 && typed !== player.name) saved[player.id] = typed;',
