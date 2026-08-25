@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import type { MatchEvent } from '../sim/types';
 import { hapticCueForEvent } from './haptic-cues';
+import { claimManagementFeedback } from './management-feedback-activation';
 
 export type ManagementHapticCue =
   'select' | 'tap' | 'commit' | 'success' | 'warning' | 'hero';
@@ -42,6 +43,7 @@ export function playHapticForEvent(
  */
 export function playManagementHaptic(cue: ManagementHapticCue): void {
   if (!hapticsEnabled) return;
+  if (!claimManagementFeedback('haptic')) return;
   const feedback =
     cue === 'select'
       ? Haptics.selectionAsync()

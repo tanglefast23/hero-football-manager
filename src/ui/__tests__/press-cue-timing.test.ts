@@ -12,7 +12,11 @@ jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(() => Promise.resolve()),
   impactAsync: mockImpactAsync,
   notificationAsync: jest.fn(() => Promise.resolve()),
-  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+  },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
 
@@ -42,6 +46,11 @@ jest.mock('react-native', () => ({
 }));
 
 import { createPressCueGate } from '../press-cue-gate';
+import {
+  createManagementFeedbackActivation,
+  withManagementFeedbackActivation,
+} from '../../render/management-feedback-activation';
+import { playManagementHaptic } from '../../render/haptics';
 import {
   playManagementActionSfx,
   playMatchControlSfx,
@@ -197,6 +206,21 @@ describe('press cue timing', () => {
     expect(mockPlayers[UI_CLICK].play).not.toHaveBeenCalled();
     // A refusal is felt as sound only; the tap haptic belongs to cues that mean
     // the press was taken.
+    expect(mockImpactAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps wrapper and handler feedback to one sound and one haptic', async () => {
+    const feedback = createManagementFeedbackActivation();
+
+    withManagementFeedbackActivation(feedback, () => {
+      playUiClickSfx();
+      playManagementActionSfx('success');
+      playManagementHaptic('commit');
+    });
+    await settle();
+
+    expect(totalPlays()).toBe(1);
+    expect(mockPlayers[UI_CLICK].play).toHaveBeenCalledTimes(1);
     expect(mockImpactAsync).toHaveBeenCalledTimes(1);
   });
 });

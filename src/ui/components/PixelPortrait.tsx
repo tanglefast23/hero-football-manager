@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { Canvas, Rect } from '@shopify/react-native-skia';
 import { blinkRows } from '../portrait-blink';
 import { useReducedMotion } from '../use-reduced-motion';
@@ -37,7 +38,7 @@ export interface PixelPortraitProps {
 }
 
 /** A crisp, deterministic cast portrait selected from the shipped pixel sheet. */
-export function PixelPortrait({
+export const PixelPortrait = memo(function PixelPortrait({
   playerId,
   role,
   lookId,
@@ -56,12 +57,13 @@ export function PixelPortrait({
   // bundle. `undefined` only happens on web's cold-start tick.
   const sheets = usePixelSheets();
   const blinkVariant = useMemo(() => {
+    if (Platform.OS === 'ios') return null;
     const rows = sheets?.portraits.sprites[spriteKey];
     return rows === undefined ? null : blinkRows([...rows]);
   }, [sheets, spriteKey]);
 
   const reduce = useReducedMotion(reduceMotion);
-  const canBlink = blinkVariant !== null && !reduce;
+  const canBlink = Platform.OS !== 'ios' && blinkVariant !== null && !reduce;
   const [blinking, setBlinking] = useState(false);
 
   useEffect(() => {
@@ -125,4 +127,4 @@ export function PixelPortrait({
       ))}
     </Canvas>
   );
-}
+});

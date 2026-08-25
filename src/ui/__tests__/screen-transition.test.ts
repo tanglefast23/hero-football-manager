@@ -16,6 +16,14 @@ function source(path: string): string {
 const TRANSITION = 'src/ui/components/ScreenTransition.tsx';
 
 describe('screen transition', () => {
+  it('cuts immediately and accepts input immediately on iOS', () => {
+    const file = source(TRANSITION);
+    expect(file).toContain(
+      "if (Platform.OS === 'ios') return <>{props.children}</>;",
+    );
+    expect(file).toContain('<DissolvingScreenTransition {...props} />');
+  });
+
   it('sits between interactions rather than on top of one', () => {
     // Long enough to be seen, short enough that it never becomes the thing the
     // player is waiting for. A screen change happens dozens of times a session.
@@ -172,7 +180,7 @@ describe('App screen routing', () => {
 describe('management tab routing', () => {
   const shell = source('src/ui/ManagementShell.tsx');
 
-  it('keeps the chrome still while the selected desk dissolves', () => {
+  it('keeps Android and web desk dissolves behind the iOS cut', () => {
     expect(shell).toContain(
       '<ScreenTransition screenKey={activeTab} reduceMotion={reduceMotion}>',
     );

@@ -60,6 +60,55 @@ describe('M1 app store integration', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
+  it('publishes only the true and false edges of a clean save retry', async () => {
+    await useM1Store.getState().initializePersistence(stubCareerRepository());
+    useM1Store.getState().startNewCareer(20260825);
+    await waitFor(
+      () =>
+        !useM1Store.getState().saving &&
+        useM1Store.getState().lastPersistedCareer !== null,
+    );
+
+    let notifications = 0;
+    const unsubscribe = useM1Store.subscribe(() => {
+      notifications += 1;
+    });
+    useM1Store.getState().retrySave();
+    await waitFor(() => !useM1Store.getState().saving);
+    unsubscribe();
+
+    expect(notifications).toBe(2);
+  });
+
+  it('does not publish saving true twice while another save is active', async () => {
+    let releaseFirstSave!: () => void;
+    const firstSave = new Promise<void>((resolve) => {
+      releaseFirstSave = resolve;
+    });
+    let saves = 0;
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        async save() {
+          saves += 1;
+          if (saves === 1) await firstSave;
+        },
+      }),
+    );
+    useM1Store.getState().startNewCareer(20260826);
+
+    let notifications = 0;
+    const unsubscribe = useM1Store.subscribe(() => {
+      notifications += 1;
+    });
+    useM1Store.getState().retrySave();
+    expect(notifications).toBe(0);
+
+    releaseFirstSave();
+    await waitFor(() => !useM1Store.getState().saving);
+    unsubscribe();
+    expect(saves).toBe(2);
+  });
+
   it('upgrades saved fuzzy scout reports while loading', async () => {
     const saved = createCareer(createLaunchCareerSetup(86));
     const target = saved.players.find(
