@@ -16,7 +16,8 @@ describe('persisted player appearances', () => {
     ).toBe('c239');
     expect(isPlayerLookIdForRole('c000', 'FWD')).toBe(true);
     expect(isPlayerLookIdForRole('c239', 'MID')).toBe(true);
-    expect(isPlayerLookIdForRole('c240', 'FWD')).toBe(false);
+    expect(isPlayerLookIdForRole('c299', 'FWD')).toBe(true);
+    expect(isPlayerLookIdForRole('c300', 'FWD')).toBe(false);
     expect(isPlayerLookIdForRole('c000', 'GK')).toBe(false);
   });
 

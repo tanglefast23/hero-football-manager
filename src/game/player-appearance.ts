@@ -11,7 +11,7 @@ interface PlayerAppearanceIdentity {
 
 export const FIELD_PLAYER_LOOK_COUNT = 183;
 export const GOALKEEPER_LOOK_COUNT = 25;
-export const CREATED_PLAYER_LOOK_COUNT = 240;
+export const CREATED_PLAYER_LOOK_COUNT = 300;
 
 /**
  * The last fifteen field looks belong to the named superheroes, so a generated
@@ -40,7 +40,7 @@ export function isReservedFieldLook(lookId: string): boolean {
 interface CreatedAppearanceChoice {
   readonly skinTone: 0 | 1 | 2 | 3 | 4 | 5;
   readonly hairstyle: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  readonly kitAccent: 0 | 1 | 2 | 3;
+  readonly kitAccent: 0 | 1 | 2 | 3 | 4;
 }
 
 /**
@@ -51,15 +51,19 @@ interface CreatedAppearanceChoice {
 export const CREATED_APPEARANCE_OPTION_COUNTS = {
   skinTone: 6,
   hairstyle: 10,
-  kitAccent: 4,
+  kitAccent: 5,
 } as const satisfies Record<keyof CreatedAppearanceChoice, number>;
 
-/** Maps the editable paper-doll controls onto the dedicated 240-look paper-doll atlas. */
+/** Maps the editable paper-doll controls onto the dedicated paper-doll atlas. */
 export function createdAppearanceLookId(
   appearance: CreatedAppearanceChoice,
 ): string {
   const index =
-    appearance.skinTone * 40 + appearance.hairstyle * 4 + appearance.kitAccent;
+    appearance.kitAccent === 4
+      ? 240 + appearance.skinTone * 10 + appearance.hairstyle
+      : appearance.skinTone * 40 +
+        appearance.hairstyle * 4 +
+        appearance.kitAccent;
   return `c${String(index).padStart(3, '0')}`;
 }
 

@@ -4,8 +4,8 @@ import {
 } from '../player-appearance';
 
 describe('created player appearance packing', () => {
-  it('packs ten hairstyles and four kit accents per skin tone', () => {
-    expect(CREATED_PLAYER_LOOK_COUNT).toBe(240);
+  it('keeps the original accents stable and appends no-accent looks', () => {
+    expect(CREATED_PLAYER_LOOK_COUNT).toBe(300);
     expect(
       createdAppearanceLookId({ skinTone: 0, hairstyle: 0, kitAccent: 0 }),
     ).toBe('c000');
@@ -18,13 +18,19 @@ describe('created player appearance packing', () => {
     expect(
       createdAppearanceLookId({ skinTone: 5, hairstyle: 9, kitAccent: 3 }),
     ).toBe('c239');
+    expect(
+      createdAppearanceLookId({ skinTone: 0, hairstyle: 0, kitAccent: 4 }),
+    ).toBe('c240');
+    expect(
+      createdAppearanceLookId({ skinTone: 5, hairstyle: 9, kitAccent: 4 }),
+    ).toBe('c299');
   });
 
   it('gives every combination a distinct look id', () => {
     const ids = new Set<string>();
     for (let skinTone = 0; skinTone < 6; skinTone += 1) {
       for (let hairstyle = 0; hairstyle < 10; hairstyle += 1) {
-        for (let kitAccent = 0; kitAccent < 4; kitAccent += 1) {
+        for (let kitAccent = 0; kitAccent < 5; kitAccent += 1) {
           ids.add(
             createdAppearanceLookId({
               skinTone: skinTone as 0,
@@ -35,6 +41,6 @@ describe('created player appearance packing', () => {
         }
       }
     }
-    expect(ids.size).toBe(240);
+    expect(ids.size).toBe(300);
   });
 });
