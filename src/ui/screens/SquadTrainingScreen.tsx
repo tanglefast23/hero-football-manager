@@ -281,6 +281,8 @@ export interface SquadTrainingScreenProps {
   onBookGreenBullTraining?: () => void;
   /** The latest resolved drill, sequenced so the popup can animate repeats. */
   lastDrillResult: DrillResultViewModel | null;
+  /** Consumes the result when its popup closes so a later mount cannot replay it. */
+  onClearDrillResult?: () => void;
   trainingPoints: number;
   guideTraining?: boolean;
   guidanceNudgeTarget?: GuidanceNudgeTarget;
@@ -345,6 +347,7 @@ export function SquadTrainingScreen({
   onBuyDrillUpgrade,
   onBookGreenBullTraining,
   lastDrillResult,
+  onClearDrillResult,
   trainingPoints,
   guideTraining = false,
   guidanceNudgeTarget,
@@ -568,8 +571,8 @@ export function SquadTrainingScreen({
     void preloadTrainingDrillModal();
   }, []);
 
-  // Keyed to the drill, not the career total, so it fires once and never again
-  // on a re-render or a reload.
+  // The result is consumed when the drill popup closes, so a later Squad mount
+  // cannot rebuild this one-time cue from stale store state.
   useEffect(() => {
     if (lastDrillResult?.totalDrillsRun !== CONDITION_WARNING_DRILL) return;
     setConditionCuePlayerId(lastDrillResult.playerId);
@@ -874,7 +877,10 @@ export function SquadTrainingScreen({
             onSwitchToPromised={onSelectPlayer}
             onTrainDrill={onTrainDrill}
             onTrainDrillBatch={onTrainDrillBatch}
-            onDismiss={() => setDrillPickerOpen(false)}
+            onDismiss={() => {
+              setDrillPickerOpen(false);
+              onClearDrillResult?.();
+            }}
             reduceMotion={reduceMotion}
             saveWarning={saveWarning}
             quickTrainPathId={quickTrainPathId}

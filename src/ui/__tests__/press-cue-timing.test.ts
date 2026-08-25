@@ -16,6 +16,7 @@ jest.mock('expo-haptics', () => ({
     Light: 'light',
     Medium: 'medium',
     Heavy: 'heavy',
+    Rigid: 'rigid',
   },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
@@ -115,7 +116,7 @@ describe('press cue timing', () => {
 
     expect(totalPlays()).toBe(1);
     expect(mockImpactAsync).toHaveBeenCalledTimes(1);
-    expect(mockImpactAsync).toHaveBeenCalledWith('light');
+    expect(mockImpactAsync).toHaveBeenCalledWith('rigid');
   });
 
   it('answers an activation that never had a press-in', async () => {

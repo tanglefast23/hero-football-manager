@@ -84,6 +84,9 @@ describe('awakening cutscene framing', () => {
     expect(source).toContainSource(
       "accessibilityLabel={t('awakening.watchExample')}",
     );
+    expect(source).toContainSource(
+      "accessibilityLabel={`${t('awakening.skip')}. ${viewModel.continueLabel}`}",
+    );
     expect(source).toContainSource("label={t('awakening.skip')}");
     expect(actions.indexOf("label={t('awakening.skip')}")).toBeLessThan(
       actions.indexOf("label={t('awakening.watchExample')}"),

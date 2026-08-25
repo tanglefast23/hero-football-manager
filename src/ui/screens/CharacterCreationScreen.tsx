@@ -317,25 +317,27 @@ export function CharacterCreationScreen({
             />
             {/* The steppers pick this player's trim; the kit is the whole
                 club's, so it gets its own door rather than a fourth arrow. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('kit.a11y.openEditor')}
-              pressSfx="stat-step"
-              onPress={() => setKitEditorOpen(true)}
-              style={{ minHeight: 44 }}
-              className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink bg-blue px-3 py-2"
-            >
+            <View className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink/30 bg-white px-2 py-2">
               <PixelText
-                className="min-w-0 flex-1 text-sm uppercase text-white"
+                className="min-w-0 flex-1 text-sm uppercase text-ink"
                 maxFontSizeMultiplier={STEPPER_MAX_FONT_SIZE_MULTIPLIER}
                 numberOfLines={1}
               >
                 {t('kit.clubKit')}
               </PixelText>
-              <PixelText className="text-sm uppercase text-white">
-                {t('kit.customise')}
-              </PixelText>
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('kit.a11y.openEditor')}
+                pressSfx="stat-step"
+                onPress={() => setKitEditorOpen(true)}
+                className="h-11 min-w-20 items-center justify-center border-2 border-ink bg-blue px-3"
+                style={{ minHeight: 44 }}
+              >
+                <PixelText className="text-sm uppercase text-white">
+                  {t('kit.customise')}
+                </PixelText>
+              </Pressable>
+            </View>
           </View>
         </View>
       </PaperPanel>

@@ -21,6 +21,7 @@ jest.mock('expo-haptics', () => ({
     Light: 'light',
     Medium: 'medium',
     Heavy: 'heavy',
+    Rigid: 'rigid',
   },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
@@ -166,7 +167,7 @@ describe('management feedback sounds', () => {
     expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
     // A plain tap is deliberately the lightest weight in the taxonomy so it does
     // not feel like a `commit` that spends club money.
-    expect(mockImpactAsync).toHaveBeenCalledWith('light');
+    expect(mockImpactAsync).toHaveBeenCalledWith('rigid');
   });
 
   it('uses the supplied work cue when facility construction starts', () => {

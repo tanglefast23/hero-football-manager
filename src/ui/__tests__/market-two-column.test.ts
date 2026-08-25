@@ -59,12 +59,8 @@ describe('youth prospect card on the narrowest phone', () => {
     join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'),
     'utf8',
   );
-  // The academy intake card's header row is portrait · text column · ACADEMY
-  // stamp. On a 375pt iPhone SE the two art siblings were free to take the width
-  // they wanted, squeezing the text column to about four characters, and the two
-  // lines under the name had no numberOfLines to stop them wrapping — so
-  // "FWD · AGE 17 · PLAYMAKER" came out as six stacked fragments and pushed SIGN
-  // below the fold. A season-1 duty forces every new manager onto this screen.
+  // The portrait takes one fixed column. The ACADEMY stamp shares only the name
+  // row, leaving the full width below it for role and potential metadata.
   const header = source.slice(
     source.indexOf('{intake.offers.map((offer) => ('),
     source.indexOf('<YouthStatLine'),
@@ -75,6 +71,12 @@ describe('youth prospect card on the narrowest phone', () => {
     expect(header).toContain('className="shrink-0 overflow-hidden');
     expect(header).toContain('className="shrink-0 -rotate-2');
     expect(header).toContain('className="min-w-0 flex-1"');
+  });
+
+  it('places the stamp before metadata so metadata uses the space below it', () => {
+    expect(header.indexOf('className="shrink-0 -rotate-2')).toBeLessThan(
+      header.indexOf('{offer.role} · {offer.ageLabel}'),
+    );
   });
 
   it('keeps the name to one line and gives both metadata labels two', () => {

@@ -184,7 +184,7 @@ describe('starting eleven team sheet', () => {
     expect(portrait).not.toContainSource('height={PIXEL_PORTRAIT_SCALE}');
   });
 
-  it('shows every relevant starter stat on hover and on a selected touch card', () => {
+  it('jumps a selected phone starter to a readable file above the bench', () => {
     const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
     const models = read('src/ui/models.ts');
     const viewModels = read('src/application/view-models.ts');
@@ -200,13 +200,22 @@ describe('starting eleven team sheet', () => {
       'potentialGrade: playerGrowthGrade(player)',
     );
     expect(screen).toContainSource(
-      'hoveredStarterId === player.id || (!pointer && selected)',
+      '!wide && pointer && hoveredStarterId === player.id',
     );
     expect(screen).toContainSource(
       'onHoverIn={() => setHoveredStarterId(player.id)}',
     );
     expect(screen).toContainSource(
       '<StarterStatsPanel player={player} wide={wide} />',
+    );
+    expect(screen).toContainSource(
+      '<StarterDetailPanel player={selectedStarter} clubKit={clubKit} />',
+    );
+    expect(screen).toContainSource('ref={scrollRef}');
+    expect(screen).toContainSource('benchTopRef.current - 8');
+    expect(screen).toContainSource('scrollRef.current?.scrollTo({');
+    expect(screen).toContainSource(
+      "label={t('fixtureMatchDay.tapToSwapPlayers')}",
     );
     expect(screen).toContainSource(
       "label: player.role === 'GK' ? 'REF' : 'SHO'",
