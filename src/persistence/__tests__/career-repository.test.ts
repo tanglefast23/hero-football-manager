@@ -111,7 +111,11 @@ describe('career repository', () => {
     const repository = await createCareerRepository(database);
     const state = addCreatedPlayer(
       beginStoryOnboarding(createCareer(createLaunchCareerSetup(2468))),
-      { name: 'Jo Rook', ratings: DEFAULT_CREATION_RATINGS },
+      {
+        name: 'Jo Rook',
+        ratings: DEFAULT_CREATION_RATINGS,
+        appearance: { skinTone: 0, hairstyle: 0, kitAccent: 4 },
+      },
     );
 
     await repository.save(state);
@@ -130,6 +134,7 @@ describe('career repository', () => {
       weeklyWage: CREATED_PLAYER_ROOKIE_WAGE,
       contractSeasonsRemaining: 1,
       onHeroWage: false,
+      createdAppearance: { skinTone: 0, hairstyle: 0, kitAccent: 4 },
     });
     expect(
       loaded?.players.find(

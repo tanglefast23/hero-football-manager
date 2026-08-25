@@ -269,9 +269,9 @@ function validateCreatedAppearance(
   if (
     !Number.isSafeInteger(value.kitAccent) ||
     value.kitAccent < 0 ||
-    value.kitAccent > 3
+    value.kitAccent > 4
   ) {
-    throw new Error('Kit accent choice must be from 0 to 3');
+    throw new Error('Kit accent choice must be from 0 to 4');
   }
   return { ...value };
 }

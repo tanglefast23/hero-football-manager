@@ -947,7 +947,10 @@ const CREATED_HAIRSTYLES = [
   'twists',
   'topknot',
 ];
-const CREATED_KIT_ACCENT_COUNT = 4;
+const CREATED_KIT_ACCENT_COUNT = 5;
+const ORIGINAL_CREATED_KIT_ACCENT_COUNT = 4;
+const ORIGINAL_CREATED_LOOK_COUNT =
+  6 * CREATED_HAIRSTYLES.length * ORIGINAL_CREATED_KIT_ACCENT_COUNT;
 
 // The first-hire paper doll is deliberately separate from the career roster.
 // Every combination keeps the same face and body; only the selected skin,
@@ -955,14 +958,15 @@ const CREATED_KIT_ACCENT_COUNT = 4;
 export const CREATED_PLAYER_LOOKS = Array.from(
   { length: 6 * CREATED_HAIRSTYLES.length * CREATED_KIT_ACCENT_COUNT },
   (_, index) => {
-    const skinTone = Math.floor(
-      index / (CREATED_HAIRSTYLES.length * CREATED_KIT_ACCENT_COUNT),
-    );
-    const hairstyle = Math.floor(
-      (index % (CREATED_HAIRSTYLES.length * CREATED_KIT_ACCENT_COUNT)) /
-        CREATED_KIT_ACCENT_COUNT,
-    );
-    const kitAccent = index % CREATED_KIT_ACCENT_COUNT;
+    const noAccent = index >= ORIGINAL_CREATED_LOOK_COUNT;
+    const appearanceIndex = noAccent
+      ? index - ORIGINAL_CREATED_LOOK_COUNT
+      : Math.floor(index / ORIGINAL_CREATED_KIT_ACCENT_COUNT);
+    const skinTone = Math.floor(appearanceIndex / CREATED_HAIRSTYLES.length);
+    const hairstyle = appearanceIndex % CREATED_HAIRSTYLES.length;
+    const kitAccent = noAccent
+      ? ORIGINAL_CREATED_KIT_ACCENT_COUNT
+      : index % ORIGINAL_CREATED_KIT_ACCENT_COUNT;
     return {
       id: `c${String(index).padStart(3, '0')}`,
       role: 'field',

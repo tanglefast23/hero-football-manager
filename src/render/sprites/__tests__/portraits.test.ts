@@ -31,12 +31,12 @@ describe('career player portrait roster', () => {
   it('ships 208 roster looks plus every paper-doll combination with all three expressions', () => {
     expect(manifest.field).toHaveLength(183);
     expect(manifest.goalkeeper).toHaveLength(25);
-    expect(manifest.created).toHaveLength(240);
+    expect(manifest.created).toHaveLength(300);
     expect(manifest.field).toHaveLength(FIELD_PLAYER_LOOK_COUNT);
     expect(manifest.goalkeeper).toHaveLength(GOALKEEPER_LOOK_COUNT);
     expect(manifest.created).toHaveLength(CREATED_PLAYER_LOOK_COUNT);
-    expect(IDS).toHaveLength(448);
-    expect(Object.keys(sheet.sprites)).toHaveLength(1344);
+    expect(IDS).toHaveLength(508);
+    expect(Object.keys(sheet.sprites)).toHaveLength(1524);
     const resting = IDS.map((id) =>
       JSON.stringify(sheet.sprites[`${id}:rest`]),
     );
@@ -63,7 +63,11 @@ describe('career player portrait roster', () => {
       hairstyle: number,
       kitAccent: number,
     ) =>
-      `c${String(skinTone * 40 + hairstyle * 4 + kitAccent).padStart(3, '0')}`;
+      `c${String(
+        kitAccent === 4
+          ? 240 + skinTone * 10 + hairstyle
+          : skinTone * 40 + hairstyle * 4 + kitAccent,
+      ).padStart(3, '0')}`;
 
     const base = rows('c000');
     for (let skinTone = 1; skinTone < 6; skinTone += 1) {
@@ -77,11 +81,19 @@ describe('career player portrait roster', () => {
       expect(nextHair.slice(16)).toEqual(base.slice(16));
       expect(nextHair).not.toEqual(base);
     }
-    for (let kitAccent = 1; kitAccent < 4; kitAccent += 1) {
+    for (let kitAccent = 1; kitAccent < 5; kitAccent += 1) {
       const nextAccent = rows(createdId(0, 0, kitAccent));
       expect(nextAccent.slice(0, 16)).toEqual(base.slice(0, 16));
       expect(nextAccent.slice(16)).not.toEqual(base.slice(16));
     }
+    const noAccent = rows(createdId(0, 0, 4));
+    expect(noAccent[17].slice(7, 17)).not.toMatch(/[WCAT]/);
+    expect(
+      noAccent
+        .slice(20, 28)
+        .map((row) => row.slice(2, 4))
+        .join(''),
+    ).not.toMatch(/[WCAT]/);
   });
 
   it('keeps every portrait at the art-bible 24x29 cell and palette budget', () => {

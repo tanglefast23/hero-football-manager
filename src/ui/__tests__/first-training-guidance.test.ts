@@ -93,18 +93,21 @@ describe('first training guidance', () => {
       join(process.cwd(), 'src/application/store.ts'),
       'utf8',
     );
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
     // Not the first drill: on a full-energy squad the warning is noise until the
     // manager has watched the number fall a couple of times.
     expect(source).toContainSource('const CONDITION_WARNING_DRILL = 3;');
-    // Keyed to the drill that landed, not to the career total, so it fires once
-    // and cannot re-fire on a re-render or a reload.
+    // The result is consumed when the popup closes, so remounting Squad cannot
+    // recreate the cue from the stale third-drill result.
     expect(source).toContainSource(
       'if (lastDrillResult?.totalDrillsRun !== CONDITION_WARNING_DRILL) return;',
     );
     expect(source).toContainSource(
       'setConditionCuePlayerId(lastDrillResult.playerId);',
     );
+    expect(source).toContainSource('onClearDrillResult?.();');
+    expect(app).toContainSource('onClearDrillResult={store.clearDrillResult}');
     // The drill popup covers the roster, so the cue waits for it to close.
     expect(source).toContainSource(
       'conditionCuePlayerId={drillPickerOpen ? null : conditionCuePlayerId}',

@@ -28,6 +28,8 @@ import { useCopy } from '../../i18n';
 import { hasHoverPointer } from '../pointer-capability';
 import { ClubCrest } from '../components/ClubCrest';
 import { ClubKitProvider } from '../club-kit-context';
+import { TutorialTapCue } from '../TutorialTapCue';
+import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 import type { ClubKitChoice } from '../../render/sprites/club-kit';
 
 /**
@@ -319,6 +321,8 @@ export function FixtureMatchDayScreen({
   const [selectedStarterId, setSelectedStarterId] = useState<string | null>(
     null,
   );
+  const scrollRef = useRef<ScrollView>(null);
+  const benchTopRef = useRef(0);
   const [hoveredStarterId, setHoveredStarterId] = useState<string | null>(null);
   const [formationPickerOpen, setFormationPickerOpen] = useState(false);
   const selectedStarter = viewModel.lineup.find(
@@ -338,6 +342,17 @@ export function FixtureMatchDayScreen({
     if (selectedStarterId !== null && selectedStarter === undefined)
       setSelectedStarterId(null);
   }, [selectedStarter, selectedStarterId]);
+
+  useEffect(() => {
+    if (wide || selectedStarterId === null) return undefined;
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, benchTopRef.current - 8),
+        animated: true,
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedStarterId, wide]);
 
   // Handing the fixture off changes the screen, but this one is not unmounted
   // until the next render — long enough for a second tap to settle the fixture
@@ -533,8 +548,7 @@ export function FixtureMatchDayScreen({
                 // Desktop reads the file in the right column instead, so the
                 // pitch never trades a face for a 76pt table there.
                 const showStats =
-                  !wide &&
-                  (hoveredStarterId === player.id || (!pointer && selected));
+                  !wide && pointer && hoveredStarterId === player.id;
                 return (
                   <Pressable
                     key={player.id}
@@ -701,7 +715,15 @@ export function FixtureMatchDayScreen({
   );
 
   const bench = (
-    <View className={wide ? undefined : 'mt-4'}>
+    <View
+      className={wide ? undefined : 'mt-4'}
+      onLayout={(event) => {
+        benchTopRef.current = event.nativeEvent.layout.y;
+      }}
+    >
+      {!wide && selectedStarter !== undefined ? (
+        <StarterDetailPanel player={selectedStarter} clubKit={clubKit} />
+      ) : null}
       <StageSection
         eyebrow={t('fixtureMatchDay.selectionBench')}
         title={
@@ -717,6 +739,21 @@ export function FixtureMatchDayScreen({
           )
         }
       />
+      {!wide && selectedStarter !== undefined ? (
+        <View className="relative h-24">
+          <TutorialTapCue
+            label={t('fixtureMatchDay.tapToSwapPlayers')}
+            detail={t('fixtureMatchDay.replacePlayer', {
+              player: selectedStarter.name,
+            })}
+            style={{
+              left: '50%',
+              marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+              top: 0,
+            }}
+          />
+        </View>
+      ) : null}
       <View className="gap-2">
         {viewModel.bench.map((player) => {
           const conditionStatus = matchdayConditionStatus(player.condition, t);
@@ -986,6 +1023,7 @@ export function FixtureMatchDayScreen({
       </View>
 
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
       >

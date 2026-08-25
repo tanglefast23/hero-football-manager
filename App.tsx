@@ -3767,6 +3767,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
             onGiftGuideAnchorChange={setGiftGuideAnchor}
             lastPlayerGiftResult={store.lastPlayerGiftResult}
             onClearPlayerGiftResult={store.clearPlayerGiftResult}
+            onClearDrillResult={store.clearDrillResult}
             onBookGreenBullTraining={() => {
               const offer = squadTrainingVm!.greenBullTraining;
               if (offer === undefined || offer.blockedReason !== undefined)

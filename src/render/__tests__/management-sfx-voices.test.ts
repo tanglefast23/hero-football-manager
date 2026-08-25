@@ -105,6 +105,7 @@ jest.mock('expo-haptics', () => ({
     Light: 'light',
     Medium: 'medium',
     Heavy: 'heavy',
+    Rigid: 'rigid',
   },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
