@@ -334,10 +334,8 @@ export async function flushPendingCareerSave(): Promise<void> {
     pendingCareerSave = null;
     try {
       await repository.save(snapshot.state);
-      clearSaveFailures(set);
-      if (get().career === snapshot.state) {
-        set({ hasSavedCareer: true, lastPersistedCareer: snapshot.state });
-      }
+      clearSaveFailures(get, set);
+      recordPersistedCareer(get, set, snapshot.state);
     } catch (error) {
       // Re-queue rather than hand the payload back. The task that owned this
       // generation has already run and returned, so a payload put back on its own
@@ -1063,7 +1061,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       error: null,
       notice: { tone: 'info', message: t('store.backupRestored') },
     });
-    clearSaveFailures(set);
+    clearSaveFailures(get, set);
     // Reconciliation may have changed the restored state; persist that shape.
     queueCareerSave(get, set, restored);
   },
@@ -1098,7 +1096,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           message: t('store.developerSaveLoaded', { slot: slotLabel }),
         },
       });
-      clearSaveFailures(set);
+      clearSaveFailures(get, set);
       queueCareerSave(get, set, restored);
     });
   },
@@ -3960,6 +3958,7 @@ function queueCareerSave(
   pendingCareerSave = { generation, lineage: careerLineage, state: career };
   let saved: GameState | null = null;
   enqueueSave(
+    get,
     set,
     async () => {
       // Coalesced: while this task waited its turn, newer states replaced the
@@ -3988,9 +3987,8 @@ function queueCareerSave(
       // A task that skipped (payload withdrawn, load error) proved nothing —
       // only an actual write may clear the failure streak.
       if (saved === null) return;
-      clearSaveFailures(set);
-      if (get().career === saved)
-        set({ hasSavedCareer: true, lastPersistedCareer: saved });
+      clearSaveFailures(get, set);
+      recordPersistedCareer(get, set, saved);
     },
     (error) => recordSaveFailure(get, set, error),
   );
@@ -4020,8 +4018,29 @@ function recordSaveFailure(
   });
 }
 
-function clearSaveFailures(set: (partial: Partial<M1Store>) => void): void {
+function clearSaveFailures(
+  get: () => M1Store,
+  set: (partial: Partial<M1Store>) => void,
+): void {
+  const current = get();
+  if (
+    current.consecutiveSaveFailures === 0 &&
+    !current.saveBlocked &&
+    current.saveWarning === null
+  )
+    return;
   set({ consecutiveSaveFailures: 0, saveBlocked: false, saveWarning: null });
+}
+
+function recordPersistedCareer(
+  get: () => M1Store,
+  set: (partial: Partial<M1Store>) => void,
+  career: GameState,
+): void {
+  const current = get();
+  if (current.career !== career) return;
+  if (current.hasSavedCareer && current.lastPersistedCareer === career) return;
+  set({ hasSavedCareer: true, lastPersistedCareer: career });
 }
 
 /** A missing summary only costs the UI a recovery option, so it never throws. */
@@ -4060,6 +4079,7 @@ function queueReplaySave(
     (fixture.season - 1) * 100 +
     (fixture.id.includes('-cup-') ? 50 + fixture.round : fixture.week);
   enqueueSave(
+    get,
     set,
     async () => {
       if (get().persistenceLoadError !== null) return;
@@ -4096,6 +4116,7 @@ function queueNewCareerSave(
   // that follows it.
   exclusiveSaveDepth += 1;
   enqueueSave(
+    get,
     set,
     async () => {
       try {
@@ -4134,9 +4155,8 @@ function queueNewCareerSave(
     },
     t('store.newCareerSaveFailed'),
     () => {
-      clearSaveFailures(set);
-      if (get().career === career)
-        set({ hasSavedCareer: true, lastPersistedCareer: career });
+      clearSaveFailures(get, set);
+      recordPersistedCareer(get, set, career);
     },
     (error) => {
       // The write that failed is the one that would have replaced the career on
@@ -4170,13 +4190,14 @@ function queueNewCareerSave(
         shootout: null,
         pendingPostFaceOffScreen: null,
       });
-      if (replacedCareerPersisted) clearSaveFailures(set);
+      if (replacedCareerPersisted) clearSaveFailures(get, set);
       else recordSaveFailure(get, set, error);
     },
   );
 }
 
 function enqueueSave(
+  get: () => M1Store,
   set: (partial: Partial<M1Store>) => void,
   task: () => Promise<void>,
   errorPrefix: string,
@@ -4184,16 +4205,16 @@ function enqueueSave(
   onError?: (error: unknown) => void,
 ): void {
   const ticket = ++latestSaveTicket;
-  set({ saving: true });
+  if (!get().saving) set({ saving: true });
   saveQueue = saveQueue
     .then(task)
     .then(() => {
       onSuccess?.();
-      if (ticket === latestSaveTicket) set({ saving: false });
+      if (ticket === latestSaveTicket && get().saving) set({ saving: false });
     })
     .catch((error) => {
       onError?.(error);
-      if (ticket === latestSaveTicket) set({ saving: false });
+      if (ticket === latestSaveTicket && get().saving) set({ saving: false });
       set({ error: `${errorPrefix}: ${rawMessage(error)}` });
     });
 }

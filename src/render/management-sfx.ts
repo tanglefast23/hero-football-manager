@@ -1,6 +1,7 @@
 // Owns short management-screen feedback sounds. Kept fail-soft so an older
 // native dev client can still render the review UI when expo-audio is absent.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
+import { claimManagementFeedback } from './management-feedback-activation';
 import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 
 type ExplicitManagementSfxKey =
@@ -573,6 +574,7 @@ function playManagementSfx(key: ManagementSfxKey): void {
     const player =
       rapidKey === undefined ? players.get(key) : nextRapidPlayer(rapidKey);
     if (player === undefined || masterVolume === 0) return;
+    if (!claimManagementFeedback('sound') && !isRetry) return;
     if (rapidKey !== undefined) varyRapidPitch(rapidKey, player);
     // Every cue rewinds before it plays, rapid ones included. A voice parked at
     // the end of its clip ignores play() outright and the tap is silent, and JS

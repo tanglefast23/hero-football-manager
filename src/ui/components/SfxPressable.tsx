@@ -14,6 +14,11 @@ import {
   playStatStepSfx,
   playUiClickSfx,
 } from '../../render/management-sfx';
+import {
+  createManagementFeedbackActivation,
+  withManagementFeedbackActivation,
+  type ManagementFeedbackActivation,
+} from '../../render/management-feedback-activation';
 import { hasHoverPointer } from '../pointer-capability';
 import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
 
@@ -114,6 +119,7 @@ export function SfxPressable({
   // button's own presses rather than by a tap somewhere else on the screen.
   const gateRef = useRef<PressCueGate | null>(null);
   const cueGate = (gateRef.current ??= createPressCueGate());
+  const feedbackRef = useRef<ManagementFeedbackActivation | null>(null);
   const pointer = hasHoverPointer();
   const showTip =
     pointer && hovered && !pressed && tip !== undefined && tip.length > 0;
@@ -143,10 +149,14 @@ export function SfxPressable({
       }
       onPressIn={(event) => {
         setPressed(true);
-        // A surface with nothing to activate has nothing to answer for, so the
-        // cue lives exactly where a press handler does.
-        if (onPress != null) cueGate.pressIn(() => playPressCue(pressSfx));
-        onPressIn?.(event);
+        const feedback = createManagementFeedbackActivation();
+        feedbackRef.current = feedback;
+        withManagementFeedbackActivation(feedback, () => {
+          // A surface with nothing to activate has nothing to answer for, so the
+          // cue lives exactly where a press handler does.
+          if (onPress != null) cueGate.pressIn(() => playPressCue(pressSfx));
+          onPressIn?.(event);
+        });
       }}
       onPressOut={(event) => {
         // A completed press ends the hover too. A touch screen that reports a
@@ -155,14 +165,23 @@ export function SfxPressable({
         setPressed(false);
         setHovered(false);
         cueGate.pressOut();
+        const feedback = feedbackRef.current;
+        setTimeout(() => {
+          if (feedbackRef.current === feedback) feedbackRef.current = null;
+        }, 0);
         onPressOut?.(event);
       }}
       onPress={
         onPress == null
           ? undefined
           : (event) => {
-              cueGate.press(() => playPressCue(pressSfx));
-              onPress(event);
+              const feedback =
+                feedbackRef.current ?? createManagementFeedbackActivation();
+              feedbackRef.current = null;
+              withManagementFeedbackActivation(feedback, () => {
+                cueGate.press(() => playPressCue(pressSfx));
+                onPress(event);
+              });
             }
       }
       style={(() => {

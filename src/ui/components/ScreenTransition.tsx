@@ -128,7 +128,12 @@ interface DissolveState {
   pass: number;
 }
 
-export function ScreenTransition({
+export function ScreenTransition(props: ScreenTransitionProps) {
+  if (Platform.OS === 'ios') return <>{props.children}</>;
+  return <DissolvingScreenTransition {...props} />;
+}
+
+function DissolvingScreenTransition({
   screenKey,
   reduceMotion,
   animated = true,

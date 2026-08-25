@@ -17,7 +17,11 @@ jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(() => Promise.resolve()),
   impactAsync: mockImpactAsync,
   notificationAsync: jest.fn(() => Promise.resolve()),
-  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+  },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
 
@@ -66,6 +70,10 @@ import {
   stopSuperCelebrationSfx,
   teardownManagementSfx,
 } from '../management-sfx';
+import {
+  createManagementFeedbackActivation,
+  withManagementFeedbackActivation,
+} from '../management-feedback-activation';
 
 describe('management feedback sounds', () => {
   beforeEach(() => {
@@ -480,11 +488,14 @@ describe('management feedback sounds', () => {
     // iOS kills the session server while backgrounded: the next native call
     // rejects and the old player can never play again.
     prewarmManagementSfx();
-    mockPlayers[16].seekTo.mockImplementation(() =>
-      Promise.reject(new Error('Session lookup failed')),
-    );
+    mockPlayers[16].seekTo.mockImplementation(() => {
+      throw new Error('Session lookup failed');
+    });
 
-    playPositiveSfx();
+    withManagementFeedbackActivation(
+      createManagementFeedbackActivation(),
+      playPositiveSfx,
+    );
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
