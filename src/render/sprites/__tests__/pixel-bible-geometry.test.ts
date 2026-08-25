@@ -263,7 +263,7 @@ describe('portrait cast varies where it exaggerates (rule 3)', () => {
     .sort((a, b) => a - b);
 
   it('pushes different faces in different directions', () => {
-    expect(ratios).toHaveLength(448);
+    expect(ratios).toHaveLength(508);
     const p10 = ratios[Math.floor(ratios.length * 0.1)];
     const p90 = ratios[Math.floor(ratios.length * 0.9)];
     // A cast drawn to one template collapses this toward 1.

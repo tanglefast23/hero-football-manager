@@ -10,7 +10,7 @@ import {
  * from the camera: boots square to their own shin (no sideways toe overhang)
  * and a stride that alternates which foot is nearer. Every run frame on the
  * sheet is held to that, which is what makes the mechanical rollout across all
- * 896 looks trustworthy. Keeper ready poses are a planted stance, not a stride,
+ * 1,016 looks trustworthy. Keeper ready poses are a planted stance, not a stride,
  * and are excluded by design.
  */
 const sheet = sheetData as SpriteSheet;
@@ -75,8 +75,8 @@ const silhouette = (rows: readonly string[]) =>
 
 describe('vertical-pitch run cycle feet', () => {
   it('covers every look on the sheet', () => {
-    expect(lookIds).toHaveLength(896);
-    expect(runKeys).toHaveLength(1792);
+    expect(lookIds).toHaveLength(1016);
+    expect(runKeys).toHaveLength(2032);
     expect(readyKeys).toHaveLength(100);
   });
 

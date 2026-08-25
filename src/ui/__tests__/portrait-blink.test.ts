@@ -122,8 +122,10 @@ describe('blinkRows', () => {
       // Bruno Bannor's gamma-green head is drawn in `T`, which is not on the
       // skin ramp, so there is no skin colour to close the lid with and
       // declining is the fail-safe.
-      expect(rest).toHaveLength(448);
-      expect(blinking).toHaveLength(419);
+      // The 60 no-accent created-player looks all blink, so the existing 29
+      // fail-safe refusals stay unchanged.
+      expect(rest).toHaveLength(508);
+      expect(blinking).toHaveLength(479);
     });
   });
 });
