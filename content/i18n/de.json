@@ -3637,7 +3637,7 @@
     "storyEvent.weakestUsefulAttribute": "schwächster nützlicher Wert",
     "storyEvent.rewardLoseSmallFacilities.one": "{count} kleine Anlage verlieren",
     "storyEvent.rewardLoseSmallFacilities.other": "{count} kleine Anlagen verlieren",
-    "storyEvent.rewardRiskPrimaryFacility": "70 % Risiko: bester Fanshop oder größte Anlage geht verloren",
+    "storyEvent.rewardRiskPrimaryFacility": "Bester Fanshop oder größte Anlage geht verloren",
     "storyEvent.riskyChance": "{percent}%: {reward}.",
     "storyEvent.riskyChanceOrNothing": "{percent}%: {reward}. Sonst nichts.",
     "storyEvent.riskyChanceWithFailure": "{percent}%: {reward}. Andernfalls: {failure}.",

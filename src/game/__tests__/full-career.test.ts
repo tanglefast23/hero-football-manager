@@ -276,6 +276,52 @@ describe('full M2 career clock', () => {
     expect(stayedUp.m2?.highestDivisionReached).toBe(4);
   });
 
+  test('keeps the strongest D1 starting eleven at 120 by lowering only its four specials', () => {
+    let state = createCareer({ ...createLaunchCareerSetup(78_011) });
+    for (let promotion = 0; promotion < 4; promotion += 1) {
+      state = startNextSeason(
+        completeSeasonForUser(
+          {
+            ...state,
+            players: state.players.map((player) =>
+              player.clubId === state.userClubId
+                ? { ...player, contractSeasonsRemaining: 5 }
+                : player,
+            ),
+          },
+          'win',
+        ),
+      );
+    }
+
+    expect(currentUserDivision(state.m2!)).toBe(1);
+    const specials = state.players.filter(
+      (player) =>
+        player.clubId !== state.userClubId && isSpecialHeroId(player.id),
+    );
+    expect(specials).toHaveLength(4);
+    const hostId = specials[0].clubId;
+    const ordinary = state.players.filter(
+      (player) => player.clubId === hostId && !isSpecialHeroId(player.id),
+    );
+
+    const storedHost = state.m2?.pyramid.divisions
+      .find((division) => division.level === 1)
+      ?.clubs.find((club) => club.id === hostId);
+    expect(storedHost).toBeDefined();
+    expect(clubSquadStrength(ordinary)).toBe(
+      clubSquadStrength(storedHost!.squad),
+    );
+    const lineup = state.lineups.find((row) => row.clubId === hostId)!;
+    const starters = lineup.playerIds.map((playerId) =>
+      state.players.find((player) => player.id === playerId)!,
+    );
+    expect(
+      starters.filter((player) => isSpecialHeroId(player.id)),
+    ).toHaveLength(4);
+    expect(clubSquadStrength(starters)).toBe(120);
+  });
+
   test('applies new-contract wage clauses on promotion but not for staying put', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(78_012) });
     const player = initial.players.find(
@@ -560,6 +606,19 @@ describe('full M2 career clock', () => {
       reconciled.players.find((player) => player.id === legacyAcademyPlayer.id)
         ?.name,
     ).toBe(legacyAcademyPlayer.name);
+
+    const renamed = enableFullCareer({
+      ...first,
+      players: first.players.map((player) =>
+        player.id === legacyAcademyPlayer.id
+          ? { ...player, name: 'My Academy Star' }
+          : player,
+      ),
+    });
+    expect(
+      renamed.players.find((player) => player.id === legacyAcademyPlayer.id)
+        ?.name,
+    ).toBe('My Academy Star');
   });
 
   test('cold-relaunches multiple season transitions without restoring launch rosters', () => {

@@ -2475,7 +2475,7 @@
     "storyEvent.weakestUsefulAttribute": "weakest useful stat",
     "storyEvent.rewardLoseSmallFacilities.one": "Lose {count} small facility",
     "storyEvent.rewardLoseSmallFacilities.other": "Lose {count} small facilities",
-    "storyEvent.rewardRiskPrimaryFacility": "70% chance to lose the top Fan Shop or largest facility",
+    "storyEvent.rewardRiskPrimaryFacility": "Lose the top Fan Shop or largest facility",
     "storyEvent.riskyChance": "{percent}%: {reward}.",
     "storyEvent.riskyChanceOrNothing": "{percent}%: {reward}. Otherwise nothing.",
     "storyEvent.riskyChanceWithFailure": "{percent}%: {reward}. Otherwise: {failure}.",

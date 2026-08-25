@@ -17,6 +17,7 @@ import {
   type GameState,
 } from '../../game';
 import { serializeGameState } from '../../persistence/game-state-codec';
+import { copyFor, type Locale } from '../../i18n';
 import { createLaunchCareerSetup } from '../launch';
 import { storyEventViewModel } from '../view-models';
 import {
@@ -181,6 +182,31 @@ describe('shared career event flow', () => {
     expect(unlicensed?.detail).not.toContain('Licensed hero');
     expect(unlicensed?.powerName).toBe('Gravity Well');
     expect(licensed?.detail).toContain('Licensed hero');
+  });
+
+  test('shows the fire risk percentage once in every language', () => {
+    const offered = offerCareerEvent(career(), 'retaliation-facility-fire');
+    const locales: readonly Locale[] = [
+      'en',
+      'es',
+      'pt-BR',
+      'fr',
+      'id',
+      'de',
+      'vi',
+    ];
+
+    for (const locale of locales) {
+      const hint = storyEventViewModel(
+        offered,
+        loadLaunchContent(),
+        copyFor(locale),
+      ).choices.find(
+        (choice) => choice.id === 'trace-live-wire',
+      )?.consequenceHint;
+
+      expect(hint?.match(/70\s*%/g)).toHaveLength(1);
+    }
   });
 
   test('previews and charges the cameras setback as 10% of current cash', () => {

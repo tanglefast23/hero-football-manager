@@ -3637,7 +3637,7 @@
     "storyEvent.weakestUsefulAttribute": "atributo útil más débil",
     "storyEvent.rewardLoseSmallFacilities.one": "Pierdes {count} instalación pequeña",
     "storyEvent.rewardLoseSmallFacilities.other": "Pierdes {count} instalaciones pequeñas",
-    "storyEvent.rewardRiskPrimaryFacility": "70 % de perder la mejor Tienda del Club o la instalación más grande",
+    "storyEvent.rewardRiskPrimaryFacility": "Perder la mejor Tienda del Club o la mayor instalación",
     "storyEvent.riskyChance": "{percent}%: {reward}.",
     "storyEvent.riskyChanceOrNothing": "{percent}%: {reward}. Si no, nada.",
     "storyEvent.riskyChanceWithFailure": "{percent}%: {reward}. Si no: {failure}.",

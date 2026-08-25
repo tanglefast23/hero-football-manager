@@ -33,6 +33,7 @@ import {
   synchronizeM2ActiveDivision,
 } from './m2-career';
 import {
+  DIVISION_STRENGTH_BANDS,
   isClubLegend,
   tuneSquadToStrength,
   type DivisionLevel,
@@ -42,6 +43,7 @@ import {
 import { difficultyRules } from './difficulty';
 import { divisionAwardPrize } from './division-award-prize';
 import {
+  availableYouthName,
   careerRosterCapacity,
   initializeSeasonYouthIntake,
   reconcileStoryYouthIntake,
@@ -787,7 +789,7 @@ function overlayDivisionSpecials(input: {
   const base = Math.max(
     ...hostSquad.map((player) => roleOverall(player.role, player.attrs)),
   );
-  const specials = heroes.map((hero, index) =>
+  let specials = heroes.map((hero, index) =>
     buildSpecialHeroPlayer({
       hero,
       clubId: hostId,
@@ -795,6 +797,39 @@ function overlayDivisionSpecials(input: {
       target: specialHeroTargetOverall(base, heroes.length, index + 1),
     }),
   );
+  if (input.division === 1) {
+    const starterIds = new Set(startingEleven([...specials, ...hostSquad]));
+    const ordinaryStarters = hostSquad.filter((player) =>
+      starterIds.has(player.id),
+    );
+    const d1SpecialTotal = Math.max(
+      heroes.length * heroes.length,
+      DIVISION_STRENGTH_BANDS[1][1] *
+        (ordinaryStarters.length + heroes.length) -
+        ordinaryStarters.reduce(
+          (sum, player) => sum + roleOverall(player.role, player.attrs),
+          0,
+        ),
+    );
+    const d1SpecialBase = Math.floor(d1SpecialTotal / heroes.length);
+    const d1SpecialRemainder = d1SpecialTotal % heroes.length;
+    // Keep every ordinary player unchanged. Only the four named starters move,
+    // and their ordered targets make the actual eleven average exactly 120
+    // while that ceiling remains reachable. The floor protects endless saves.
+    specials = heroes.map((hero, index) =>
+      buildSpecialHeroPlayer({
+        hero,
+        clubId: hostId,
+        division: input.division,
+        target:
+          d1SpecialBase +
+          heroes.length -
+          1 -
+          index * 2 +
+          (index < d1SpecialRemainder ? 1 : 0),
+      }),
+    );
+  }
 
   // The named specials own the first field licenses. Excess generated heroes
   // become ordinary players on this season's host. Merely unlicensing them is
@@ -1061,22 +1096,44 @@ function academyPlayerName(
   careerSeed: number,
   season: number,
   id: string,
+  usedNames: ReadonlySet<string> = new Set(),
 ): string {
   const value = stableYouthValue(careerSeed, season, id);
-  return `${ACADEMY_NAMES[value % ACADEMY_NAMES.length]} ${YOUTH_LAST_NAMES[(value >>> 8) % YOUTH_LAST_NAMES.length]}`;
+  return availableYouthName(
+    ACADEMY_NAMES[value % ACADEMY_NAMES.length],
+    (value >>> 8) % YOUTH_LAST_NAMES.length,
+    usedNames,
+  );
 }
 
 function reconcileAcademyPlayerNames(state: GameState): CareerPlayer[] {
+  const academySeason = (player: CareerPlayer): string | undefined =>
+    /-academy-s(\d+)-(?:gk|def|mid|fwd)-\d+$/i.exec(player.id)?.[1];
+  const usedNames = new Set(
+    state.players
+      .filter(
+        (player) =>
+          player.clubId === state.userClubId &&
+          academySeason(player) === undefined,
+      )
+      .map((player) => player.name),
+  );
   return state.players.map((player) => {
-    const season = /-academy-s(\d+)-(?:gk|def|mid|fwd)-\d+$/i.exec(
+    const season = academySeason(player);
+    if (season === undefined || player.clubId !== state.userClubId)
+      return player;
+    if (!/ Academy \d+$/.test(player.name) && !usedNames.has(player.name)) {
+      usedNames.add(player.name);
+      return player;
+    }
+    const name = academyPlayerName(
+      state.careerSeed,
+      Number(season),
       player.id,
-    )?.[1];
-    return season !== undefined && / Academy \d+$/.test(player.name)
-      ? {
-          ...player,
-          name: academyPlayerName(state.careerSeed, Number(season), player.id),
-        }
-      : player;
+      usedNames,
+    );
+    usedNames.add(name);
+    return name === player.name ? player : { ...player, name };
   });
 }
 
@@ -1103,6 +1160,7 @@ function replenishUserSquad(
     attrs: { ...player.attrs },
   }));
   const existingIds = new Set(result.map((player) => player.id));
+  const usedNames = new Set(result.map((player) => player.name));
   const roles = ['GK', 'DEF', 'MID', 'FWD'] as const;
   const shortages = new Map(
     roles.map((role) => [
@@ -1131,7 +1189,9 @@ function replenishUserSquad(
       season,
       careerSeed,
       division,
+      usedNames,
     );
+    usedNames.add(player.name);
     result.push({
       ...player,
       lookId: nextDistinctPlayerLook(player, result),
@@ -1150,6 +1210,7 @@ function academyPlayer(
   season: number,
   careerSeed: number,
   division: DivisionLevel,
+  usedNames: ReadonlySet<string>,
 ): CareerPlayer {
   const value = stableYouthValue(careerSeed, season, id);
   const base = 38 + (value % 13);
@@ -1173,7 +1234,7 @@ function academyPlayer(
   return {
     id,
     clubId,
-    name: academyPlayerName(careerSeed, season, id),
+    name: academyPlayerName(careerSeed, season, id, usedNames),
     role,
     attrs,
     licensed: false,
