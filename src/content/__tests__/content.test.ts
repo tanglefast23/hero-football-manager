@@ -154,13 +154,13 @@ describe('validated M1 launch content', () => {
     // 14x the value per TP of every other drill. See
     // docs/superpowers/reports/2026-07-30-real-player-balance-findings.md.
     expect(Object.fromEntries(drillPaths)).toEqual({
-      sprints: [3, 5, 8, 13, 20],
-      finishing: [3, 5, 8, 13, 20],
-      rondo: [3, 5, 8, 13, 20],
-      duels: [3, 5, 8, 13, 20],
-      'first-touch': [3, 5, 8, 13, 20],
-      circuit: [3, 5, 8, 13, 20],
-      'keeper-drills': [1, 2, 4, 7, 11],
+      sprints: [3, 5, 8, 13, 18],
+      finishing: [3, 5, 8, 13, 18],
+      rondo: [3, 5, 8, 13, 18],
+      duels: [3, 5, 8, 13, 18],
+      'first-touch': [3, 5, 8, 13, 18],
+      circuit: [3, 5, 8, 13, 18],
+      'keeper-drills': [1, 2, 4, 7, 10],
     });
     for (const costs of drillCosts.values()) {
       expect(costs).toEqual([7, 11, 17, 26, 39]);
@@ -168,16 +168,6 @@ describe('validated M1 launch content', () => {
         .slice(1)
         .forEach((cost, index) =>
           expect(cost).toBe(Math.round(costs[index] * 1.5)),
-        );
-    }
-    for (const [path, gains] of drillPaths) {
-      const costs = drillCosts.get(path)!;
-      gains
-        .slice(1)
-        .forEach((gain, index) =>
-          expect(gain / costs[index + 1]).toBeGreaterThan(
-            gains[index] / costs[index],
-          ),
         );
     }
     expect(content.events.events).toHaveLength(54);

@@ -12,6 +12,8 @@ export const MIDSEASON_TRAINING_CONDITION_COST = 10;
 export const GREEN_BULL_TRAINING_GAIN = 2;
 const GREEN_BULL_BASE_COST = 50_000;
 const GREEN_BULL_COST_INCREMENT = 25_000;
+const GREEN_BULL_LATE_COST_INCREMENT = 50_000;
+const GREEN_BULL_EARLY_INCREASE_COUNT = 10;
 
 const ATTRIBUTE_KEYS = [
   'pac',
@@ -125,7 +127,18 @@ export function greenBullTrainingOffer(
     (flag) =>
       flag.startsWith('green-bull-training:') && flag.endsWith(':accepted'),
   ).length;
-  const cost = GREEN_BULL_BASE_COST + previousTrips * GREEN_BULL_COST_INCREMENT;
+  const earlyIncreases = Math.min(
+    previousTrips,
+    GREEN_BULL_EARLY_INCREASE_COUNT,
+  );
+  const lateIncreases = Math.max(
+    0,
+    previousTrips - GREEN_BULL_EARLY_INCREASE_COUNT,
+  );
+  const cost =
+    GREEN_BULL_BASE_COST +
+    earlyIncreases * GREEN_BULL_COST_INCREMENT +
+    lateIncreases * GREEN_BULL_LATE_COST_INCREMENT;
   const trainingPointsRequired = weeklyAmbientTrainingPoints(state);
   const usedThisWeek = state.eventFlags.some(
     (flag) =>

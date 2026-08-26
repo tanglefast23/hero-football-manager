@@ -101,6 +101,18 @@ export function resolveRingCopy(t: CopyFn, copy: RingCopy): string {
 function translatedParams(t: CopyFn, params: CopyParams): CopyParams {
   const substituted: Record<string, string | number> = { ...params };
   let changed = false;
+  const continuitySponsor =
+    typeof params.sponsor === 'string'
+      ? /^Current Sponsor(?: (\d+))?$/.exec(params.sponsor)
+      : null;
+  if (continuitySponsor !== null) {
+    substituted.sponsor = continuitySponsor[1]
+      ? t('clubFinances.sponsorContinuityNameNumbered', {
+          number: Number(continuitySponsor[1]),
+        })
+      : t('clubFinances.sponsorContinuityName');
+    changed = true;
+  }
   for (const [name, value] of Object.entries(params)) {
     const target = name.endsWith('Key')
       ? name.slice(0, -'Key'.length)

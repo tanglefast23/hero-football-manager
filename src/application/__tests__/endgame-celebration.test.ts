@@ -364,6 +364,42 @@ describe('the endgame celebrations', () => {
       expect(useM1Store.getState().error).toBeNull();
     });
 
+    it('leaves the true ending for the title instead of contract renewals', () => {
+      const career = careerAt({
+        division: 1,
+        champions: true,
+        cupWon: true,
+      });
+      useM1Store.setState({ career, screen: 'management' });
+
+      useM1Store.getState().advanceCareer();
+      expect(useM1Store.getState().screen).toBe('endgame-celebration');
+
+      useM1Store.getState().returnToTitleFromEnding();
+
+      expect(useM1Store.getState().screen).toBe('welcome');
+      expect(useM1Store.getState().career?.eventFlags).toContain(
+        TRUE_ENDING_SEEN_FLAG,
+      );
+    });
+
+    it('can start a fresh career directly after the true ending', () => {
+      const career = careerAt({
+        division: 1,
+        champions: true,
+        cupWon: true,
+      });
+      useM1Store.setState({ career, screen: 'management' });
+
+      useM1Store.getState().advanceCareer();
+      useM1Store.getState().completeEndgameCelebration();
+      useM1Store.getState().startNewCareer(123, career.assistantMode);
+
+      expect(useM1Store.getState().screen).toBe('create-player');
+      expect(useM1Store.getState().career?.season).toBe(1);
+      expect(useM1Store.getState().career?.careerSeed).toBe(123);
+    });
+
     /**
      * Both orders, driven through the real screens. Neither is privileged: the
      * second trophy plays the true ending whichever one it is, and afterwards

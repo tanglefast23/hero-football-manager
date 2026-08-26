@@ -1,6 +1,6 @@
 # Current App Store release risks
 
-Last checked: 2026-08-22
+Last checked: 2026-08-25
 
 This is the short, active list of traps found while carrying out the App Store
 readiness work. It is not a substitute for the full submission runbook.
@@ -26,13 +26,17 @@ readiness work. It is not a substitute for the full submission runbook.
 5. **Make a signed archive from the final green release commit.** The regenerated
    unsigned Release simulator app builds and passes `release:inspect`, but it is
    not uploadable.
-6. **Upload and attach the build.** Apple's API reports zero builds for Apple ID
-   `6799600157`. Build number `1` is unused as of 2026-08-22.
-7. **Capture final screenshots from that archive.** Apple's API reports no
-   screenshot sets. Capture the required iPhone and 13-inch iPad sets after the
-   final copy, art, layout, and onboarding are frozen.
+6. **Upload and test build `2`.** App Store Connect already contains valid build
+   `1`, but no build is attached to version `1.0.0`. Source now reserves build
+   `2`. Upload it, wait for processing, and run physical iPhone/iPad TestFlight
+   QA before selecting it for the version.
+7. ~~**Approve the current screenshot sets.**~~ **Closed 2026-08-25.** App Store
+   Connect has ten iPhone and ten iPad screenshots. Joe approved retaining them
+   because the player-visible game is materially unchanged and the existing set
+   required substantial work. Before submission, confirm the processed build
+   still matches them materially; recapture only if that check finds real drift.
 
-## Rechecked 2026-08-22
+## Rechecked 2026-08-25
 
 - `npx expo prebuild --platform ios --clean` removed the stale background-audio
   declaration. The rebuilt Release app has no `UIBackgroundModes` key.
@@ -46,7 +50,11 @@ readiness work. It is not a substitute for the full submission runbook.
   Local focused tests, TypeScript, formatting, release checks, and the web
   first-load budget pass.
 - The App Store Connect API reports version `1.0.0` in Prepare for Submission,
-  zero uploaded builds, and no screenshot sets.
+  one valid uploaded build numbered `1`, no selected build, and complete sets of
+  ten iPhone plus ten iPad screenshots.
+- Exact-commit CI passed 516 suites, 4,941 tests, and the unsigned native iOS
+  Release build for merged PR #225. The signed archive and physical-device pass
+  remain separate gates.
 - Paid Apps and Free Apps agreements are Active. Content Rights is saved. App
   Privacy is published as Data Not Collected with the live HFM privacy URL.
 - Current ratings are 9+ in 172 regions, 12+ in Vietnam and Brazil, and ALL in
@@ -73,7 +81,8 @@ readiness work. It is not a substitute for the full submission runbook.
   Brazil, ALL Korea), DSA trader status, tax category, US base storefront,
   173 of 175 territories, Mac **off**, Apple Vision Pro **off**, Public
   distribution, **Sign-in required: No**, and **Manually release this version**.
-- **Still open in App Store Connect:** screenshots and the build. Content Rights
+- **Still open in App Store Connect:** upload and test build `2`, then select it.
+  The existing screenshot sets are owner-approved for retention. Content Rights
   is saved, and App Privacy is published as Data Not Collected.
 - **Apple School Manager education discount is off.** Mac and Apple Vision Pro
   availability are also off.
@@ -137,6 +146,15 @@ Notes worth keeping:
 - **Offline claim:** the Release app launches from its embedded JS bundle with
   no Metro server. A full host-network-disabled run remains to be performed on
   the final archive; do not disturb the Mac's network merely to simulate it.
+- ~~**Named special heroes.**~~ **Closed by owner decision 2026-08-25.** Keep
+  the 15 deliberate near-miss name, power, and look combinations. Joe accepts
+  the residual App Review/IP risk and cites established near-miss-name practice
+  in management games. This records a product/risk decision, not legal clearance.
+  Do not silently rename the roster; reopen only for new legal or Apple evidence.
+- **Build-tool advisories:** `npm audit` reports 19 transitive build-tool issues
+  (7 high, 12 moderate, 0 critical). No runtime path was found. Do not run a
+  blind audit fix; any intentional package/lockfile change must precede freeze
+  and repeat the Expo, full-suite, native-generation, and Release-build gates.
 - **Mac and Apple Vision Pro availability:** opt out in App Store Connect unless
   Joe deliberately chooses and tests those storefronts.
 
@@ -155,6 +173,6 @@ Notes worth keeping:
 - Native Release builds cannot select root QA/harness routes, and the release
   check rejects QA environment flags.
 - The durable iOS config now records universal tablet support, multitasking,
-  build number 1, portrait-first iPhone behavior, and the encryption setting.
+  build number 2, portrait-first iPhone behavior, and the encryption setting.
 - The local Release build passed Xcode's build validation and launched cleanly
   on both iPhone and iPad simulators.

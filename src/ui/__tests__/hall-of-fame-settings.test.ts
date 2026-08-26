@@ -106,7 +106,7 @@ function overlay(overrides: Partial<SettingsOverlayProps>) {
     hapticsEnabled: true,
     textScale: 1,
     language: 'en' as const,
-    onCycleLanguage: () => {},
+    onLanguageChange: () => {},
     highContrast: false,
     colorSafeKits: true,
     cutInMode: 'full',

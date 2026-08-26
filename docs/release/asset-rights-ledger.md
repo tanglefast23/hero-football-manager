@@ -1,6 +1,6 @@
 # Asset rights ledger
 
-Last reviewed: 2026-08-17  
+Last reviewed: 2026-08-25
 Release scope: Hero Football Manager 1.0 for iPhone and iPad
 
 This ledger records evidence; it does not create rights that do not already
@@ -20,6 +20,7 @@ for this game and that no third-party visual assets were used.
 | Removed event art | The former `assets/art/events/*.jpg` files were deleted from current `main` before this release candidate | Owner confirmation still covers the artwork, but it is not part of the current shipped asset set | Not shipped in current release |
 | Portraits, characters, facilities, match and UI art | Generated sprite JSON and programmatic renderers under `src/render/sprites/`, `src/ui/`, and generation scripts | Repository source plus owner confirmation | Cleared by owner |
 | Fictional players and clubs | Typed game content and deterministic generators | Original fictional content; README explicitly excludes real-player licensing | Cleared by owner |
+| Named special-hero homages | `SPECIAL_HERO_ROSTER` contains 15 recurring name, power, and look combinations described in source as deliberate near-misses | In-repository code and generated art; Joe chose to retain the roster on 2026-08-25, citing established near-miss-name practice in management games | Retained by owner decision; residual App Review/IP risk accepted. This ledger records that decision but does not create third-party rights |
 
 ## Audio
 

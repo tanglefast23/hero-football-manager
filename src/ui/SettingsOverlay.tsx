@@ -10,13 +10,14 @@ import {
   type DevVolume,
 } from '../render/dev-volume';
 import type { CutInMode, HudSide, TextScale } from '../persistence';
-import { ENABLED_LOCALES, localeMeta, useCopy, type Locale } from '../i18n';
+import { ENABLED_LOCALES, useCopy, type Locale } from '../i18n';
 import type { GlossaryCatalog } from '../content';
 import { GlossaryPanel } from './GlossaryPanel';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import type { HallOfFameViewModel } from './models';
 import { volumeThumbLeft } from './volume-slider-thumb';
 import { PixelText } from './components/PixelText';
+import { LanguageButton } from './components/LanguageButton';
 import type { AssistantMode } from '../game/types';
 import { PrivacySupportPanel } from './PrivacySupportPanel';
 
@@ -140,7 +141,7 @@ export interface SettingsOverlayProps {
   hapticsEnabled: boolean;
   textScale: TextScale;
   language: Locale;
-  onCycleLanguage: () => void;
+  onLanguageChange: (language: Locale) => void;
   highContrast: boolean;
   colorSafeKits: boolean;
   cutInMode: CutInMode;
@@ -231,7 +232,7 @@ export function SettingsOverlay({
   hapticsEnabled,
   textScale,
   language,
-  onCycleLanguage,
+  onLanguageChange,
   highContrast,
   colorSafeKits,
   cutInMode,
@@ -496,30 +497,14 @@ export function SettingsOverlay({
                     )}
                   </Text>
                 </Pressable>
-                {/* Hidden while one language has shipped: a row that cycles
-                  through a single option is a control that does nothing. It
-                  appears as soon as a second locale is enabled. The value draws
-                  in that language's own face, because the endonyms are exactly
-                  the strings the active face may not have glyphs for. */}
+                {/* Hidden while one language has shipped: a picker with one
+                  option is a control that does nothing. */}
                 {ENABLED_LOCALES.length > 1 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('settings.language.a11y', {
-                      language: localeMeta(language).endonym,
-                    })}
-                    onPress={onCycleLanguage}
-                    className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
-                  >
-                    <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
-                      {t('settings.language.title')}
-                    </Text>
-                    <Text
-                      className="text-base text-blue-dark"
-                      style={{ fontFamily: localeMeta(language).faces.display }}
-                    >
-                      {localeMeta(language).endonym}
-                    </Text>
-                  </Pressable>
+                  <LanguageButton
+                    value={language}
+                    onChange={onLanguageChange}
+                    variant="settings"
+                  />
                 ) : null}
                 {assistantMode !== undefined &&
                 onSetAssistantMode !== undefined ? (

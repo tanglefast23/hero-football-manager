@@ -52,6 +52,8 @@ export interface RivalHeroSummaryViewModel {
 
 export interface ClubAlertViewModel {
   id: string;
+  /** Shared decision identity. Two cards about one decision count once. */
+  openCountKey?: string;
   title: string;
   detail: string;
   tone: 'urgent' | 'event' | 'info';
@@ -80,6 +82,16 @@ export interface ClubAlertViewModel {
    * rather than as a live row that answers a tap with "come back later".
    */
   readOnly?: boolean;
+}
+
+export function openClubAlertCount(
+  alerts: readonly ClubAlertViewModel[],
+): number {
+  return new Set(
+    alerts
+      .filter((alert) => !alert.readOnly)
+      .map((alert) => alert.openCountKey ?? alert.id),
+  ).size;
 }
 
 /**

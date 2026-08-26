@@ -15,6 +15,7 @@ import {
   serializeGameState,
 } from '../../persistence/game-state-codec';
 import { createLaunchCareerSetup } from '../launch';
+import { copyOrEnglish } from '../copy-fallback';
 import { clubFinancesViewModel, homeProductAlerts } from '../view-models';
 
 /**
@@ -74,6 +75,30 @@ function withSponsorship(
 }
 
 describe('the sponsor desk reads in the player s language', () => {
+  test.each(['en', 'de', 'es', 'fr', 'id', 'pt-BR', 'vi'] as const)(
+    'localizes a continuity sponsor inside a %s ledger line',
+    (locale) => {
+      const t = copyFor(locale);
+      const sponsorKey = 'clubFinances.sponsorContinuityNameNumbered';
+      expect(loadCatalog(locale).strings[sponsorKey]).toEqual(
+        expect.any(String),
+      );
+      const sponsor = t(sponsorKey, {
+        number: 1,
+      });
+      if (locale === 'en') expect(sponsor).toBe('Current Sponsor 1');
+      else expect(sponsor).not.toBe('Current Sponsor 1');
+      expect(
+        copyOrEnglish(
+          t,
+          'ledger.sponsorWeeklyChallengeBonus',
+          'Current Sponsor 1 weekly challenge bonus',
+          { sponsor: 'Current Sponsor 1' },
+        ),
+      ).toBe(t('ledger.sponsorWeeklyChallengeBonus', { sponsor }));
+    },
+  );
+
   test('offer lines, targets and profile chips all resolve', () => {
     const state = sponsorDeskCareer();
     const offers = state.clubBusiness.sponsorship.offers;

@@ -2747,6 +2747,10 @@ export function homeProductAlerts(
     state.facilities.grid?.construction?.kind === 'BUILD' &&
     state.facilities.grid.construction.type === 'training-pitch';
   const waitingRequest = state.playerRequests?.pending;
+  const waitingRequestOpenCountKey =
+    waitingRequest === undefined
+      ? undefined
+      : `player-request:${waitingRequest.requestId}:${waitingRequest.playerId}`;
   const sponsorChallengeOptions = sponsorWeeklyChallengeOptions(
     state.clubBusiness.sponsorship,
     state.fixtures,
@@ -2966,6 +2970,7 @@ export function homeProductAlerts(
       : [
           {
             id: 'player-request-waiting',
+            openCountKey: waitingRequestOpenCountKey,
             title: t('clubHome.stillWaitingTitle'),
             detail: (() => {
               const asker = roster.find(
@@ -3752,6 +3757,9 @@ export function homeViewModel(
   );
   const careerTeaches = assistantTeaches(assistantState);
   const productAlerts = homeProductAlerts(assistantState, t);
+  const waitingRequestOpenCountKey = productAlerts.find(
+    (alert) => alert.id === 'player-request-waiting',
+  )?.openCountKey;
   const dueGuides = dueAssistantInboxGuideSequences(assistantState);
   const mustDoDuties = new Set(outstandingInboxDuties(assistantState));
   const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
@@ -3841,6 +3849,10 @@ export function homeViewModel(
     const mustDoDutyId = openingInboxDutyForGuideSequence(sequenceId);
     return {
       id: `assistant-guide:${sequenceId}`,
+      ...(sequenceId === 'player-requests' &&
+      waitingRequestOpenCountKey !== undefined
+        ? { openCountKey: waitingRequestOpenCountKey }
+        : {}),
       // Resolved here rather than in the row, because a PRODUCT alert also
       // carries a `guideSequenceId` while keeping its own title — a screen that
       // keyed off the id alone would relabel those rows with Bert's inbox copy.

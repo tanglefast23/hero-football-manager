@@ -18,7 +18,10 @@ describe('where the language control lives', () => {
   });
 
   test('Settings still has it, so the choice is changeable mid-career', () => {
-    expect(source('src/ui/SettingsOverlay.tsx')).toContain('onCycleLanguage');
+    const settings = source('src/ui/SettingsOverlay.tsx');
+    expect(settings).toContain('<LanguageButton');
+    expect(settings).toContain('variant="settings"');
+    expect(settings).toContain('onChange={onLanguageChange}');
   });
 
   test('the button draws each language in its own face, never the active one', () => {

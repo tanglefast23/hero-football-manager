@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "buildNumber": "1",
+      "buildNumber": "2",
       "bundleIdentifier": "com.tanglefast.herofootballmanager",
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [

@@ -220,6 +220,21 @@ describe('paid Green Bull training', () => {
     };
   }
 
+  it('raises each trip by $50,000 after the $300,000 trip', () => {
+    const state = fundedD3();
+    const costAfterTrips = (previousTrips: number) =>
+      greenBullTrainingOffer({
+        ...state,
+        eventFlags: Array.from({ length: previousTrips }, (_, index) =>
+          greenBullTrainingAcceptedFlag(1, index + 1),
+        ),
+      })?.cost;
+
+    expect([9, 10, 11, 12].map(costAfterTrips)).toEqual([
+      275_000, 300_000, 350_000, 400_000,
+    ]);
+  });
+
   it('requires one full week of TP and enough cash', () => {
     const state = fundedD3();
     const required = weeklyAmbientTrainingPoints(state);

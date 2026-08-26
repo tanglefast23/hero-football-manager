@@ -11,7 +11,11 @@ import {
 } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
 import { PixelPortrait } from '../components/PixelPortrait';
-import type { ClubAlertViewModel, HomeViewModel } from '../models';
+import {
+  openClubAlertCount,
+  type ClubAlertViewModel,
+  type HomeViewModel,
+} from '../models';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { TutorialTapCue } from '../TutorialTapCue';
@@ -184,9 +188,7 @@ export function ClubHomeScreen({
     : viewModel.notes.filter((note) => showManagerTips || note.kind !== 'tip');
   // Read-only notices sit in the inbox but ask for nothing, so the "open" chip
   // never counts them — otherwise the desk claims a job that has no tap.
-  const openAlertCount = viewModel.alerts.filter(
-    (alert) => !alert.readOnly,
-  ).length;
+  const openAlertCount = openClubAlertCount(viewModel.alerts);
 
   const sections: FlowSection[] = [
     {

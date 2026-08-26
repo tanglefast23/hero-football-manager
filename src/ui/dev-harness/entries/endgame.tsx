@@ -197,7 +197,7 @@ const CASE_NOTES: Readonly<Record<EndgameCelebrationKind, string>> =
     'cup-winners':
       'First Cup, D1 unwon · smaller staging, still not a consolation',
     'true-ending':
-      'Both trophies in · five bubbles, then the squad out and Bert’s sign-off. No skip. The last tap goes to the title screen in the game; here it replays.',
+      'Both trophies in · five bubbles, then the squad out, Bert’s sign-off, and the new-game choice. No skip.',
   });
 
 export const endgameCelebrationEntry: DevHarnessEntry = Object.freeze({

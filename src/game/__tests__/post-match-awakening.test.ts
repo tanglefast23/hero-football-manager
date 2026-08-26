@@ -122,7 +122,7 @@ describe('automatic post-match awakenings', () => {
     expect(third.awakened).toBe(true);
   });
 
-  it('leaves a later awakening unlicensed even when a permit is free', () => {
+  it('uses a free Hero License for a later awakening', () => {
     const initial = playedUserFixture(
       createCareer(createLaunchCareerSetup(20260821)),
     );
@@ -132,9 +132,14 @@ describe('automatic post-match awakenings', () => {
       awakening: { matchesSinceLastAwakening: 2, usedTriggerIds: [] },
     };
 
-    const result = resolvePostMatchAwakening(
+    const promised = applyCareerContractPromise(
       state,
-      userFixture(state).id,
+      targetId,
+      'GUARANTEED_STARTER',
+    );
+    const result = resolvePostMatchAwakening(
+      promised,
+      userFixture(promised).id,
       [targetId],
       POWERS,
       TRIGGERS,
@@ -148,12 +153,12 @@ describe('automatic post-match awakenings', () => {
     expect(result.awakened).toBe(true);
     expect(
       result.state.players.find((player) => player.id === targetId),
-    ).toMatchObject({ power: expect.any(String), licensed: false });
-    expect(userLineup(result.state)).not.toContain(targetId);
+    ).toMatchObject({ power: expect.any(String), licensed: true });
+    expect(userLineup(result.state)).toContain(targetId);
     expect(
       result.state.players.find((player) => player.id === targetId)
         ?.returnLineupSlot,
-    ).toBe(2);
+    ).toBeUndefined();
   });
 
   it('uses one stable roll and always grants a power when it triggers', () => {

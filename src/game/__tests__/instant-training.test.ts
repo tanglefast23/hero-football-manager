@@ -218,7 +218,7 @@ describe('trainPlayerInstantly', () => {
       );
 
     expect(preview(4).adjustment).toBe(11);
-    expect(preview(5).adjustment).toBe(15);
+    expect(preview(5).adjustment).toBe(13);
   });
 
   it('enforces a TRAINING_PRIORITY debt: owed drills block others, count down, then clear', () => {

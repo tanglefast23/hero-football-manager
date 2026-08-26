@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="French full-career playtest report for Hero Football Manager, completed through the Division 1 and Hero Cup true ending."
+    />
+    <title>French Full-Career Playtest · Hero Football Manager</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #102a34;
+        --muted: #647077;
+        --paper: #f4eddf;
+        --card: #fffdf8;
+        --navy: #082d42;
+        --blue: #1d5ba6;
+        --red: #c63e3a;
+        --orange: #f07843;
+        --green: #17684e;
+        --lime: #c5e951;
+        --amber: #a66d00;
+        --line: #d9cebb;
+        --shadow: 0 18px 44px rgb(8 45 66 / 11%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgb(8 45 66 / 4%) 1px, transparent 1px) 0 0 /
+            34px 34px,
+          var(--paper);
+        font-family: Charter, 'Iowan Old Style', Georgia, serif;
+        font-size: 18px;
+        line-height: 1.58;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        color: white;
+        background:
+          linear-gradient(
+            112deg,
+            transparent 0 66%,
+            rgb(255 255 255 / 6%) 66% 71%,
+            transparent 71%
+          ),
+          var(--navy);
+        border-bottom: 8px solid var(--lime);
+      }
+
+      .hero::before,
+      .hero::after {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 12px;
+        content: '';
+      }
+
+      .hero::before {
+        right: 56px;
+        background: var(--blue);
+      }
+
+      .hero::after {
+        right: 32px;
+        background: var(--red);
+      }
+
+      .hero-inner,
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin-inline: auto;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        padding: 62px 0 54px;
+      }
+
+      h1,
+      h2,
+      h3,
+      .eyebrow,
+      .tag,
+      nav,
+      .stat strong,
+      .stat span,
+      .season-label,
+      .division strong,
+      .verdict strong,
+      .recommendation strong,
+      .cup-score strong {
+        font-family:
+          'Avenir Next Condensed', 'Franklin Gothic Condensed', sans-serif;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--lime);
+        font-size: 0.82rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 950px;
+        margin: 0;
+        font-size: clamp(3.1rem, 8vw, 6.8rem);
+        font-weight: 900;
+        letter-spacing: -0.058em;
+        line-height: 0.88;
+      }
+
+      .subtitle {
+        max-width: 820px;
+        margin: 25px 0 0;
+        color: #dce8ec;
+        font-size: 1.08rem;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 38px;
+      }
+
+      .stat {
+        min-height: 112px;
+        padding: 18px;
+        color: var(--ink);
+        background: var(--lime);
+        box-shadow: 6px 6px 0 rgb(0 0 0 / 17%);
+        animation: rise 420ms ease-out both;
+      }
+
+      .stat:nth-child(2),
+      .stat:nth-child(4) {
+        background: white;
+      }
+
+      .stat:nth-child(2) {
+        animation-delay: 60ms;
+      }
+
+      .stat:nth-child(3) {
+        animation-delay: 120ms;
+      }
+
+      .stat:nth-child(4) {
+        animation-delay: 180ms;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 2rem;
+        line-height: 1;
+      }
+
+      .stat span {
+        display: block;
+        margin-top: 9px;
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        line-height: 1.25;
+        text-transform: uppercase;
+      }
+
+      .page {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr);
+        gap: 44px;
+        padding-block: 42px 80px;
+      }
+
+      nav {
+        position: sticky;
+        top: 20px;
+        align-self: start;
+        padding: 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      nav span {
+        display: block;
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      nav a {
+        display: block;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.86rem;
+        font-weight: 800;
+        line-height: 1.25;
+        text-decoration: none;
+      }
+
+      nav a:last-child {
+        border-bottom: 0;
+      }
+
+      nav a:hover,
+      nav a:focus-visible {
+        color: var(--blue);
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .verdict,
+      .recommendation {
+        padding: 24px 26px;
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .verdict {
+        background: var(--green);
+        border-left: 8px solid var(--lime);
+      }
+
+      .recommendation {
+        margin-top: 18px;
+        background: var(--red);
+        border-left: 8px solid var(--orange);
+      }
+
+      .verdict strong,
+      .recommendation strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 1.42rem;
+      }
+
+      p {
+        margin: 0 0 18px;
+      }
+
+      .verdict p,
+      .recommendation p,
+      .card p:last-child,
+      .division p:last-child {
+        margin-bottom: 0;
+      }
+
+      .quote {
+        margin: 30px 0 42px;
+        padding: 0 0 0 24px;
+        color: var(--navy);
+        border-left: 5px solid var(--blue);
+        font-size: 1.32rem;
+        font-style: italic;
+        line-height: 1.45;
+      }
+
+      h2 {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin: 54px 0 18px;
+        padding-bottom: 9px;
+        border-bottom: 4px solid var(--navy);
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-weight: 900;
+        letter-spacing: -0.035em;
+        line-height: 1;
+      }
+
+      h2::before {
+        width: 24px;
+        height: 24px;
+        background: var(--lime);
+        content: '';
+      }
+
+      h3 {
+        margin: 7px 0 12px;
+        font-size: 1.36rem;
+        line-height: 1.08;
+      }
+
+      .grid,
+      .division-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .card,
+      .division,
+      .cup-score {
+        padding: 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .card {
+        border-top: 6px solid var(--amber);
+      }
+
+      .card.critical {
+        border-top-color: var(--red);
+      }
+
+      .card.high {
+        border-top-color: var(--orange);
+      }
+
+      .card.working {
+        border-top-color: var(--green);
+      }
+
+      .card.watch {
+        border-top-color: var(--blue);
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 3px 8px;
+        color: white;
+        background: var(--amber);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .critical .tag {
+        background: var(--red);
+      }
+
+      .high .tag {
+        background: var(--orange);
+      }
+
+      .working .tag {
+        background: var(--green);
+      }
+
+      .watch .tag {
+        background: var(--blue);
+      }
+
+      code {
+        padding: 0.12em 0.34em;
+        color: white;
+        background: var(--navy);
+        font-size: 0.88em;
+      }
+
+      table {
+        width: 100%;
+        overflow: hidden;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-collapse: collapse;
+        box-shadow: var(--shadow);
+      }
+
+      th,
+      td {
+        padding: 13px 15px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: white;
+        background: var(--navy);
+        font-family:
+          'Avenir Next Condensed', 'Franklin Gothic Condensed', sans-serif;
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .season-label {
+        color: var(--blue);
+        font-weight: 900;
+      }
+
+      .division {
+        border-left: 7px solid var(--blue);
+      }
+
+      .division strong {
+        display: block;
+        font-size: 1.32rem;
+        line-height: 1.1;
+      }
+
+      .record {
+        margin: 6px 0 12px;
+        color: var(--red);
+        font-family:
+          'Avenir Next Condensed', 'Franklin Gothic Condensed', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .cup-run {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .cup-score {
+        position: relative;
+        overflow: hidden;
+        min-height: 128px;
+        padding-top: 26px;
+      }
+
+      .cup-score::before {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 7px;
+        background: linear-gradient(
+          90deg,
+          var(--blue) 0 33%,
+          #f4f4f1 33% 66%,
+          var(--red) 66%
+        );
+        content: '';
+      }
+
+      .cup-score strong {
+        display: block;
+        margin-top: 6px;
+        color: var(--green);
+        font-size: 1.8rem;
+      }
+
+      .cup-score span {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: steps;
+      }
+
+      ol li {
+        position: relative;
+        margin-bottom: 10px;
+        padding: 18px 20px 18px 68px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: 0 8px 20px rgb(8 45 66 / 7%);
+        counter-increment: steps;
+      }
+
+      ol li::before {
+        position: absolute;
+        top: 15px;
+        left: 16px;
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        color: white;
+        background: var(--blue);
+        border-radius: 50%;
+        font-family:
+          'Avenir Next Condensed', 'Franklin Gothic Condensed', sans-serif;
+        font-weight: 900;
+        content: counter(steps, decimal-leading-zero);
+      }
+
+      .small {
+        margin-top: 30px;
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+
+      footer {
+        padding: 25px 20px;
+        color: #dce8ec;
+        background: var(--navy);
+        border-top: 7px solid var(--red);
+        text-align: center;
+      }
+
+      footer p {
+        margin: 0;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .page {
+          display: block;
+        }
+
+        nav {
+          position: static;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0 14px;
+          margin-bottom: 32px;
+        }
+
+        nav span {
+          grid-column: 1 / -1;
+        }
+
+        .stats,
+        .cup-run {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 620px) {
+        body {
+          font-size: 16px;
+        }
+
+        .hero-inner,
+        .page {
+          width: min(100% - 24px, 1180px);
+        }
+
+        .hero-inner {
+          padding: 45px 0 38px;
+        }
+
+        .stats,
+        .grid,
+        .division-grid,
+        .cup-run {
+          grid-template-columns: 1fr;
+        }
+
+        nav {
+          grid-template-columns: 1fr;
+        }
+
+        table {
+          display: block;
+          overflow-x: auto;
+          white-space: nowrap;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .stat {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">QA Report · French Locale · 26 August 2026</p>
+        <h1>Nine seasons to the double</h1>
+        <p class="subtitle">
+          A fresh French career played with Quick Result, weekly TP spending,
+          complete commercial upgrades, focused Tier 5 drills, and selective
+          Green Bull training. Bramble Rovers won Division 1 and the Hero Cup in
+          Season 9.
+        </p>
+        <div class="stats" aria-label="Career summary">
+          <div class="stat">
+            <strong>9</strong><span>Seasons to true ending</span>
+          </div>
+          <div class="stat">
+            <strong>17–1–0</strong><span>Final D1 record</span>
+          </div>
+          <div class="stat">
+            <strong>45–5</strong><span>Final D1 goals</span>
+          </div>
+          <div class="stat">
+            <strong>5–0–0</strong><span>Final Cup run</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page">
+      <nav aria-label="Report sections">
+        <span>Jump to</span>
+        <a href="#result">Final result</a>
+        <a href="#priority">Fix first</a>
+        <a href="#journey">Season journey</a>
+        <a href="#divisions">Division reviews</a>
+        <a href="#d1">D1 deep dive</a>
+        <a href="#cup">Hero Cup run</a>
+        <a href="#working">What now works</a>
+        <a href="#language">French UI</a>
+        <a href="#strategy">Optimal strategy</a>
+        <a href="#experience">Fun and fairness</a>
+        <a href="#actions">Change order</a>
+      </nav>
+
+      <main>
+        <aside class="verdict" id="result" role="note">
+          <strong>True ending reached without a crash</strong>
+          <p>
+            Bramble finished D1 unbeaten, won the Hero Cup final 2–1 away at
+            Bracken Rockets, completed every French true-ending beat, showed the
+            creator message, and returned cleanly to the title screen.
+          </p>
+        </aside>
+
+        <aside class="recommendation" role="note">
+          <strong
+            >Main balance finding: D1 changed too sharply between
+            seasons</strong
+          >
+          <p>
+            The first D1 season produced only five league goals and ninth place.
+            The same career then went 17–1–0 and scored 45. The new 120-strength
+            target is beatable, but the year-to-year swing needs investigation.
+          </p>
+        </aside>
+
+        <p class="quote">
+          D1 was not too easy after the strength reduction. It was brutally hard
+          once, then dominant one season later. That is a progression-cliff
+          signal, not a reason to lower the top club again immediately.
+        </p>
+
+        <h2 id="priority">Fix first</h2>
+        <div class="grid">
+          <section class="card critical">
+            <span class="tag">Balance</span>
+            <h3>The D1 scoring swing is too large</h3>
+            <p>
+              Season 8 ended 3–7–8 with five goals scored. Season 9 ended 17–1–0
+              with 45. Focused Tier 5 drills and repeated Green Bull use were
+              effective, but a nine-times scoring jump between adjacent seasons
+              is too abrupt.
+            </p>
+            <p>
+              <strong>Next check:</strong> compare the Season 8 and Season 9
+              starting XI, opponent growth, formation, and Quick Result scoring
+              inputs before changing D1 strength again.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">French copy</span>
+            <h3>Finance reports still leak English</h3>
+            <p>
+              French finance screens displayed
+              <code>Prime match Current Sponsor 1</code>. The same dynamic
+              fallback appeared in Season 8 and more than once in Season 9.
+            </p>
+            <p>
+              <strong>Fix:</strong> localize the shared generated sponsor label,
+              then test the equivalent finance row in all seven languages.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">Inbox</span>
+            <h3>One request can count as two items</h3>
+            <p>
+              In Week 29, Home said <code>2 à traiter</code>. It showed a “still
+              waiting” card and a new locker-room card, but the Requests tab
+              contained only Gio Stone’s single active request.
+            </p>
+            <p>
+              <strong>Fix:</strong> count unique active request IDs. A reminder
+              can replace the original card, but it must not increase the badge.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">Input</span>
+            <h3>Some controls need an immediate retry</h3>
+            <p>
+              A few training close buttons and navigation tabs ignored the first
+              click. The same click worked immediately on retry. This was not a
+              progression blocker, but it reduced trust in the interface.
+            </p>
+            <p>
+              <strong>Fix:</strong> reproduce at the shared press layer before
+              adding any screen-specific retry behavior.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">Quick Result</span>
+            <h3>Awakenings interrupt the fast path</h3>
+            <p>
+              Quick Result still opened an interactive awakening presentation.
+              The match itself was quick, but the player had to tap through a
+              live-style tutorial before reaching the report.
+            </p>
+            <p>
+              <strong>Fix:</strong> keep the reveal, but allow a single skip to
+              move directly to the match report after the first viewed example.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">Hero License</span>
+            <h3>Free capacity still needs clearer awakening copy</h3>
+            <p>
+              Mae Thorn awakened while one of four permits was free, but the
+              player still needed manual licensing. Dara Gray later awakened at
+              4/4 and correctly remained pending without damaging the lineup.
+            </p>
+            <p>
+              <strong>Fix:</strong> state clearly whether awakenings ever assign
+              a free permit automatically. Current behavior is safe but unclear.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="journey">Season journey</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Season</th>
+              <th>Division</th>
+              <th>League result</th>
+              <th>Goals</th>
+              <th>Career effect</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="season-label">S1</td>
+              <td>D5</td>
+              <td>13–1–4 · second</td>
+              <td>41–10</td>
+              <td>Promoted immediately.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S2</td>
+              <td>D4</td>
+              <td>8–2–8 · fifth</td>
+              <td>47–57</td>
+              <td>First defensive warning.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S3</td>
+              <td>D4</td>
+              <td>14–1–3 · second</td>
+              <td>66–26</td>
+              <td>Promoted after a clear rebuild.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S4</td>
+              <td>D3</td>
+              <td>5–2–11 · ninth</td>
+              <td>38–53</td>
+              <td>Stayed in D3 because relegation is removed.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S5</td>
+              <td>D3</td>
+              <td>17–1–0 · champion</td>
+              <td>81–19</td>
+              <td>Promoted as unbeaten champion.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S6</td>
+              <td>D2</td>
+              <td>13–1–4 · third</td>
+              <td>67–21</td>
+              <td>Missed promotion by one place.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S7</td>
+              <td>D2</td>
+              <td>18–0–0 · champion</td>
+              <td>60–2</td>
+              <td>Promoted; Cup exit in the round of 16.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S8</td>
+              <td>D1</td>
+              <td>3–7–8 · ninth</td>
+              <td>5–14</td>
+              <td>Cup exit on penalties in the round of 16.</td>
+            </tr>
+            <tr>
+              <td class="season-label">S9</td>
+              <td>D1</td>
+              <td>17–1–0 · champion</td>
+              <td>45–5</td>
+              <td>Won D1, the Hero Cup, and the true ending.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="divisions">Division reviews</h2>
+        <div class="division-grid">
+          <section class="division">
+            <strong>D5 · Strong opening pace</strong>
+            <p class="record">One season · promoted second</p>
+            <p>
+              The starter club could compete immediately. Early role discipline
+              and focused drills mattered, but D5 did not delay the career.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D4 · Useful two-season rebuild</strong>
+            <p class="record">Fifth, then second</p>
+            <p>
+              The first season exposed a 47–57 defensive problem. Commercial and
+              training upgrades produced a clear response without making the
+              first year feel wasted.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D3 · Relegation removal works</strong>
+            <p class="record">Ninth, then unbeaten champion</p>
+            <p>
+              The difficult first season still offered better upgrades and
+              stronger opposition. Staying in D3 was more interesting than
+              returning to a solved D4.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D2 · Good near-miss structure</strong>
+            <p class="record">Third, then perfect champion</p>
+            <p>
+              Missing promotion by one place created a useful target. The next
+              season’s 18–0–0 record showed the club’s investment clearly.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>D1 · Beatable, but volatile</strong>
+            <p class="record">Ninth, then unbeaten champion</p>
+            <p>
+              The adjusted strongest club did not remove the climax. The concern
+              is the extreme scoring jump between the two D1 seasons, not the
+              final difficulty by itself.
+            </p>
+          </section>
+
+          <section class="division">
+            <strong>Hero Cup · Excellent final run</strong>
+            <p class="record">Three 5–0 wins, then two 2–1 wins</p>
+            <p>
+              The early rounds rewarded the finished team. The semifinal and
+              final restored tension. The $100,000 champion reward felt
+              suitable.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="d1">Division 1 deep dive</h2>
+        <div class="grid">
+          <section class="card critical">
+            <span class="tag">Season 8</span>
+            <h3>The attack disappeared</h3>
+            <p>
+              Bramble scored only five times in 18 matches. The team still
+              defended well enough to draw seven, but the forward strength did
+              not translate into Quick Result goals. This season felt overly
+              suppressed.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Season 9</span>
+            <h3>The optimized loop took over</h3>
+            <p>
+              Bramble won 17 matches, drew one, and finished 22 points clear.
+              The club scored 45, conceded five, and ended with a 6–0 away win.
+              Gio Stone won Player of the Season, Ari Ward won Young Player, and
+              Ivo Oak won Hero of the Season.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">120 target</span>
+            <h3>Do not lower D1 again yet</h3>
+            <p>
+              This preview included the reduced special-player tuning intended
+              to bring the strongest full D1 team near 120. It still took two D1
+              seasons. One run supports keeping 120 for another test.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">Investigation</span>
+            <h3>Measure the progression cliff</h3>
+            <p>
+              Compare exact XI strength, role suitability, training multipliers,
+              Green Bull uses, and opponent growth at both D1 season starts. The
+              answer may be progression timing rather than opponent strength.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="cup">Season 9 Hero Cup run</h2>
+        <div class="cup-run" aria-label="Season 9 Hero Cup results">
+          <section class="cup-score">
+            <span>Round of 32</span>
+            <strong>5–0</strong>
+            Quarry Union
+          </section>
+          <section class="cup-score">
+            <span>Round of 16</span>
+            <strong>5–0</strong>
+            Juniper Stags
+          </section>
+          <section class="cup-score">
+            <span>Quarterfinal</span>
+            <strong>5–0</strong>
+            Willowbank
+          </section>
+          <section class="cup-score">
+            <span>Semifinal</span>
+            <strong>2–1</strong>
+            Mistral Vikings
+          </section>
+          <section class="cup-score">
+            <span>Final</span>
+            <strong>2–1</strong>
+            Bracken Rockets
+          </section>
+        </div>
+
+        <h2 id="working">What now works</h2>
+        <div class="grid">
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>True ending and French championship copy</h3>
+            <p>
+              <code>LA MONTÉE EST FINIE</code> appeared only after both trophies
+              were won. Every dialogue beat and the creator thank-you rendered
+              in French, then returned cleanly to the title screen.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Hero License safety</h3>
+            <p>
+              Dara Gray’s 4/4 awakening remained pending. No permit was stolen,
+              no starter was displaced, and the legal four-hero lineup remained
+              intact through the Cup final.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Gift flow is clear and useful</h3>
+            <p>
+              Ivo Oak’s gift cost $17,016 and restored 20 morale. The player,
+              red cost, positive morale gain, animation, and result were all
+              readable. The price equaled four weekly salaries: one salary per
+              five morale.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Green Bull is a real money sink</h3>
+            <p>
+              The rising $25,000 cost stayed meaningful. Final uses at $425,000
+              and $450,000 consumed current TP, improved the whole squad, and
+              forced real cash-reserve decisions.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Hero Cup reward now fits the event</h3>
+            <p>
+              The championship finance report paid $100,000. That felt credible
+              beside the Cup’s gate revenue and final-match importance.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Verified</span>
+            <h3>Season review recognizes the double</h3>
+            <p>
+              The final review said “Doublé championnat-Coupe invaincu.” It
+              reported 17–1–0, 45–5, 52 points, and a $209,148 closing balance.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="language">French UI and copy</h2>
+        <div class="grid">
+          <section class="card working">
+            <span class="tag">Good</span>
+            <h3>The ending is emotionally clear</h3>
+            <p>
+              The championship, Cup double, player thank-you, and creator note
+              were natural and readable. No ending text was clipped on desktop.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Good</span>
+            <h3>Requests explain their downside</h3>
+            <p>
+              French request choices named absences, training multipliers,
+              loyalty loss, morale loss, and other negative effects before the
+              decision. This made refusal or acceptance understandable.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">Copy</span>
+            <h3>Generated sponsor names are the remaining leak</h3>
+            <p>
+              <code>Current Sponsor 1</code> was the clearest repeated English
+              fallback. Static French labels were otherwise strong throughout
+              this desktop run.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">Scope</span>
+            <h3>Desktop success is not phone proof</h3>
+            <p>
+              Long French labels remained readable in this browser viewport.
+              This does not replace a physical-iPhone localization pass.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="strategy">Efficient strategy that worked</h2>
+        <ol>
+          <li>
+            <strong>Spend useful TP every week.</strong> Focus on primary role
+            attributes. Luc Moreau reached 999 Pace and Shooting; Tavi Reed
+            reached 999 Defense; Sam Mitts reached 999 Reflexes.
+          </li>
+          <li>
+            <strong>Rotate when a key attribute is capped.</strong> Later work
+            moved into Gio Stone’s Shooting and Technique, Ivo Oak’s Technique,
+            and Ari Ward’s Passing.
+          </li>
+          <li>
+            <strong>Build the commercial base first.</strong> Three Level 3
+            Stadium Stands and three Level 3 Club Shops funded later facilities,
+            salaries, gifts, and Green Bull.
+          </li>
+          <li>
+            <strong>Upgrade the useful training chain.</strong> Most useful
+            facilities reached Level 3. Six drills reached Tier 5; Reflexes
+            remained Tier 4 because the starting goalkeeper was already capped.
+          </li>
+          <li>
+            <strong>Use Green Bull before individual drills.</strong> It
+            consumes all current TP. Spend ordinary TP first in other weeks,
+            then enter a planned Green Bull week with enough TP and cash to
+            justify it.
+          </li>
+          <li>
+            <strong>Keep the natural 4–3–3 intact.</strong> The final lineup
+            used natural roles, four licensed heroes, and no forced out-of-role
+            player.
+          </li>
+          <li>
+            <strong>Protect key weeks from player absences.</strong> Refuse
+            two-week trips and filming requests near the Cup. Accept harmless
+            training penalties when a capped player makes the downside
+            irrelevant.
+          </li>
+          <li>
+            <strong>Use Quick Result for the full career.</strong> It kept the
+            nine-season test practical. Manual powers were not required.
+          </li>
+        </ol>
+
+        <h2 id="experience">Fun, fairness, and pacing</h2>
+        <div class="grid">
+          <section class="card working">
+            <span class="tag">Fun</span>
+            <h3>The long upgrade plan pays off</h3>
+            <p>
+              The final 6–0 league win and late Cup victories felt earned. Drill
+              tiers, buildings, gifts, licensing, and Green Bull each had a
+              clear job in the winning club.
+            </p>
+          </section>
+
+          <section class="card working">
+            <span class="tag">Fair</span>
+            <h3>Awakenings create solvable pressure</h3>
+            <p>
+              A new hero can make a formation harder to field. The player can
+              buy a permit, train role depth, or change shape. That is useful
+              difficulty when the license state is explained clearly.
+            </p>
+          </section>
+
+          <section class="card high">
+            <span class="tag">Not fun</span>
+            <h3>Season 8 offered too little attacking feedback</h3>
+            <p>
+              Five goals in 18 matches made upgrades feel invisible. Seven draws
+              also created repetition: the team survived but rarely produced a
+              satisfying payoff.
+            </p>
+          </section>
+
+          <section class="card watch">
+            <span class="tag">Pacing</span>
+            <h3>Nine seasons is acceptable, but near the limit</h3>
+            <p>
+              Each earlier division needed at most two seasons. D1 also took
+              two. The full arc stayed readable, though another failed D1 season
+              would have made the ending feel late.
+            </p>
+          </section>
+        </div>
+
+        <h2 id="actions">Recommended change order</h2>
+        <ol>
+          <li>
+            <strong>Investigate the D1 progression cliff.</strong> Compare the
+            exact Season 8 and Season 9 inputs before changing opponent
+            strength.
+          </li>
+          <li>
+            <strong>Keep the strongest D1 club near 120 for now.</strong> Run
+            one more efficient career before making another balance change.
+          </li>
+          <li>
+            <strong>Fix the dynamic sponsor fallback.</strong> Verify the
+            finance row in all seven languages.
+          </li>
+          <li>
+            <strong>Deduplicate the request badge.</strong> One active request
+            must count as one item even when it also has a reminder.
+          </li>
+          <li>
+            <strong>Clarify awakening license behavior.</strong> Tell the player
+            when a permit is free, pending, or requires manual assignment.
+          </li>
+          <li>
+            <strong>Trace ignored presses once.</strong> Fix a shared input
+            cause only if it reproduces outside browser automation.
+          </li>
+          <li>
+            <strong>Make post-match awakenings one-tap skippable.</strong> Keep
+            the first reveal, then preserve the Quick Result promise.
+          </li>
+        </ol>
+
+        <p class="small">
+          Scope: one French desktop-web career on the preview containing the
+          adjusted D1 special-player tuning. All matches used Quick Result. This
+          is strong pacing and localization evidence, but it is not a multi-seed
+          balance sample or a physical-phone layout test.
+        </p>
+      </main>
+    </div>
+
+    <footer>
+      <p>
+        Hero Football Manager · French full-career playtest · Bramble Rovers ·
+        Season 9 true ending
+      </p>
+    </footer>
+  </body>
+</html>
