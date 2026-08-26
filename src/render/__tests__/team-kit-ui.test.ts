@@ -98,10 +98,13 @@ describe('match team kit colours', () => {
     const rail = railSource();
 
     expect(source).toContainSource(
-      'const homeKitColor = teamKitColor(0, colorSafeKits);',
+      "const clubKitColor = swatchById(clubKit?.base ?? '')?.ramp[1];",
     );
     expect(source).toContainSource(
-      'const awayKitColor = teamKitColor(1, colorSafeKits);',
+      'controlledTeam === 0 ? (clubKitColor ?? teamKitColor(0, colorSafeKits))',
+    );
+    expect(source).toContainSource(
+      'controlledTeam === 1 ? (clubKitColor ?? teamKitColor(1, colorSafeKits))',
     );
     expect(source).toContainSource(
       '<Text style={{ color: homeKitColor }}>{homeCode}</Text>',

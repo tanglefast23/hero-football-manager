@@ -70,7 +70,7 @@ import {
 } from '../sim/entities';
 import type { HudSide, MatchPerformanceLimit } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
-import { clubKitPlan } from './sprites/club-kit';
+import { clubKitPlan, swatchById } from './sprites/club-kit';
 import type { ClubKitChoice } from './sprites/club-kit';
 import {
   keeperReadyFrameFacingBall,
@@ -871,8 +871,15 @@ export function MatchScreen({
   const pitchH = PITCH_H * scale;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
-  const homeKitColor = teamKitColor(0, colorSafeKits);
-  const awayKitColor = teamKitColor(1, colorSafeKits);
+  const clubKitColor = swatchById(clubKit?.base ?? '')?.ramp[1];
+  const homeKitColor =
+    controlledTeam === 0
+      ? (clubKitColor ?? teamKitColor(0, colorSafeKits))
+      : teamKitColor(0, colorSafeKits);
+  const awayKitColor =
+    controlledTeam === 1
+      ? (clubKitColor ?? teamKitColor(1, colorSafeKits))
+      : teamKitColor(1, colorSafeKits);
 
   // The RAF loop below drives the activation camera, and its effect deps
   // deliberately exclude layout (a resize must not restart the match clock), so
