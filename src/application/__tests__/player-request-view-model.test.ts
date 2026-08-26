@@ -111,12 +111,15 @@ describe('playerRequestViewModel', () => {
   it('keeps every pending request in the Home inbox until a decision', () => {
     const pending = withPending(atStartWeek(career()), 'bahamas-fortnight');
 
-    const beforeOpening = homeViewModel(pending).alerts.map(
-      (alert) => alert.id,
-    );
+    const homeAlerts = homeViewModel(pending).alerts;
+    const beforeOpening = homeAlerts.map((alert) => alert.id);
     const afterOpening = homeViewModel(pending).alerts.map((alert) => alert.id);
     expect(beforeOpening).toContain('player-request-waiting');
     expect(afterOpening).toContain('player-request-waiting');
+    expect(
+      homeAlerts.find((alert) => alert.id === 'player-request-waiting')
+        ?.openCountKey,
+    ).toBe('player-request:bahamas-fortnight:bramble-rovers-p01');
 
     const decided: GameState = {
       ...pending,

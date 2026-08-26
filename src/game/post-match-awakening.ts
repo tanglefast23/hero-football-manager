@@ -8,6 +8,7 @@ import type { GameState } from './types';
 import { powerIsCompatibleWithRole } from './power-catalog';
 import { hasActiveCareerContractPromise } from './contract-promises';
 import { isAvailableForSelection } from './lineup';
+import { heroLicenseCap } from './promotion-progression';
 import { leagueWeekForRound } from './schedule';
 import { tryRepairCareerLineupForInjuries } from './squad';
 
@@ -96,6 +97,10 @@ export function resolvePostMatchAwakening(
     state.onboarding?.firstFixtureId === fixtureId &&
     (state.onboarding.stage === 'first-match' ||
       state.onboarding.stage === 'collapse');
+  const licenseAvailable =
+    state.players.filter(
+      (player) => player.clubId === state.userClubId && player.licensed,
+    ).length < heroLicenseCap(state);
   const alreadyThisSeason = awakeningsThisSeason(state);
   const matchesSinceLastAwakening =
     state.awakening.matchesSinceLastAwakening + 1;
@@ -156,7 +161,7 @@ export function resolvePostMatchAwakening(
           powerIds.some((power) =>
             powerIsCompatibleWithRole(power, player.role),
           ) &&
-          canSafelyAwaken(state, id),
+          canSafelyAwaken(state, id, licenseAvailable),
       ),
     );
     if (eligible.length === 0) return nextWithoutAwakening();
@@ -246,10 +251,7 @@ export function resolvePostMatchAwakening(
           ...candidate,
           power,
           powerTier: 1 as const,
-          // The campaign's first hero is a free story gift. Later awakenings
-          // create a hero, not a hidden permit decision: the manager assigns a
-          // license explicitly after the reveal.
-          licensed: firstHero,
+          licensed: firstHero || licenseAvailable,
         }
       : candidate,
   );
@@ -272,9 +274,10 @@ export function resolvePostMatchAwakening(
         }
       : {}),
   };
-  const next = firstHero
-    ? awakenedState
-    : tryRepairCareerLineupForInjuries(awakenedState);
+  const next =
+    firstHero || licenseAvailable
+      ? awakenedState
+      : tryRepairCareerLineupForInjuries(awakenedState);
   if (next === undefined) {
     throw new Error(
       'the unlicensed awakening player has no safe bench replacement',
@@ -382,9 +385,14 @@ function validateTriggerIds(triggerIds: readonly string[]): void {
   }
 }
 
-function canSafelyAwaken(state: GameState, playerId: string): boolean {
+function canSafelyAwaken(
+  state: GameState,
+  playerId: string,
+  licenseAvailable: boolean,
+): boolean {
   const player = state.players.find((candidate) => candidate.id === playerId);
   if (player === undefined) return false;
+  if (licenseAvailable) return true;
   if (
     isAvailableForSelection(player) &&
     (hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') ||

@@ -160,9 +160,11 @@ export interface EndgameCelebrationScreenProps {
   viewModel: EndgameCelebrationViewModel;
   reduceMotion?: boolean;
   onComplete: () => void;
+  /** Starts a fresh career after the true ending. */
+  onStartNewGame?: () => void;
   /**
-   * The very last tap of the true ending, which belongs on the title screen
-   * rather than on next season's desk.
+   * The "No" choice after the true ending. It returns to the title screen
+   * rather than entering the next season.
    *
    * Optional, and falls back to `onComplete`: the two trophy moments never
    * reach it, and a caller that only has one way off the screen — the dev
@@ -175,9 +177,11 @@ export function EndgameCelebrationScreen({
   viewModel,
   reduceMotion = false,
   onComplete,
+  onStartNewGame,
   onReturnToTitle,
 }: EndgameCelebrationScreenProps) {
   const finished = useRef(false);
+  const [newGameChoice, setNewGameChoice] = useState(false);
   const completeOnce = useCallback(() => {
     if (finished.current) return;
     finished.current = true;
@@ -192,6 +196,18 @@ export function EndgameCelebrationScreen({
     stopCelebrationAudio();
     (onReturnToTitle ?? onComplete)();
   }, [onComplete, onReturnToTitle]);
+  const startNewGameOnce = useCallback(() => {
+    if (finished.current) return;
+    finished.current = true;
+    stopLeagueChampionsSfx();
+    stopCelebrationAudio();
+    (onStartNewGame ?? onReturnToTitle ?? onComplete)();
+  }, [onComplete, onReturnToTitle, onStartNewGame]);
+  const askForNewGame = useCallback(() => {
+    stopLeagueChampionsSfx();
+    stopCelebrationAudio();
+    setNewGameChoice(true);
+  }, []);
 
   return (
     // The ground is full-bleed and sits outside the safe area on purpose. An
@@ -206,11 +222,16 @@ export function EndgameCelebrationScreen({
           men standing on the grass, placed in window coordinates — and an
           absolutely-positioned child of a SafeAreaView lands inside its
           padding, which would drop the whole squad by the height of the notch. */}
-      {viewModel.kind === 'true-ending' ? (
+      {newGameChoice ? (
+        <NewGameChoice
+          onStartNewGame={startNewGameOnce}
+          onReturnToTitle={returnToTitleOnce}
+        />
+      ) : viewModel.kind === 'true-ending' ? (
         <TrueEnding
           viewModel={viewModel}
           reduceMotion={reduceMotion}
-          onDone={returnToTitleOnce}
+          onDone={askForNewGame}
         />
       ) : (
         <TrophyScene
@@ -220,6 +241,49 @@ export function EndgameCelebrationScreen({
         />
       )}
     </View>
+  );
+}
+
+function NewGameChoice({
+  onStartNewGame,
+  onReturnToTitle,
+}: {
+  onStartNewGame: () => void;
+  onReturnToTitle: () => void;
+}) {
+  const t = useCopy();
+  return (
+    <CelebrationSafeArea
+      accessibilityLabel={t('endgameCelebration.newGame.title')}
+    >
+      <View style={styles.newGameChoice}>
+        <View style={styles.newGameChoicePanel}>
+          <PixelText className="text-center text-2xl uppercase leading-8 text-ink">
+            {t('endgameCelebration.newGame.title')}
+          </PixelText>
+          <SfxPressable
+            accessibilityRole="button"
+            accessibilityLabel={t('endgameCelebration.newGame.yes')}
+            onPress={onStartNewGame}
+            style={[styles.newGameChoiceButton, styles.newGameChoiceYes]}
+          >
+            <PixelText className="text-center text-xs uppercase text-white">
+              {t('endgameCelebration.newGame.yes')}
+            </PixelText>
+          </SfxPressable>
+          <SfxPressable
+            accessibilityRole="button"
+            accessibilityLabel={t('endgameCelebration.newGame.no')}
+            onPress={onReturnToTitle}
+            style={[styles.newGameChoiceButton, styles.newGameChoiceNo]}
+          >
+            <PixelText className="text-center text-xs uppercase text-ink">
+              {t('endgameCelebration.newGame.no')}
+            </PixelText>
+          </SfxPressable>
+        </View>
+      </View>
+    </CelebrationSafeArea>
   );
 }
 
@@ -1208,6 +1272,35 @@ const styles = StyleSheet.create({
     borderColor: '#f6c744',
     backgroundColor: 'rgba(36,31,46,0.85)',
   },
+  newGameChoice: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  newGameChoicePanel: {
+    width: '100%',
+    maxWidth: 420,
+    gap: 12,
+    borderWidth: 3,
+    borderColor: '#241f2e',
+    backgroundColor: '#f4f1ea',
+    padding: 20,
+    shadowColor: '#241f2e',
+    shadowOffset: { width: 6, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  newGameChoiceButton: {
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#241f2e',
+    paddingHorizontal: 12,
+  },
+  newGameChoiceYes: { backgroundColor: '#3978c5' },
+  newGameChoiceNo: { backgroundColor: '#ffffff' },
   stillBert: { position: 'absolute' },
   finaleCoaches: { position: 'absolute', zIndex: 2 },
   // Below the fixed title band, which is about 150pt tall at the 375pt floor.

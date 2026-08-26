@@ -43,7 +43,7 @@
       "moneyCost": 0,
       "tpCost": 39,
       "gains": {
-        "pac": 20
+        "pac": 18
       }
     },
     {
@@ -88,7 +88,7 @@
       "moneyCost": 0,
       "tpCost": 39,
       "gains": {
-        "sho": 20
+        "sho": 18
       }
     },
     {
@@ -133,7 +133,7 @@
       "moneyCost": 0,
       "tpCost": 39,
       "gains": {
-        "pas": 20
+        "pas": 18
       }
     },
     {
@@ -178,7 +178,7 @@
       "moneyCost": 0,
       "tpCost": 39,
       "gains": {
-        "def": 20
+        "def": 18
       }
     },
     {
@@ -223,7 +223,7 @@
       "moneyCost": 0,
       "tpCost": 39,
       "gains": {
-        "tec": 20
+        "tec": 18
       }
     },
     {
@@ -268,7 +268,7 @@
       "moneyCost": 0,
       "tpCost": 39,
       "gains": {
-        "sta": 20
+        "sta": 18
       }
     },
     {
@@ -313,7 +313,7 @@
       "moneyCost": 0,
       "tpCost": 39,
       "gains": {
-        "ref": 11
+        "ref": 10
       }
     }
   ]

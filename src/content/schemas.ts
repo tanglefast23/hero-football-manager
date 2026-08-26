@@ -508,19 +508,19 @@ const FOCUS_DRILL_PATHS = [
     id: 'keeper-drills',
     name: 'Keeper Drills',
     attribute: 'ref',
-    gains: [1, 2, 4, 7, 11],
+    gains: [1, 2, 4, 7, 10],
   },
 ] as const;
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
-// Each tier costs 1.5x the previous tier, rounded to a whole TP. Its whole-point
-// gain is the smallest approved step that also improves gain per TP.
+// Each tier costs 1.5x the previous tier, rounded to a whole TP. Gains are the
+// approved balance ladder for each division.
 const FOCUS_DRILL_TIERS = [
   { suffix: '', label: '1', gain: 3, tpCost: 7 },
   { suffix: '-ii', label: '2', gain: 5, tpCost: 11 },
   { suffix: '-iii', label: '3', gain: 8, tpCost: 17 },
   { suffix: '-iv', label: '4', gain: 13, tpCost: 26 },
-  { suffix: '-v', label: '5', gain: 20, tpCost: 39 },
+  { suffix: '-v', label: '5', gain: 18, tpCost: 39 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap((path) =>
   FOCUS_DRILL_TIERS.map((tier, tierIndex) => ({

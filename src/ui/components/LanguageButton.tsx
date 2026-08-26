@@ -17,6 +17,7 @@ export interface LanguageButtonProps {
   value: Locale;
   onChange: (locale: Locale) => void;
   className?: string;
+  variant?: 'title' | 'settings';
 }
 
 /**
@@ -36,36 +37,57 @@ export function LanguageButton({
   value,
   onChange,
   className,
+  variant = 'title',
 }: LanguageButtonProps) {
   const t = useCopy();
   const [open, setOpen] = useState(false);
   const { height: viewportHeight } = useWindowDimensions();
   const rows = languagePanelRows(value);
   const current = localeMeta(value);
+  const settings = variant === 'settings';
 
   return (
     <>
       <ChunkyControl
         accessibilityRole="button"
-        accessibilityLabel={t('languageButton.a11y.current', {
-          language: current.endonym,
-        })}
+        accessibilityLabel={t(
+          settings ? 'settings.language.a11y' : 'languageButton.a11y.current',
+          { language: current.endonym },
+        )}
         onPress={() => {
           setOpen(true);
         }}
         compact
         square
         tone="paper"
-        className={`min-h-11 flex-row items-center gap-2 px-3 ${className ?? ''}`}
+        className={`${settings ? 'min-h-12 w-full flex-row items-center justify-between px-3' : 'min-h-11 flex-row items-center gap-2 px-3'} ${className ?? ''}`}
         style={{ minWidth: 44, minHeight: 44 }}
       >
-        <PixelLanguageIcon />
-        <Text
-          className={`min-w-0 uppercase text-ink ${TYPE_SIZE.caption}`}
-          style={{ fontFamily: current.faces.display, flexShrink: 1 }}
-        >
-          {current.endonym}
-        </Text>
+        {settings ? (
+          <>
+            <Text
+              className={`flex-1 pr-2 font-pixel uppercase text-ink ${TYPE_SIZE.caption}`}
+            >
+              {t('settings.language.title')}
+            </Text>
+            <Text
+              className={`min-w-0 text-blue-dark ${TYPE_SIZE.body}`}
+              style={{ fontFamily: current.faces.display, flexShrink: 1 }}
+            >
+              {current.endonym}
+            </Text>
+          </>
+        ) : (
+          <>
+            <PixelLanguageIcon />
+            <Text
+              className={`min-w-0 uppercase text-ink ${TYPE_SIZE.caption}`}
+              style={{ fontFamily: current.faces.display, flexShrink: 1 }}
+            >
+              {current.endonym}
+            </Text>
+          </>
+        )}
       </ChunkyControl>
 
       <Modal

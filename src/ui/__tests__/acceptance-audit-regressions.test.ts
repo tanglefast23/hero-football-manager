@@ -16,6 +16,8 @@ describe('player-facing acceptance audit regressions', () => {
       'const minimumTapTarget: ViewStyle = { minWidth: 44, minHeight: 44 };',
     );
     expect(pressable).toContainSource('resolved,\n          minimumTapTarget,');
+    expect(pressable).not.toContainSource('pressDepress');
+    expect(pressable).not.toContainSource('hoverLift');
     expect(matchDay).toContainSource('accessibilityRole="switch"');
     expect(matchDay).toContainSource('accessibilityState={{ checked: on }}');
   });

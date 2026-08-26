@@ -39,7 +39,6 @@ import { vars } from 'nativewind';
 import {
   useCopy,
   useLocale,
-  ENABLED_LOCALES,
   LocaleProvider,
   copyFor,
   ensureCatalog,
@@ -919,29 +918,6 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
     },
     [activateLanguage],
   );
-  // Settings has room for one row, not seven, so it steps through the shipped
-  // languages rather than opening a second picker.
-  const cycleLanguage = useCallback(() => {
-    const current = preferencesRef.current;
-    const at = ENABLED_LOCALES.indexOf(current.language);
-    // A save can hold a language that is no longer enabled — `vi` is withdrawn
-    // while its face is unresolved, and `isLocale`/the preferences schema both
-    // still accept it, so such a save loads and renders. Without this branch
-    // `indexOf` returns -1, `(-1 + 1) % n` is 0, and the tap silently lands on
-    // whatever happens to be first. Stepping to the first enabled language is
-    // the right outcome — there is nothing else to offer — but it should be a
-    // decision, not arithmetic.
-    //
-    // It IS a one-way door: once stepped off, a withdrawn language cannot be
-    // reached again from this control until it is re-enabled. Acceptable while
-    // the game is in development; revisit before the save-compatibility promise
-    // at TestFlight.
-    const next =
-      at === -1
-        ? (ENABLED_LOCALES[0] ?? 'en')
-        : (ENABLED_LOCALES[(at + 1) % ENABLED_LOCALES.length] ?? 'en');
-    activateLanguage(next);
-  }, [activateLanguage]);
   const toggleReduceMotion = useCallback(() => {
     const current = preferencesRef.current;
     savePreferences({ ...current, reduceMotion: !current.reduceMotion });
@@ -1921,6 +1897,17 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
     }
     beginNewCareer();
   }, [beginNewCareer]);
+
+  const startNewCareerFromEnding = useCallback(() => {
+    const assistantMode = useM1Store.getState().career?.assistantMode;
+    store.completeEndgameCelebration();
+    const after = useM1Store.getState();
+    if (after.error !== null) return;
+    const current = preferencesRef.current;
+    const remembered = rememberCompletedClimb(current, after.career);
+    if (remembered !== current) savePreferences(remembered);
+    after.startNewCareer(undefined, assistantMode);
+  }, [savePreferences, store.completeEndgameCelebration]);
 
   useEffect(() => {
     const current = preferencesRef.current;
@@ -3427,7 +3414,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         )}
         reduceMotion={reduceMotion}
         onComplete={store.completeEndgameCelebration}
-        // The true ending's finale ends on the title screen it started from.
+        onStartNewGame={startNewCareerFromEnding}
         onReturnToTitle={store.returnToTitleFromEnding}
       />
     );
@@ -4391,7 +4378,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
                   hapticsEnabled={preferences.hapticsEnabled}
                   textScale={preferences.textScale}
                   language={preferences.language}
-                  onCycleLanguage={cycleLanguage}
+                  onLanguageChange={setLanguage}
                   highContrast={preferences.highContrast}
                   colorSafeKits={preferences.colorSafeKits}
                   cutInMode={preferences.cutInMode}
