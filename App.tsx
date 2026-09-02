@@ -271,7 +271,11 @@ import {
 } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { copyOrEnglish } from './src/application/copy-fallback';
-import { setStoreCopy, useM1Store } from './src/application/store';
+import {
+  flushPendingCareerSave,
+  setStoreCopy,
+  useM1Store,
+} from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
 import {
   currentAssistantObjective,
@@ -461,7 +465,13 @@ export default function App() {
   }
   const recoverGame = () => {
     useM1Store.getState().recoverFromScreenCrash();
-    setGameGeneration((generation) => generation + 1);
+    // Remounting GameApp re-runs initializePersistence, which retires the
+    // career lineage before it reloads from disk. A save still queued behind a
+    // long write would then fail the lineage check and vanish — the finished
+    // match replays with no warning. Write it first; the remount waits.
+    void flushPendingCareerSave().finally(() =>
+      setGameGeneration((generation) => generation + 1),
+    );
   };
   return (
     <SafeAreaProvider>
@@ -492,6 +502,11 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
     useWindowDimensions();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
+  // Whether the current bootError came from the deadline rather than a real
+  // failure, and how many boots in a row have timed out. A first timeout
+  // still has the boot chain running under it, so it offers Retry only.
+  const [bootTimedOut, setBootTimedOut] = useState(false);
+  const [bootTimeouts, setBootTimeouts] = useState(0);
   const [preferences, setPreferences] = useState<AppPreferences>(
     DEFAULT_APP_PREFERENCES,
   );
@@ -1490,7 +1505,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
   useEffect(() => {
     setHapticsEnabled(preferences.hapticsEnabled);
     setClubKitColorSafe(preferences.colorSafeKits);
-  }, [preferences.hapticsEnabled]);
+  }, [preferences.hapticsEnabled, preferences.colorSafeKits]);
 
   useEffect(() => {
     if (
@@ -1596,6 +1611,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
   useEffect(() => {
     let active = true;
     setBootError(null);
+    setBootTimedOut(false);
     // Expo's native runtime is Hermes. This gate executes the same full-payload
     // replay fingerprints as the Node test to catch engine drift — but it runs
     // two complete 2,000-tick matches synchronously (a goalless one and a
@@ -1630,6 +1646,8 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
           armBootTimeout();
           return;
         }
+        setBootTimedOut(true);
+        setBootTimeouts((count) => count + 1);
         setBootError(copyRef.current('app.bootTimeout'));
       }, BOOT_TIMEOUT_MS);
     };
@@ -1753,13 +1771,16 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         // instead of a stale BootFailure over a fully loaded save.
         if (active) {
           setBootError(null);
+          setBootTimedOut(false);
+          setBootTimeouts(0);
           clearBootRetries();
         }
         return undefined;
       })
       .catch((error) => {
-        if (active)
-          setBootError(error instanceof Error ? error.message : String(error));
+        if (!active) return;
+        setBootTimedOut(false);
+        setBootError(error instanceof Error ? error.message : String(error));
       })
       .finally(() => clearTimeout(bootTimeout));
     return () => {
@@ -2949,26 +2970,32 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         onStartFresh={
           browserDatabaseLock
             ? undefined
-            : () => {
-                void resetCareerDatabase({
-                  openDatabase: () => openDatabaseAsync(DATABASE_NAME),
-                  deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
-                })
-                  .then(() => setBootAttempt((attempt) => attempt + 1))
-                  // This is the last way out of an unopenable database. If the reset
-                  // itself fails there is nothing behind it, so say so — an unhandled
-                  // rejection here reads as a button that does nothing, forever.
-                  .catch((error) =>
-                    setBootError(
-                      copyRef.current('app.saveCouldNotBeDeleted', {
-                        detail:
-                          error instanceof Error
-                            ? error.message
-                            : String(error),
-                      }),
-                    ),
-                  );
-              }
+            : // A first timeout is not proof the file is unreadable: the boot
+              // chain is still running under this screen, and a delete here
+              // would drop a healthy save. Offer it once a retry has timed out too.
+              bootTimedOut && bootTimeouts < 2
+              ? undefined
+              : () => {
+                  void resetCareerDatabase({
+                    openDatabase: () => openDatabaseAsync(DATABASE_NAME),
+                    deleteDatabaseFile: () =>
+                      deleteDatabaseAsync(DATABASE_NAME),
+                  })
+                    .then(() => setBootAttempt((attempt) => attempt + 1))
+                    // This is the last way out of an unopenable database. If the reset
+                    // itself fails there is nothing behind it, so say so — an unhandled
+                    // rejection here reads as a button that does nothing, forever.
+                    .catch((error) =>
+                      setBootError(
+                        copyRef.current('app.saveCouldNotBeDeleted', {
+                          detail:
+                            error instanceof Error
+                              ? error.message
+                              : String(error),
+                        }),
+                      ),
+                    );
+                }
         }
       />
     );

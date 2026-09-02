@@ -29,6 +29,6 @@ None. The app makes no network requests of any kind. There are no data providers
 None. Features and content are identical in every region. The app ships 7 localizations (English, Spanish, Portuguese (Brazil), French, German, Indonesian, Vietnamese), chosen from the device language. Nothing is gated, added or removed by region or storefront.
 
 7. REGULATED INDUSTRY OR PROTECTED THIRD-PARTY MATERIAL
-Neither applies. There is no gambling, wagering, real money, loot box or purchase of any kind. All clubs, players, competitions and sponsor brands are fictional and original to this app. No real football league, club, player or trademark is used. All artwork is generated programmatically and all audio is synthesized in-project; no third-party assets are included.
+Neither applies. There is no gambling, wagering, real money, loot box or purchase of any kind. All clubs, players, competitions and sponsor brands are fictional and original to this app. No real football league, club, player or trademark is used. All artwork and audio is original work that the developer owns or has licensed for commercial use. The only third-party software asset is the Silkscreen typeface (SIL Open Font License 1.1); its licence notice ships inside the app.
 
 This information has also been added to the Notes field of the App Review Information section.

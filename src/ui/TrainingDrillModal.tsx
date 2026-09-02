@@ -858,6 +858,7 @@ export function TrainingDrillModal({
                 accessibilityRole="button"
                 accessibilityLabel={t('trainingDrill.a11y.gotInjured', {
                   player: playerName,
+                  n: activeResult.injury.recoveryWeeks,
                   weeks: activeResult.injury.recoveryWeeks,
                 })}
                 // The cue now plays when the card appears; acknowledging it is

@@ -188,11 +188,13 @@ function grantLabel(
   if (cost.kind === 'DRILL_PLAYER') {
     return t('playerRequests.costPlayerDrills', {
       multiplier: cost.multiplierPercent / 100,
+      n: cost.weeks,
       weeks: cost.weeks,
     });
   }
   return t('playerRequests.costSquadDrills', {
     multiplier: cost.multiplierPercent / 100,
+    n: cost.weeks,
     weeks: cost.weeks,
   });
 }

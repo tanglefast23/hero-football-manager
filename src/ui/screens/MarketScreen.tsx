@@ -1920,6 +1920,7 @@ export function NegotiationPanel({
           </View>
           <Text className="mt-2 text-center text-sm text-ink/50">
             {t('market.finalTerms', {
+              n: finalDemand.termSeasons,
               seasons: finalDemand.termSeasons,
               promise:
                 viewModel.perks.find((entry) => entry.id === finalDemand.perk)
@@ -1935,6 +1936,7 @@ export function NegotiationPanel({
               accessibilityLabel={t('market.a11y.offerPlayerTermsAndPromise', {
                 player: viewModel.playerName,
                 wage: formatCurrency(t, finalDemand.weeklyWage),
+                n: finalDemand.termSeasons,
                 seasons: finalDemand.termSeasons,
                 promise:
                   viewModel.perks.find((entry) => entry.id === finalDemand.perk)
@@ -2268,6 +2270,7 @@ export function NegotiationPanel({
             <Text className="mb-2 text-center text-sm text-ink/60">
               {t('market.offerSummary', {
                 wage: formatCurrency(t, weeklyWage),
+                n: termSeasons,
                 seasons: termSeasons,
                 promise: selectedPerk?.label ?? perk,
               })}
@@ -2299,6 +2302,7 @@ export function NegotiationPanel({
                   : t('market.a11y.offerPlayerTermsAndPromise', {
                       player: viewModel.playerName,
                       wage: formatCurrency(t, weeklyWage),
+                      n: termSeasons,
                       seasons: termSeasons,
                       promise: selectedPerk?.label ?? perk,
                     })

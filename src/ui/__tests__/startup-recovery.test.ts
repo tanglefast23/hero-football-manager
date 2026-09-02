@@ -62,6 +62,31 @@ describe('startup recovery', () => {
     );
   });
 
+  it('writes a queued career save before crash recovery remounts the game', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    // Remounting re-runs initializePersistence, which retires the career
+    // lineage; a save still queued for it would be dropped and the finished
+    // match replayed. The flush has to come first, and the remount waits on it.
+    expect(app).toMatch(
+      /const recoverGame = \(\) => \{[\s\S]*?recoverFromScreenCrash\(\);[\s\S]*?flushPendingCareerSave\(\)\.finally\(\(\) =>\s*setGameGeneration/,
+    );
+  });
+
+  it('withholds Start Fresh on a first boot timeout', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    // The deadline fires while the boot chain is still running, so the save
+    // under the failure screen may be healthy. Delete is offered only after a
+    // retry has timed out as well.
+    expect(app).toMatch(
+      /setBootTimedOut\(true\);\s*setBootTimeouts\(\(count\) => count \+ 1\);\s*setBootError\(copyRef\.current\('app\.bootTimeout'\)\)/,
+    );
+    expect(app).toMatch(
+      /onStartFresh={\s*browserDatabaseLock\s*\?\s*undefined[\s\S]*?bootTimedOut && bootTimeouts < 2\s*\?\s*undefined/,
+    );
+  });
+
   it('reloads a locked web database instead of offering to delete a safe career', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
