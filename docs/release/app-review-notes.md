@@ -26,7 +26,7 @@ REGIONAL DIFFERENCES
 None. Features and content are identical in every region. The app ships 7 localizations (English, Spanish, Portuguese (Brazil), French, German, Indonesian, Vietnamese), chosen from the device language. Nothing is gated, added or removed by region or storefront.
 
 REGULATED INDUSTRY AND THIRD-PARTY MATERIAL
-None. There is no gambling, wagering, real money, loot box or purchase of any kind. All clubs, players, competitions and sponsor brands are fictional and original to this app. No real football league, club, player or trademark is used. All artwork is generated programmatically and all audio is synthesized in-project; no third-party assets are included.
+None. There is no gambling, wagering, real money, loot box or purchase of any kind. All clubs, players, competitions and sponsor brands are fictional and original to this app. No real football league, club, player or trademark is used. All artwork and audio is original work that the developer owns or has licensed for commercial use. The only third-party software asset is the Silkscreen typeface (SIL Open Font License 1.1); its licence notice ships inside the app.
 
 DEVICES AND OS TESTED
 - iPhone 16 Pro Max, iOS 26.6 (physical device)

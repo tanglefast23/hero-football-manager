@@ -701,6 +701,7 @@ export function SeasonEndScreen({
                           })}
                           accessibilityLabel={t('seasonEnd.a11y.signPlayer', {
                             player: contract.playerName,
+                            n: contract.selectedTerm,
                             seasons: contract.selectedTerm,
                             wage: formatCurrency(t, contract.quotedWeeklyWage),
                           })}

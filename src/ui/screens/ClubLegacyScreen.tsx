@@ -134,7 +134,7 @@ export function ClubLegacyScreen({
             })}
           </Text>
           <PixelText className="mt-2 text-sm uppercase text-ink/50">
-            {viewModel.personality} · {viewModel.queueLabel}
+            {viewModel.personalityLabel} · {viewModel.queueLabel}
           </PixelText>
         </PaperPanel>
 
