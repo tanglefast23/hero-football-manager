@@ -61,7 +61,7 @@ The approved Bert design and full copy cadence live in [the assistant-manager br
 
 ## Accessibility
 
-Colorblind-safe kit palette pairs (never red-vs-green matches); text scaling respected on management screens; Reduce Motion replaces the charged-hero flash with a steady power-colour tint and keeps the team-colour power title without movement or sheen. AUTO has no timed input. MANUAL is opt-in; only a pressed save-power window has a countdown. Left/right-hand HUD flip.
+Colorblind-safe kit palette pairs (never red-vs-green matches); text scaling respected on management screens; Reduce Motion replaces the charged-hero flash with a steady power-colour tint and keeps the team-colour power title without movement or sheen. AUTO has no timed input. MANUAL is the default; only a pressed save-power window has a countdown. Left/right-hand HUD flip.
 
 ## PC port posture
 

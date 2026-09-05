@@ -111,6 +111,21 @@ export function SfxPressable({
   return (
     <NativePressable
       {...props}
+      {...(Platform.OS === 'web'
+        ? {
+            tabIndex:
+              props.tabIndex ?? (props.accessible === false ? -1 : undefined),
+            'aria-checked':
+              props['aria-checked'] ?? props.accessibilityState?.checked,
+            'aria-selected':
+              props['aria-selected'] ?? props.accessibilityState?.selected,
+            'aria-expanded':
+              props['aria-expanded'] ?? props.accessibilityState?.expanded,
+            'aria-busy': props['aria-busy'] ?? props.accessibilityState?.busy,
+            'aria-disabled':
+              props['aria-disabled'] ?? props.accessibilityState?.disabled,
+          }
+        : {})}
       {...(immediatePress && Platform.OS === 'web' ? { delayPressIn: 0 } : {})}
       disabled={disabled}
       // Left unwired without a hovering pointer, so a caller's own hover work

@@ -11,7 +11,7 @@
         },
         {
           "term": "Potential",
-          "definition": "A fixed E- to A+ grade that sets a drill's SUPER chance. E- gives 5%, and every grade step adds 2% up to 33% at A+. Potential does not add to an ordinary drill or limit how high a player can grow."
+          "definition": "Potential is the player's current growth grade, from E- to A+. It combines age, position, archetype and raw talent. The separate SUPER percentage is each drill's chance of a 1.5x gain. The grade does not cap attributes."
         },
         {
           "term": "Archetype",

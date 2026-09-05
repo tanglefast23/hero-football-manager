@@ -101,3 +101,7 @@ jobs:
         run: >-
           npm run release:inspect --
           "$RUNNER_TEMP/hfm-derived/Build/Products/Release-iphonesimulator/HeroFootballManager.app"
+      - name: Execute golden replays under Hermes
+        run: >-
+          node scripts/qa/verify-hermes-golden.mjs
+          "$RUNNER_TEMP/hfm-derived/Build/Products/Release-iphonesimulator/HeroFootballManager.app"

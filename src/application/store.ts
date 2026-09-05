@@ -1116,18 +1116,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
       queueCareerSave(get, set, career);
       return;
     }
-    // ponytail: one fresh connection per press, and the dead one is dropped
-    // rather than closed — a manual button pressed a handful of times cannot
-    // leak enough handles to matter. Pool them if retry ever becomes automatic.
-    void reopen().then(
-      (repository) => {
-        set({ repository });
-        queueCareerSave(get, set, career);
-      },
-      // A reconnect that fails proves nothing about the old connection, so the
-      // retry still happens on it — this is the fallback path, not the failure.
-      () => queueCareerSave(get, set, career),
-    );
+    const lineage = careerLineage;
+    const previousRepository = get().repository;
+    const finishRetry = (repository = previousRepository) => {
+      // Reconnect can outlive an action, another reconnect, or the whole career.
+      if (
+        lineage !== careerLineage ||
+        get().repository !== previousRepository ||
+        get().reopenRepository !== reopen
+      )
+        return;
+      set({ repository });
+      const latest = get().career;
+      if (latest !== null) queueCareerSave(get, set, latest);
+    };
+    void reopen().then(finishRetry, () => finishRetry());
   },
 
   recoverFromScreenCrash() {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CrossPlatformModal as Modal } from './components/CrossPlatformModal';
 import { SfxPressable as Pressable } from './components/SfxPressable';
@@ -497,6 +497,13 @@ export function TrainingDrillModal({
       >
         <View
           accessibilityViewIsModal
+          {...(Platform.OS === 'web'
+            ? {
+                role: 'dialog' as const,
+                'aria-modal': true,
+                'aria-label': `${t('trainingDrill.drills')} · ${playerName}`,
+              }
+            : {})}
           className={
             wide
               ? 'flex-1 items-center justify-center px-3 py-6'
