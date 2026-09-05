@@ -12,6 +12,7 @@ import { CrossPlatformModal as Modal } from './CrossPlatformModal';
 import { ActionButton } from './Scorecard';
 import { useTapGuard } from '../use-tap-guard';
 import { useCopy } from '../../i18n';
+import { trapWebDialogFocus } from './web-dialog-focus';
 
 export interface ConfirmationRequest {
   readonly title: string;
@@ -281,34 +282,6 @@ function webDialogLabelProps(): object {
     'aria-labelledby': 'club-confirmation-heading',
     onKeyDown: trapWebDialogFocus,
   };
-}
-
-function trapWebDialogFocus(event: {
-  readonly key: string;
-  readonly shiftKey: boolean;
-  readonly currentTarget: EventTarget | null;
-  preventDefault: () => void;
-}): void {
-  if (event.key !== 'Tab' || typeof document === 'undefined') return;
-  const dialog = event.currentTarget as HTMLElement | null;
-  if (dialog === null) return;
-  const controls = [
-    ...dialog.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    ),
-  ];
-  const first = controls[0];
-  const last = controls[controls.length - 1];
-  if (first === undefined || last === undefined) return;
-  const active = document.activeElement;
-  const activeIndex = controls.indexOf(active as HTMLElement);
-  if (event.shiftKey && activeIndex <= 0) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && active === last) {
-    event.preventDefault();
-    first.focus();
-  }
 }
 
 function webHeadingProps(): object {

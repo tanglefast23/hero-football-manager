@@ -58,11 +58,11 @@ describe('Club Business phone and accessibility contracts', () => {
     expect(confirmation).toContainSource("role: 'dialog'");
     expect(confirmation).toContainSource("'aria-modal': true");
     expect(confirmation).toContainSource('onKeyDown: trapWebDialogFocus');
-    expect(confirmation).toContainSource(
+    expect(read('src/ui/components/web-dialog-focus.ts')).toContainSource(
       'if (event.shiftKey && activeIndex <= 0)',
     );
-    expect(confirmation).toContainSource(
-      'else if (!event.shiftKey && active === last)',
+    expect(read('src/ui/components/web-dialog-focus.ts')).toContainSource(
+      'else if (!event.shiftKey && (active === last || activeIndex === -1))',
     );
     expect(confirmation).toContainSource('focusable={false}');
     expect(confirmation).toContainSource(

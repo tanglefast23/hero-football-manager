@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Animated, type ModalProps, type ViewStyle } from 'react-native';
+import {
+  Animated,
+  type ModalProps,
+  type ViewStyle,
+  type View,
+} from 'react-native';
 import { MOTION_MS } from '../motion';
+import { trapWebDialogFocus } from './web-dialog-focus';
 
 let visibleWebModalCount = 0;
 let appRootSnapshot:
@@ -61,6 +67,7 @@ export function CrossPlatformModal({
     new Animated.Value(animationType === 'fade' ? 0 : 1),
   ).current;
   const [present, setPresent] = useState(visible);
+  const layerRef = useRef<View>(null);
   const childrenRef = useRef(children);
   if (visible) childrenRef.current = children;
   const onRequestCloseRef = useRef(onRequestClose);
@@ -90,8 +97,38 @@ export function CrossPlatformModal({
 
   useEffect(() => {
     if (!present || typeof document === 'undefined') return undefined;
+    const previousFocus = document.activeElement as HTMLElement | null;
     const releaseAppRoot = blockAppRoot();
-    return releaseAppRoot;
+    const focusDialog = () => {
+      const layer = layerRef.current as unknown as HTMLElement | null;
+      const layers = document.querySelectorAll('[data-hfm-modal]');
+      if (
+        layer === null ||
+        layers[layers.length - 1] !== layer ||
+        layer.contains(document.activeElement)
+      )
+        return;
+      const dialog =
+        layer.querySelector<HTMLElement>('[role="dialog"]') ?? layer;
+      const first = dialog.querySelector<HTMLElement>(
+        '[role="heading"], button:not([disabled]), [tabindex="0"]',
+      );
+      if (first?.getAttribute('role') === 'heading') first.tabIndex = -1;
+      first?.focus();
+      if (!dialog.contains(document.activeElement)) {
+        dialog.tabIndex = -1;
+        dialog.focus();
+      }
+    };
+    const frame = requestAnimationFrame(focusDialog);
+    const timer = setTimeout(focusDialog, MOTION_MS.QUICK + 50);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      releaseAppRoot();
+      if (previousFocus?.isConnected && !previousFocus.closest('[inert]'))
+        previousFocus.focus();
+    };
   }, [present]);
 
   useEffect(() => {
@@ -139,6 +176,9 @@ export function CrossPlatformModal({
   if (!present || typeof document === 'undefined') return null;
   return createPortal(
     <Animated.View
+      ref={layerRef}
+      tabIndex={-1}
+      {...{ dataSet: { hfmModal: '' }, onKeyDown: trapWebDialogFocus }}
       accessibilityViewIsModal
       accessibilityElementsHidden={!visible}
       pointerEvents={visible ? 'auto' : 'none'}

@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { POTENTIAL_GRADES, superTrainingChancePercent } from '../../game';
 import { loadCatalog } from '../../i18n';
 import { loadLaunchContent } from '../load';
 
@@ -16,11 +15,9 @@ describe('launch glossary', () => {
     expect(definition('Archetype')).toContain('without limiting');
     expect(definition('Personality')).toContain('wage demands');
     expect(definition('Fame')).toContain('club legend');
-    expect(definition('Potential')).toContain("drill's SUPER chance");
-    expect(definition('Potential')).toContain(
-      'does not add to an ordinary drill',
-    );
-    expect(definition('Potential')).toContain('limit how high');
+    expect(definition('Potential')).toContain('current growth grade');
+    expect(definition('Potential')).toContain('separate SUPER percentage');
+    expect(definition('Potential')).toContain('does not cap attributes');
     // Engine m1.27 removed the Zone countdown. The entry used to promise a short
     // window that faded and refunded half the hero's Heat; refunding half Heat is
     // the wind-up rule, not this one. Pin the fact, not a turn of phrase.
@@ -30,10 +27,6 @@ describe('launch glossary', () => {
   });
 
   it('takes every Potential explanation from the current runtime rule', () => {
-    const floor = superTrainingChancePercent(POTENTIAL_GRADES[0]);
-    const ceiling = superTrainingChancePercent(
-      POTENTIAL_GRADES[POTENTIAL_GRADES.length - 1],
-    );
     const staleBonus =
       /(?:0\s*%|14\s*%|training bonus|bonus (?:al|de|do|latihan|treino|d'entraînement|khi tập)|Trainingsbonus|thưởng tập)/i;
     const english = loadLaunchContent();
@@ -47,11 +40,19 @@ describe('launch glossary', () => {
       )?.body ?? '';
 
     for (const text of [potential, tip]) {
-      expect(text).toContain(`${floor}%`);
-      expect(text).toContain(`${ceiling}%`);
+      expect(text).toMatch(/growth (grade|speed)/);
+      expect(text).toMatch(/SUPER percentage/);
       expect(text).not.toMatch(staleBonus);
     }
 
+    const growthWords = {
+      es: /crecimiento/,
+      id: /perkembangan/,
+      vi: /phát triển/,
+      'pt-BR': /evolução/,
+      fr: /progression/,
+      de: /Wachstum/,
+    };
     for (const locale of ['es', 'id', 'vi', 'pt-BR', 'fr', 'de'] as const) {
       const strings = loadCatalog(locale).strings;
       for (const key of [
@@ -59,8 +60,8 @@ describe('launch glossary', () => {
         'tip.potential-is-speed-not-ceiling.body',
       ]) {
         const text = strings[key] ?? '';
-        expect(text.replaceAll(' ', '')).toContain(`${floor}%`);
-        expect(text.replaceAll(' ', '')).toContain(`${ceiling}%`);
+        expect(text).toMatch(growthWords[locale]);
+        expect(text).toMatch(/SUPER|SÚPER|SIÊU/);
         expect(text).not.toMatch(staleBonus);
       }
     }

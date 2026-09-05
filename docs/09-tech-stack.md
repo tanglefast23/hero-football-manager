@@ -45,12 +45,12 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 2. Fixed timestep (100ms ticks); positions on an integer centimeter grid.
 3. **No transcendental Math in the sim.** IEEE 754 specifies +, −, ×, ÷, and `Math.sqrt` exactly (bit-identical on every JS engine), but `Math.exp`, `Math.pow`, `Math.hypot` etc. are implementation-defined and can differ across Hermes/V8/JSC near decision boundaries. Distances use `sqrt` of integer squares; the logistic contest curve ships as a **generated, checked-in integer lookup table** (regenerated only by an explicit script).
 4. **Replays are envelopes, not just seeds**: `{ schemaVersion, engineVersion, seed, both team snapshots, ordered input stream }`. Seed + taps alone go stale the moment stats or tuning change; the envelope pins everything. Golden tests snapshot full event payloads, not just event names. (Mid-match save/resume — which would also need the PRNG cursor — is an M1 concern, deliberately out of M0.)
-5. Golden replay fixtures must pass on every release; from M1, CI runs them on both Node and the Hermes runtime to catch engine drift, not just code drift.
+5. Golden replay fixtures must pass on every release; from M1, CI runs them on both Node and the Hermes runtime to catch engine drift, not just code drift. The native job runs `scripts/qa/verify-hermes-golden.mjs` against a temporary copy of the Release simulator app. Only that copy receives the golden-only bundle; it loads no game UI, audio, or saves. The shipped app remains unchanged.
 
 ### Current compatibility boundary
 
-- Match replays require engine **m2.0**; older replay envelopes are refused rather than replayed with different simulation math.
-- Career saves require game schema **3**. A schema-2 save upgrades on load through the migration ladder in `game-state-codec.ts`; schema 1 has no rung and is deliberately incompatible with the rebased persisted pyramid. The recovery screen can export the exact raw stored JSON before decoding; a requested export must succeed before reset is allowed.
+- Match replays require engine **m2.9**; older replay envelopes are refused rather than replayed with different simulation math.
+- Career saves require game schema **6**. Schema-2 through schema-5 saves upgrade on load through the migration ladder in `game-state-codec.ts`; schema 1 has no rung and is deliberately incompatible with the rebased persisted pyramid. The recovery screen can export the exact raw stored JSON before decoding; a requested export must succeed before reset is allowed.
 - Reset deletes only the affected career row, its season backup, and replay envelopes for that career seed in one transaction. Preferences and unrelated careers/replays survive. A failed transaction leaves the old save untouched.
 
 ## Testing strategy
@@ -116,3 +116,14 @@ Firing counts are reliable at 200; worth values are not.
 ## Explicitly out (YAGNI at launch)
 
 No server, no accounts, no analytics SDK, no cloud saves (Supabase backup = post-launch option), no multiplayer. Offline-first premium app.
+
+## Dependency maintenance (2026-09-05)
+
+Expo and compatible transitive packages were refreshed during the final audit.
+`npm run deps:check` passes. Two upstream advisory groups remain:
+
+- `image-size` (Metro asset tooling): the ICNS/TIFF parser advisories have no published patched version. This project contains no ICNS or TIFF assets. Recheck upstream before adding either format or accepting untrusted build assets. [ICNS advisory](https://github.com/advisories/GHSA-w3rx-r6r6-pgpr), [TIFF advisory](https://github.com/advisories/GHSA-5p2g-fcmc-qvqq).
+- `uuid` (Xcode project generation): the advisory concerns v3/v5/v6 calls with caller-supplied buffers. The installed `xcode` package uses only `uuid.v4()` with no arguments. That call does not enter the affected path. Keep the Expo-compatible dependency until upstream updates it; do not apply the audit's Expo 46 downgrade. [UUID advisory](https://github.com/advisories/GHSA-w5hq-g745-h8pq).
+
+These are build-tool dependencies, not evidence of a shipped-game exploit. Run
+`npm audit` again when updating Expo or Metro; do not hide the remaining alerts.

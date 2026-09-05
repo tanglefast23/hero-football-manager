@@ -82,6 +82,29 @@ function VolumeSlider({
         accessibilityRole="adjustable"
         accessibilityLabel={t('settings.volume.label')}
         accessibilityHint={t('settings.volume.hint')}
+        {...(Platform.OS === 'web'
+          ? {
+              tabIndex: 0 as const,
+              'aria-valuemin': 0,
+              'aria-valuemax': 100,
+              'aria-valuenow': devVolumePercent(value),
+              onKeyDown: (event: {
+                key: string;
+                preventDefault: () => void;
+              }) => {
+                let next: DevVolume;
+                if (event.key === 'Home') next = 0;
+                else if (event.key === 'End') next = 1;
+                else if (event.key === 'ArrowUp' || event.key === 'ArrowRight')
+                  next = adjustDevVolume(value, 'increment');
+                else if (event.key === 'ArrowDown' || event.key === 'ArrowLeft')
+                  next = adjustDevVolume(value, 'decrement');
+                else return;
+                event.preventDefault();
+                if (next !== value) onChange(next);
+              },
+            }
+          : {})}
         accessibilityValue={{
           min: 0,
           max: 100,

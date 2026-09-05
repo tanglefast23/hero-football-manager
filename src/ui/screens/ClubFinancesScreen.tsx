@@ -2401,358 +2401,370 @@ function GroundsSection({
             </Text>
           </View>
         ) : null}
-        <View ref={facilityPlacementTargetRef} collapsable={false}>
+        <ScrollView horizontal contentContainerStyle={{ flexGrow: 1 }}>
           <View
-            ref={facilityGuideGridTargetRef}
+            ref={facilityPlacementTargetRef}
             collapsable={false}
-            className={
-              placementActive ||
-              (guidedFirstFacility && guidedFacilityPhase === 'grid') ||
-              guideFocus === 'facility-upgrade'
-                ? 'relative overflow-visible border-2 border-ink bg-pitch-light'
-                : 'relative overflow-hidden border-2 border-ink bg-pitch-light'
-            }
-            style={{ aspectRatio: facilities.width / facilities.height }}
-            onLayout={(event) => {
-              setFacilityGridWidth(event.nativeEvent.layout.width);
-              if (guidedFacilityPhase === 'grid')
-                scrollFacilityGuideTargetIntoView('grid');
-            }}
-            onPointerMove={dismissFacilityPlacementHelper}
-            onTouchStart={dismissFacilityPlacementHelper}
+            style={{ flex: 1, minWidth: facilities.width * 45 + 4 }}
           >
-            {showBuildPlacementHelper ? (
-              <View
-                pointerEvents="none"
-                style={styles.facilityPlacementHelperAnchor}
-              >
-                <View
-                  ref={facilityPlacementFocusRef}
-                  collapsable={false}
-                  accessible
-                  accessibilityRole="header"
-                  accessibilityLabel={t('clubFinances.buildHere')}
-                  pointerEvents="none"
-                  {...guideHeadingProps()}
-                  className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
-                  style={[
-                    styles.guidedFacilityGlow,
-                    styles.facilityPlacementHelper,
-                  ]}
-                >
-                  <PixelText
-                    accessibilityLiveRegion="polite"
-                    className="text-center text-sm uppercase text-ink"
-                  >
-                    {t('clubFinances.buildHere')}
-                  </PixelText>
-                </View>
-              </View>
-            ) : null}
-            {guidedFirstFacility &&
-            guidedFacilityPhase === 'grid' &&
-            facilityGridWidth > 0 ? (
-              <TutorialTapCue
-                label={t('clubFinances.bertSays')}
-                detail={t('clubFinances.placeYourBuilding')}
-                style={{
-                  left: facilityGridWidth / facilities.width / 2,
-                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  bottom: '100%',
-                }}
-              />
-            ) : null}
             <View
+              ref={facilityGuideGridTargetRef}
+              collapsable={false}
+              className={
+                placementActive ||
+                (guidedFirstFacility && guidedFacilityPhase === 'grid') ||
+                guideFocus === 'facility-upgrade'
+                  ? 'relative overflow-visible border-2 border-ink bg-pitch-light'
+                  : 'relative overflow-hidden border-2 border-ink bg-pitch-light'
+              }
               style={{
-                position: 'relative',
-                flex: 1,
+                aspectRatio: facilities.width / facilities.height,
+                minHeight: facilities.height * 45 + 4,
               }}
+              onLayout={(event) => {
+                setFacilityGridWidth(event.nativeEvent.layout.width);
+                if (guidedFacilityPhase === 'grid')
+                  scrollFacilityGuideTargetIntoView('grid');
+              }}
+              onPointerMove={dismissFacilityPlacementHelper}
+              onTouchStart={dismissFacilityPlacementHelper}
             >
-              {Array.from({ length: facilities.height }, (_, y) => (
+              {showBuildPlacementHelper ? (
                 <View
-                  key={`facility-row-${y}`}
-                  style={{ flex: 1, flexDirection: 'row' }}
+                  pointerEvents="none"
+                  style={styles.facilityPlacementHelperAnchor}
                 >
-                  {Array.from({ length: facilities.width }, (_, x) => {
-                    const occupied = cellIsOccupied(x, y);
-                    const guideAllowsCell =
-                      !guidedFirstFacility ||
-                      guidedFirstFacilityAllowsPlacement(
-                        selectedBuildType,
-                        x,
-                        y,
-                      );
-                    const buildable =
-                      placementActive &&
-                      guideAllowsCell &&
-                      !occupied &&
-                      canPlaceAt(x, y);
-                    return (
-                      <View
-                        key={`facility-cell-${x}-${y}`}
-                        style={{
-                          flex: 1,
-                          borderRightWidth: x === facilities.width - 1 ? 0 : 1,
-                          borderBottomWidth:
-                            y === facilities.height - 1 ? 0 : 1,
-                          borderColor: 'rgba(36, 31, 46, 0.28)',
-                        }}
-                      >
-                        <Pressable
-                          accessible={placementActive}
-                          accessibilityRole={
-                            placementActive ? 'button' : 'none'
-                          }
-                          accessibilityLabel={
-                            placementActive
-                              ? t(
-                                  buildable
-                                    ? 'clubFinances.a11y.buildAtColumnRow'
-                                    : 'clubFinances.a11y.blockedAtColumnRow',
-                                  { column: x + 1, row: y + 1 },
-                                )
-                              : undefined
-                          }
-                          disabled={!placementActive || !guideAllowsCell}
-                          // A blocked square answers with the refusal cue, not
-                          // the click that means the tap landed.
-                          pressSfx={buildable ? 'click' : 'warning'}
-                          onPress={() => {
-                            dismissFacilityPlacementHelper();
-                            handleGridCell(x, y);
-                          }}
-                          onPressIn={() => setPreviewCell({ x, y })}
-                          onPressOut={() => setPreviewCell(null)}
-                          // A mouse has a hover phase, so the fits/blocked footprint
-                          // tracks the cursor instead of forcing a click-and-hold on
-                          // every square to discover whether the building fits.
-                          onHoverIn={() => setPreviewCell({ x, y })}
-                          onHoverOut={() => setPreviewCell(null)}
+                  <View
+                    ref={facilityPlacementFocusRef}
+                    collapsable={false}
+                    accessible
+                    accessibilityRole="header"
+                    accessibilityLabel={t('clubFinances.buildHere')}
+                    pointerEvents="none"
+                    {...guideHeadingProps()}
+                    className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
+                    style={[
+                      styles.guidedFacilityGlow,
+                      styles.facilityPlacementHelper,
+                    ]}
+                  >
+                    <PixelText
+                      accessibilityLiveRegion="polite"
+                      className="text-center text-sm uppercase text-ink"
+                    >
+                      {t('clubFinances.buildHere')}
+                    </PixelText>
+                  </View>
+                </View>
+              ) : null}
+              {guidedFirstFacility &&
+              guidedFacilityPhase === 'grid' &&
+              facilityGridWidth > 0 ? (
+                <TutorialTapCue
+                  label={t('clubFinances.bertSays')}
+                  detail={t('clubFinances.placeYourBuilding')}
+                  style={{
+                    left: facilityGridWidth / facilities.width / 2,
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    bottom: '100%',
+                  }}
+                />
+              ) : null}
+              <View
+                style={{
+                  position: 'relative',
+                  flex: 1,
+                }}
+              >
+                {Array.from({ length: facilities.height }, (_, y) => (
+                  <View
+                    key={`facility-row-${y}`}
+                    style={{ flex: 1, flexDirection: 'row' }}
+                  >
+                    {Array.from({ length: facilities.width }, (_, x) => {
+                      const occupied = cellIsOccupied(x, y);
+                      const guideAllowsCell =
+                        !guidedFirstFacility ||
+                        guidedFirstFacilityAllowsPlacement(
+                          selectedBuildType,
+                          x,
+                          y,
+                        );
+                      const buildable =
+                        placementActive &&
+                        guideAllowsCell &&
+                        !occupied &&
+                        canPlaceAt(x, y);
+                      return (
+                        <View
+                          key={`facility-cell-${x}-${y}`}
                           style={{
                             flex: 1,
-                            backgroundColor: occupied
-                              ? 'transparent'
-                              : placementActive
-                                ? buildable
-                                  ? 'rgba(154, 99, 214, 0.32)'
-                                  : 'rgba(36, 31, 46, 0.05)'
-                                : 'rgba(92, 184, 92, 0.12)',
+                            borderRightWidth:
+                              x === facilities.width - 1 ? 0 : 1,
+                            borderBottomWidth:
+                              y === facilities.height - 1 ? 0 : 1,
+                            borderColor: 'rgba(36, 31, 46, 0.28)',
                           }}
-                        />
-                        {buildable ? (
-                          <View
-                            pointerEvents="none"
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              alignItems: 'center',
-                              justifyContent: 'center',
+                        >
+                          <Pressable
+                            accessible={placementActive}
+                            accessibilityRole={
+                              placementActive ? 'button' : 'none'
+                            }
+                            accessibilityLabel={
+                              placementActive
+                                ? t(
+                                    buildable
+                                      ? 'clubFinances.a11y.buildAtColumnRow'
+                                      : 'clubFinances.a11y.blockedAtColumnRow',
+                                    { column: x + 1, row: y + 1 },
+                                  )
+                                : undefined
+                            }
+                            disabled={!placementActive || !guideAllowsCell}
+                            // A blocked square answers with the refusal cue, not
+                            // the click that means the tap landed.
+                            pressSfx={buildable ? 'click' : 'warning'}
+                            onPress={() => {
+                              dismissFacilityPlacementHelper();
+                              handleGridCell(x, y);
                             }}
-                          >
+                            onPressIn={() => setPreviewCell({ x, y })}
+                            onPressOut={() => setPreviewCell(null)}
+                            // A mouse has a hover phase, so the fits/blocked footprint
+                            // tracks the cursor instead of forcing a click-and-hold on
+                            // every square to discover whether the building fits.
+                            onHoverIn={() => setPreviewCell({ x, y })}
+                            onHoverOut={() => setPreviewCell(null)}
+                            style={{
+                              flex: 1,
+                              backgroundColor: occupied
+                                ? 'transparent'
+                                : placementActive
+                                  ? buildable
+                                    ? 'rgba(154, 99, 214, 0.32)'
+                                    : 'rgba(36, 31, 46, 0.05)'
+                                  : 'rgba(92, 184, 92, 0.12)',
+                            }}
+                          />
+                          {buildable ? (
                             <View
+                              pointerEvents="none"
                               style={{
-                                width: FACILITY_PLACEMENT_PLUS_SIZE,
-                                height: FACILITY_PLACEMENT_PLUS_SIZE,
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
                             >
                               <View
                                 style={{
-                                  position: 'absolute',
                                   width: FACILITY_PLACEMENT_PLUS_SIZE,
-                                  height: FACILITY_PLACEMENT_PLUS_THICKNESS,
-                                  backgroundColor: '#5b3a91',
-                                }}
-                              />
-                              <View
-                                style={{
-                                  position: 'absolute',
-                                  width: FACILITY_PLACEMENT_PLUS_THICKNESS,
                                   height: FACILITY_PLACEMENT_PLUS_SIZE,
-                                  backgroundColor: '#5b3a91',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
                                 }}
-                              />
+                              >
+                                <View
+                                  style={{
+                                    position: 'absolute',
+                                    width: FACILITY_PLACEMENT_PLUS_SIZE,
+                                    height: FACILITY_PLACEMENT_PLUS_THICKNESS,
+                                    backgroundColor: '#5b3a91',
+                                  }}
+                                />
+                                <View
+                                  style={{
+                                    position: 'absolute',
+                                    width: FACILITY_PLACEMENT_PLUS_THICKNESS,
+                                    height: FACILITY_PLACEMENT_PLUS_SIZE,
+                                    backgroundColor: '#5b3a91',
+                                  }}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        ) : null}
-                      </View>
-                    );
-                  })}
-                </View>
-              ))}
-            </View>
+                          ) : null}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
 
-            <View
-              pointerEvents={placementActive ? 'none' : 'box-none'}
-              accessibilityElementsHidden={placementActive}
-              importantForAccessibility={
-                placementActive ? 'no-hide-descendants' : 'auto'
-              }
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 3,
-              }}
-            >
-              {facilities.buildings.map((building) => {
-                const selected = building.id === selectedBuildingId;
-                const moving = building.id === relocatingBuildingId;
-                const comboActive = building.activeAdjacencyIds.length > 0;
-                const guidedUpgradeTarget =
-                  guideFocus === 'facility-upgrade' &&
-                  building.id === selectedBuildingId;
-                const cellSize = facilityGridWidth / facilities.width;
-                const artWidth = Math.max(24, building.width * cellSize - 10);
-                const artHeight = Math.max(24, building.height * cellSize - 10);
-                return (
-                  <Pressable
-                    key={building.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={t(
-                      comboActive
-                        ? 'clubFinances.a11y.facilityCellCombo'
-                        : 'clubFinances.a11y.facilityCell',
-                      {
-                        name: building.name,
-                        level: building.level,
-                        effect: building.effectLabel,
-                      },
-                    )}
-                    disabled={placementActive}
-                    onPress={() => {
-                      setSelectedBuildingId(building.id);
-                      setSelectedBuildType(null);
-                      revealFacilityDetail();
-                    }}
-                    style={{
-                      position: 'absolute',
-                      left: `${(building.x * 100) / facilities.width}%`,
-                      top: `${(building.y * 100) / facilities.height}%`,
-                      width: `${(building.width * 100) / facilities.width}%`,
-                      height: `${(building.height * 100) / facilities.height}%`,
-                      padding: 2,
-                      backgroundColor: comboActive ? '#8fd98f' : undefined,
-                      shadowColor: comboActive ? '#3f8a4a' : undefined,
-                      shadowOpacity: comboActive ? 0.9 : 0,
-                      shadowRadius: comboActive ? 5 : 0,
-                      zIndex: guidedUpgradeTarget ? 4 : undefined,
-                    }}
-                  >
-                    {guidedUpgradeTarget ? (
-                      <TutorialTapCue
-                        label={t('clubFinances.bertSays')}
-                        detail={t('clubFinances.reviewTheUpgrade')}
-                        labelOffsetX={Math.max(
-                          0,
-                          TUTORIAL_TAP_CUE_WIDTH / 2 -
-                            (building.width * cellSize) / 2,
-                        )}
-                        style={{
-                          left: '50%',
-                          marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                          top: -72,
-                        }}
-                      />
-                    ) : null}
-                    <View
-                      style={{
-                        flex: 1,
-                        borderWidth: selected || comboActive ? 3 : 2,
-                        borderColor: selected
-                          ? '#5b3a91'
-                          : comboActive
-                            ? '#3f8a4a'
-                            : '#241f2e',
-                        backgroundColor: moving
-                          ? '#c9a6ec'
-                          : facilityColor(building),
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        opacity: moving ? 0.55 : 1,
-                      }}
-                    >
-                      {building.status === 'construction' ? (
-                        <ManagementSprite
-                          spriteKey="facility:worksite"
-                          // Grid cells can measure narrower than the 32px art;
-                          // the cell cannot grow (it is a % of the plot), so a
-                          // sub-32 width accepts ManagementSprite's explicit
-                          // sub-1x downscale rather than overflowing the cell.
-                          width={Math.max(
-                            24,
-                            Math.min(64, Math.min(artWidth, artHeight)),
-                          )}
-                          accessibilityLabel={t(
-                            'clubFinances.a11y.facilityConstruction',
-                            {
-                              name: building.name,
-                            },
-                          )}
-                        />
-                      ) : (
-                        <FacilitySprite
-                          type={building.type}
-                          level={building.level}
-                          width={artWidth}
-                          height={artHeight}
-                          showLevel={false}
-                        />
-                      )}
-                      <View
-                        style={{
-                          position: 'absolute',
-                          right: 2,
-                          bottom: 2,
-                          borderWidth: 2,
-                          borderColor: '#241f2e',
-                          backgroundColor: '#f4f1eadd',
-                          paddingHorizontal: 4,
-                          paddingVertical: 2,
-                        }}
-                      >
-                        <PixelText className="text-center text-xs uppercase text-ink">
-                          {building.status === 'operational'
-                            ? `L${building.level}`
-                            : `${building.status === 'construction' ? 'BUILD' : building.status === 'closed' ? 'CLOSED' : 'UP'} · ${building.weeksRemaining}W`}
-                        </PixelText>
-                      </View>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {placementActive && previewCell && activeFootprint ? (
               <View
-                pointerEvents="none"
+                pointerEvents={placementActive ? 'none' : 'box-none'}
+                accessibilityElementsHidden={placementActive}
+                importantForAccessibility={
+                  placementActive ? 'no-hide-descendants' : 'auto'
+                }
                 style={{
                   position: 'absolute',
-                  left: `${(previewCell.x * 100) / facilities.width}%`,
-                  top: `${(previewCell.y * 100) / facilities.height}%`,
-                  width: `${(activeFootprint.width * 100) / facilities.width}%`,
-                  height: `${(activeFootprint.height * 100) / facilities.height}%`,
-                  borderWidth: 3,
-                  borderColor: canPlaceAt(previewCell.x, previewCell.y)
-                    ? '#5b3a91'
-                    : '#a83440',
-                  backgroundColor: canPlaceAt(previewCell.x, previewCell.y)
-                    ? 'rgba(154, 99, 214, 0.45)'
-                    : 'rgba(217, 79, 82, 0.40)',
-                  zIndex: 4,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 3,
                 }}
-              />
-            ) : null}
-          </View>
-        </View>
+              >
+                {facilities.buildings.map((building) => {
+                  const selected = building.id === selectedBuildingId;
+                  const moving = building.id === relocatingBuildingId;
+                  const comboActive = building.activeAdjacencyIds.length > 0;
+                  const guidedUpgradeTarget =
+                    guideFocus === 'facility-upgrade' &&
+                    building.id === selectedBuildingId;
+                  const cellSize = facilityGridWidth / facilities.width;
+                  const artWidth = Math.max(24, building.width * cellSize - 10);
+                  const artHeight = Math.max(
+                    24,
+                    building.height * cellSize - 10,
+                  );
+                  return (
+                    <Pressable
+                      key={building.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(
+                        comboActive
+                          ? 'clubFinances.a11y.facilityCellCombo'
+                          : 'clubFinances.a11y.facilityCell',
+                        {
+                          name: building.name,
+                          level: building.level,
+                          effect: building.effectLabel,
+                        },
+                      )}
+                      disabled={placementActive}
+                      onPress={() => {
+                        setSelectedBuildingId(building.id);
+                        setSelectedBuildType(null);
+                        revealFacilityDetail();
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: `${(building.x * 100) / facilities.width}%`,
+                        top: `${(building.y * 100) / facilities.height}%`,
+                        width: `${(building.width * 100) / facilities.width}%`,
+                        height: `${(building.height * 100) / facilities.height}%`,
+                        padding: 2,
+                        backgroundColor: comboActive ? '#8fd98f' : undefined,
+                        shadowColor: comboActive ? '#3f8a4a' : undefined,
+                        shadowOpacity: comboActive ? 0.9 : 0,
+                        shadowRadius: comboActive ? 5 : 0,
+                        zIndex: guidedUpgradeTarget ? 4 : undefined,
+                      }}
+                    >
+                      {guidedUpgradeTarget ? (
+                        <TutorialTapCue
+                          label={t('clubFinances.bertSays')}
+                          detail={t('clubFinances.reviewTheUpgrade')}
+                          labelOffsetX={Math.max(
+                            0,
+                            TUTORIAL_TAP_CUE_WIDTH / 2 -
+                              (building.width * cellSize) / 2,
+                          )}
+                          style={{
+                            left: '50%',
+                            marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                            top: -72,
+                          }}
+                        />
+                      ) : null}
+                      <View
+                        style={{
+                          flex: 1,
+                          borderWidth: selected || comboActive ? 3 : 2,
+                          borderColor: selected
+                            ? '#5b3a91'
+                            : comboActive
+                              ? '#3f8a4a'
+                              : '#241f2e',
+                          backgroundColor: moving
+                            ? '#c9a6ec'
+                            : facilityColor(building),
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          opacity: moving ? 0.55 : 1,
+                        }}
+                      >
+                        {building.status === 'construction' ? (
+                          <ManagementSprite
+                            spriteKey="facility:worksite"
+                            // Grid cells can measure narrower than the 32px art;
+                            // the cell cannot grow (it is a % of the plot), so a
+                            // sub-32 width accepts ManagementSprite's explicit
+                            // sub-1x downscale rather than overflowing the cell.
+                            width={Math.max(
+                              24,
+                              Math.min(64, Math.min(artWidth, artHeight)),
+                            )}
+                            accessibilityLabel={t(
+                              'clubFinances.a11y.facilityConstruction',
+                              {
+                                name: building.name,
+                              },
+                            )}
+                          />
+                        ) : (
+                          <FacilitySprite
+                            type={building.type}
+                            level={building.level}
+                            width={artWidth}
+                            height={artHeight}
+                            showLevel={false}
+                          />
+                        )}
+                        <View
+                          style={{
+                            position: 'absolute',
+                            right: 2,
+                            bottom: 2,
+                            borderWidth: 2,
+                            borderColor: '#241f2e',
+                            backgroundColor: '#f4f1eadd',
+                            paddingHorizontal: 4,
+                            paddingVertical: 2,
+                          }}
+                        >
+                          <PixelText className="text-center text-xs uppercase text-ink">
+                            {building.status === 'operational'
+                              ? `L${building.level}`
+                              : `${building.status === 'construction' ? 'BUILD' : building.status === 'closed' ? 'CLOSED' : 'UP'} · ${building.weeksRemaining}W`}
+                          </PixelText>
+                        </View>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
+              {placementActive && previewCell && activeFootprint ? (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: `${(previewCell.x * 100) / facilities.width}%`,
+                    top: `${(previewCell.y * 100) / facilities.height}%`,
+                    width: `${(activeFootprint.width * 100) / facilities.width}%`,
+                    height: `${(activeFootprint.height * 100) / facilities.height}%`,
+                    borderWidth: 3,
+                    borderColor: canPlaceAt(previewCell.x, previewCell.y)
+                      ? '#5b3a91'
+                      : '#a83440',
+                    backgroundColor: canPlaceAt(previewCell.x, previewCell.y)
+                      ? 'rgba(154, 99, 214, 0.45)'
+                      : 'rgba(217, 79, 82, 0.40)',
+                    zIndex: 4,
+                  }}
+                />
+              ) : null}
+            </View>
+          </View>
+        </ScrollView>
         {placementActive ? (
           <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
             <View className="flex-1">

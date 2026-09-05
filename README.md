@@ -113,7 +113,7 @@ Research reports (source material, written by research agents):
 | Decision | Choice |
 |---|---|
 | Contract renewals | The agent's asking wage is shown before talks open (transfers keep a hidden ask). Renewals can be signed in one tap at that full ask with no promise; negotiating is how you pay less, and promises stay inside the negotiation where their squad cost is stated. A signed hero renewal can land as low as x2.0 (measured floor x1.99, needing a loyal undeveloped hero plus two loved cards) — accepted, not floored, so x3-5 describes the ask rather than the signed wage |
-| Match involvement | Matches auto-play. Powers fire automatically by default; a manager who sets HERO POWER to MANUAL gets a context-gated fire button per charged hero on the pitch. Save-power goalkeepers use a ten-second manual window. The player's live controls are Formation, Playstyle, Swap, Energy Use, and — in MANUAL — power timing |
+| Match involvement | Matches auto-play. Hero power control defaults to MANUAL, which gives the manager a context-gated fire button per charged hero on the pitch. Save-power goalkeepers use a ten-second manual window. The player's live controls are Formation, Playstyle, Swap, Energy Use, and — in MANUAL — power timing |
 | Match effort | Playstyle controls tactical intent; Save Energy / Balanced / All Out controls physical effort, movement, and condition drain without directly changing passing or shooting |
 | Career structure | Climb from D5 · District League to D1 · Global League; win **both** D1 and the Hero Cup to complete the main journey, then continue endlessly; the career record is kept in the Hall of Fame |
 | Business model | Paid app, US$3.99, no IAP at launch; economy balanced purely for fun |

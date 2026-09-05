@@ -4,7 +4,7 @@ Two strictly separated layers: a **deterministic simulation core** (pure TypeScr
 
 ## Deterministic ≠ predetermined
 
-The match is a live simulation: 22 agents making stat-driven decisions, with a dice roll at every contested moment. Powers fire automatically in their authored context by default. In a watched MANUAL match, context-gated `POWER_TAP` inputs add power timing to the live controls. Formation, Playstyle, Swap, Energy Use, and every accepted or stale power tap are recorded and can change the outcome. The head coach's **motivational speech** is another recorded input, offered once at half time when the club has at least one banked and a head coach to give it (see `docs/05`).
+The match is a live simulation: 22 agents making stat-driven decisions, with a dice roll at every contested moment. Hero power control defaults to MANUAL. AUTO fires powers automatically in their authored context. In a watched MANUAL match, context-gated `POWER_TAP` inputs add power timing to the live controls. Formation, Playstyle, Swap, Energy Use, and every accepted or stale power tap are recorded and can change the outcome. The head coach's **motivational speech** is another recorded input, offered once at half time when the club has at least one banked and a head coach to give it (see `docs/05`).
 
 "Deterministic" is an engineering promise, not a gameplay one: every dice roll comes from one seeded generator, and the sim reads no clocks or device state. (Like a deck shuffled once at kickoff — the shuffle is fixed, but which cards get drawn depends on how play unfolds, including your coaching changes.)
 

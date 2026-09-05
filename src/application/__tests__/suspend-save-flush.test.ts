@@ -18,6 +18,85 @@ describe('career save flush on suspend', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
+  it.each(['resolve', 'reject'] as const)(
+    'keeps newer saved actions when a reconnect %ss after a failed save',
+    async (outcome) => {
+      const saved: GameState[] = [];
+      let failNext = false;
+      const repository = stubCareerRepository({
+        async save(state) {
+          if (failNext) {
+            failNext = false;
+            throw new Error('disk temporarily unavailable');
+          }
+          saved.push(state);
+        },
+      });
+      await useM1Store.getState().initializePersistence(repository);
+      await startCreatedCareer(20260905);
+      failNext = true;
+      useM1Store.getState().setAssistantMode('advisor');
+      await settle();
+      expect(useM1Store.getState().consecutiveSaveFailures).toBe(1);
+      expect(useM1Store.getState().saveBlocked).toBe(false);
+
+      let finish!: () => void;
+      const reconnect = new Promise<CareerRepository>((resolve, reject) => {
+        finish = () =>
+          outcome === 'resolve'
+            ? resolve(repository)
+            : reject(new Error('reconnect failed'));
+      });
+      useM1Store.getState().setReopenRepository(() => reconnect);
+      useM1Store.getState().retrySave();
+      try {
+        useM1Store.getState().setAssistantMode('teacher');
+        await flushPendingCareerSave();
+      } finally {
+        finish();
+        await settle();
+        await flushPendingCareerSave();
+      }
+      expect(saved.at(-1)).toBe(useM1Store.getState().career);
+      expect(saved.at(-1)!.assistantMode).toBe('teacher');
+      expect(useM1Store.getState().saveWarning).toBeNull();
+    },
+  );
+
+  it('ignores a reconnect that outlives a career replacement', async () => {
+    const saved: GameState[] = [];
+    const repository = stubCareerRepository({
+      async save(state) {
+        saved.push(state);
+      },
+    });
+    await useM1Store.getState().initializePersistence(repository);
+    await startCreatedCareer(20260905);
+    let finish!: (repository: CareerRepository) => void;
+    const reconnect = new Promise<CareerRepository>((resolve) => {
+      finish = resolve;
+    });
+    useM1Store.getState().setReopenRepository(() => reconnect);
+    useM1Store.getState().retrySave();
+    try {
+      useM1Store.getState().startNewCareer(20260906);
+      await flushPendingCareerSave();
+    } finally {
+      finish(
+        stubCareerRepository({
+          async save() {
+            throw new Error('retired reconnect used');
+          },
+        }),
+      );
+      await settle();
+      await flushPendingCareerSave();
+    }
+    expect(useM1Store.getState().repository).toBe(repository);
+    expect(saved.at(-1)!.careerSeed).toBe(20260906);
+    expect(useM1Store.getState().saveWarning).toBeNull();
+  });
+
   it('does nothing when there is no queued career', async () => {
     let saves = 0;
     const repository = stubCareerRepository({
