@@ -25,6 +25,11 @@ export const contractRenewalEntry: DevHarnessEntry = {
   cases: [
     { id: 'standard', label: 'Standard', note: 'Normal renewals' },
     { id: 'hero-cliff', label: 'Hero Cliff', note: 'Hero rate jump visible' },
+    {
+      id: 'normal-talks',
+      label: 'Promise help',
+      note: 'Normal player contract explains awakening permits',
+    },
   ],
   render: (caseId) => <ContractRenewalReel caseId={caseId} />,
 };
@@ -33,7 +38,7 @@ function ContractRenewalReel({ caseId }: { readonly caseId: string }) {
   const insets = useSafeAreaInsets();
   const [career] = useState(() => {
     const base = devHarnessCareerAtSeasonEnd(caseId === 'hero-cliff' ? 3 : 2);
-    if (caseId !== 'hero-cliff') return base;
+    if (caseId === 'standard') return base;
     const hero = base.players.find(
       (player) => player.clubId === base.userClubId,
     );
@@ -46,7 +51,7 @@ function ContractRenewalReel({ caseId }: { readonly caseId: string }) {
           : {
               ...player,
               contractSeasonsRemaining: player.id === hero.id ? 0 : 1,
-              ...(player.id === hero.id
+              ...(caseId === 'hero-cliff' && player.id === hero.id
                 ? { power: 'SUPER_SPEED' as const, onHeroWage: false }
                 : {}),
             },
@@ -60,6 +65,7 @@ function ContractRenewalReel({ caseId }: { readonly caseId: string }) {
       heroCareer.market,
       hero.id,
     );
+    if (caseId === 'normal-talks') return { ...heroCareer, market: opened };
     const ask = opened.renewalTalks!.negotiation.weeklyAsk;
     return {
       ...heroCareer,

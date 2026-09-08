@@ -35,6 +35,64 @@ import {
 describe('management injury and lineup presentation', () => {
   const content = loadLaunchContent();
 
+  it('explains the current awakening cap and clears the promise warning when a permit is free', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260907));
+    const squad = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const fixture = initial.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === initial.userClubId ||
+        candidate.awayClubId === initial.userClubId,
+    )!;
+    const full: GameState = {
+      ...initial,
+      phase: 'matchday',
+      week: fixture.week,
+      players: initial.players.map((player) =>
+        squad.slice(0, 2).some((hero) => hero.id === player.id)
+          ? { ...player, power: 'SUPER_SPEED', licensed: true }
+          : player.id === squad[2].id
+            ? {
+                ...player,
+                contractSeasonsRemaining: 2,
+                contractPromise: {
+                  perk: 'GUARANTEED_STARTER',
+                  agreedSeason: 1,
+                },
+              }
+            : player,
+      ),
+    };
+    const help = (state: GameState) =>
+      matchDayViewModel(
+        {
+          ...state,
+          fixtures: state.fixtures.map((candidate) => ({
+            ...candidate,
+            season: state.season,
+          })),
+        },
+        content,
+      ).heroLicenseOffer.awakeningHelp!;
+    expect(help(full)[0]).toContain('0/2');
+    expect(help(full)[1]).toContain(squad[2].name);
+    expect(help({ ...full, purchasedHeroLicenseCap: 3 })).toHaveLength(1);
+    const later = {
+      ...full,
+      season: 2,
+      awakening: {
+        ...full.awakening,
+        seasonTally: { season: 2, count: 1 },
+      },
+    };
+    expect(help(later)[0]).toContain('1/1');
+    expect(help(later)[0]).toContain(
+      'does not bypass this limit or guarantee an awakening',
+    );
+    expect(help({ ...later, season: 3 })[0]).toContain('0/1');
+  });
+
   it('keeps an out-of-position replacement in the formation slot they took', () => {
     const initial = createCareer(
       createLaunchCareerSetup(20260805, undefined, content),

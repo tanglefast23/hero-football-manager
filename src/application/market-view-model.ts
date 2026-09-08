@@ -325,7 +325,12 @@ function perkViewModels(
     return {
       id: perk.id,
       label: t(perk.label),
-      detail: t(perk.detail),
+      detail:
+        context !== undefined &&
+        context.player.power === undefined &&
+        (perk.id === 'GUARANTEED_STARTER' || perk.id === 'CAPTAINCY')
+          ? `${t(perk.detail)} ${t('market.promiseAwakeningLicense')}`
+          : t(perk.detail),
       gradeLabel: perkGradeLabel(perk.id, t, personality),
       available: blocked === undefined,
       ...(blocked === undefined
@@ -972,7 +977,9 @@ function transferListing(
     quoteLabel:
       listing.direction === 'BUY'
         ? t('market.quoteClubAsking')
-        : t('market.quoteBestBid'),
+        : listing.listed === true
+          ? t('market.quoteBestBid')
+          : t('market.quoteEstimatedBid'),
     actionLabel:
       listing.direction === 'BUY'
         ? t('market.actionOpenTalks')

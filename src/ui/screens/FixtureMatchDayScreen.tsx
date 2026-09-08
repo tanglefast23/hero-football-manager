@@ -911,6 +911,11 @@ export function FixtureMatchDayScreen({
           {t('fixtureMatchDay.ownedHeroesWithoutA')}
         </Text>
       ) : null}
+      {(viewModel.heroLicenseOffer.awakeningHelp ?? []).map((detail) => (
+        <Text key={detail} className="mt-3 text-sm leading-5 text-paper/75">
+          {detail}
+        </Text>
+      ))}
       {/*
        * The counter opens only once the cap actually bites — a club with one
        * hero and two permits is not being sold anything. Its refusal stays

@@ -1220,128 +1220,118 @@ function RosterSection({
                     }}
                   />
                 ) : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('squadTraining.a11y.openSummaryFor', {
+                <InfoTip
+                  text={rosterRowSummary(player, t)}
+                  accessibilityLabel={`${t('squadTraining.a11y.openSummaryFor', {
                     player: player.name,
-                  })}
+                  })}. ${rosterRowSummary(player, t)}`}
                   onPress={() => onSelectPlayer(player.id)}
-                  className="min-h-11 flex-1 flex-row items-center"
-                  style={({ pressed }) => ({
-                    opacity: pressed ? 0.65 : undefined,
-                  })}
+                  className="flex-1"
                 >
-                  <Text
-                    style={columns.role}
-                    className={
-                      selected
-                        ? 'font-pixel text-sm text-ink'
-                        : 'font-pixel text-sm text-blue-dark'
-                    }
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.8}
-                    numberOfLines={1}
-                  >
-                    {player.role}
-                  </Text>
-                  <View className="flex-1 pr-2">
-                    {/* The name carries the row's hover card: every other cell
-                        in this column is clipped to one line, and the card is
-                        the only place the promise is spelled out. */}
-                    <InfoTip
-                      text={rosterRowSummary(player, t)}
-                      accessibilityLabel={rosterRowSummary(player, t)}
-                      onPress={() => onSelectPlayer(player.id)}
+                  <View className="min-h-11 flex-row items-center">
+                    <Text
+                      style={columns.role}
+                      className={
+                        selected
+                          ? 'font-pixel text-sm text-ink'
+                          : 'font-pixel text-sm text-blue-dark'
+                      }
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                      numberOfLines={1}
                     >
+                      {player.role}
+                    </Text>
+                    <View className="flex-1 pr-2">
                       <Text
                         className="text-base font-bold text-ink"
                         numberOfLines={1}
                       >
                         {player.name}
                       </Text>
-                    </InfoTip>
-                    {player.injuryWeeks > 0 ? (
-                      <Text
-                        className="mt-0.5 font-pixel text-sm uppercase text-red-dark"
-                        numberOfLines={1}
-                      >
-                        {t('squadTraining.outForWeeks', {
-                          n: player.injuryWeeks,
-                          count: player.injuryWeeks,
-                        })}
-                      </Text>
-                    ) : player.isStarter &&
-                      player.contractPromisePerk !== 'GUARANTEED_STARTER' ? (
-                      // One word, because the name column is the row's only
-                      // flexible cell: "Starting XI" clipped to "STARTI…" on a
-                      // phone, which reads as a bug rather than an abbreviation.
-                      <Text
-                        className="mt-0.5 font-pixel text-sm uppercase text-pitch-ink"
-                        numberOfLines={1}
-                      >
-                        {t('squadTraining.start')}
-                      </Text>
-                    ) : null}
-                    <Text
-                      className="mt-0.5 font-pixel text-sm uppercase text-blue-dark"
-                      numberOfLines={1}
-                    >
-                      {[
-                        player.isCaptain &&
-                        player.contractPromisePerk !== 'CAPTAINCY'
-                          ? t('squadTraining.captain')
-                          : undefined,
-                        `#${player.shirtNumber}`,
-                        player.contractPromiseLabel,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Text>
-                    <Text
-                      className="mt-1 text-sm text-ink/60"
-                      numberOfLines={1}
-                    >
-                      {player.contractLabel}
-                    </Text>
-                    {player.powerName ? (
-                      <View className="mt-0.5 flex-row items-center gap-1">
-                        {/* Glyph-only node: ★ is in neither Silkscreen weight, so it
-                          stands alone and falls back to the system face on purpose. */}
-                        <Text className="text-sm text-gold-dark">★</Text>
-                        <PixelText
-                          className="text-sm uppercase text-gold-dark"
+                      {player.injuryWeeks > 0 ? (
+                        <Text
+                          className="mt-0.5 font-pixel text-sm uppercase text-red-dark"
                           numberOfLines={1}
                         >
-                          {player.powerName}
-                        </PixelText>
-                      </View>
-                    ) : null}
+                          {t('squadTraining.outForWeeks', {
+                            n: player.injuryWeeks,
+                            count: player.injuryWeeks,
+                          })}
+                        </Text>
+                      ) : player.isStarter &&
+                        player.contractPromisePerk !== 'GUARANTEED_STARTER' ? (
+                        // One word, because the name column is the row's only
+                        // flexible cell: "Starting XI" clipped to "STARTI…" on a
+                        // phone, which reads as a bug rather than an abbreviation.
+                        <Text
+                          className="mt-0.5 font-pixel text-sm uppercase text-pitch-ink"
+                          numberOfLines={1}
+                        >
+                          {t('squadTraining.start')}
+                        </Text>
+                      ) : null}
+                      <Text
+                        className="mt-0.5 font-pixel text-sm uppercase text-blue-dark"
+                        numberOfLines={1}
+                      >
+                        {[
+                          player.isCaptain &&
+                          player.contractPromisePerk !== 'CAPTAINCY'
+                            ? t('squadTraining.captain')
+                            : undefined,
+                          `#${player.shirtNumber}`,
+                          player.contractPromiseLabel,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                      <Text
+                        className="mt-1 text-sm text-ink/60"
+                        numberOfLines={1}
+                      >
+                        {player.contractLabel}
+                      </Text>
+                      {player.powerName ? (
+                        <View className="mt-0.5 flex-row items-center gap-1">
+                          {/* Glyph-only node: ★ is in neither Silkscreen weight, so it
+                          stands alone and falls back to the system face on purpose. */}
+                          <Text className="text-sm text-gold-dark">★</Text>
+                          <PixelText
+                            className="text-sm uppercase text-gold-dark"
+                            numberOfLines={1}
+                          >
+                            {player.powerName}
+                          </PixelText>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text
+                      style={columns.overall}
+                      className="text-right font-mono text-base text-ink"
+                      maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                      numberOfLines={1}
+                    >
+                      {player.overall}
+                    </Text>
+                    <Text
+                      style={columns.potential}
+                      className="pr-1 text-right font-mono text-base text-gold-dark"
+                      maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                      numberOfLines={1}
+                    >
+                      {player.potentialGrade}
+                    </Text>
+                    <Text
+                      style={columns.condition}
+                      className={`text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
+                      maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                      numberOfLines={1}
+                    >
+                      {player.condition}%
+                    </Text>
                   </View>
-                  <Text
-                    style={columns.overall}
-                    className="text-right font-mono text-base text-ink"
-                    maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
-                    numberOfLines={1}
-                  >
-                    {player.overall}
-                  </Text>
-                  <Text
-                    style={columns.potential}
-                    className="pr-1 text-right font-mono text-base text-gold-dark"
-                    maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
-                    numberOfLines={1}
-                  >
-                    {player.potentialGrade}
-                  </Text>
-                  <Text
-                    style={columns.condition}
-                    className={`text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
-                    maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
-                    numberOfLines={1}
-                  >
-                    {player.condition}%
-                  </Text>
-                </Pressable>
+                </InfoTip>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={
@@ -1717,6 +1707,9 @@ function PlayerFileSection({
           />
         </InfoTip>
       </View>
+      <Text className="mt-2 text-sm leading-5 text-ink/65">
+        {t('squadTraining.superChanceHelp')}
+      </Text>
       {/* Morale and loyalty sit together because they are the same kind of
           number on two different clocks: morale swings on results and recovers
           on wins, loyalty only moves when the manager decides something and

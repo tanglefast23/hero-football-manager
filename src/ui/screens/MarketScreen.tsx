@@ -2030,7 +2030,7 @@ export function NegotiationPanel({
                     n: term,
                     seasons: term,
                   })}
-                  accessibilityState={{ selected: termSeasons === term }}
+                  accessibilityState={{ checked: termSeasons === term }}
                   onPress={() => setTermSeasons(term)}
                   className={
                     termSeasons === term
@@ -2086,7 +2086,7 @@ export function NegotiationPanel({
                         : `${option.detail} ${option.blockedReason}`,
                   })}
                   accessibilityState={{
-                    selected: perk === option.id,
+                    checked: perk === option.id,
                     disabled: !option.available,
                   }}
                   disabled={!option.available}
@@ -2134,7 +2134,7 @@ export function NegotiationPanel({
                       accessibilityRole="radio"
                       accessibilityLabel={`${holder.name}, ${holder.role}, ${holder.statusLabel}. ${holder.consequenceLabel}`}
                       accessibilityState={{
-                        selected: reclaimPlayerId === holder.playerId,
+                        checked: reclaimPlayerId === holder.playerId,
                       }}
                       onPress={() => setReclaimPlayerId(holder.playerId)}
                       className={
@@ -2176,7 +2176,7 @@ export function NegotiationPanel({
                   <Pressable
                     accessibilityRole="radio"
                     accessibilityLabel={t('market.noPitchCard')}
-                    accessibilityState={{ selected: pitchCard === undefined }}
+                    accessibilityState={{ checked: pitchCard === undefined }}
                     onPress={() => setPitchCard(undefined)}
                     className={
                       pitchCard === undefined
@@ -2198,7 +2198,7 @@ export function NegotiationPanel({
                           label: card.label,
                           detail: card.detail,
                         })}
-                        accessibilityState={{ selected, disabled: card.used }}
+                        accessibilityState={{ checked: selected, disabled: card.used }}
                         disabled={card.used}
                         onPress={() =>
                           setPitchCard((current) =>

@@ -1,0 +1,2230 @@
+{
+  "device": "iPhone 16 Pro Max",
+  "os": "26.6.1",
+  "metric": "Continuous drawing-callback gaps, not presented-frame FPS",
+  "audio": "Native playback active; output muted during measurement",
+  "runs": [
+    {
+      "name": "four-restored-groups",
+      "seed": 20260893,
+      "rows": [
+        {
+          "elapsedMs": 2014,
+          "appState": "active",
+          "tick": 58,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 11,
+          "powersFired": 0,
+          "ui": {
+            "count": 211,
+            "totalMs": 1915.8840833306313,
+            "maxMs": 17.389166712760925,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 113,
+            "totalMs": 1942.3172500133514,
+            "maxMs": 33.54862505197525,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 4008,
+          "appState": "active",
+          "tick": 118,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 23,
+          "powersFired": 0,
+          "ui": {
+            "count": 221,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 17.17354166507721,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2257090210915,
+            "maxMs": 16.771333038806915,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 6009,
+          "appState": "active",
+          "tick": 178,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 30,
+          "powersFired": 0,
+          "ui": {
+            "count": 224,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.6681666970253,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.167207956314,
+            "maxMs": 16.877083003520966,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 8018,
+          "appState": "active",
+          "tick": 238,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 40,
+          "powersFired": 0,
+          "ui": {
+            "count": 225,
+            "totalMs": 2008.5140833258629,
+            "maxMs": 16.86487501859665,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1412920355797,
+            "maxMs": 16.767167031764984,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 10009,
+          "appState": "active",
+          "tick": 298,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 47,
+          "powersFired": 0,
+          "ui": {
+            "count": 218,
+            "totalMs": 1991.8458333015442,
+            "maxMs": 16.78708326816559,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2341659665108,
+            "maxMs": 16.7742919921875,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 12014,
+          "appState": "active",
+          "tick": 358,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 53,
+          "powersFired": 0,
+          "ui": {
+            "count": 221,
+            "totalMs": 2000.180083334446,
+            "maxMs": 16.668250024318695,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1644170284271,
+            "maxMs": 16.75629097223282,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 14010,
+          "appState": "active",
+          "tick": 418,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 65,
+          "powersFired": 0,
+          "ui": {
+            "count": 224,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.66824996471405,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.153541982174,
+            "maxMs": 16.76120799779892,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 16022,
+          "appState": "active",
+          "tick": 478,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 75,
+          "powersFired": 0,
+          "ui": {
+            "count": 212,
+            "totalMs": 1991.8458333611488,
+            "maxMs": 17.30450004339218,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2479580044746,
+            "maxMs": 24.770791947841644,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 18015,
+          "appState": "active",
+          "tick": 538,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 88,
+          "powersFired": 0,
+          "ui": {
+            "count": 222,
+            "totalMs": 2008.5467082858086,
+            "maxMs": 17.291791677474976,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1688330173492,
+            "maxMs": 23.823041021823883,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 20010,
+          "appState": "active",
+          "tick": 598,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 95,
+          "powersFired": 0,
+          "ui": {
+            "count": 224,
+            "totalMs": 2000.1800000667572,
+            "maxMs": 16.668250024318695,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1959589719772,
+            "maxMs": 16.770084023475647,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 22016,
+          "appState": "active",
+          "tick": 658,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 107,
+          "powersFired": 0,
+          "ui": {
+            "count": 226,
+            "totalMs": 2008.5140833258629,
+            "maxMs": 16.66824996471405,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.117332994938,
+            "maxMs": 16.860249996185303,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 24015,
+          "appState": "active",
+          "tick": 718,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 116,
+          "powersFired": 0,
+          "ui": {
+            "count": 219,
+            "totalMs": 1991.8459166288376,
+            "maxMs": 16.90891671180725,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.18966704607,
+            "maxMs": 16.770749986171722,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 26015,
+          "appState": "active",
+          "tick": 778,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 125,
+          "powersFired": 0,
+          "ui": {
+            "count": 217,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 17.24329173564911,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2119999527931,
+            "maxMs": 16.763291001319885,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 28011,
+          "appState": "active",
+          "tick": 838,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 133,
+          "powersFired": 0,
+          "ui": {
+            "count": 219,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.99691665172577,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2450000047684,
+            "maxMs": 16.847292006015778,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 30010,
+          "appState": "active",
+          "tick": 898,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 144,
+          "powersFired": 1,
+          "ui": {
+            "count": 223,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 25.40883332490921,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1347079873085,
+            "maxMs": 21.85904198884964,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 32011,
+          "appState": "active",
+          "tick": 958,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 155,
+          "powersFired": 1,
+          "ui": {
+            "count": 226,
+            "totalMs": 2000.179999947548,
+            "maxMs": 17.233333349227905,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.170792043209,
+            "maxMs": 16.85358303785324,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 34011,
+          "appState": "active",
+          "tick": 1018,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 169,
+          "powersFired": 1,
+          "ui": {
+            "count": 232,
+            "totalMs": 2000.1800000667572,
+            "maxMs": 17.239833295345306,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2027080059052,
+            "maxMs": 16.778500020503998,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 36025,
+          "appState": "active",
+          "tick": 1078,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 184,
+          "powersFired": 1,
+          "ui": {
+            "count": 228,
+            "totalMs": 2000.2125416398048,
+            "maxMs": 17.228749990463257,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1989169716835,
+            "maxMs": 22.80308300256729,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 38023,
+          "appState": "active",
+          "tick": 1138,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 196,
+          "powersFired": 1,
+          "ui": {
+            "count": 221,
+            "totalMs": 1991.8459166884422,
+            "maxMs": 17.22775000333786,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 119,
+            "totalMs": 2000.1930410265923,
+            "maxMs": 27.632333040237427,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 40011,
+          "appState": "active",
+          "tick": 1198,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 208,
+          "powersFired": 2,
+          "ui": {
+            "count": 227,
+            "totalMs": 2000.1799166798592,
+            "maxMs": 25.002250015735626,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.160667002201,
+            "maxMs": 23.56679195165634,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 42017,
+          "appState": "active",
+          "tick": 1258,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 220,
+          "powersFired": 3,
+          "ui": {
+            "count": 229,
+            "totalMs": 2008.5141665935516,
+            "maxMs": 17.76870834827423,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1922079920769,
+            "maxMs": 18.262374997138977,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 44015,
+          "appState": "active",
+          "tick": 1318,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 230,
+          "powersFired": 4,
+          "ui": {
+            "count": 230,
+            "totalMs": 1941.8414167165756,
+            "maxMs": 17.117749989032745,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1293749809265,
+            "maxMs": 16.813915967941284,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 46038,
+          "appState": "active",
+          "tick": 1378,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 244,
+          "powersFired": 4,
+          "ui": {
+            "count": 215,
+            "totalMs": 2066.8526666760445,
+            "maxMs": 62.06287497282028,
+            "over50": 1,
+            "over250": 0
+          },
+          "js": {
+            "count": 85,
+            "totalMs": 2009.7477499842644,
+            "maxMs": 51.49570804834366,
+            "over50": 1,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 48031,
+          "appState": "active",
+          "tick": 1438,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 253,
+          "powersFired": 4,
+          "ui": {
+            "count": 220,
+            "totalMs": 2008.5140833258629,
+            "maxMs": 17.25570833683014,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 104,
+            "totalMs": 2007.3103340268135,
+            "maxMs": 40.12366604804993,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 50026,
+          "appState": "active",
+          "tick": 1498,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 259,
+          "powersFired": 4,
+          "ui": {
+            "count": 226,
+            "totalMs": 1991.8459166884422,
+            "maxMs": 17.35295832157135,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.204165995121,
+            "maxMs": 25.61770796775818,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 52034,
+          "appState": "active",
+          "tick": 1558,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 269,
+          "powersFired": 4,
+          "ui": {
+            "count": 231,
+            "totalMs": 2008.5140832662582,
+            "maxMs": 17.27079164981842,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.748583972454,
+            "maxMs": 25.77529102563858,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 54068,
+          "appState": "active",
+          "tick": 1619,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 278,
+          "powersFired": 5,
+          "ui": {
+            "count": 219,
+            "totalMs": 2008.5466250181198,
+            "maxMs": 18.193791687488556,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 111,
+            "totalMs": 2009.7770410180092,
+            "maxMs": 43.24341702461243,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 56084,
+          "appState": "active",
+          "tick": 1679,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 286,
+          "powersFired": 5,
+          "ui": {
+            "count": 198,
+            "totalMs": 2008.5140833854675,
+            "maxMs": 25.00225007534027,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 99,
+            "totalMs": 2006.6699169874191,
+            "maxMs": 44.97370898723602,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 58052,
+          "appState": "active",
+          "tick": 1739,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 292,
+          "powersFired": 5,
+          "ui": {
+            "count": 196,
+            "totalMs": 2000.179999947548,
+            "maxMs": 25.002250015735626,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 100,
+            "totalMs": 2000.14074999094,
+            "maxMs": 45.13762503862381,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 60078,
+          "appState": "active",
+          "tick": 1799,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 308,
+          "powersFired": 5,
+          "ui": {
+            "count": 181,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 25.923666656017303,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 109,
+            "totalMs": 2000.1817080378532,
+            "maxMs": 44.42416697740555,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 62073,
+          "appState": "active",
+          "tick": 1859,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 316,
+          "powersFired": 5,
+          "ui": {
+            "count": 192,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 33.33633333444595,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 101,
+            "totalMs": 2000.1813749670982,
+            "maxMs": 46.33933401107788,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 64087,
+          "appState": "active",
+          "tick": 1920,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 324,
+          "powersFired": 5,
+          "ui": {
+            "count": 192,
+            "totalMs": 2041.8504166603088,
+            "maxMs": 25.00225007534027,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 99,
+            "totalMs": 2031.0099170207977,
+            "maxMs": 47.13416701555252,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 66105,
+          "appState": "active",
+          "tick": 1980,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 330,
+          "powersFired": 5,
+          "ui": {
+            "count": 190,
+            "totalMs": 1991.8459166884422,
+            "maxMs": 25.002333343029022,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 101,
+            "totalMs": 2002.791957974434,
+            "maxMs": 45.69733399152756,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 68079,
+          "appState": "active",
+          "tick": 2017,
+          "phase": "fulltime",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": true,
+          "events": 333,
+          "powersFired": 5,
+          "ui": {
+            "count": 201,
+            "totalMs": 2000.179999947548,
+            "maxMs": 25.002250015735626,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 66,
+            "totalMs": 1233.3435840010643,
+            "maxMs": 44.870250046253204,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        }
+      ]
+    },
+    {
+      "name": "six-restored-groups",
+      "seed": 20260893,
+      "rows": [
+        {
+          "elapsedMs": 2007,
+          "appState": "active",
+          "tick": 58,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 11,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 0,
+          "trailSlots": 0,
+          "ui": {
+            "count": 207,
+            "totalMs": 1900.1520832777023,
+            "maxMs": 25.001999974250793,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 115,
+            "totalMs": 1941.6552500128746,
+            "maxMs": 33.68295902013779,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 4007,
+          "appState": "active",
+          "tick": 118,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 23,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 2,
+          "trailSlots": 0,
+          "ui": {
+            "count": 221,
+            "totalMs": 2008.5438333153725,
+            "maxMs": 17.079166650772095,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.238290965557,
+            "maxMs": 16.76687502861023,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 6008,
+          "appState": "active",
+          "tick": 178,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 30,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 3,
+          "trailSlots": 0,
+          "ui": {
+            "count": 224,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.668250024318695,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1205000281334,
+            "maxMs": 16.90241700410843,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 8016,
+          "appState": "active",
+          "tick": 238,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 40,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 3,
+          "trailSlots": 0,
+          "ui": {
+            "count": 224,
+            "totalMs": 2000.1799166798592,
+            "maxMs": 17.341791689395905,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2227919697762,
+            "maxMs": 17.200500011444092,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 10008,
+          "appState": "active",
+          "tick": 298,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 47,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 3,
+          "trailSlots": 0,
+          "ui": {
+            "count": 220,
+            "totalMs": 2000.180083334446,
+            "maxMs": 16.6681666970253,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1917080283165,
+            "maxMs": 17.002416968345642,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 12008,
+          "appState": "active",
+          "tick": 358,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 53,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 4,
+          "trailSlots": 0,
+          "ui": {
+            "count": 221,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.6681666970253,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1590839624405,
+            "maxMs": 16.7394580245018,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 14009,
+          "appState": "active",
+          "tick": 418,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 65,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 4,
+          "trailSlots": 0,
+          "ui": {
+            "count": 222,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 17.48637503385544,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1287910342216,
+            "maxMs": 16.799708008766174,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 16020,
+          "appState": "active",
+          "tick": 478,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 75,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 5,
+          "trailSlots": 0,
+          "ui": {
+            "count": 217,
+            "totalMs": 1991.8459166288376,
+            "maxMs": 17.23512500524521,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2514169812202,
+            "maxMs": 24.72075003385544,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 18008,
+          "appState": "active",
+          "tick": 538,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 88,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 6,
+          "trailSlots": 0,
+          "ui": {
+            "count": 219,
+            "totalMs": 2008.5140833258629,
+            "maxMs": 25.002250015735626,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1479579806328,
+            "maxMs": 23.981124997138977,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 20009,
+          "appState": "active",
+          "tick": 598,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 95,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 6,
+          "trailSlots": 0,
+          "ui": {
+            "count": 224,
+            "totalMs": 2000.1800000667572,
+            "maxMs": 16.873708367347717,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.186292052269,
+            "maxMs": 16.783917009830475,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 22014,
+          "appState": "active",
+          "tick": 658,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 107,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 7,
+          "trailSlots": 0,
+          "ui": {
+            "count": 225,
+            "totalMs": 2000.2125416398048,
+            "maxMs": 17.13066667318344,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2199999690056,
+            "maxMs": 16.75662499666214,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 24009,
+          "appState": "active",
+          "tick": 718,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 116,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 7,
+          "trailSlots": 0,
+          "ui": {
+            "count": 221,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.891708374023438,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1729999780655,
+            "maxMs": 16.750999987125397,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 26015,
+          "appState": "active",
+          "tick": 778,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 125,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 8,
+          "trailSlots": 0,
+          "ui": {
+            "count": 217,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 25.00225007534027,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1884580254555,
+            "maxMs": 16.965582966804504,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 28010,
+          "appState": "active",
+          "tick": 838,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 133,
+          "powersFired": 0,
+          "powerNames": [],
+          "slideTackles": 8,
+          "trailSlots": 0,
+          "ui": {
+            "count": 223,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.668250024318695,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.196624994278,
+            "maxMs": 16.757333040237427,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 30009,
+          "appState": "active",
+          "tick": 898,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 144,
+          "powersFired": 1,
+          "powerNames": [
+            "SUPER_STRENGTH"
+          ],
+          "slideTackles": 9,
+          "trailSlots": 0,
+          "ui": {
+            "count": 223,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 16.668250024318695,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1649169921875,
+            "maxMs": 24.430791974067688,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 32010,
+          "appState": "active",
+          "tick": 958,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 155,
+          "powersFired": 1,
+          "powerNames": [
+            "SUPER_STRENGTH"
+          ],
+          "slideTackles": 9,
+          "trailSlots": 0,
+          "ui": {
+            "count": 228,
+            "totalMs": 2000.179999947548,
+            "maxMs": 17.124666690826416,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1819580197334,
+            "maxMs": 16.75537496805191,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 34010,
+          "appState": "active",
+          "tick": 1018,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 169,
+          "powersFired": 1,
+          "powerNames": [
+            "SUPER_STRENGTH"
+          ],
+          "slideTackles": 10,
+          "trailSlots": 0,
+          "ui": {
+            "count": 226,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 17.08712500333786,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.2014589905739,
+            "maxMs": 16.75645798444748,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 36023,
+          "appState": "active",
+          "tick": 1078,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 184,
+          "powersFired": 1,
+          "powerNames": [
+            "SUPER_STRENGTH"
+          ],
+          "slideTackles": 12,
+          "trailSlots": 0,
+          "ui": {
+            "count": 231,
+            "totalMs": 2000.6046250462532,
+            "maxMs": 17.225791692733765,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 119,
+            "totalMs": 2000.154541015625,
+            "maxMs": 27.068916976451874,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 38022,
+          "appState": "active",
+          "tick": 1138,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 196,
+          "powersFired": 1,
+          "powerNames": [
+            "SUPER_STRENGTH"
+          ],
+          "slideTackles": 12,
+          "trailSlots": 0,
+          "ui": {
+            "count": 222,
+            "totalMs": 1991.4212916493416,
+            "maxMs": 25.002250015735626,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 113,
+            "totalMs": 2000.1984999775887,
+            "maxMs": 29.933291018009186,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 40010,
+          "appState": "active",
+          "tick": 1198,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 208,
+          "powersFired": 2,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH"
+          ],
+          "slideTackles": 12,
+          "trailSlots": 0,
+          "ui": {
+            "count": 222,
+            "totalMs": 2000.2125833630562,
+            "maxMs": 37.20679169893265,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.1940839886665,
+            "maxMs": 25.69983398914337,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 42015,
+          "appState": "active",
+          "tick": 1258,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 220,
+          "powersFired": 3,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH"
+          ],
+          "slideTackles": 13,
+          "trailSlots": 0,
+          "ui": {
+            "count": 228,
+            "totalMs": 2008.5140833258629,
+            "maxMs": 17.446541726589203,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.218208014965,
+            "maxMs": 21.199000000953674,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 44013,
+          "appState": "active",
+          "tick": 1318,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 230,
+          "powersFired": 4,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 13,
+          "trailSlots": 1,
+          "ui": {
+            "count": 235,
+            "totalMs": 2000.179999947548,
+            "maxMs": 17.576458275318146,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 120,
+            "totalMs": 2000.149333000183,
+            "maxMs": 16.767791032791138,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 46032,
+          "appState": "active",
+          "tick": 1378,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 244,
+          "powersFired": 4,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 14,
+          "trailSlots": 0,
+          "ui": {
+            "count": 202,
+            "totalMs": 1991.8459166884422,
+            "maxMs": 19.219624996185303,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 80,
+            "totalMs": 2004.4701669812202,
+            "maxMs": 49.03720897436142,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 48025,
+          "appState": "active",
+          "tick": 1438,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 253,
+          "powersFired": 4,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 15,
+          "trailSlots": 0,
+          "ui": {
+            "count": 213,
+            "totalMs": 2016.8481666445732,
+            "maxMs": 25.00224995613098,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 100,
+            "totalMs": 2012.5759580135345,
+            "maxMs": 47.85708302259445,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 50025,
+          "appState": "active",
+          "tick": 1498,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 259,
+          "powersFired": 4,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 15,
+          "trailSlots": 0,
+          "ui": {
+            "count": 227,
+            "totalMs": 2000.1800000071526,
+            "maxMs": 17.058625042438507,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 119,
+            "totalMs": 2000.182667016983,
+            "maxMs": 34.45174998044968,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 52030,
+          "appState": "active",
+          "tick": 1558,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 269,
+          "powersFired": 4,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 16,
+          "trailSlots": 0,
+          "ui": {
+            "count": 227,
+            "totalMs": 2008.5140833854675,
+            "maxMs": 17.126999974250793,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 113,
+            "totalMs": 2000.0884580016136,
+            "maxMs": 43.24333304166794,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 54025,
+          "appState": "active",
+          "tick": 1618,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 278,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 16,
+          "trailSlots": 0,
+          "ui": {
+            "count": 216,
+            "totalMs": 1991.8458333015442,
+            "maxMs": 25.002250015735626,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 100,
+            "totalMs": 2000.1993339657784,
+            "maxMs": 51.44329100847244,
+            "over50": 2,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 56034,
+          "appState": "active",
+          "tick": 1678,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 286,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 16,
+          "trailSlots": 0,
+          "ui": {
+            "count": 177,
+            "totalMs": 2008.5141666531563,
+            "maxMs": 33.924125015735626,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 106,
+            "totalMs": 2000.2600409984589,
+            "maxMs": 43.90541696548462,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 58033,
+          "appState": "active",
+          "tick": 1739,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 292,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 16,
+          "trailSlots": 0,
+          "ui": {
+            "count": 176,
+            "totalMs": 2000.2125416994095,
+            "maxMs": 34.19874995946884,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 100,
+            "totalMs": 2004.3789170384407,
+            "maxMs": 44.78245800733566,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 60033,
+          "appState": "active",
+          "tick": 1799,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 308,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 18,
+          "trailSlots": 0,
+          "ui": {
+            "count": 168,
+            "totalMs": 1996.01574999094,
+            "maxMs": 41.91791659593582,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 103,
+            "totalMs": 2000.0927079916,
+            "maxMs": 45.90366703271866,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 62034,
+          "appState": "active",
+          "tick": 1859,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 316,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 19,
+          "trailSlots": 0,
+          "ui": {
+            "count": 174,
+            "totalMs": 2000.180083334446,
+            "maxMs": 25.624374985694885,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 99,
+            "totalMs": 2000.189083993435,
+            "maxMs": 49.06725001335144,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 64033,
+          "appState": "active",
+          "tick": 1919,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 323,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 19,
+          "trailSlots": 0,
+          "ui": {
+            "count": 176,
+            "totalMs": 2000.179999947548,
+            "maxMs": 35.11495840549469,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 104,
+            "totalMs": 2000.1708750128746,
+            "maxMs": 46.69041699171066,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 66039,
+          "appState": "active",
+          "tick": 1979,
+          "phase": "play",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 330,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 19,
+          "trailSlots": 0,
+          "ui": {
+            "count": 177,
+            "totalMs": 2008.5140833258629,
+            "maxMs": 26.578125,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 97,
+            "totalMs": 2000.2394160032272,
+            "maxMs": 45.54504197835922,
+            "over50": 0,
+            "over250": 0
+          },
+          "clamps": 0
+        },
+        {
+          "elapsedMs": 68032,
+          "appState": "active",
+          "tick": 2017,
+          "phase": "fulltime",
+          "score": [
+            1,
+            2
+          ],
+          "speed": 3,
+          "paused": false,
+          "reducedEffects": false,
+          "events": 333,
+          "powersFired": 5,
+          "powerNames": [
+            "SUPER_STRENGTH",
+            "FIRE_TORCH",
+            "SUPER_SPEED"
+          ],
+          "slideTackles": 19,
+          "trailSlots": 0,
+          "ui": {
+            "count": 197,
+            "totalMs": 2000.1800000667572,
+            "maxMs": 41.86983335018158,
+            "over50": 0,
+            "over250": 0
+          },
+          "js": {
+            "count": 67,
+            "totalMs": 1266.7142919898033,
+            "maxMs": 51.99295794963837,
+            "over50": 1,
+            "over250": 0
+          },
+          "clamps": 0
+        }
+      ]
+    }
+  ]
+}

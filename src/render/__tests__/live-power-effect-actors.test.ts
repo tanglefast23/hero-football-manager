@@ -1,6 +1,7 @@
 import {
   livePowerEffectActors,
   superSpeedAfterimageActors,
+  trailGhostsFor,
 } from '../live-power-effect-actors';
 import { powerEffectDescriptor } from '../power-effect-descriptors';
 
@@ -18,6 +19,29 @@ const base = {
 };
 
 describe('live power effect actors', () => {
+  it('keeps Super Speed trails when 3x hides only pass-combo trails', () => {
+    const combo = {
+      def: {},
+      powerState: { kind: 'idle' },
+      comboTierD: 1500,
+      comboTicks: 30,
+    };
+    expect(trailGhostsFor(combo)).toBe(3);
+    expect(trailGhostsFor(combo, false)).toBe(0);
+    expect(trailGhostsFor({ ...combo, comboTicks: 0 })).toBe(0);
+    expect(trailGhostsFor({ ...combo, comboTierD: 1000 })).toBe(0);
+    const superSpeed = {
+      ...combo,
+      def: { power: 'SUPER_SPEED' },
+      powerState: { kind: 'active' },
+    };
+    expect(trailGhostsFor(superSpeed)).toBe(6);
+    expect(trailGhostsFor(superSpeed, false)).toBe(6);
+    expect(
+      trailGhostsFor({ ...superSpeed, powerState: { kind: 'idle' } }, false),
+    ).toBe(0);
+  });
+
   it('uses the exact source player for phase afterimages without duplicating the real Decoy', () => {
     const phase = livePowerEffectActors({
       ...base,

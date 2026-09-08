@@ -127,6 +127,41 @@ export function livePowerEffectActors(
 }
 
 /**
+ * How many afterimage ghosts an entity draws this frame.
+ *
+ * 6 for a live Super Speed hero, 3 for a pass-combo member at x5 or above, 0
+ * for everyone else. 3x can disable combo trails while keeping Super Speed.
+ * An entity that is both takes 6 and gets ONE trail — the
+ * power outranks the combo because it is the bigger effect.
+ *
+ * The combo gate reads the TIER, not the live bonus and not the chain count.
+ * The bonus being non-zero would light the trail on x2; the count would kill it
+ * the instant the chain broke, while the member is still visibly fast. A tier
+ * of 1500 or 2000 can only have come from x5 or above, and it survives until
+ * the countdown reaches zero.
+ */
+const COMBO_TRAIL_MIN_TIER_D = 1500;
+export function trailGhostsFor(
+  entity: {
+    def: { power?: string };
+    powerState: { kind: string };
+    comboTierD: number;
+    comboTicks: number;
+  },
+  allowComboTrails = true,
+): number {
+  if (entity.def.power === 'SUPER_SPEED' && entity.powerState.kind === 'active')
+    return 6;
+  if (
+    allowComboTrails &&
+    entity.comboTierD >= COMBO_TRAIL_MIN_TIER_D &&
+    entity.comboTicks > 0
+  )
+    return 3;
+  return 0;
+}
+
+/**
  * Ghost sprites behind a moving player. `ghosts` defaults to 6, the Super Speed
  * power's own length; a pass-combo member at x5 gets 3.
  *

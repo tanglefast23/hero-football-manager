@@ -209,6 +209,44 @@ describe('shared career event flow', () => {
     }
   });
 
+  test('names fire targets and lost benefits before the choice, without naming a new victim afterwards', () => {
+    let built = career();
+    for (const [type, x] of [
+      ['training-pitch', 0],
+      ['gym', 2],
+      ['dorm', 3],
+    ] as const) {
+      built = buildCareerFacility(built, type, { x, y: 0 }).state;
+      while (built.facilities.grid?.construction !== undefined) {
+        built = {
+          ...built,
+          facilities: {
+            ...built.facilities,
+            grid: advanceFacilityConstruction(built.facilities.grid).grid,
+          },
+        };
+      }
+    }
+    const offered = offerCareerEvent(built, 'retaliation-facility-fire');
+    const preview = storyEventViewModel(offered, loadLaunchContent());
+    const safe = preview.choices.find(
+      (choice) => choice.id === 'demolish-firebreaks',
+    )!;
+    const risk = preview.choices.find(
+      (choice) => choice.id === 'trace-live-wire',
+    )!;
+    expect(safe.consequenceHint).toContain('Gym');
+    expect(safe.consequenceHint).toContain('Dorm');
+    expect(risk.consequenceHint).toContain('Training Pitch');
+    expect(risk.consequenceHint).toMatch(/TP/);
+    expect(risk.consequenceHint).toContain('No buildings lost');
+    const resolved = resolveCareerEventChoice(offered, catalog, safe.id);
+    const receipt = storyEventViewModel(resolved, loadLaunchContent());
+    expect(
+      receipt.choices.find((choice) => choice.id === safe.id)?.consequenceHint,
+    ).not.toContain('Training Pitch');
+  });
+
   test('previews and charges the cameras setback as 10% of current cash', () => {
     const offered = playerEvent('the-cameras-want-him');
     const withCash: GameState = {

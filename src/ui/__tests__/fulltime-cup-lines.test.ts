@@ -121,8 +121,14 @@ describe('what the gaffer says about a cup tie', () => {
     expect(content.fulltimeCoachLines.cupWinGiant).toContain(
       lineFor(giantWeek, giant, 4, 0),
     );
-    expect(content.fulltimeCoachLines.cupLossStrong).toContain(
+    expect(content.fulltimeCoachLines.leagueLossBig).toContain(
       lineFor(giantWeek, giant, 0, 4),
+    );
+    expect(content.fulltimeCoachLines.leagueLossBig).toContain(
+      lineFor(giantWeek, giant, 0, 12),
+    );
+    expect(content.fulltimeCoachLines.cupLossStrong).toContain(
+      lineFor(giantWeek, giant, 0, 1),
     );
   });
 
@@ -130,7 +136,7 @@ describe('what the gaffer says about a cup tie', () => {
     // By week 18 the cup has already had its say. A tie that is on the books as
     // a defeat stays a defeat even if the report is handed a winning scoreline.
     const settled = staffedCareer(18);
-    expect(content.fulltimeCoachLines.cupLossStrong).toContain(
+    expect(content.fulltimeCoachLines.leagueLossBig).toContain(
       lineFor(settled, tieAtLeastGap(settled, 2), 4, 0),
     );
   });

@@ -130,8 +130,8 @@ Research reports (source material, written by research agents):
 | Managed sponsors | D5 retains automatic income; 1/2/3 selectable slots unlock permanently at D4/D3/D2, with monthly payments and league objectives but no signing or unlock perks |
 | Currencies | Money + Training Points (TP) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |
-| Superpower acquisition | Post-match awakening check whose chance climbs 5 points a week until it is guaranteed, one hero per season (3-match cooldown, wage stays locked until renewal) + rare expensive pre-powered signings; chance events never award powers *(corrected 2026-08-05 — this entry previously described the rejected risky-chance-event design; the flat 10% roll became the weekly climb on 2026-08-19)* |
-| Hero field limit | "Hero License" slots: 2 on the pitch at start, up to 4 via club prestige; squad ownership uncapped |
+| Superpower acquisition | Post-match awakening check whose chance climbs 5 points a week until it is guaranteed, at most one ordinary hero per season plus the created player in season one (eligibility checks, 3-match cooldown, wage stays locked until renewal) + rare expensive pre-powered signings; chance events never award powers *(corrected 2026-08-05 — this entry previously described the rejected risky-chance-event design; the flat 10% roll became the weekly climb on 2026-08-19)* |
+| Hero field limit | Hero License capacity starts at 2. Promotion earns 3 at D3 and 4 at D1. Permits 3 and 4 can be bought early for $100,000 and $200,000. After reaching D1, permit 5 costs $300,000; each later permit costs $100,000 more. Purchased and earned capacity do not add together. Unlicensed heroes must stay on the bench; squad ownership is uncapped |
 | Salaries | Weekly wages for everyone; raises at contract renewal; hero-rate renewals (×3–5) after awakening |
 | Players | Fictional, procedurally generated (no licensing risk); gentle aging with retirement and a legacy system |
 | Stack | Expo/React Native + TypeScript + react-native-skia (Atlas API); deterministic pure-TS sim core |

@@ -9,6 +9,24 @@ source_specs: ./2026-08-24-iphone-3x-live-match-performance-council-sources.md
 
 # Smooth 3x live matches on iPhone
 
+## Approved update — 2026-09-08
+
+After the iOS audio timing fix, the owner approved restoring four effect groups
+at 3x: activation camera punch and zoom; activation flashes and speed lines;
+secondary impact particles; and full ticker movement, shadow, extrusion, and
+outline. Reduce Motion and the existing adaptive reduction still apply.
+
+After viewing that test, the owner approved restoring Super Speed trails and
+slide-tackle debris next. The current 3x preset keeps only pass-combo trails
+disabled and uses 60 confetti pieces instead of 220. The owner explicitly chose
+to retain the confetti reduction. This preset applies to both native mobile and
+web/desktop matches. The existing automatic effect reduction remains active.
+
+The concession list below records the original August preset. This dated
+update defines the current approved subset. No simulation, speed, or automatic
+fallback thresholds change. Physical verification of the restored subset is
+recorded in `docs/qa/iphone-audio-performance-2026-09-08.md`.
+
 ## Decision
 
 Do not lower the display frame rate.

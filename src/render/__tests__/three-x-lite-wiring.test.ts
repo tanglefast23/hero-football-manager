@@ -17,17 +17,36 @@ describe('3x Lite wiring', () => {
     expect(loopEffect).not.toContain('\n    threeXLite,');
   });
 
-  it('cuts only the approved high-cost decorations', () => {
-    expect(screen).toContain(
-      'if (suppressCosmeticEffectsRef.current || threeXLiteRef.current) return;',
-    );
-    expect(screen).toContain('...(threeXLite\n      ? []');
-    expect(screen).toContain('{threeXLite\n                    ? null');
-    expect(screen.match(/hideDebris=\{threeXLite\}/gu)).toHaveLength(2);
+  it('keeps only pass-combo trails and dense confetti reduced', () => {
+    expect(screen).toContain('trailGhostsFor(entity, !threeXLiteRef.current)');
     expect(
-      screen.match(/reducedEffects=\{reducedEffects \|\| threeXLite\}/gu),
+      screen.match(/trailGhostsFor\(player, !threeXLite\)/gu),
     ).toHaveLength(2);
+    expect(screen).not.toContain('hideDebris');
+    expect(screen).not.toContain('...(threeXLite');
+    expect(screen).not.toContain('{threeXLite\n');
     expect(screen).toContain('? GOAL_CONFETTI_SPARSE_PIECE_COUNT');
+  });
+
+  it('restores activation, camera, impact, and ticker effects at 3x', () => {
+    const activation = screen.slice(
+      screen.indexOf('const startJuice ='),
+      screen.indexOf('const loop ='),
+    );
+    expect(activation).toContain(
+      'if (suppressCosmeticEffectsRef.current) return;',
+    );
+    expect(activation).not.toContain('threeXLite');
+    expect(screen).toContain('      advanceJuice(now);');
+    expect(screen).not.toContain(
+      'if (threeXLiteRef.current && juiceRef.current',
+    );
+    for (const component of ['ProceduralMatchEffects', 'MatchTickerLine']) {
+      const start = screen.indexOf(`<${component}`);
+      const props = screen.slice(start, screen.indexOf('/>', start));
+      expect(props).toContain('reducedEffects={reducedEffects}');
+      expect(props).not.toContain('threeXLite');
+    }
   });
 
   it('keeps the approved 3x match information and lower-cost effects', () => {

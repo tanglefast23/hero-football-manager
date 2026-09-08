@@ -110,7 +110,7 @@ Use these training rules:
   condition thresholds.
 - Preserve condition for a close league match or Cup tie.
 - Use empty weeks to train prospects and weak supporting attributes.
-- Buy useful drill tiers when they unlock. Higher tiers are more TP-efficient.
+- Buy useful drill tiers when they unlock. Compare the current TP/gain preview: higher tiers are not always more efficient. Tier 4 gives 13 base gain for 26 TP; Tier 5 gives 18 for 39 TP before modifiers.
 - Respect Training Priority promises before spending on anyone else.
 - Stop drilling a maxed or match-irrelevant attribute.
 
@@ -251,8 +251,13 @@ Licensing and lineup selection are separate decisions:
 - restoring a license must work when capacity is free; and
 - a Starter promise must name and preview the exact license handoff.
 
-Do not accept a Starter promise without a valid permit plan. Awakening after the
-first story hero should not silently consume the remaining permit.
+Do not accept a Starter promise without a valid permit plan. Current behavior,
+checked 2026-09-07: an awakening automatically takes a free permit. At full
+capacity, available normal players with Starter or Captain promises cannot
+awaken. Buying capacity does not bypass the season limit: two total awakenings
+in season one, including the created player, then at most one per season.
+Promotion earns capacity up to four. Permits three and four can be bought early;
+more than four requires having reached D1. See `docs/04-superpowers.md` for prices.
 
 Record the active licensed set before and after every handoff. A license bug can
 invalidate later match and balance evidence.

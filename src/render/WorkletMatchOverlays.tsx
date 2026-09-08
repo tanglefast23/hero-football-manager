@@ -181,7 +181,6 @@ export function WorkletSlideTackleEffects({
   devicePixelRatio,
   reduceMotion,
   reducedEffects,
-  hideDebris,
 }: {
   layer: 'dust' | 'grass';
   visualPositions: SharedValue<Float32Array>;
@@ -192,11 +191,10 @@ export function WorkletSlideTackleEffects({
   devicePixelRatio: number;
   reduceMotion: boolean;
   reducedEffects: boolean;
-  hideDebris: boolean;
 }) {
   const debris = usePathValue((builder) => {
     'worklet';
-    if (reduceMotion || hideDebris) return;
+    if (reduceMotion) return;
     const presentationTick = Math.max(0, visualTick.value);
     const pixel = scale * playerDrawScale;
     for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {

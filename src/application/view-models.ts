@@ -34,6 +34,8 @@ import {
   activeCareerMatchday,
   activeFacilityAdjacencies,
   assistantTeaches,
+  awakeningsThisSeason,
+  careerFacilityFireTargets,
   boardUltimatumConsequence,
   attributeAffectsPlay,
   buildCareerMatchTeamDef,
@@ -57,6 +59,7 @@ import {
   shortContractReasonCopy,
   fixturesForCurrentWeek,
   hasActiveCareerContractPromise,
+  hasAssistantGuideSequenceCompleted,
   pendingTrainingPriorityHolder,
   isAssistantInboxOneShotProductVisible,
   isAssistantInboxProductDismissedForCurrentWeek,
@@ -3005,7 +3008,12 @@ export function homeProductAlerts(
           {
             id: 'training-ground',
             title: t('clubHome.trainingPitchTitle'),
-            detail: t('clubHome.trainingPitchDetail'),
+            detail: t(
+              state.season === 1 &&
+                !hasAssistantGuideSequenceCompleted(state, 'facility-placement')
+                ? 'clubHome.trainingPitchDetail'
+                : 'clubHome.rebuildTrainingPitchDetail',
+            ),
             tone: 'info' as const,
           },
         ]
@@ -4384,9 +4392,39 @@ function heroLicenseOfferViewModel(
   t: CopyFn,
 ): HeroLicenseOfferViewModel {
   const offer = nextHeroLicenseOffer(state);
+  const roster = rosterForClub(state, state.userClubId);
+  const full =
+    roster.filter((player) => player.licensed).length >= careerHeroLimit(state);
+  const blocked = full
+    ? roster.filter(
+        (player) =>
+          player.power === undefined &&
+          isAvailableForSelection(player) &&
+          (hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER') ||
+            hasActiveCareerContractPromise(player, 'CAPTAINCY')),
+      )
+    : [];
   return {
     licenseNumber: offer.licenseNumber,
     cost: offer.cost,
+    awakeningHelp: [
+      t('fixtureMatchDay.awakeningSeasonLimit', {
+        used: awakeningsThisSeason(state),
+        limit:
+          LAUNCH_CONTENT.powers.awakening.maxPerSeason +
+          (state.season === 1 ? 1 : 0),
+      }),
+      ...(blocked.length === 0
+        ? []
+        : [
+            t('fixtureMatchDay.awakeningNeedsPermit', {
+              players: namesWithOverflow(
+                blocked.map((player) => player.name),
+                t,
+              ),
+            }),
+          ]),
+    ],
     ...(offer.blockedReason === undefined
       ? {}
       : { blockedReason: resolveRingCopy(t, offer.blockedReason) }),
@@ -5014,7 +5052,7 @@ function coachLinePool(
     return heavy ? 'leagueLossBig' : 'leagueLossClose';
   }
   const tiersAbove = cupOpponentTiersAbove(state, cupTie);
-  if (margin >= BLOWOUT_MARGIN && tiersAbove <= 0)
+  if (margin >= BLOWOUT_MARGIN && (outcomeLabel === 'LOSS' || tiersAbove <= 0))
     return outcomeLabel === 'WIN' ? 'leagueWinBig' : 'leagueLossBig';
   if (outcomeLabel === 'WIN') {
     if (tiersAbove >= 2) return 'cupWinGiant';
@@ -5388,9 +5426,8 @@ function fixtureViewModel(
     homeTeam: clubName(state, fixture.homeClubId),
     awayTeam: clubName(state, fixture.awayClubId),
     venueLabel: t(isHome ? 'm2League.venueHome' : 'm2League.venueAway'),
-    // The tutorial suppresses powers in the match, but Barry is still at the
-    // opponent club. Report the character who is there so this team sheet
-    // agrees with the rival introduction that just played.
+    // This is the expected XI. A rival intro may feature a squad hero who
+    // remains on the bench, so the count must not claim to cover the roster.
     opponentHeroCount: opponentHeroes.length,
     opponentHeroes,
     matchdayReady: state.phase === 'matchday' && fixture.week === state.week,
@@ -5752,13 +5789,42 @@ function eventRewardItems(
       }
     }
     if (effect.type === 'facilityFire') {
+      // After settlement the targets are already gone. Never name a new victim
+      // while showing the receipt for the completed fire.
+      const targets =
+        state.pendingEvent?.resolvedChoiceId === undefined
+          ? careerFacilityFireTargets(state, effect.mode)
+          : [];
       rewards.push({
         label:
-          effect.mode === 'TWO_SMALL'
-            ? t('storyEvent.rewardLoseSmallFacilities', { n: 2, count: 2 })
-            : t('storyEvent.rewardRiskPrimaryFacility'),
+          targets.length > 0
+            ? t('storyEvent.rewardLoseNamedFacilities', {
+                facilities: targets
+                  .map(
+                    (building) =>
+                      `${t('trainingDrill.modifier.facilityLevel', {
+                        facility: facilityName(t, building.type),
+                        level: building.level,
+                      })} (${facilityEffectLabel(building.type, building.level, t)})`,
+                  )
+                  .join(t('storyEvent.rewardJoiner')),
+              })
+            : effect.mode === 'TWO_SMALL'
+              ? t('storyEvent.rewardLoseSmallFacilities', { n: 2, count: 2 })
+              : t('storyEvent.rewardRiskPrimaryFacility'),
         kind: 'story',
         positive: false,
+      });
+    }
+    if (
+      effect.type === 'flag' &&
+      effect.flag === 'facility-fire-averted' &&
+      effect.value
+    ) {
+      rewards.push({
+        label: t('storyEvent.rewardNoBuildingsLost'),
+        kind: 'story',
+        positive: true,
       });
     }
     if (effect.type === 'trainingModifier') {

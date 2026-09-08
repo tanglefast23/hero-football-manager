@@ -54,7 +54,7 @@
     "audio:levels": "node scripts/audio/normalize-levels.mjs",
     "audio:levels:check": "node scripts/audio/normalize-levels.mjs --check",
     "art:index-rival-intros": "node scripts/images/index-png.mjs assets/images/rival-hero-intros/*.png",
-    "postinstall": "setup-skia-web",
+    "postinstall": "setup-skia-web && node scripts/audio/patch-expo-audio.mjs",
     "format": "prettier --write \"App.tsx\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",
     "format:check": "prettier --check \"App.tsx\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",
     "test": "jest",

@@ -10,6 +10,15 @@ import { homeViewModel } from '../view-models';
 describe('training-ground inbox letter', () => {
   const content = loadLaunchContent();
 
+  it('asks an established club to rebuild without promising its starting budget', () => {
+    const fresh = createCareer(createLaunchCareerSetup(20260907, undefined, content));
+    const alert = homeViewModel({ ...fresh, season: 2 }).alerts.find(
+      (item) => item.id === 'training-ground',
+    );
+    expect(alert?.detail).toContain('Rebuild');
+    expect(alert?.detail).not.toContain('$8,000');
+  });
+
   it('gives a fresh full career the pitch budget and guides the player to build it', () => {
     const fresh = createCareer(
       createLaunchCareerSetup(20260720, undefined, content),

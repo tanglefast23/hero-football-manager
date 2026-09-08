@@ -102,8 +102,9 @@ describe('slide-tackle procedural debris', () => {
     expect(component).toMatch(/travelY \* sample\.progress/);
   });
 
-  it('removes all debris at 3x and traveling phases under adaptive reduction', () => {
-    expect(component).toContain('if (reduceMotion || hideDebris) return;');
+  it('respects Reduce Motion and trims traveling phases under adaptive reduction', () => {
+    expect(component).toContain('if (reduceMotion) return;');
+    expect(component).not.toContain('hideDebris');
     expect(component.match(/if \(reducedEffects\) continue;/g)).toHaveLength(2);
     expect(component).toContain(
       'const trailCount = reducedEffects ? 4 : TACKLE_TRAIL_SAMPLES.length;',
@@ -137,7 +138,7 @@ describe('slide-tackle procedural debris', () => {
       expect(use).toContain('devicePixelRatio={devicePixelRatio}');
       expect(use).toContain('reduceMotion={reduceMotion}');
       expect(use).toContain('reducedEffects={reducedEffects}');
-      expect(use).toContain('hideDebris={threeXLite}');
+      expect(use).not.toContain('hideDebris');
     }
   });
 });

@@ -652,6 +652,7 @@ export function M2LeagueScreen({
                   .filter(
                     (round) =>
                       round.active ||
+                      (round.round === 1 && round.drawn) ||
                       round.fixtures.some((fixture) => fixture.playableNow),
                   )
                   .map((round) => (

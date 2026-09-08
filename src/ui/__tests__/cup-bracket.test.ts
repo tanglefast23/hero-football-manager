@@ -151,10 +151,10 @@ describe('cup bracket rendering', () => {
     expect(league).toContainSource('<CupBracket rounds={viewModel.cup.rounds}');
     expect(league).toContainSource('viewModel.cup.nextMatch.weekLabel');
     expect(league).toContainSource("t('m2League.nextCupMatch'");
-    // The round cards survive only where they still do work: the live round and
-    // any tie the manager can actually play.
+    // The tree omits play-ins, so retain their result card alongside the live
+    // round and any tie the manager can actually play.
     expect(league).toContainSource(
-      'round.active || round.fixtures.some(fixture => fixture.playableNow)',
+      'round.active || (round.round === 1 && round.drawn) || round.fixtures.some(fixture => fixture.playableNow)',
     );
   });
 

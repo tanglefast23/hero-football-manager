@@ -11,6 +11,8 @@ import {
   marketViewModel,
   type MarketViewModelSource,
 } from '../market-view-model';
+import { createCareer } from '../../game';
+import { createLaunchCareerSetup } from '../launch';
 
 const ATTRS = { pac: 60, sho: 58, pas: 64, def: 48, tec: 66, sta: 62, ref: 30 };
 
@@ -74,6 +76,63 @@ function baseSource(): MarketViewModelSource {
 }
 
 describe('marketViewModel', () => {
+  it('explains the awakening permit requirement only for a normal player starting promise', () => {
+    const career = createCareer(createLaunchCareerSetup(20260907));
+    const player = career.players.find(
+      (candidate) => candidate.clubId === career.userClubId,
+    )!;
+    const negotiation = {
+      state: startContractNegotiation({
+        careerSeed: 56,
+        negotiationId: 'permit-help',
+        playerId: player.id,
+        personality: 'PROFESSIONAL',
+        weeklyAsk: 1_000,
+      }),
+      playerName: player.name,
+      openingWeeklyWage: 1_000,
+      contractPromiseContext: { state: career, player, heroLimit: 2 },
+    };
+    const normal = marketViewModel({ ...baseSource(), negotiation })
+      .negotiation!.perks;
+    expect(
+      normal
+        .filter((perk) => perk.detail.includes('before this player can awaken'))
+        .map((perk) => perk.id),
+    ).toEqual(['GUARANTEED_STARTER', 'CAPTAINCY']);
+    const hero = marketViewModel({
+      ...baseSource(),
+      negotiation: {
+        ...negotiation,
+        contractPromiseContext: {
+          ...negotiation.contractPromiseContext,
+          player: { ...player, power: 'SUPER_SPEED' },
+        },
+      },
+    }).negotiation!.perks;
+    expect(
+      hero.every(
+        (perk) => !perk.detail.includes('before this player can awaken'),
+      ),
+    ).toBe(true);
+  });
+
+  it('calls an unlisted sale price an estimate, and a listed offer a bid', () => {
+    const source = baseSource();
+    const listing = {
+      player: transferPlayer('sale'),
+      direction: 'SELL' as const,
+      sellingClubDivision: 3 as const,
+    };
+    const preview = marketViewModel({ ...source, transferListings: [listing] });
+    const listed = marketViewModel({
+      ...source,
+      transferListings: [{ ...listing, listed: true }],
+    });
+    expect(preview.transfers[0].quoteLabel).toBe('Estimated bid');
+    expect(listed.transfers[0].quoteLabel).toBe('Best bid');
+  });
+
   it('covers only the first LOCAL trip for a club that can afford nothing', () => {
     const first = marketViewModel({
       ...baseSource(),

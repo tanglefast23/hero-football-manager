@@ -270,6 +270,8 @@ export interface HeroLicenseOfferViewModel {
   cost: number;
   /** Already resolved for the screen; undefined when the club can buy it. */
   blockedReason?: string;
+  /** Current awakening count and any starting promises blocked by full permits. */
+  awakeningHelp?: readonly string[];
 }
 
 export interface MatchDayViewModel {

@@ -201,8 +201,9 @@ export function CoachStaffOverlay({
                   />
                   <ActionButton
                     label={t('coachStaff.keepCurrentCoach')}
-                    accessibilityLabel={t('coachStaff.a11y.keepAsHeadCoach', {
+                    accessibilityLabel={t('coachStaff.a11y.keepAsRole', {
                       name: coach.name,
+                      role: roleLabelLower,
                     })}
                     variant="paper"
                     onPress={onClose}

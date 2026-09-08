@@ -226,6 +226,7 @@ import { powerEffectDescriptor } from './power-effect-descriptors';
 import {
   livePowerEffectActors,
   superSpeedAfterimageActors,
+  trailGhostsFor,
 } from './live-power-effect-actors';
 import {
   advancePowerMatchShowcaseReady,
@@ -382,33 +383,6 @@ const GOAL_SHAKE_MS = 380;
 
 // Ball-flight presentation (render-only) — lifted kicks show a curved history;
 // shots also retain the dust puff kicked up at the strike.
-/**
- * How many afterimage ghosts an entity draws this frame.
- *
- * 6 for a live Super Speed hero, 3 for a pass-combo member at x5 or above, 0
- * for everyone else. An entity that is both takes 6 and gets ONE trail — the
- * power outranks the combo because it is the bigger effect.
- *
- * The combo gate reads the TIER, not the live bonus and not the chain count.
- * The bonus being non-zero would light the trail on x2; the count would kill it
- * the instant the chain broke, while the member is still visibly fast. A tier
- * of 1500 or 2000 can only have come from x5 or above, and it survives until
- * the countdown reaches zero.
- */
-const COMBO_TRAIL_MIN_TIER_D = 1500;
-function trailGhostsFor(entity: {
-  def: { power?: string };
-  powerState: { kind: string };
-  comboTierD: number;
-  comboTicks: number;
-}): number {
-  if (entity.def.power === 'SUPER_SPEED' && entity.powerState.kind === 'active')
-    return 6;
-  if (entity.comboTierD >= COMBO_TRAIL_MIN_TIER_D && entity.comboTicks > 0)
-    return 3;
-  return 0;
-}
-
 const BALL_FLIGHT_TRAIL_LEN = 12; // longer arc history makes lifted kicks read at a glance
 /** Drawn trail length per shot tier. Tier 0 keeps the length it always had. */
 const BALL_TRAIL_LEN_BY_TIER = [8, 10, 12] as const;
@@ -1066,8 +1040,8 @@ export function MatchScreen({
   // whole object rather than spreading it.
   const roleLabelWindowRef = useRef(CLOSED_ROLE_LABEL_WINDOW);
   const [speed, setSpeed] = useState<MatchSpeed>(1);
-  // 3x keeps the match information and authored power art, but drops the
-  // approved high-cost decorations. Returning to 1x or 2x restores them.
+  // 3x keeps only pass-combo trails off, with sparse goal confetti.
+  // Super Speed trails and tackle debris use the normal quality.
   const threeXLite = speed === 3;
   const threeXLiteRef = useRef(threeXLite);
   threeXLiteRef.current = threeXLite;
@@ -1797,7 +1771,7 @@ export function MatchScreen({
     };
 
     const startJuice = (power: PowerId, player: number, now: number) => {
-      if (suppressCosmeticEffectsRef.current || threeXLiteRef.current) return;
+      if (suppressCosmeticEffectsRef.current) return;
       const juice = powerJuice(power);
       const { scale: pitchScale } = layoutRef.current;
       juiceRef.current = {
@@ -2105,11 +2079,9 @@ export function MatchScreen({
         for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
           const entity = playerAt(s, i);
           const ghosts =
-            entity === undefined ||
-            suppressCosmeticEffectsRef.current ||
-            threeXLiteRef.current
+            entity === undefined || suppressCosmeticEffectsRef.current
               ? 0
-              : trailGhostsFor(entity);
+              : trailGhostsFor(entity, !threeXLiteRef.current);
           trailRef.current[i] =
             ghosts > 0 && entity !== undefined
               ? [{ ...entity.pos }, ...trailRef.current[i]].slice(0, 7)
@@ -2997,10 +2969,8 @@ export function MatchScreen({
           });
         }
       }
-      // At 1x and 2x the beat sheet runs every frame on wall clock. Entering 3x
-      // clears an in-flight beat once, then prevents new camera and tint juice.
-      if (threeXLiteRef.current && juiceRef.current !== null) resetJuice();
-      else advanceJuice(now);
+      // Activation effects keep their wall-clock timing at every match speed.
+      advanceJuice(now);
       if (
         advanced &&
         firstMatchTutorial &&
@@ -3773,20 +3743,13 @@ export function MatchScreen({
         reduceMotion,
       }),
     ),
-    ...(threeXLite
-      ? []
-      : trailRef.current.flatMap((points, entity) => {
-          const player =
-            match.players[entity] ?? match.decoyClones[entity - 22];
-          const ghosts = player == null ? 0 : trailGhostsFor(player);
-          return ghosts === 0 || points.length < 2
-            ? []
-            : superSpeedAfterimageActors(
-                entity,
-                points.map(screenPoint),
-                ghosts,
-              );
-        })),
+    ...trailRef.current.flatMap((points, entity) => {
+      const player = match.players[entity] ?? match.decoyClones[entity - 22];
+      const ghosts = player == null ? 0 : trailGhostsFor(player, !threeXLite);
+      return ghosts === 0 || points.length < 2
+        ? []
+        : superSpeedAfterimageActors(entity, points.map(screenPoint), ghosts);
+    }),
   ];
   const powerActorSprites: SkRect[] = powerEffectActors.map((actor) =>
     spriteRects(playerSpriteKeys[actor.player]),
@@ -4492,30 +4455,26 @@ export function MatchScreen({
                       opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
                     />
                   ))}
-                  {threeXLite
-                    ? null
-                    : trailRef.current.flatMap((points, entity) => {
-                        const player =
-                          match.players[entity] ??
-                          match.decoyClones[entity - 22];
-                        const ghosts =
-                          player == null ? 0 : trailGhostsFor(player);
-                        if (ghosts === 0) return [];
-                        // Skip index 0 exactly as the atlas actors do, or these
-                        // circles sit one frame ahead of the sprites they trail.
-                        return points
-                          .slice(1, 1 + ghosts)
-                          .map((t, i) => (
-                            <Circle
-                              key={`${entity}:${i}`}
-                              cx={t.x * scale}
-                              cy={t.y * scale}
-                              r={Math.max(1.5, 7 - i)}
-                              color="#ffffff"
-                              opacity={0.55 * (1 - i / ghosts)}
-                            />
-                          ));
-                      })}
+                  {trailRef.current.flatMap((points, entity) => {
+                    const player =
+                      match.players[entity] ?? match.decoyClones[entity - 22];
+                    const ghosts =
+                      player == null ? 0 : trailGhostsFor(player, !threeXLite);
+                    if (ghosts === 0) return [];
+                    // Skip the live body point, matching the afterimage sprites.
+                    return points
+                      .slice(1, 1 + ghosts)
+                      .map((point, index) => (
+                        <Circle
+                          key={`${entity}:${index}`}
+                          cx={point.x * scale}
+                          cy={point.y * scale}
+                          r={Math.max(1.5, 7 - index)}
+                          color="#ffffff"
+                          opacity={0.55 * (1 - index / ghosts)}
+                        />
+                      ));
+                  })}
                   {/* Fading arc history behind driven shots and every lifted kick.
                     A graded shot lengthens and recolours these same circles —
                     no extra draw call, and the trail starts meaning something. */}
@@ -4664,7 +4623,6 @@ export function MatchScreen({
                     devicePixelRatio={devicePixelRatio}
                     reduceMotion={reduceMotion}
                     reducedEffects={reducedEffects}
-                    hideDebris={threeXLite}
                   />
                   <WorkletSlideTackleEffects
                     layer="grass"
@@ -4676,7 +4634,6 @@ export function MatchScreen({
                     devicePixelRatio={devicePixelRatio}
                     reduceMotion={reduceMotion}
                     reducedEffects={reducedEffects}
-                    hideDebris={threeXLite}
                   />
                   <ProceduralMatchEffects
                     emitters={matchVfxRef.current}
@@ -4685,7 +4642,7 @@ export function MatchScreen({
                     playerDrawScale={playerSpriteScale.drawScale}
                     devicePixelRatio={devicePixelRatio}
                     reduceMotion={reduceMotion}
-                    reducedEffects={reducedEffects || threeXLite}
+                    reducedEffects={reducedEffects}
                   />
                   {presentedPowerEffects.map((effect) => (
                     <PowerEffectScene
@@ -4849,7 +4806,7 @@ export function MatchScreen({
                     // the entire end-of-match hold.
                     paused={paused && match.phase !== 'fulltime'}
                     reduceMotion={reduceMotion}
-                    reducedEffects={reducedEffects || threeXLite}
+                    reducedEffects={reducedEffects}
                   />
                 ))}
               </View>

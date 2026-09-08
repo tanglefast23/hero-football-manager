@@ -16,6 +16,7 @@ interface ShopCase {
   readonly cash: number;
   readonly sponsorChallenge?: boolean;
   readonly permitFive?: boolean;
+  readonly promisedStarter?: boolean;
 }
 
 /**
@@ -29,6 +30,13 @@ const SHOP_CASES: readonly ShopCase[] = Object.freeze([
     label: 'Can pay',
     note: 'Third permit at $100,000, with the money in the bank',
     cash: 180_000,
+  },
+  {
+    id: 'promised-starter',
+    label: 'Blocked awakening',
+    note: 'Full licenses block a normal player with a Starter promise',
+    cash: 180_000,
+    promisedStarter: true,
   },
   {
     id: 'too-poor',
@@ -68,7 +76,7 @@ function matchdayCareer(): GameState {
 /**
  * Two heroes and a bank balance, authored.
  *
- * Awakening is capped at two per season and is driven by match events, so a
+ * Awakening is capped at two in season one, then one per season, so a
  * headless run reaches the second hero seasons after the screen under review
  * stops changing. The powers and the cash are therefore set here; the offer,
  * its price, its refusal and the panel itself are all production paths.
@@ -106,7 +114,16 @@ function shopCareer(shopCase: ShopCase): GameState {
             power: player.id === squad[0].id ? 'SUPER_SPEED' : 'THUNDER_STRIKE',
             licensed: licensedIds.has(player.id),
           }
-        : player,
+        : shopCase.promisedStarter && player.id === squad[2].id
+          ? {
+              ...player,
+              contractSeasonsRemaining: 2,
+              contractPromise: {
+                perk: 'GUARANTEED_STARTER' as const,
+                agreedSeason: base.season,
+              },
+            }
+          : player,
     ),
     ...(shopCase.sponsorChallenge
       ? {
