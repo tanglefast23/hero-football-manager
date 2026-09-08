@@ -1,3 +1,12 @@
+import { createMatch } from '../../sim/match';
+import { ROVERS, UNITED } from '../../sim/teams';
+import {
+  advanceMatchVfxShowcase,
+  initializeMatchVfxShowcase,
+  matchVfxShowcaseEvent,
+  matchVfxShowcaseSeed,
+} from '../match-vfx-showcase';
+
 const mockPlayers: Array<{
   volume: number;
   loop: boolean;
@@ -28,6 +37,7 @@ jest.mock('expo-audio', () => ({
 import {
   audioKeysForProfile,
   initAudio,
+  playForEvent,
   setMasterVolume,
   teardownAudio,
 } from '../audio';
@@ -62,6 +72,28 @@ describe('master audio volume', () => {
     ).toBe(true);
     expect(theme.volume).toBe(0.25);
     expect(fireLoop.volume).toBe(0.35);
+  });
+
+  it('plays the supplied cue when a real match slide starts', async () => {
+    initAudio();
+    const match = createMatch(
+      matchVfxShowcaseSeed('slide-tackle'),
+      ROVERS,
+      UNITED,
+    );
+    initializeMatchVfxShowcase(match, 'slide-tackle');
+    for (let i = 0; i < 20; i += 1) {
+      advanceMatchVfxShowcase(match, 'slide-tackle');
+      const event = matchVfxShowcaseEvent(match, 'slide-tackle');
+      if (!event) continue;
+      playForEvent(event);
+      break;
+    }
+    await Promise.resolve();
+    const player =
+      mockPlayers[audioKeysForProfile('full').indexOf('slide-tackle')];
+    expect(player.seekTo).toHaveBeenCalledWith(0);
+    expect(player.play).toHaveBeenCalledTimes(1);
   });
 
   it('updates every active player immediately, including mute', () => {

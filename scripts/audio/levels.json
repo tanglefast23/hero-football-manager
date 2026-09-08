@@ -957,6 +957,39 @@
       "after": -16,
       "afterTruePeak": -3.9,
       "bytes": 16836
+    },
+    "assets/audio/sfx/footstep-asphalt-01.m4a": {
+      "class": "sfx",
+      "before": -27.4,
+      "beforeTruePeak": -1.5,
+      "gainDb": 6.5,
+      "limited": true,
+      "after": -25.2,
+      "afterTruePeak": -1.1,
+      "unreachable": true,
+      "bytes": 6108
+    },
+    "assets/audio/sfx/footstep-asphalt-02.m4a": {
+      "class": "sfx",
+      "before": -27.3,
+      "beforeTruePeak": -1.5,
+      "gainDb": 6.5,
+      "limited": true,
+      "after": -26,
+      "afterTruePeak": -1.3,
+      "unreachable": true,
+      "bytes": 5797
+    },
+    "assets/audio/sfx/footstep-asphalt-03.m4a": {
+      "class": "sfx",
+      "before": -26.3,
+      "beforeTruePeak": -1.5,
+      "gainDb": 6.5,
+      "limited": true,
+      "after": -24.1,
+      "afterTruePeak": -1.4,
+      "unreachable": true,
+      "bytes": 5843
     }
   }
 }

@@ -31,6 +31,7 @@ export type SfxKey =
   | 'kick-shot'
   | 'ball-flight-whoosh'
   | 'pass-combo'
+  | 'slide-tackle'
   | 'tackle-thud'
   | 'grunt'
   | 'body-fall'
@@ -70,7 +71,10 @@ export type SfxKey =
   | 'crowd-ooh'
   | 'power-interrupt'
   | 'decoy-pop'
-  | 'shot-scorch';
+  | 'shot-scorch'
+  | 'footstep-asphalt-01'
+  | 'footstep-asphalt-02'
+  | 'footstep-asphalt-03';
 
 const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'kickoff-whistle': require('../../assets/audio/sfx/kickoff-whistle.m4a'),
@@ -80,6 +84,7 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'pass-combo': require('../../assets/audio/sfx/pass-combo.m4a'),
   'kick-shot': require('../../assets/audio/sfx/kick-shot.m4a'),
   'ball-flight-whoosh': require('../../assets/audio/sfx/ball-flight-whoosh.m4a'),
+  'slide-tackle': require('../../assets/audio/sfx/slide-tackle.m4a'),
   'tackle-thud': require('../../assets/audio/sfx/tackle-thud.m4a'),
   grunt: require('../../assets/audio/sfx/grunt.wav'),
   'body-fall': require('../../assets/audio/sfx/body-fall.m4a'),
@@ -142,6 +147,10 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   // clear the ceiling, landing 5dB under target and inaudible under the chord.
   // PCM lands on its sample peak exactly, so the cue can sit where it belongs.
   'shot-scorch': require('../../assets/audio/sfx/shot-scorch.wav'),
+  // Supplied SI footsteps, copied from Auto Battler's runtime audio.
+  'footstep-asphalt-01': require('../../assets/audio/sfx/footstep-asphalt-01.m4a'),
+  'footstep-asphalt-02': require('../../assets/audio/sfx/footstep-asphalt-02.m4a'),
+  'footstep-asphalt-03': require('../../assets/audio/sfx/footstep-asphalt-03.m4a'),
 };
 
 const THEME_SOURCE: AudioSource = require('../../assets/audio/music/match-theme.m4a');
@@ -218,6 +227,7 @@ const SHOWCASE_BASE_SFX: readonly SfxKey[] = [
   'kick-pass',
   'kick-shot',
   'ball-flight-whoosh',
+  'slide-tackle',
   'tackle-thud',
   'grunt',
   'body-fall',
@@ -275,7 +285,7 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'SHOT':
       return ['kick-shot'];
     case 'SLIDE_STARTED':
-      return [];
+      return ['slide-tackle'];
     case 'TACKLE':
       if (!e.contact) return [];
       // A standing challenge fires every 1.7s of match time, and 96 of ~121 a
@@ -462,6 +472,10 @@ export function initAudio(
 }
 
 export function teardownAudio(): void {
+  pauseSubstitutionFootsteps();
+  footstepTailMs = 0;
+  footstepWalking = false;
+  previousFootstep = undefined;
   // Per-player try/catch mirrors initAudio's: one bad player must not leave
   // the rest un-removed. release() after remove() detaches the JS wrapper so
   // native destruction is deterministic instead of waiting on GC — safe here
@@ -525,6 +539,7 @@ function tryRecoverMatchAudio(): boolean {
   const now = Date.now();
   if (now - lastRecoveryAt < RECOVERY_COOLDOWN_MS) return false;
   lastRecoveryAt = now;
+  pauseSubstitutionFootsteps();
   for (const player of [...sfxPlayers.values(), themePlayer, fireLoopPlayer]) {
     if (!player) continue;
     try {
@@ -601,6 +616,84 @@ export function playForEvent(e: MatchEvent): void {
   if (masterVolume === 0) return;
   for (const key of filesForEvent(e)) {
     playSfxKey(key, false);
+  }
+}
+
+const FOOTSTEP_KEYS = [
+  'footstep-asphalt-01',
+  'footstep-asphalt-02',
+  'footstep-asphalt-03',
+] as const;
+let footstepTailMs = 0;
+let footstepWalking = false;
+let nextFootstepMs = 0;
+let footstepPlaying = false;
+let footstepGeneration = 0;
+let previousFootstep: SfxKey | undefined;
+
+/** Silence pending seeks too; keep the remaining tail frozen during a pause. */
+export function pauseSubstitutionFootsteps(): void {
+  if (!footstepPlaying) return;
+  footstepPlaying = false;
+  footstepGeneration += 1;
+  nextFootstepMs = 0;
+  for (const key of FOOTSTEP_KEYS) {
+    try {
+      sfxPlayers.get(key)?.pause();
+    } catch (err) {
+      warnOnce('footstep stop failed', err);
+    }
+  }
+}
+
+/** Called by the walking animation's RAF, with unscaled elapsed milliseconds. */
+export function updateSubstitutionFootsteps(
+  walkingOff: boolean,
+  elapsedMs: number,
+): void {
+  footstepTailMs =
+    walkingOff || footstepWalking
+      ? 2000
+      : Math.max(0, footstepTailMs - elapsedMs);
+  footstepWalking = walkingOff;
+  if (
+    !ready ||
+    masterVolume === 0 ||
+    audioIsSuspended() ||
+    footstepTailMs === 0
+  ) {
+    pauseSubstitutionFootsteps();
+    return;
+  }
+  nextFootstepMs -= elapsedMs;
+  if (nextFootstepMs > 0) return;
+  // Presentation randomness never consumes the match's seeded RNG.
+  const choices = FOOTSTEP_KEYS.filter((key) => key !== previousFootstep);
+  const key = choices[Math.floor(Math.random() * choices.length)];
+  previousFootstep = key;
+  nextFootstepMs = 220 + Math.random() * 100;
+  const player = sfxPlayers.get(key);
+  if (!player) return;
+  footstepPlaying = true;
+  const generation = footstepGeneration;
+  try {
+    player.shouldCorrectPitch = false;
+    player.setPlaybackRate(0.94 + Math.random() * 0.12);
+    player
+      .seekTo(0)
+      .then(() => {
+        if (
+          generation === footstepGeneration &&
+          ready &&
+          masterVolume > 0 &&
+          !audioIsSuspended()
+        ) {
+          player.play();
+        }
+      })
+      .catch((err: unknown) => warnOnce('footstep playback failed', err));
+  } catch (err) {
+    warnOnce('footstep playback failed', err);
   }
 }
 
@@ -737,6 +830,7 @@ export function stopFireAmbience(): void {
 registerAudioOwner({
   suspend: () => {
     cancelResumeVerify();
+    pauseSubstitutionFootsteps();
     if (!ready) return;
     try {
       themePlayer?.pause();

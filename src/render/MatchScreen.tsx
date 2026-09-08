@@ -329,6 +329,8 @@ import {
   type MatchAudioProfile,
   initAudio,
   playBallFlightWhoosh,
+  pauseSubstitutionFootsteps,
+  updateSubstitutionFootsteps,
   playPassCombo,
   playForEvent,
   playShotTierAudio,
@@ -1356,8 +1358,10 @@ export function MatchScreen({
   // would undo an AppState pause on the next render.
   const setPausedBoth = (value: boolean) => {
     pausedRef.current = value;
-    if (value) pauseAtlasFrame();
-    else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
+    if (value) {
+      pauseAtlasFrame();
+      pauseSubstitutionFootsteps();
+    } else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
     setPaused(value);
   };
 
@@ -1871,6 +1875,7 @@ export function MatchScreen({
     const loop = (now: number) => {
       const s = stateRef.current!;
       if (pausedRef.current && s.phase !== 'fulltime') {
+        pauseSubstitutionFootsteps();
         // Paused: keep the frame clock current (so resuming doesn't dump the
         // whole pause duration into the accumulator) and reschedule — but skip
         // the setFrame/setHud work, so a paused match doesn't re-render at
@@ -3137,6 +3142,12 @@ export function MatchScreen({
           banners: [...bannerRef.current],
         }));
       }
+
+      if (!pausedRef.current)
+        updateSubstitutionFootsteps(
+          substitutionWalksRef.current.some((walk) => walk.direction === 'off'),
+          wallGap,
+        );
 
       if (s.phase === 'fulltime') {
         // End-of-match hold: calling onDone on the same frame that emitted
