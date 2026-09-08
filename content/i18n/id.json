@@ -1887,8 +1887,8 @@
     "fixtureMatchDay.playerLine": "{role} · Nilai {rating} · Kondisi {condition}%",
     "fixtureMatchDay.ready": "Siap",
     "fixtureMatchDay.replacePlayer": "Ganti {player}",
-    "fixtureMatchDay.rivalHeroesReported.one": "Hero lawan dalam perkiraan susunan inti: {count}",
-    "fixtureMatchDay.rivalHeroesReported.other": "Hero lawan dalam perkiraan susunan inti: {count}",
+    "fixtureMatchDay.rivalHeroesReported.one": "Hero lawan di perkiraan tim inti: {count}",
+    "fixtureMatchDay.rivalHeroesReported.other": "Hero lawan di perkiraan tim inti: {count}",
     "fixtureMatchDay.selectionBench": "Bangku cadangan",
     "fixtureMatchDay.startingEleven": "Sebelas pemain inti",
     "fixtureMatchDay.substitutions": "Pergantian",
@@ -4159,10 +4159,10 @@
     "tip.hold-or-hover-for-help.body": "Hampir semua label dan angka di meja ini menjelaskan dirinya. Arahkan kursor dengan mouse, atau tekan dan tahan di ponsel, lalu catatan kecil menjelaskan fungsinya.",
     "market.saleNeedsContract": "Pemain yang kontraknya habis tidak bisa dijual. Perpanjang atau lepas dia di akhir musim.",
     "fixtureMatchDay.awakeningSeasonLimit": "Kebangkitan musim ini: {used}/{limit}. Membeli lisensi tidak melewati batas ini atau menjamin kebangkitan.",
-    "fixtureMatchDay.awakeningNeedsPermit": "Tidak ada Lisensi Hero kosong. Janji starter menghalangi kebangkitan {players} hingga lisensi tersedia.",
-    "market.promiseAwakeningLicense": "Janji ini membutuhkan Lisensi Hero kosong sebelum pemain ini bisa bangkit.",
+    "fixtureMatchDay.awakeningNeedsPermit": "Tidak ada Lisensi Pahlawan kosong. Janji starter menghalangi kebangkitan {players} hingga lisensi tersedia.",
+    "market.promiseAwakeningLicense": "Janji ini membutuhkan Lisensi Pahlawan kosong sebelum pemain ini bisa bangkit.",
     "squadTraining.superChanceHelp": "SUPER adalah peluang mendapat peningkatan 1,5× dari latihan. Ini bukan peluang kebangkitan.",
     "storyEvent.rewardLoseNamedFacilities": "Kehilangan {facilities}",
-    "storyEvent.rewardNoBuildingsLost": "Tidak ada bangunan yang hilang"
+    "storyEvent.rewardNoBuildingsLost": "Tak ada bangunan hilang"
   }
 }

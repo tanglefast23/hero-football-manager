@@ -4159,8 +4159,8 @@
     "tip.hold-or-hover-for-help.body": "Quase todos os rótulos e números da mesa se explicam. Passe o cursor com o mouse, ou pressione e segure no celular, e uma nota diz o que aquilo faz.",
     "market.saleNeedsContract": "Um jogador com contrato encerrado não pode ser vendido. Renove ou libere no fim da temporada.",
     "fixtureMatchDay.awakeningSeasonLimit": "Despertares nesta temporada: {used}/{limit}. Comprar uma licença não ignora esse limite nem garante um despertar.",
-    "fixtureMatchDay.awakeningNeedsPermit": "Não há licença de herói livre. As promessas de titularidade impedem o despertar de {players} até haver uma licença livre.",
-    "market.promiseAwakeningLicense": "Esta promessa exige uma licença de herói livre antes que este jogador possa despertar.",
+    "fixtureMatchDay.awakeningNeedsPermit": "Sem Licença de Herói livre. Promessas de titularidade bloqueiam o despertar de {players} até uma ficar livre.",
+    "market.promiseAwakeningLicense": "Esta promessa exige uma Licença de Herói livre antes que este jogador possa despertar.",
     "squadTraining.superChanceHelp": "SUPER é a chance de ganhos de 1,5× em um exercício. Não é a chance de despertar.",
     "storyEvent.rewardLoseNamedFacilities": "Perder {facilities}",
     "storyEvent.rewardNoBuildingsLost": "Nenhum prédio perdido"

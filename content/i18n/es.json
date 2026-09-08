@@ -934,7 +934,7 @@
     "clubHome.takeMeThere": "Llévame allí",
     "clubHome.thisWeek": "Esta semana",
     "clubHome.trainingPitchDetail": "Tu presupuesto inicial ya cubre sus $8.000. Elige dónde va.",
-    "clubHome.rebuildTrainingPitchDetail": "Reconstruye el campo de entrenamiento para recuperar los PT semanales. Elige dónde colocarlo.",
+    "clubHome.rebuildTrainingPitchDetail": "Reconstruye el campo de entrenamiento para recuperar PT semanales. Elige su lugar.",
     "clubHome.trainingPitchTitle": "Levanta tu Campo de Entrenamiento",
     "clubHome.wantsToLeaveDetail": "El ánimo bajo se volvió una petición de salida. Míralo y decide si lo vendes.",
     "clubHome.wantsToLeaveTitle": "{player} quiere irse",
@@ -4159,10 +4159,10 @@
     "tip.hold-or-hover-for-help.body": "Casi todas las etiquetas y cifras del escritorio se explican solas. Pasa el cursor con el ratón, o mantén pulsado en el móvil, y una nota te dice qué hacen.",
     "market.saleNeedsContract": "No se puede vender a un jugador con el contrato agotado. Renuévalo o déjalo salir al final de temporada.",
     "fixtureMatchDay.awakeningSeasonLimit": "Despertares esta temporada: {used}/{limit}. Comprar una licencia no evita este límite ni garantiza un despertar.",
-    "fixtureMatchDay.awakeningNeedsPermit": "No hay licencias de héroe libres. Las promesas de titularidad impiden el despertar de {players} hasta que haya una licencia libre.",
-    "market.promiseAwakeningLicense": "Esta promesa exige una licencia de héroe libre antes de que este jugador pueda despertar.",
+    "fixtureMatchDay.awakeningNeedsPermit": "Sin Licencia de Héroe libre. Las promesas de titularidad bloquean el despertar de {players} hasta liberar una.",
+    "market.promiseAwakeningLicense": "Esta promesa exige una Licencia de Héroe libre antes de que este jugador pueda despertar.",
     "squadTraining.superChanceHelp": "SUPER es la probabilidad de ganar 1,5× en un ejercicio. No es la probabilidad de despertar.",
     "storyEvent.rewardLoseNamedFacilities": "Perder {facilities}",
-    "storyEvent.rewardNoBuildingsLost": "No se pierde ningún edificio"
+    "storyEvent.rewardNoBuildingsLost": "Ningún edificio perdido"
   }
 }

@@ -1222,9 +1222,12 @@ function RosterSection({
                 ) : null}
                 <InfoTip
                   text={rosterRowSummary(player, t)}
-                  accessibilityLabel={`${t('squadTraining.a11y.openSummaryFor', {
-                    player: player.name,
-                  })}. ${rosterRowSummary(player, t)}`}
+                  accessibilityLabel={`${t(
+                    'squadTraining.a11y.openSummaryFor',
+                    {
+                      player: player.name,
+                    },
+                  )}. ${rosterRowSummary(player, t)}`}
                   onPress={() => onSelectPlayer(player.id)}
                   className="flex-1"
                 >

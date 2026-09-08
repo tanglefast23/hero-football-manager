@@ -11,7 +11,9 @@ describe('training-ground inbox letter', () => {
   const content = loadLaunchContent();
 
   it('asks an established club to rebuild without promising its starting budget', () => {
-    const fresh = createCareer(createLaunchCareerSetup(20260907, undefined, content));
+    const fresh = createCareer(
+      createLaunchCareerSetup(20260907, undefined, content),
+    );
     const alert = homeViewModel({ ...fresh, season: 2 }).alerts.find(
       (item) => item.id === 'training-ground',
     );

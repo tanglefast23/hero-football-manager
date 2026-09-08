@@ -2198,7 +2198,10 @@ export function NegotiationPanel({
                           label: card.label,
                           detail: card.detail,
                         })}
-                        accessibilityState={{ checked: selected, disabled: card.used }}
+                        accessibilityState={{
+                          checked: selected,
+                          disabled: card.used,
+                        }}
                         disabled={card.used}
                         onPress={() =>
                           setPitchCard((current) =>
