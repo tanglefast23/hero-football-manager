@@ -51,6 +51,19 @@ describe('match audio session recovery', () => {
     teardownAudio();
   });
 
+  it('plays one goalie save cue from the start for each save', async () => {
+    initAudio();
+    const save = mockPlayers[audioKeysForProfile('full').indexOf('save-slap')];
+
+    for (const by of [0, 11]) {
+      playForEvent({ t: 0, kind: 'SAVE', by, resolveLeft: 80 });
+      await Promise.resolve();
+    }
+
+    expect(save.seekTo.mock.calls).toEqual([[0], [0]]);
+    expect(save.play).toHaveBeenCalledTimes(2);
+  });
+
   it('plays the supplied ball-flight whoosh at quiet gain', async () => {
     initAudio();
     const whooshIndex =

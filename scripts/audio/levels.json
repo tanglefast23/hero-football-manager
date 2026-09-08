@@ -461,6 +461,17 @@
       "afterTruePeak": -1.8,
       "bytes": 63566
     },
+    "assets/audio/sfx/goalie-save.wav": {
+      "class": "sfx",
+      "before": -19.6,
+      "beforeTruePeak": -1.5,
+      "gainDb": 6.5,
+      "limited": true,
+      "after": -18.6,
+      "afterTruePeak": -1.3,
+      "unreachable": true,
+      "bytes": 57678
+    },
     "assets/audio/sfx/grunt.wav": {
       "class": "sfx",
       "before": -24.9,

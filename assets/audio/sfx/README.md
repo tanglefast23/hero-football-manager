@@ -36,6 +36,16 @@ flag them — don't.
   originals are summed at unity and then levelled together as one cue, so they
   all start together and keep their relative balance over the match music.
 
+## Goalie save cue
+
+- **`goalie-save.wav`** — the goalie save recording supplied on 2026-09-08,
+  trimmed to 0.6 seconds and stored as 48 kHz mono PCM. All saves use this cue.
+  PCM and oversampled peak limiting avoid the overshoot measured in the AAC
+  conversion. The cue stays below the usual loudness target to preserve its hit.
+  The unchanged original, `a_goalie_in_a_soccer_#3-1788885284999.mp3`, is kept
+  as `../sources/goalie-save.mp3`. The audio levels script sets the final volume.
+  `save-slap.wav` remains a procedural catalog fixture.
+
 ## Before deleting anything
 
 Assets go stale when a cue is repointed, and the `stat-step` cue has moved three

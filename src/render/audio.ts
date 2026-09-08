@@ -126,7 +126,8 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'giant-grow': require('../../assets/audio/sfx/giant-grow.wav'),
   'flame-hit': require('../../assets/audio/sfx/flame-hit.wav'),
   'flame-up': require('../../assets/audio/sfx/flame-up.wav'),
-  'save-slap': require('../../assets/audio/sfx/save-slap.wav'),
+  // Lossless: AAC reconstruction pushes this sharp save transient over peak.
+  'save-slap': require('../../assets/audio/sfx/goalie-save.wav'),
   'crowd-ooh': require('../../assets/audio/sfx/crowd-ooh.wav'),
   'power-interrupt': require('../../assets/audio/sfx/power-interrupt.wav'),
   'decoy-pop': require('../../assets/audio/sfx/decoy-pop.wav'),
