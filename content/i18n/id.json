@@ -3052,7 +3052,7 @@
     "privacySupport.a11y.readPrivacyPolicy": "Baca kebijakan privasi game ini",
     "privacySupport.backToSettings": "Balik ke pengaturan",
     "privacySupport.emailSupport": "Email dukungan",
-    "privacySupport.heroFootballManagerDoes": "Hero Football Manager tidak minta akun dan tidak pakai iklan, analitik atau pelacakan. Game ini tidak kirim permainan atau data pribadimu ke pengembang.",
+    "privacySupport.heroFootballManagerDoes": "Hero Football Manager tidak memerlukan akun dan tidak memakai iklan atau pelacakan iklan. Saat online, Expo mengirim pembaruan memakai ID instalasi serta data teknis pembaruan dan crash. Kariermu tetap di perangkat ini.",
     "privacySupport.openSourceKicker": "Catatan open source",
     "privacySupport.openSourceTitle": "Silkscreen",
     "privacySupport.privacyKicker": "Gamemu tetap punyamu",

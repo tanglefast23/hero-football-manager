@@ -1,5 +1,14 @@
-import { existsSync, readFileSync } from 'fs';
+import {
+  existsSync,
+  readFileSync,
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+} from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'os';
+import { spawnSync } from 'child_process';
 import {
   DEVELOPER_MODE_AVAILABLE,
   developerModeAvailable,
@@ -11,6 +20,43 @@ function source(path: string): string {
 }
 
 describe('App Store release surface', () => {
+  test('blocks updates that target preview or remove offline and native compatibility protections', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'hfm-release-check-'));
+    const script = join(process.cwd(), 'scripts/release/check-config.mjs');
+    const config = JSON.parse(source('app.json'));
+    try {
+      mkdirSync(join(directory, 'src/ui'), { recursive: true });
+      writeFileSync(
+        join(directory, 'src/ui/release-surface.ts'),
+        source('src/ui/release-surface.ts'),
+      );
+      const check = (candidate: typeof config) => {
+        writeFileSync(join(directory, 'app.json'), JSON.stringify(candidate));
+        return spawnSync(process.execPath, [script], {
+          cwd: directory,
+          encoding: 'utf8',
+        });
+      };
+      expect(check(config).status).toBe(0);
+      for (const unsafe of [
+        { updates: { ...config.expo.updates, useEmbeddedUpdate: false } },
+        {
+          updates: {
+            ...config.expo.updates,
+            requestHeaders: { 'expo-channel-name': 'preview' },
+          },
+        },
+        { runtimeVersion: { policy: 'appVersion' } },
+      ]) {
+        const result = check({ expo: { ...config.expo, ...unsafe } });
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain('Release preflight failed');
+      }
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   test('allows QA roots only in development or on the intentional web review surface', () => {
     expect(qaRootRoutesEnabled(true, 'ios')).toBe(true);
     expect(qaRootRoutesEnabled(true, 'android')).toBe(true);
@@ -107,7 +153,16 @@ describe('App Store release surface', () => {
         NSPrivacyAccessedAPITypeReasons: ['35F9.1'],
       },
     ]);
-    expect(manifest.NSPrivacyCollectedDataTypes).toEqual([]);
+    expect(manifest.NSPrivacyCollectedDataTypes).toEqual(
+      ['DeviceID', 'CrashData', 'OtherDiagnosticData'].map((type) => ({
+        NSPrivacyCollectedDataType: `NSPrivacyCollectedDataType${type}`,
+        NSPrivacyCollectedDataTypeLinked: true,
+        NSPrivacyCollectedDataTypeTracking: false,
+        NSPrivacyCollectedDataTypePurposes: [
+          'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+        ],
+      })),
+    );
     expect(manifest.NSPrivacyTracking).toBe(false);
     expect(source('scripts/release/inspect-native-app.mjs')).toContainSource(
       "const privacyManifest = join(app, 'PrivacyInfo.xcprivacy');",
