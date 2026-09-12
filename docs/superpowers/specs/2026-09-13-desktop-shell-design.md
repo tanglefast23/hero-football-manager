@@ -51,7 +51,9 @@ No Steamworks SDK.
 ### 1. Shell — `desktop/`
 
 Own `package.json` so Electron (about 100 MB) never enters the root
-`npm ci` that every iOS CI job runs. Two source files.
+`npm ci` that every iOS CI job runs. Three source files: `shell.mjs` holds
+the scheme, handler, and window; `main.mjs` is the bootstrap; `check.mjs`
+imports `shell.mjs` so it can test without running the bootstrap.
 
 `desktop/main.mjs`
 

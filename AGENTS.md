@@ -56,6 +56,16 @@ Verification must never take the Mac away from Joe: no stolen focus, no stolen m
 - EAS sends installation identifiers and technical update/crash data. Keep the in-game privacy copy, privacy manifest, public policy, and App Store disclosures accurate. Do not restore the old claims of no network requests or no collected data.
 - Native folders are generated and ignored. After update configuration or dependencies change, regenerate iOS and install pods before archiving. Inspect CLI-generated configuration: `eas update:configure` has duplicated privacy/localization arrays and inserted unwanted Android permissions here.
 
+## Desktop shell (Steam)
+
+- `desktop/` is an Electron wrapper around `dist/`, the web export. It has its own `package.json`; Electron never enters the root install.
+- Build: `npm run export:web`, then in `desktop/`: `npm ci`, `npm run check`, `CSC_IDENTITY_AUTO_DISCOVERY=false npm run pack`. Output lands in `desktop/out/`. The `pack` script takes no flags on purpose: `--dir` on the CLI overrides the config's arch list and silently drops the macOS universal build.
+- `npm run check` is the shell's one test. It runs hidden, muted, and offscreen, and asserts the `hfm://` scheme, cross-origin isolation, and the title copy on screen. Run it after any change to `desktop/shell.mjs` or to the web export. Two Electron traps it encodes: an ESM main module must not top-level `await` (Electron withholds `ready` until the module finishes evaluating, so it deadlocks), and a hidden window never paints, so `capturePage` needs `offscreen: true`.
+- `desktop/package.json` `version` must equal `expo.version` in `app.json`. Bump both together.
+- The game closes Developer Mode and QA roots when `location.protocol === 'hfm:'` (`insideDesktopShell` in `src/ui/release-surface.ts`). A browser loading `dist/` keeps the review surface.
+- Packed apps are unsigned on both platforms on purpose; Steam launches them without notarization. Do not add signing without a store-side reason.
+- Steam Cloud, achievements, and the Steamworks SDK are deliberately out of v1. Design: `docs/superpowers/specs/2026-09-13-desktop-shell-design.md`.
+
 ## Phone dev server (Joe's physical iPhone)
 
 The latest agent-installed phone build (2026-09-08) is **Release with embedded JS**, including the iOS audio timing patch and six restored 3x effect groups. Changes need a new build and install to reach that app. Verify the installed build before assuming Metro reloads apply. The Debug workflow below applies only after a Debug build is installed:
