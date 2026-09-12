@@ -44,6 +44,30 @@ if (developerModeAvailable === null) {
 }
 
 const config = JSON.parse(readFileSync(resolve('app.json'), 'utf8')).expo;
+const updates = config.updates;
+if (
+  config.owner !== 'joseph-vu' ||
+  config.extra?.eas?.projectId !== 'f6e36042-4f3b-4a96-a441-263b2570acfb' ||
+  updates?.url !== `https://u.expo.dev/${config.extra?.eas?.projectId}` ||
+  updates?.requestHeaders?.['expo-channel-name'] !== 'production'
+) {
+  failures.push(
+    'EAS Update must target the Hero Football Manager production channel',
+  );
+}
+if (
+  updates?.enabled !== true ||
+  updates.checkAutomatically !== 'ON_LOAD' ||
+  updates.fallbackToCacheTimeout !== 0 ||
+  updates.useEmbeddedUpdate !== true ||
+  updates.disableAntiBrickingMeasures === true ||
+  config.runtimeVersion?.policy !== 'fingerprint' ||
+  config.ios?.runtimeVersion !== undefined
+) {
+  failures.push(
+    'Updates must keep offline startup, automatic recovery, and fingerprint compatibility',
+  );
+}
 if (config.orientation !== 'portrait')
   failures.push('expo.orientation must be portrait for iPhone');
 if (config.ios?.supportsTablet !== true)
@@ -83,6 +107,6 @@ if (failures.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    'Release preflight passed: iPhone portrait, adaptive iPad, build number, encryption declaration, no QA flags, and Developer Mode off.',
+    'Release preflight passed: production updates with offline startup and fingerprint compatibility, iPhone portrait, adaptive iPad, build number, encryption declaration, no QA flags, and Developer Mode off.',
   );
 }

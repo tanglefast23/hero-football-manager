@@ -47,6 +47,37 @@ if (!files.includes(privacyManifest)) {
   throw new Error('Release app does not contain PrivacyInfo.xcprivacy');
 }
 
+const config = JSON.parse(readFileSync(resolve('app.json'), 'utf8')).expo;
+const updatesPlist = join(app, 'Expo.plist');
+for (const [key, expected] of Object.entries({
+  EXUpdatesEnabled: 'true',
+  EXUpdatesCheckOnLaunch: 'ALWAYS',
+  EXUpdatesLaunchWaitMs: '0',
+  EXUpdatesRuntimeVersion: 'file:fingerprint',
+  EXUpdatesURL: config.updates.url,
+  'EXUpdatesRequestHeaders.expo-channel-name': 'production',
+})) {
+  if (plistValue(updatesPlist, key) !== expected) {
+    throw new Error(`Release app update setting ${key} must be ${expected}`);
+  }
+}
+if (
+  optionalPlistValue(updatesPlist, 'EXUpdatesHasEmbeddedUpdate') === 'false' ||
+  optionalPlistValue(updatesPlist, 'EXUpdatesDisableAntiBrickingMeasures') ===
+    'true'
+) {
+  throw new Error(
+    'Release app must retain embedded startup and update recovery',
+  );
+}
+const fingerprint = readFileSync(
+  join(app, 'EXUpdates.bundle/fingerprint'),
+  'utf8',
+).trim();
+if (!/^[a-f0-9]{40}$/.test(fingerprint)) {
+  throw new Error('Release app must contain a valid native update fingerprint');
+}
+
 const fonts = files
   .filter((file) =>
     /HFMSilkscreen_(400Regular|700Bold)\.ttf$/.test(basename(file)),
@@ -82,6 +113,8 @@ console.info(
       fonts,
       license: license.slice(app.length + 1),
       privacyManifest: privacyManifest.slice(app.length + 1),
+      updateChannel: 'production',
+      updateRuntime: fingerprint,
     },
     null,
     2,

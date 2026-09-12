@@ -29,8 +29,16 @@ describe('Privacy and support release surface', () => {
     // and they now ship from the catalog rather than the component.
     const copy = loadCatalog('en').strings;
     expect(copy['privacySupport.heroFootballManagerDoes']).toContainSource(
-      'does not use ads, analytics, or tracking',
+      'has no ads or advertising tracking',
     );
+    expect(copy['privacySupport.heroFootballManagerDoes']).toContainSource(
+      'installation identifier and technical update and crash data',
+    );
+    for (const locale of LOCALES) {
+      expect(
+        loadCatalog(locale).strings['privacySupport.heroFootballManagerDoes'],
+      ).toContain('Expo');
+    }
     expect(copy['privacySupport.yourPreferencesPlayerAnd']).toContainSource(
       'career save stay on this device',
     );

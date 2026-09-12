@@ -115,7 +115,21 @@ Firing counts are reliable at 200; worth values are not.
 
 ## Explicitly out (YAGNI at launch)
 
-No server, no accounts, no analytics SDK, no cloud saves (Supabase backup = post-launch option), no multiplayer. Offline-first premium app.
+No gameplay server, no player accounts, no gameplay analytics SDK, no cloud saves (Supabase backup = post-launch option), no multiplayer. Offline-first premium app.
+
+## App updates
+
+Starting with iOS build 3, EAS Update provides compatible fixes between store releases. The project is `@joseph-vu/hero-football-manager` (`f6e36042-4f3b-4a96-a441-263b2570acfb`). `app.json` pins the production channel, fingerprint runtime policy, embedded game, and zero startup wait. The game opens offline; an available update downloads in the background and applies after a restart. There is no in-game forced reload.
+
+Before a native archive, run `npm run release:check`, regenerate iOS, and install pods. The built app must pass `npm run release:inspect -- <app-or-archive>`.
+
+For an authorized OTA release, run the focused checks for the change and publish to preview with `npx eas-cli@latest update --platform ios --channel preview --environment production --message "Describe the fix"`. Use a Release test build with the same fingerprint and the preview channel. Verify download, restart, offline launch, and saved-career loading before promoting that tested update group with `npx eas-cli@latest update:republish --group <tested-group-id> --destination-channel production --platform ios`. Do not publish automatically from Git commits.
+
+For local Simulator testing, copy the built `.app` and change only its `Expo.plist` channel header to `preview`; keep its embedded fingerprint. Keep the production archive unchanged.
+
+Native changes, substantial new features, and incompatible save migrations use a new App Store build and review. Fingerprints do not validate save migrations. Keep replay engine-version discipline for all delivery methods. OTA content must follow Apple's review rules.
+
+The update service receives an installation identifier, runtime/platform information, request IP address, and technical crash/update diagnostics. These serve update delivery and recovery; career saves and player-entered names stay local. The privacy manifest and public disclosures cover that technical data and do not claim the app has no network requests.
 
 ## Dependency maintenance (2026-09-05)
 

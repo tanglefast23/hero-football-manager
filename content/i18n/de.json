@@ -3052,7 +3052,7 @@
     "privacySupport.a11y.readPrivacyPolicy": "Die Datenschutzerklärung des Spiels lesen",
     "privacySupport.backToSettings": "Zurück zu Einstellungen",
     "privacySupport.emailSupport": "Support anmailen",
-    "privacySupport.heroFootballManagerDoes": "Hero Football Manager braucht kein Konto und nutzt keine Werbung, Analyse oder Verfolgung. Das Spiel schickt weder deinen Spielstand noch persönliche Daten an den Entwickler.",
+    "privacySupport.heroFootballManagerDoes": "Hero Football Manager braucht kein Konto und nutzt keine Werbung oder Werbeverfolgung. Bei einer Internetverbindung liefert Expo Updates mithilfe einer Installationskennung sowie technischer Update- und Absturzdaten. Deine Karriere bleibt auf diesem Gerät.",
     "privacySupport.openSourceKicker": "Open-Source-Hinweis",
     "privacySupport.openSourceTitle": "Silkscreen",
     "privacySupport.privacyKicker": "Dein Spiel bleibt deins",
