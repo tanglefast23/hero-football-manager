@@ -87,7 +87,7 @@ export function installHandler(root) {
   });
 }
 
-export function createWindow({ show = true } = {}) {
+export function createWindow({ show = true, offscreen = false } = {}) {
   const window = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -97,7 +97,13 @@ export function createWindow({ show = true } = {}) {
     autoHideMenuBar: true,
     backgroundColor: '#241f2e',
     title: 'Hero Football Manager',
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
+    // `offscreen` is for check.mjs only: a hidden window never paints, so a
+    // capture of one is blank; offscreen rendering paints to a bitmap.
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      offscreen,
+    },
   });
   // Privacy-policy and support links go to the system browser, never a
   // second game window.
