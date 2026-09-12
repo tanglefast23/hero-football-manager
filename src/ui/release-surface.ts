@@ -1,10 +1,29 @@
 /**
- * Static web exports are an intentional review surface, while an App Store
- * archive must always enter the real game even if a QA environment variable is
- * accidentally present when Metro bundles it.
+ * True when the web bundle is running inside the Electron desktop shell.
+ *
+ * Structural, not injected: the shell can only serve the game through its
+ * `hfm://` scheme, so a page on that scheme is inside the shell by
+ * definition. A browser loading `dist/` sees `http:` or `file:` and keeps the
+ * review surface. A preload-injected marker was rejected because a missing
+ * preload would fail open.
  */
-export function qaRootRoutesEnabled(isDev: boolean, platform: string): boolean {
-  return isDev || platform === 'web';
+export function insideDesktopShell(
+  location: { protocol?: string } | undefined = globalThis.location,
+): boolean {
+  return location?.protocol === 'hfm:';
+}
+
+/**
+ * Static web exports are an intentional review surface, while an App Store
+ * archive or the desktop shell must always enter the real game even if a QA
+ * environment variable is accidentally present when Metro bundles it.
+ */
+export function qaRootRoutesEnabled(
+  isDev: boolean,
+  platform: string,
+  desktopShell = false,
+): boolean {
+  return isDev || (platform === 'web' && !desktopShell);
 }
 
 /**
@@ -27,6 +46,9 @@ export const DEVELOPER_MODE_AVAILABLE: boolean = false;
 export function developerModeAvailable(
   isDev: boolean,
   platform: string,
+  desktopShell = false,
 ): boolean {
-  return isDev || platform === 'web' || DEVELOPER_MODE_AVAILABLE;
+  return (
+    isDev || (platform === 'web' && !desktopShell) || DEVELOPER_MODE_AVAILABLE
+  );
 }
