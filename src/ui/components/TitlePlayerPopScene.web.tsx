@@ -39,10 +39,13 @@ const HEROES: readonly WebPopHero[] = [
 export function TitlePlayerPopScene({
   reduceMotion = false,
   bubble = true,
+  heroIndex,
 }: {
   readonly reduceMotion?: boolean;
   /** Store-media key art hides the speech bubble: Steam capsules allow no text. */
   readonly bubble?: boolean;
+  /** Pins one hero instead of cycling; store-media key art picks by index. */
+  readonly heroIndex?: number;
   /** Accepted for parity with the native scene; web already centres the hero. */
   readonly heroLeft?: `${number}%`;
 }) {
@@ -53,7 +56,7 @@ export function TitlePlayerPopScene({
     () => setAppearance((current) => current + 1),
     [],
   );
-  const hero = HEROES[appearance % HEROES.length];
+  const hero = HEROES[(heroIndex ?? appearance) % HEROES.length];
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
 
   useEffect(() => {

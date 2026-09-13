@@ -92,11 +92,14 @@ const SOLO_POSITIONS = ['34%', '42%', '50%', '58%', '66%'] as const;
 export function TitlePlayerPopScene({
   reduceMotion = false,
   bubble = true,
+  heroIndex,
   heroLeft,
 }: {
   readonly reduceMotion?: boolean;
   /** Store-media key art hides the speech bubble: Steam capsules allow no text. */
   readonly bubble?: boolean;
+  /** Pins one hero instead of cycling; store-media key art picks by index. */
+  readonly heroIndex?: number;
   /** Overrides the cycling solo position, so key art can centre the hero. */
   readonly heroLeft?: `${number}%`;
 }) {
@@ -118,7 +121,7 @@ export function TitlePlayerPopScene({
         left={heroLeft ?? SOLO_POSITIONS[appearance % SOLO_POSITIONS.length]}
         reduceMotion={reduceMotion}
         bubble={bubble}
-        hero={HERO_SEQUENCE[appearance % HERO_SEQUENCE.length]}
+        hero={HERO_SEQUENCE[(heroIndex ?? appearance) % HERO_SEQUENCE.length]}
         onComplete={showNextHero}
       />
     </View>

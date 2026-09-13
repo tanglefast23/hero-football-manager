@@ -14,6 +14,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { loadScene, serveExport } from './serve-export.mjs';
 
+/** Optional: which scene to capture and what to name it. */
+const CASE_ID = process.argv[2] ?? 'key-art';
+const OUT_NAME = process.argv[3] ?? 'key-art';
 const WIDTH = 1920;
 const HEIGHT = 1080;
 const EXPORT_DIR = resolve('dist-store');
@@ -50,18 +53,18 @@ app.whenReady().then(async () => {
   const rendered = await loadScene(
     contents,
     origin,
-    'key-art',
+    CASE_ID,
     0,
     SCENE_TIMEOUT_MS,
   );
   await new Promise((settled) => setTimeout(settled, SETTLE_MS));
   const image = await contents.capturePage();
   const { width, height } = image.getSize();
-  const file = join(OUT_DIR, 'key-art.png');
+  const file = join(OUT_DIR, `${OUT_NAME}.png`);
   await writeFile(file, image.toPNG());
   const ok = rendered && width === WIDTH * 2 && height === HEIGHT * 2;
   console.log(
-    `${ok ? 'ok  ' : 'FAIL'} key-art ${width}x${height}${rendered ? '' : ' (did not render)'}`,
+    `${ok ? 'ok  ' : 'FAIL'} ${CASE_ID} ${width}x${height}${rendered ? '' : ' (did not render)'}`,
   );
 
   server.close();
