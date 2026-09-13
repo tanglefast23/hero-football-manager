@@ -56,7 +56,9 @@ function PlayerProfileScene() {
       squadSort={squadSort}
       onChangeSquadSort={setSquadSort}
       reduceMotion
-      initialScrollY={width >= 600 ? 1200 : 1700}
+      // Desktop frames are 1080 tall; the tablet offset scrolls the profile
+      // header out of view.
+      initialScrollY={width >= 1100 ? 230 : width >= 600 ? 1200 : 1700}
     />
   );
 }
