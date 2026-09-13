@@ -57,6 +57,8 @@ yarn-error.*
 # beside the shipped .m4a encodes; only the .m4a is referenced by the app)
 assets/audio/music/*.wav
 
+# Store-media web export for desktop screenshot capture.
+dist-store/
 # Electron shell: dependencies, packed output, and the check's screenshot.
 desktop/node_modules/
 desktop/out/
