@@ -56,3 +56,6 @@ yarn-error.*
 # Synth-stage WAV intermediates (gen-music.mjs / gen-menu-music.mjs write them
 # beside the shipped .m4a encodes; only the .m4a is referenced by the app)
 assets/audio/music/*.wav
+
+# Store-media web export for desktop screenshot capture.
+dist-store/
