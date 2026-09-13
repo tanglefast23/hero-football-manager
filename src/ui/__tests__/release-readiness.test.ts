@@ -12,6 +12,7 @@ import { spawnSync } from 'child_process';
 import {
   DEVELOPER_MODE_AVAILABLE,
   developerModeAvailable,
+  insideDesktopShell,
   qaRootRoutesEnabled,
 } from '../release-surface';
 
@@ -63,6 +64,9 @@ describe('App Store release surface', () => {
     expect(qaRootRoutesEnabled(false, 'web')).toBe(true);
     expect(qaRootRoutesEnabled(false, 'ios')).toBe(false);
     expect(qaRootRoutesEnabled(false, 'android')).toBe(false);
+    // The desktop shell serves the same web bundle but is a shipped product.
+    expect(qaRootRoutesEnabled(false, 'web', true)).toBe(false);
+    expect(qaRootRoutesEnabled(true, 'web', true)).toBe(true);
   });
 
   test('keeps the release preflight able to read the Developer Mode switch', () => {
@@ -84,10 +88,11 @@ describe('App Store release surface', () => {
     expect(developerModeAvailable(false, 'web')).toBe(true);
     expect(developerModeAvailable(false, 'ios')).toBe(false);
     expect(developerModeAvailable(false, 'android')).toBe(false);
+    expect(developerModeAvailable(false, 'web', true)).toBe(false);
 
     const app = source('App.tsx');
     expect(app).toContainSource(
-      'const developerModeAvailable = developerModeAvailableForSurface(__DEV__, Platform.OS)',
+      'const developerModeAvailable = developerModeAvailableForSurface(__DEV__, Platform.OS, insideDesktopShell())',
     );
     expect(app).toContainSource(
       'developerMode={developerModeAvailable ? preferences.developerMode : undefined}',
@@ -95,6 +100,13 @@ describe('App Store release surface', () => {
     expect(app).toContainSource(
       'onToggleDeveloperMode={developerModeAvailable ? toggleDeveloperMode : undefined}',
     );
+  });
+
+  test('recognises the desktop shell by its URL scheme, never by an injected marker', () => {
+    expect(insideDesktopShell({ protocol: 'hfm:' })).toBe(true);
+    expect(insideDesktopShell({ protocol: 'http:' })).toBe(false);
+    expect(insideDesktopShell({ protocol: 'file:' })).toBe(false);
+    expect(insideDesktopShell(undefined)).toBe(false);
   });
 
   test('ships one adaptive iPhone and iPad configuration', () => {

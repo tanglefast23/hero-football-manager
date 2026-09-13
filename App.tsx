@@ -262,6 +262,7 @@ import { useRivalPreload } from './src/ui/use-rival-preload';
 import { useSuspendFlush } from './src/ui/use-suspend-flush';
 import {
   developerModeAvailable as developerModeAvailableForSurface,
+  insideDesktopShell,
   qaRootRoutesEnabled,
 } from './src/ui/release-surface';
 import {
@@ -421,7 +422,8 @@ const QUICK_TRAIN_LESSON_WEEK = 6;
 function requestedQaRoot(
   previewTriggerId: string | undefined,
 ): QaRootAppProps | null {
-  if (!qaRootRoutesEnabled(__DEV__, Platform.OS)) return null;
+  if (!qaRootRoutesEnabled(__DEV__, Platform.OS, insideDesktopShell()))
+    return null;
   if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1')
     return { kind: 'dev-harness' };
   if (process.env.EXPO_PUBLIC_STORE_MEDIA === '1')
@@ -499,6 +501,7 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
   const developerModeAvailable = developerModeAvailableForSurface(
     __DEV__,
     Platform.OS,
+    insideDesktopShell(),
   );
   const { width: viewportWidth, height: viewportHeight } =
     useWindowDimensions();
