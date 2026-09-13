@@ -91,8 +91,14 @@ const SOLO_POSITIONS = ['34%', '42%', '50%', '58%', '66%'] as const;
 
 export function TitlePlayerPopScene({
   reduceMotion = false,
+  bubble = true,
+  heroLeft,
 }: {
   readonly reduceMotion?: boolean;
+  /** Store-media key art hides the speech bubble: Steam capsules allow no text. */
+  readonly bubble?: boolean;
+  /** Overrides the cycling solo position, so key art can centre the hero. */
+  readonly heroLeft?: `${number}%`;
 }) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
@@ -109,8 +115,9 @@ export function TitlePlayerPopScene({
       <PopSlot
         key={reduceMotion ? 'still' : appearance}
         appearance={appearance}
-        left={SOLO_POSITIONS[appearance % SOLO_POSITIONS.length]}
+        left={heroLeft ?? SOLO_POSITIONS[appearance % SOLO_POSITIONS.length]}
         reduceMotion={reduceMotion}
+        bubble={bubble}
         hero={HERO_SEQUENCE[appearance % HERO_SEQUENCE.length]}
         onComplete={showNextHero}
       />
@@ -122,12 +129,14 @@ function PopSlot({
   appearance,
   left,
   reduceMotion,
+  bubble,
   hero,
   onComplete,
 }: {
   readonly appearance: number;
   readonly left: `${number}%`;
   readonly reduceMotion: boolean;
+  readonly bubble: boolean;
   readonly hero: PopHero;
   readonly onComplete: () => void;
 }) {
@@ -196,9 +205,11 @@ function PopSlot({
         },
       ]}
     >
-      <View style={styles.powerBubble}>
-        <Text style={styles.powerBubbleText}>{t(hero.powerLabelKey)}</Text>
-      </View>
+      {bubble ? (
+        <View style={styles.powerBubble}>
+          <Text style={styles.powerBubbleText}>{t(hero.powerLabelKey)}</Text>
+        </View>
+      ) : null}
 
       {hero.targetSpriteKey ? (
         <View style={styles.targetSprite}>
