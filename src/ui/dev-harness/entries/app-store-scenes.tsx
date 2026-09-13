@@ -33,6 +33,9 @@ const CASES = [
   ['five-divisions-cup', '5 Divisions + Cup'],
   ['financial-report', 'Financial Report'],
   ['key-art', 'Key art (Steam capsules, no text)'],
+  ['key-art-1', 'Key art, hero 1'],
+  ['key-art-2', 'Key art, hero 2'],
+  ['key-art-3', 'Key art, hero 3'],
 ] as const;
 
 function PlayerProfileScene() {
@@ -142,7 +145,7 @@ function CompetitionScene() {
  * text beyond the game's name on a capsule; the logo is composed on later by
  * scripts/store/compose-capsules.mjs.
  */
-function KeyArtScene() {
+function KeyArtScene({ heroIndex }: { readonly heroIndex: number }) {
   return (
     // #265b30 is tailwind's pitch-ink, the title screen's ground.
     <View style={{ flex: 1, backgroundColor: '#265b30' }}>
@@ -158,7 +161,12 @@ function KeyArtScene() {
           transform: [{ scale: 3 }],
         }}
       >
-        <TitlePlayerPopScene reduceMotion bubble={false} heroLeft="50%" />
+        <TitlePlayerPopScene
+          reduceMotion
+          bubble={false}
+          heroIndex={heroIndex}
+          heroLeft="50%"
+        />
       </View>
     </View>
   );
@@ -166,8 +174,16 @@ function KeyArtScene() {
 
 function AppStoreScene({ caseId }: { readonly caseId: string }) {
   switch (caseId) {
+    // Gus Tower, the giant keeper: a solo figure that reads at thumbnail size.
+    // Owner choice 2026-09-13; Dario's braided head turned to stripes.
     case 'key-art':
-      return <KeyArtScene />;
+      return <KeyArtScene heroIndex={2} />;
+    case 'key-art-1':
+      return <KeyArtScene heroIndex={1} />;
+    case 'key-art-2':
+      return <KeyArtScene heroIndex={2} />;
+    case 'key-art-3':
+      return <KeyArtScene heroIndex={3} />;
     case 'heroes-change-matches':
       return <HeroShowcaseScene />;
     case 'contract-renewals':
