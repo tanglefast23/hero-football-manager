@@ -97,7 +97,10 @@ function fitSize(
 /**
  * Renders smooth, full-resolution comic lettering. `accent` is the fill family.
  */
-export function drawTitleCard(ck, { lines, width, accent = PALETTE.blue }) {
+export function drawTitleCard(
+  ck,
+  { lines, width, accent = PALETTE.blue, maxSize },
+) {
   const unit = width / 440;
   const px = (value) => Math.round(value * unit);
   const margin = px(16);
@@ -106,9 +109,11 @@ export function drawTitleCard(ck, { lines, width, accent = PALETTE.blue }) {
   const lineGap = px(1);
   const typeface = loadMarketingTypeface(ck);
   const innerMax = width - (margin + padX) * 2;
+  // Screenshot headlines cap at 48 art-px so they read as captions. A logo
+  // passes a larger `maxSize` so the card's width becomes the constraint.
   const size = fitSize(ck, typeface, lines, innerMax, {
     min: px(20),
-    max: px(48),
+    max: maxSize ?? px(48),
     step: Math.max(1, px(2)),
   });
 

@@ -5,6 +5,8 @@ import { leagueStandings, quickResolveM2NationalCup } from '../../../game';
 import { m2LeagueViewModel } from '../../../application/m2-league-view-model';
 import { squadTrainingViewModel } from '../../../application/view-models';
 import { loadLaunchContent } from '../../../content';
+import { ChalkboardBackdrop } from '../../components/ChalkboardStage';
+import { TitlePlayerPopScene } from '../../components/TitlePlayerPopScene';
 import { M2LeagueScreen } from '../../screens/M2LeagueScreen';
 import { SquadTrainingScreen } from '../../screens/SquadTrainingScreen';
 import type { SquadSort } from '../../squad-sort';
@@ -30,6 +32,7 @@ const CASES = [
   ['sponsors-want-more', 'Sponsors Want More'],
   ['five-divisions-cup', '5 Divisions + Cup'],
   ['financial-report', 'Financial Report'],
+  ['key-art', 'Key art (Steam capsules, no text)'],
 ] as const;
 
 function PlayerProfileScene() {
@@ -133,8 +136,38 @@ function CompetitionScene() {
   );
 }
 
+/**
+ * Text-free key art for the Steam capsules: the title screen's chalkboard
+ * pitch and one still hero at 2x, centred, no speech bubble. Valve allows no
+ * text beyond the game's name on a capsule; the logo is composed on later by
+ * scripts/store/compose-capsules.mjs.
+ */
+function KeyArtScene() {
+  return (
+    // #265b30 is tailwind's pitch-ink, the title screen's ground.
+    <View style={{ flex: 1, backgroundColor: '#265b30' }}>
+      <ChalkboardBackdrop wide />
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: '50%',
+          marginTop: -125,
+          // Integer magnification only; pixel art samples unevenly otherwise.
+          transform: [{ scale: 3 }],
+        }}
+      >
+        <TitlePlayerPopScene reduceMotion bubble={false} heroLeft="50%" />
+      </View>
+    </View>
+  );
+}
+
 function AppStoreScene({ caseId }: { readonly caseId: string }) {
   switch (caseId) {
+    case 'key-art':
+      return <KeyArtScene />;
     case 'heroes-change-matches':
       return <HeroShowcaseScene />;
     case 'contract-renewals':

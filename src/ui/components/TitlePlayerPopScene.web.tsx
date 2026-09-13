@@ -38,8 +38,13 @@ const HEROES: readonly WebPopHero[] = [
 
 export function TitlePlayerPopScene({
   reduceMotion = false,
+  bubble = true,
 }: {
   readonly reduceMotion?: boolean;
+  /** Store-media key art hides the speech bubble: Steam capsules allow no text. */
+  readonly bubble?: boolean;
+  /** Accepted for parity with the native scene; web already centres the hero. */
+  readonly heroLeft?: `${number}%`;
 }) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
@@ -102,9 +107,11 @@ export function TitlePlayerPopScene({
           },
         ]}
       >
-        <View style={styles.powerBubble}>
-          <Text style={styles.powerBubbleText}>{t(hero.powerLabelKey)}</Text>
-        </View>
+        {bubble ? (
+          <View style={styles.powerBubble}>
+            <Text style={styles.powerBubbleText}>{t(hero.powerLabelKey)}</Text>
+          </View>
+        ) : null}
         <View style={styles.artRow}>
           {hero.targetSpriteKey ? (
             <View style={styles.target}>

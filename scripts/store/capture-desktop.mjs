@@ -16,9 +16,9 @@
  * Writes artifacts/store-screenshots/desktop/raw/NN-<case>.png at 1920x1080.
  */
 import { BrowserWindow, app } from 'electron';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
-import { extname, join, resolve, sep } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { loadScene, serveExport } from './serve-export.mjs';
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
@@ -39,48 +39,6 @@ const CASES = [
   'five-divisions-cup',
   'financial-report',
 ];
-
-const CONTENT_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.wasm': 'application/wasm',
-  '.png': 'image/png',
-  '.ttf': 'font/ttf',
-  '.m4a': 'audio/mp4',
-  '.wav': 'audio/wav',
-};
-
-function serveExport(root) {
-  const server = createServer(async (request, response) => {
-    const { pathname } = new URL(request.url, 'http://127.0.0.1');
-    const relative =
-      pathname === '/' || extname(pathname) === '' ? '/index.html' : pathname;
-    const target = resolve(root, `.${decodeURIComponent(relative)}`);
-    if (!target.startsWith(`${root}${sep}`)) {
-      response.writeHead(403).end();
-      return;
-    }
-    try {
-      if (!(await stat(target)).isFile()) throw new Error('not a file');
-      const body = await readFile(target);
-      response.writeHead(200, {
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'credentialless',
-        'Content-Type':
-          CONTENT_TYPES[extname(target)] ?? 'application/octet-stream',
-        'Content-Length': body.byteLength,
-      });
-      response.end(body);
-    } catch {
-      response.writeHead(404).end();
-    }
-  });
-  return new Promise((ready) =>
-    server.listen(0, '127.0.0.1', () => ready(server)),
-  );
-}
 
 app.commandLine.appendSwitch('mute-audio');
 
@@ -113,24 +71,13 @@ app.whenReady().then(async () => {
 
   let failures = 0;
   for (const [index, caseId] of CASES.entries()) {
-    // The store-media root reads the hash once on mount, and a URL that
-    // differs only in its hash is a same-document navigation with no remount.
-    // The query string makes each scene a distinct URL and a real load.
-    const url = `${origin}/index.html?scene=${index}#/dev/app-store-scenes/${caseId}`;
-    await contents.loadURL(url);
-    const rendered = await contents.executeJavaScript(`
-      new Promise((done) => {
-        const started = Date.now();
-        const tick = () => {
-          const shellGone = document.querySelector('.startup-shell') === null;
-          const root = document.querySelector('#root');
-          if (shellGone && root && root.childElementCount > 0) return done(true);
-          if (Date.now() - started > ${SCENE_TIMEOUT_MS}) return done(false);
-          setTimeout(tick, 200);
-        };
-        tick();
-      })
-    `);
+    const rendered = await loadScene(
+      contents,
+      origin,
+      caseId,
+      index,
+      SCENE_TIMEOUT_MS,
+    );
     await new Promise((settled) => setTimeout(settled, SETTLE_MS));
     // Offscreen rendering paints at the host display's scale, so a Retina Mac
     // returns 3840x2160 for a 1920x1080 layout; force-device-scale-factor does
