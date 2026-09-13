@@ -59,6 +59,7 @@ assets/audio/music/*.wav
 
 # Store-media web export for desktop screenshot capture.
 dist-store/
+
 # Electron shell: dependencies, packed output, and the check's screenshot.
 desktop/node_modules/
 desktop/out/

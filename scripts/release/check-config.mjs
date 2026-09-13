@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 
 const qaEnvironmentVariables = [
   'EXPO_PUBLIC_DEV_HARNESS',
+  'EXPO_PUBLIC_STORE_MEDIA',
   'EXPO_PUBLIC_POWER_MATCH_QA',
   'EXPO_PUBLIC_POWER_CUTIN_QA',
   'EXPO_PUBLIC_POWER_ART_QA',

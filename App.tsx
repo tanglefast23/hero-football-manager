@@ -426,6 +426,8 @@ function requestedQaRoot(
     return null;
   if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1')
     return { kind: 'dev-harness' };
+  if (process.env.EXPO_PUBLIC_STORE_MEDIA === '1')
+    return { kind: 'store-media' };
   if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1')
     return { kind: 'power-match' };
   if (process.env.EXPO_PUBLIC_POWER_CUTIN_QA === '1')

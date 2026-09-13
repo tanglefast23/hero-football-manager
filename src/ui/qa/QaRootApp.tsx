@@ -27,13 +27,18 @@ import { AwakeningCutsceneScreen } from '../screens/AwakeningCutsceneScreen';
 import { AwakeningArtQaScreen } from '../screens/AwakeningArtQaScreen';
 import { AwardsCeremonyQaScreen } from '../screens/AwardsCeremonyQaScreen';
 import { PowerArtQaScreen } from '../screens/PowerArtQaScreen';
-import { DevHarnessScreen } from '../dev-harness/DevHarnessScreen';
+import {
+  DevHarnessScreen,
+  StoreMediaScreen,
+} from '../dev-harness/DevHarnessScreen';
+import { parseDevHarnessHash } from '../dev-harness/route';
 
 const HFMSilkscreen_400Regular = require('../../../assets/fonts/HFMSilkscreen_400Regular.ttf');
 const HFMSilkscreen_700Bold = require('../../../assets/fonts/HFMSilkscreen_700Bold.ttf');
 
 export type QaRootKind =
   | 'dev-harness'
+  | 'store-media'
   | 'power-match'
   | 'power-cutin'
   | 'power-art'
@@ -49,6 +54,7 @@ export interface QaRootAppProps {
 /** All review-only controllers and imports live behind one async boundary. */
 export default function QaRootApp({ kind, triggerId }: QaRootAppProps) {
   if (kind === 'dev-harness') return <DevHarnessApp />;
+  if (kind === 'store-media') return <StoreMediaApp />;
   if (kind === 'power-match') return <PowerMatchQaApp />;
   if (kind === 'power-cutin') return <PowerCutInQaApp />;
   if (kind === 'power-art') return <PowerArtQaApp />;
@@ -318,6 +324,33 @@ function DevHarnessApp() {
         <>
           <StatusBar style="light" />
           <DevHarnessScreen />
+        </>
+      )}
+    </SafeAreaProvider>
+  );
+}
+
+/**
+ * One harness scene with no harness chrome, addressed by the same
+ * `#/dev/<entry>/<case>` hash the harness uses. This is how store
+ * screenshots are captured on web and desktop: one export, one URL per
+ * scene, nothing in frame but the scene.
+ */
+function StoreMediaApp() {
+  const [fontsLoaded] = useQaFonts();
+  const route = useMemo(
+    () =>
+      typeof location === 'undefined' ? {} : parseDevHarnessHash(location.hash),
+    [],
+  );
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? (
+        <LoadingScreen />
+      ) : (
+        <>
+          <StatusBar style="light" />
+          <StoreMediaScreen entryId={route.entryId} caseId={route.caseId} />
         </>
       )}
     </SafeAreaProvider>
