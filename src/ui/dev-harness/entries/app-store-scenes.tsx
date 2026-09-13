@@ -174,10 +174,11 @@ function KeyArtScene({ heroIndex }: { readonly heroIndex: number }) {
 
 function AppStoreScene({ caseId }: { readonly caseId: string }) {
   switch (caseId) {
-    // Gus Tower, the giant keeper: a solo figure that reads at thumbnail size.
-    // Owner choice 2026-09-13; Dario's braided head turned to stripes.
+    // Hero 3, Feel the Thunder: owner choice 2026-09-13 from the four-hero
+    // picker. Dario (0) was rejected; his braided head reads as stripes at
+    // capsule size.
     case 'key-art':
-      return <KeyArtScene heroIndex={2} />;
+      return <KeyArtScene heroIndex={3} />;
     case 'key-art-1':
       return <KeyArtScene heroIndex={1} />;
     case 'key-art-2':
