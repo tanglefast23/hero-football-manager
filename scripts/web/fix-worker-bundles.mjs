@@ -1,7 +1,16 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const bundleDirectory = path.resolve('dist', '_expo', 'static', 'js', 'web');
+// Optional argument: an export directory other than dist/, such as the
+// store-media export used for desktop screenshot capture.
+const exportDirectory = process.argv[2] ?? 'dist';
+const bundleDirectory = path.resolve(
+  exportDirectory,
+  '_expo',
+  'static',
+  'js',
+  'web',
+);
 const filenames = await readdir(bundleDirectory);
 const workerFilenames = filenames.filter((filename) =>
   /^worker-.*\.js$/.test(filename),
