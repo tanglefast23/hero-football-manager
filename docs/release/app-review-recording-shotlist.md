@@ -41,9 +41,9 @@ Build: TestFlight build 2 (NOT the Metro dev build).
 
 ## Not in this app - do not look for them
 
-- Account registration, login, account deletion (no accounts, no network)
+- Account registration, login, account deletion (no accounts)
 - Purchase or subscription flows (paid app, 0 in-app purchases)
-- User-generated content, reporting, blocking (nothing leaves the device)
+- User-generated content, reporting, blocking (career saves stay on the device)
 - Permission prompts (the app requests no permissions)
 
 ## After

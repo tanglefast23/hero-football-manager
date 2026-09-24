@@ -1,5 +1,8 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { gunzipSync } from 'zlib';
 import { createLaunchCareerSetup } from '../../application/launch';
-import { createCareer } from '../../game/career';
+import { advanceWeek, createCareer } from '../../game/career';
 import { GAME_SCHEMA_VERSION } from '../../game/types';
 import { createProvisionalSponsorPortfolio } from '../../game/sponsors';
 import {
@@ -12,6 +15,22 @@ import { CorruptCareerSaveError, UnsupportedGameSchemaError } from '../errors';
 type MutableRecord = Record<string, unknown>;
 
 describe('stored game state migrations', () => {
+  it('loads and advances a save written by the build 3 source', () => {
+    // Generated at d255bfda with seed 20260924 after one advanceWeek call.
+    const raw = gunzipSync(
+      readFileSync(join(__dirname, '../__fixtures__/build3-week2.json.gz')),
+    ).toString('utf8');
+    const restored = parseStoredGameState(raw);
+
+    expect(restored).toMatchObject({
+      schemaVersion: GAME_SCHEMA_VERSION,
+      season: 1,
+      week: 2,
+      phase: 'manage',
+    });
+    expect(advanceWeek(restored).week).toBe(3);
+  });
+
   it('passes a save already at the current version through unchanged', () => {
     const save = {
       schemaVersion: GAME_SCHEMA_VERSION,

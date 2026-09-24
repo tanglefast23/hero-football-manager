@@ -2,9 +2,7 @@ import {
   chooseWeightedOutcome,
   deterministicCareerEventRoll,
   quietWeekEventChancePercent,
-  recordEventChoice,
   rollWeeklyEvent,
-  type EventClockState,
 } from '../event-clock';
 
 describe('weekly event clock', () => {
@@ -113,21 +111,6 @@ describe('weekly event clock', () => {
   });
 });
 
-describe('event choice risk count', () => {
-  it('increments only for risky choices without mutating the input', () => {
-    const state: EventClockState = { weeksWithoutEvent: 3, riskyChoices: 4 };
-
-    const safe = recordEventChoice(state, false);
-    const risky = recordEventChoice(state, true);
-
-    expect(state).toEqual({ weeksWithoutEvent: 3, riskyChoices: 4 });
-    expect(safe).toEqual({ weeksWithoutEvent: 3, riskyChoices: 4 });
-    expect(risky).toEqual({ weeksWithoutEvent: 3, riskyChoices: 5 });
-    expect(safe).not.toBe(state);
-    expect(risky).not.toBe(state);
-  });
-});
-
 describe('weighted outcome selection', () => {
   it.each([
     [0, 0],
@@ -180,7 +163,19 @@ describe('event clock validation and immutability', () => {
     { weeksWithoutEvent: 0, riskyChoices: 1.5 },
   ])('rejects invalid state %p', (state) => {
     expect(() => rollWeeklyEvent(state, 50)).toThrow();
-    expect(() => recordEventChoice(state, false)).toThrow();
+  });
+
+  it('keeps the settled-week stamp while rolling the next offer', () => {
+    const state = {
+      weeksWithoutEvent: 2,
+      riskyChoices: 1,
+      storySettledSeason: 3,
+      storySettledWeek: 8,
+    };
+    expect(rollWeeklyEvent(state, 99).state).toEqual({
+      ...state,
+      weeksWithoutEvent: 3,
+    });
   });
 
   it('returns byte-identical output for identical input and leaves that input unchanged', () => {

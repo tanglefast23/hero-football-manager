@@ -53,12 +53,16 @@ const get = (path) =>
 
 const APP = '6799600157';
 const versions = get(
-  `/v1/apps/${APP}/appStoreVersions?limit=3&fields[appStoreVersions]=versionString,appStoreState,createdDate`,
+  `/v1/apps/${APP}/appStoreVersions?limit=3&fields[appStoreVersions]=versionString,appStoreState,releaseType,earliestReleaseDate,downloadable,createdDate`,
 );
 for (const v of versions.data ?? []) {
   console.log(
-    `version ${v.attributes.versionString}  ${v.attributes.appStoreState}`,
+    `version ${v.attributes.versionString}  ${v.attributes.appStoreState}  release ${v.attributes.releaseType}  date ${v.attributes.earliestReleaseDate}  downloadable ${v.attributes.downloadable}`,
   );
+  const build = get(
+    `/v1/appStoreVersions/${v.id}/build?fields[builds]=version,processingState`,
+  ).data;
+  console.log(`  selected build ${build?.attributes?.version ?? 'none'}`);
 }
 const subs = get(
   `/v1/reviewSubmissions?filter[app]=${APP}&limit=3&fields[reviewSubmissions]=state,submittedDate`,

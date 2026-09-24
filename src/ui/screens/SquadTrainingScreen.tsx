@@ -293,6 +293,10 @@ export interface SquadTrainingScreenProps {
   drillPickerRequestToken?: number;
   /** Store save warning, shown inside the drill modal (a Modal covers the app banner). */
   saveWarning?: string | null;
+  backupWarning?: string | null;
+  season?: number;
+  week?: number;
+  resultSaved?: boolean;
   /** True once Bert has given the condition lesson; it is one per career. */
   conditionWarningSeen?: boolean;
   onConditionWarningShown?: () => void;
@@ -356,6 +360,10 @@ export function SquadTrainingScreen({
   reduceMotion = false,
   drillPickerRequestToken,
   saveWarning = null,
+  backupWarning = null,
+  season,
+  week,
+  resultSaved = false,
   conditionWarningSeen = false,
   onConditionWarningShown,
   guideQuickTrain = false,
@@ -883,6 +891,10 @@ export function SquadTrainingScreen({
             }}
             reduceMotion={reduceMotion}
             saveWarning={saveWarning}
+            backupWarning={backupWarning}
+            season={season}
+            week={week}
+            resultSaved={resultSaved}
             quickTrainPathId={quickTrainPathId}
             onQuickTrainConsumed={forgetQuickTrainRequest}
             conditionWarningSeen={conditionWarningSeen}

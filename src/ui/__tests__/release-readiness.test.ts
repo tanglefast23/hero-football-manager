@@ -58,14 +58,23 @@ describe('App Store release surface', () => {
     }
   });
 
-  test('allows QA roots only in development or on the intentional web review surface', () => {
+  test('allows QA roots only in development or on a local web review surface', () => {
     expect(qaRootRoutesEnabled(true, 'ios')).toBe(true);
     expect(qaRootRoutesEnabled(true, 'android')).toBe(true);
-    expect(qaRootRoutesEnabled(false, 'web')).toBe(true);
+    expect(
+      qaRootRoutesEnabled(false, 'web', false, { hostname: 'localhost' }),
+    ).toBe(true);
+    expect(
+      qaRootRoutesEnabled(false, 'web', false, {
+        hostname: 'hero-football-manager.vercel.app',
+      }),
+    ).toBe(false);
     expect(qaRootRoutesEnabled(false, 'ios')).toBe(false);
     expect(qaRootRoutesEnabled(false, 'android')).toBe(false);
     // The desktop shell serves the same web bundle but is a shipped product.
-    expect(qaRootRoutesEnabled(false, 'web', true)).toBe(false);
+    expect(
+      qaRootRoutesEnabled(false, 'web', true, { hostname: 'localhost' }),
+    ).toBe(false);
     expect(qaRootRoutesEnabled(true, 'web', true)).toBe(true);
   });
 
@@ -82,13 +91,22 @@ describe('App Store release surface', () => {
     );
   });
 
-  test('enables Developer Mode on Debug and web surfaces but not native Release', () => {
+  test('enables Developer Mode on Debug and local web surfaces but not public web or native Release', () => {
     expect(developerModeAvailable(true, 'ios')).toBe(true);
     expect(developerModeAvailable(true, 'android')).toBe(true);
-    expect(developerModeAvailable(false, 'web')).toBe(true);
+    expect(
+      developerModeAvailable(false, 'web', false, { hostname: 'localhost' }),
+    ).toBe(true);
+    expect(
+      developerModeAvailable(false, 'web', false, {
+        hostname: 'hero-football-manager.vercel.app',
+      }),
+    ).toBe(false);
     expect(developerModeAvailable(false, 'ios')).toBe(false);
     expect(developerModeAvailable(false, 'android')).toBe(false);
-    expect(developerModeAvailable(false, 'web', true)).toBe(false);
+    expect(
+      developerModeAvailable(false, 'web', true, { hostname: 'localhost' }),
+    ).toBe(false);
 
     const app = source('App.tsx');
     expect(app).toContainSource(

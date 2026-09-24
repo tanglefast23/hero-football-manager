@@ -1,3 +1,5 @@
+Historical review draft. Update device and build evidence before reusing it for a new submission.
+
 OVERVIEW
 Hero Football Manager is a paid, single-player football (soccer) club-management game with a fictional superpower twist. No account, no sign-in, no ads, no in-app purchases. It runs fully offline.
 
@@ -14,13 +16,13 @@ No credentials, permissions, sample files or special access are required.
 Progress is stored on-device in a local SQLite save. Deleting the app deletes the data.
 
 EXTERNAL SERVICES, TOOLS AND PLATFORMS
-None. The app makes no network requests of any kind. There are no data providers, authentication services, payment processors, analytics, advertising SDKs or AI services. Dependencies are Expo and React Native modules only: expo-sqlite, expo-audio, expo-font, expo-asset, expo-localization, expo-haptics, expo-splash-screen, react-native-skia, react-native-reanimated.
+Expo Updates checks for compatible app fixes when the device is online. Gameplay and career saves work offline. There are no accounts, payment processors, analytics, advertising SDKs or AI services.
 
 PERMISSIONS AND DATA
-The app requests no permissions. It does not access location, contacts, camera, microphone, photos or App Tracking Transparency. It collects no data: NSPrivacyCollectedDataTypes is empty and NSPrivacyTracking is false.
+The app requests no access to location, contacts, camera, microphone or photos, and does not track users for advertising. Expo Updates handles an installation identifier and technical update and crash data. The privacy manifest declares Device ID, Crash Data and Other Diagnostic Data for App Functionality. Career saves remain on the device.
 
 USER-GENERATED CONTENT
-None is shared. The player types a manager name and club name that stay on the device. There is no network, so nothing is transmitted or visible to other users. No reporting or blocking mechanism applies.
+None is shared. The player types a manager name and club name that stay on the device. The app has no player sharing, reporting or blocking mechanism.
 
 REGIONAL DIFFERENCES
 None. Features and content are identical in every region. The app ships 7 localizations (English, Spanish, Portuguese (Brazil), French, German, Indonesian, Vietnamese), chosen from the device language. Nothing is gated, added or removed by region or storefront.

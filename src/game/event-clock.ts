@@ -82,27 +82,9 @@ export function rollWeeklyEvent(
   return {
     offered,
     state: {
+      ...state,
       weeksWithoutEvent: offered ? 0 : state.weeksWithoutEvent + 1,
-      riskyChoices: state.riskyChoices,
     },
-  };
-}
-
-export function recordEventChoice(
-  state: EventClockState,
-  risky: boolean,
-): EventClockState {
-  validateState(state);
-  if (typeof risky !== 'boolean') {
-    throw new Error('event choice risk must be a boolean');
-  }
-  if (risky && state.riskyChoices === Number.MAX_SAFE_INTEGER) {
-    throw new Error('risky choice count exceeds the safe integer range');
-  }
-
-  return {
-    weeksWithoutEvent: state.weeksWithoutEvent,
-    riskyChoices: state.riskyChoices + (risky ? 1 : 0),
   };
 }
 

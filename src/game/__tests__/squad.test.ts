@@ -229,6 +229,43 @@ describe('away players', () => {
 });
 
 describe('career squad integration', () => {
+  it.each(['injury', 'license'] as const)(
+    'repairs a %s in a defensive slot with a fit defender',
+    (cause) => {
+      const initial = career();
+      const starterId = `${CLUB_IDS[0]}-p3`;
+      const defenderId = `${CLUB_IDS[0]}-p13`;
+      const midfielderId = `${CLUB_IDS[0]}-p14`;
+      const prepared: GameState = {
+        ...initial,
+        players: [
+          ...initial.players.map((player) =>
+            player.id === starterId
+              ? {
+                  ...player,
+                  role: 'MID' as const,
+                  ...(cause === 'injury'
+                    ? { injuryWeeks: 2 }
+                    : { power: 'SUPER_SPEED' as const, licensed: true }),
+                }
+              : player.id === `${CLUB_IDS[0]}-p10` && cause === 'license'
+                ? { ...player, power: undefined, licensed: false }
+                : player,
+          ),
+          { ...makePlayer(CLUB_IDS[0], 13), role: 'DEF' },
+          { ...makePlayer(CLUB_IDS[0], 14), role: 'MID' },
+        ],
+      };
+
+      const repaired =
+        cause === 'injury'
+          ? repairCareerLineupForInjuries(prepared)
+          : selectCareerLicensedHeroes(prepared, [`${CLUB_IDS[0]}-p9`]);
+      expect(repaired.lineups[0].playerIds[3]).toBe(defenderId);
+      expect(repaired.lineups[0].playerIds).not.toContain(midfielderId);
+    },
+  );
+
   it('keeps an injured hero return claim until the player is fit and relicensed', () => {
     const initial = career();
     const heroId = `${CLUB_IDS[0]}-p10`;

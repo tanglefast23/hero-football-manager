@@ -43,7 +43,8 @@ flag them — don't.
   PCM and oversampled peak limiting avoid the overshoot measured in the AAC
   conversion. The cue stays below the usual loudness target to preserve its hit.
   The unchanged original, `a_goalie_in_a_soccer_#3-1788885284999.mp3`, is kept
-  as `../sources/goalie-save.mp3`. The audio levels script sets the final volume.
+  locally as `../sources/goalie-save.mp3` and excluded from future commits.
+  The audio levels script sets the final volume.
   `save-slap.wav` remains a procedural catalog fixture.
 
 ## Before deleting anything

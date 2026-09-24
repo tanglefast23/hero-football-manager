@@ -48,7 +48,7 @@ describe('training stat option rendering', () => {
     expect(screen).toContainSource(
       'option !== undefined && !option.atSafetyCeiling && onTrainAttribute !== undefined',
     );
-    expect(source).toContainSource('const disabled = blocked;');
+    expect(source).toContainSource('const disabled = blocked || settling;');
     // Too little TP is different: the row stays tappable and says so, because a
     // button that does nothing reads as broken.
     expect(source).toContainSource(

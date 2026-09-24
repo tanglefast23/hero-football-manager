@@ -333,7 +333,8 @@ export async function flushPendingCareerSave(): Promise<void> {
   ) {
     pendingCareerSave = null;
     try {
-      await repository.save(snapshot.state);
+      const backupResult = await repository.save(snapshot.state);
+      recordBackupResult(get, set, backupResult);
       clearSaveFailures(get, set);
       recordPersistedCareer(get, set, snapshot.state);
     } catch (error) {
@@ -454,6 +455,8 @@ interface M1Store {
   consecutiveSaveFailures: number;
   /** Non-dismissible warning while progress is only in memory. */
   saveWarning: string | null;
+  /** The live career saved, but its season backup still needs a retry. */
+  backupWarning: string | null;
   /** True once saves have failed enough times to stop the week advancing. */
   saveBlocked: boolean;
   /**
@@ -854,6 +857,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   lastPersistedCareer: null,
   consecutiveSaveFailures: 0,
   saveWarning: null,
+  backupWarning: null,
   saveBlocked: false,
   reopenRepository: null,
   backupSummary: null,
@@ -1109,6 +1113,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
   retrySave() {
     const career = get().career;
     if (career === null) return;
+    if (get().saveWarning === null && get().backupWarning !== null) {
+      queueCareerSave(get, set, career);
+      return;
+    }
     const reopen = get().reopenRepository;
     // Straight through when the app ring supplied no reconnect (native, and
     // every test double): the plain retry is the whole behaviour there.
@@ -1768,7 +1776,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (get().saveBlocked) {
         playerError('store.seasonPausedBySaveFailure');
       }
-      const before = requireCareer(get());
+      const before = withUserLineupFormation(
+        requireCareer(get()),
+        preferences.initialFormation,
+      );
       if (midseasonTrainingStatus(before) === 'prompt') return;
       if (pendingRivalHeroIntro(before) !== undefined) return;
       assertLeagueCupCheckpointPersisted(get(), before);
@@ -1959,7 +1970,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // not a fault: the first call cleared the context. Surfacing it threw a
       // developer sentence into the player's error toast on a working game.
       if (watchedMatch === null) return;
-      const before = requireCareer(get());
+      const before = withUserLineupFormation(
+        requireCareer(get()),
+        result.tactics[watchedMatch.controlledTeam].formation,
+      );
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
       if (watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
@@ -3903,6 +3917,24 @@ function requireCareer(state: Pick<M1Store, 'career'>): GameState {
   return state.career;
 }
 
+function withUserLineupFormation(
+  career: GameState,
+  formation: FormationId,
+): GameState {
+  const lineup = career.lineups.find(
+    (candidate) => candidate.clubId === career.userClubId,
+  );
+  if (lineup?.formation === formation) return career;
+  return {
+    ...career,
+    lineups: career.lineups.map((candidate) =>
+      candidate.clubId === career.userClubId
+        ? { ...candidate, formation }
+        : candidate,
+    ),
+  };
+}
+
 function assertLeagueCupCheckpointPersisted(
   store: Pick<M1Store, 'repository' | 'lastPersistedCareer'>,
   career: GameState,
@@ -3960,6 +3992,7 @@ function queueCareerSave(
   const generation = ++careerSaveGeneration;
   pendingCareerSave = { generation, lineage: careerLineage, state: career };
   let saved: GameState | null = null;
+  let backupResult: void | 'backup-failed';
   enqueueSave(
     get,
     set,
@@ -3982,7 +4015,7 @@ function queueCareerSave(
       // abandoned — a replacement whose own save failed and rolled back onto
       // the career still in the live slot. Writing it now would undo that.
       if (lineage !== careerLineage) return;
-      await repository.save(state);
+      backupResult = await repository.save(state);
       saved = state;
     },
     t('store.saveFailed'),
@@ -3992,9 +4025,20 @@ function queueCareerSave(
       if (saved === null) return;
       clearSaveFailures(get, set);
       recordPersistedCareer(get, set, saved);
+      recordBackupResult(get, set, backupResult);
     },
     (error) => recordSaveFailure(get, set, error),
   );
+}
+
+function recordBackupResult(
+  get: () => M1Store,
+  set: (partial: Partial<M1Store>) => void,
+  result: void | 'backup-failed',
+): void {
+  const backupWarning =
+    result === 'backup-failed' ? t('store.backupSaveWarning') : null;
+  if (get().backupWarning !== backupWarning) set({ backupWarning });
 }
 
 function recordSaveFailure(
@@ -4057,14 +4101,14 @@ async function backupSummaryFailSoft(
   }
 }
 
-/** Treats an unanswerable integrity check as "no damage reported". */
+/** An unanswerable integrity check cannot clear a damaged database. */
 async function integrityFailSoft(
   repository: CareerRepository,
 ): Promise<boolean> {
   try {
     return await repository.checkIntegrity();
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -4110,6 +4154,7 @@ function queueNewCareerSave(
   pendingCareerSave = null;
   retireCareerLineage();
   let replacedCareerPersisted = false;
+  let backupResult: void | 'backup-failed';
   const replacedCareerId =
     replacedCareer === null ? null : `m1-career-${replacedCareer.careerSeed}`;
   // Exclusive from THIS moment, not from the moment the task starts running:
@@ -4134,7 +4179,7 @@ function queueNewCareerSave(
         }
         // The career is the irreplaceable asset. Persist it before cleaning any
         // replay namespace so a failed replacement never erases match history.
-        await careerRepository?.save(career);
+        backupResult = await careerRepository?.save(career);
         try {
           if (replacedCareerId !== null && replacedCareerId !== careerId) {
             await replayRepository?.deleteAllForCareer(replacedCareerId);
@@ -4160,6 +4205,7 @@ function queueNewCareerSave(
     () => {
       clearSaveFailures(get, set);
       recordPersistedCareer(get, set, career);
+      recordBackupResult(get, set, backupResult);
     },
     (error) => {
       // The write that failed is the one that would have replaced the career on

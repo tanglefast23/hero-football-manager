@@ -60,6 +60,41 @@ describe('M1 app store integration', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
+  it('warns when only the backup fails and clears the warning after retry', async () => {
+    let backupFails = true;
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        async save() {
+          return backupFails ? 'backup-failed' : undefined;
+        },
+      }),
+    );
+    useM1Store.getState().startNewCareer(20260924);
+    await waitFor(() => useM1Store.getState().backupWarning !== null);
+    expect(useM1Store.getState().saveWarning).toBeNull();
+    expect(useM1Store.getState().lastPersistedCareer).not.toBeNull();
+
+    backupFails = false;
+    useM1Store.getState().retrySave();
+    await waitFor(() => useM1Store.getState().backupWarning === null);
+  });
+
+  it('reports possible database damage when the integrity check itself fails', async () => {
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        async load() {
+          throw new Error('career read failed');
+        },
+        async checkIntegrity() {
+          throw new Error('quick_check failed');
+        },
+      }),
+    );
+    expect(useM1Store.getState().persistenceLoadError).toContain(
+      'database file may also be damaged',
+    );
+  });
+
   it('publishes only the true and false edges of a clean save retry', async () => {
     await useM1Store.getState().initializePersistence(stubCareerRepository());
     useM1Store.getState().startNewCareer(20260825);
@@ -2598,6 +2633,12 @@ describe('M1 app store integration', () => {
     const controlledTeam: 0 | 1 =
       fixture.homeClubId === before.userClubId ? 0 : 1;
     useM1Store.getState().quickResult({ initialFormation: '3-5-2' });
+    expect(
+      useM1Store
+        .getState()
+        .career?.lineups.find((lineup) => lineup.clubId === before.userClubId)
+        ?.formation,
+    ).toBe('3-5-2');
     await waitFor(() => saved.length === 1);
 
     expect(saved[0]).toMatchObject({
@@ -2681,12 +2722,18 @@ describe('M1 app store integration', () => {
     );
     result.score = [2, 1];
     result.phase = 'fulltime';
+    result.tactics[1].formation = '4-3-3';
     useM1Store.getState().finishWatchedMatch(result);
 
-    const played = useM1Store
-      .getState()
-      .career?.fixtures.find((fixture) => fixture.id === awayFixture.id);
+    const settled = useM1Store.getState().career;
+    const played = settled?.fixtures.find(
+      (fixture) => fixture.id === awayFixture.id,
+    );
     expect(played?.score).toEqual({ homeGoals: 2, awayGoals: 1 });
+    expect(
+      settled?.lineups.find((lineup) => lineup.clubId === career.userClubId)
+        ?.formation,
+    ).toBe('4-3-3');
   });
 });
 

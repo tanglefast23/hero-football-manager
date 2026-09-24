@@ -317,15 +317,25 @@ describe('career repository', () => {
     );
   });
 
-  it('refuses to save a malformed in-memory GameState', async () => {
+  it('refuses to replace a good live save with a malformed Release state', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
-    const malformed = { ...makeState(), clubs: [] } as GameState;
-
-    await expect(repository.save(malformed)).rejects.toBeInstanceOf(
-      InvalidGameStateError,
-    );
-    expect(database.careerRow).toBeNull();
+    const good = makeState();
+    await repository.save(good);
+    const malformed = { ...good, clubs: [] } as GameState;
+    const globalWithDev = globalThis as typeof globalThis & {
+      __DEV__?: boolean;
+    };
+    const previousDev = globalWithDev.__DEV__;
+    globalWithDev.__DEV__ = false;
+    try {
+      await expect(repository.save(malformed)).rejects.toBeInstanceOf(
+        InvalidGameStateError,
+      );
+      await expect(repository.load()).resolves.toEqual(good);
+    } finally {
+      globalWithDev.__DEV__ = previousDev;
+    }
   });
 
   it('rejects a row whose schema version column is below the first version', async () => {
@@ -456,32 +466,24 @@ describe('career backup generation', () => {
     await expect(repository.load()).resolves.toEqual(state);
   });
 
-  it('does not report a saved week as lost when only the backup copy fails', async () => {
+  it('reports a failed backup and retries it on a later save', async () => {
     const database = new BackupWriteFailureDatabase();
     const repository = await createCareerRepository(database);
     const state = makeState();
 
-    await expect(repository.save(state)).resolves.toBeUndefined();
+    await expect(repository.save(state)).resolves.toBe('backup-failed');
     await expect(repository.load()).resolves.toEqual(state);
     await expect(repository.backupSummary()).resolves.toBeNull();
 
-    // One attempt per boundary, not one per save. A rejected backup used to be
-    // retried on every later save for the rest of the career, and on a release
-    // build each retry re-serialises the whole career WITH validation — a
-    // measured ~200ms of JS thread per player action.
     const attempts = database.backupWriteAttempts;
-    for (let week = 2; week <= 10; week += 1) {
-      await repository.save(atSeason(state, 1, week));
-    }
-    expect(database.backupWriteAttempts).toBe(attempts);
-
-    // The next genuine boundary still tries, so a disk that frees up is picked
-    // up at the next season rather than never.
     database.backupWritesFail = false;
-    await repository.save(atSeason(state, 2, 1));
+    await expect(
+      repository.save(atSeason(state, 1, 2)),
+    ).resolves.toBeUndefined();
+    expect(database.backupWriteAttempts).toBe(attempts + 1);
     await expect(repository.backupSummary()).resolves.toEqual({
-      season: 2,
-      week: 1,
+      season: 1,
+      week: 2,
     });
   });
 

@@ -373,7 +373,9 @@ export function SettingsOverlay({
                     {accessibilityCopy.title}
                   </PixelText>
                   <Text className="mt-1 text-sm leading-5 text-ink/65">
-                    {accessibilityCopy.body}
+                    {Platform.OS === 'web'
+                      ? t('titleLanding.reduceAnimatedFlourishes')
+                      : accessibilityCopy.body}
                   </Text>
                 </View>
               ) : null}
@@ -481,24 +483,26 @@ export function SettingsOverlay({
                     </Text>
                   </Pressable>
                 ) : null}
-                <Pressable
-                  accessibilityRole="switch"
-                  accessibilityLabel={t('settings.haptics.label')}
-                  accessibilityState={{ checked: hapticsEnabled }}
-                  onPress={onToggleHaptics}
-                  className={
-                    hapticsEnabled
-                      ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2'
-                      : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
-                  }
-                >
-                  <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
-                    {t('settings.haptics.label')}
-                  </Text>
-                  <Text className="font-pixel text-base text-ink">
-                    {t(hapticsEnabled ? 'settings.on' : 'settings.off')}
-                  </Text>
-                </Pressable>
+                {Platform.OS !== 'web' ? (
+                  <Pressable
+                    accessibilityRole="switch"
+                    accessibilityLabel={t('settings.haptics.label')}
+                    accessibilityState={{ checked: hapticsEnabled }}
+                    onPress={onToggleHaptics}
+                    className={
+                      hapticsEnabled
+                        ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2'
+                        : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'
+                    }
+                  >
+                    <Text className="flex-1 pr-2 font-pixel text-sm uppercase text-ink">
+                      {t('settings.haptics.label')}
+                    </Text>
+                    <Text className="font-pixel text-base text-ink">
+                      {t(hapticsEnabled ? 'settings.on' : 'settings.off')}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t('settings.textSize.a11y', {

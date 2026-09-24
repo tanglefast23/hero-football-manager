@@ -56,6 +56,8 @@ yarn-error.*
 # Synth-stage WAV intermediates (gen-music.mjs / gen-menu-music.mjs write them
 # beside the shipped .m4a encodes; only the .m4a is referenced by the app)
 assets/audio/music/*.wav
+# Supplied source recording stays local; the game uses the processed WAV.
+assets/audio/sources/goalie-save.mp3
 
 # Store-media web export for desktop screenshot capture.
 dist-store/

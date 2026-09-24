@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import {
   Atlas,
-  Canvas,
   Fill,
   Rect,
   Skia,
@@ -32,6 +31,7 @@ import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import { drillPresentationMs } from './drill-presentation-timing';
+import { RecoverableSkiaCanvas } from './RecoverableSkiaCanvas';
 
 /** Per-drill sprite scene: fast enough to chain-tap, always tap-to-skip. */
 export const DRILL_SCENE_MS = drillPresentationMs(2_200);
@@ -97,6 +97,10 @@ export interface DrillSceneOverlayProps {
   after: number;
   isSuper: boolean;
   reduceMotion?: boolean;
+  season?: number;
+  week?: number;
+  saved: boolean;
+  saveWarning?: string | null;
   onComplete: () => void;
 }
 
@@ -117,6 +121,10 @@ export function DrillSceneOverlay({
   after,
   isSuper,
   reduceMotion = false,
+  season,
+  week,
+  saved,
+  saveWarning,
   onComplete,
 }: DrillSceneOverlayProps) {
   const t = useCopy();
@@ -140,11 +148,21 @@ export function DrillSceneOverlay({
     );
   }, []);
   const completedRef = useRef(false);
-  const completeOnce = useCallback(() => {
+  const graphicsLostRef = useRef(false);
+  const [graphicsLost, setGraphicsLost] = useState(false);
+  const finishOnce = useCallback(() => {
     if (completedRef.current) return;
     completedRef.current = true;
     onComplete();
   }, [onComplete]);
+  const completeOnce = useCallback(() => {
+    if (!graphicsLostRef.current) finishOnce();
+  }, [finishOnce]);
+  const onGraphicsLost = useCallback(() => {
+    graphicsLostRef.current = true;
+    stopDrillProgressSfx();
+    setGraphicsLost(true);
+  }, []);
 
   useEffect(() => {
     // Only the surrounding presentation clock is faster. DrillAtlasStage owns
@@ -179,6 +197,7 @@ export function DrillSceneOverlay({
     const startedAt = Date.now();
     let sounding = false;
     const timer = setInterval(() => {
+      if (graphicsLostRef.current) return;
       const elapsed = Date.now() - startedAt;
       const ratio = Math.max(
         0,
@@ -253,15 +272,45 @@ export function DrillSceneOverlay({
         </View>
 
         <View style={styles.stageFrame}>
-          <DrillAtlasStage
-            playerId={playerId}
-            playerName={playerName}
-            role={role}
-            lookId={lookId}
-            activityId={activityId}
-            width={stageWidth - 16}
-            reduceMotion={reduceMotion}
-          />
+          {graphicsLost ? (
+            <View style={styles.graphicsFailure}>
+              <Text style={styles.graphicsFailureText}>
+                {t('graphics.pitchStopped')}
+              </Text>
+              <Text style={styles.graphicsFailureText}>
+                {saved
+                  ? t('graphics.drillSaved')
+                  : saveWarning
+                    ? t('graphics.drillSaveFailed')
+                    : t('graphics.drillSavePending')}
+              </Text>
+              {season !== undefined && week !== undefined ? (
+                <Text style={styles.graphicsFailureText}>
+                  {t('newGameWelcome.seasonWeek', { season, week })}
+                </Text>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                onPress={finishOnce}
+                style={styles.graphicsFailureButton}
+              >
+                <Text style={styles.graphicsFailureButtonText}>
+                  {t('trainingDrill.okay')}
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <DrillAtlasStage
+              playerId={playerId}
+              playerName={playerName}
+              role={role}
+              lookId={lookId}
+              activityId={activityId}
+              width={stageWidth - 16}
+              reduceMotion={reduceMotion}
+              onContextLost={onGraphicsLost}
+            />
+          )}
         </View>
 
         <View style={styles.gainRow}>
@@ -303,6 +352,7 @@ function DrillAtlasStage({
   activityId,
   width,
   reduceMotion,
+  onContextLost,
 }: {
   playerId: string;
   playerName: string;
@@ -311,6 +361,7 @@ function DrillAtlasStage({
   activityId: DrillActivityId;
   width: number;
   reduceMotion: boolean;
+  onContextLost: () => void;
 }) {
   const t = useCopy();
   const [spriteFrame, setSpriteFrame] = useState(0);
@@ -486,7 +537,9 @@ function DrillAtlasStage({
   });
 
   return (
-    <Canvas
+    <RecoverableSkiaCanvas
+      generation={0}
+      onContextLost={onContextLost}
       style={{ width, height: STAGE_HEIGHT }}
       accessibilityLabel={t('trainingDrill.a11y.onTheTrainingPitch', {
         player: playerName,
@@ -506,7 +559,7 @@ function DrillAtlasStage({
         transforms={transforms}
         sampling={PIXEL_ART_SAMPLING}
       />
-    </Canvas>
+    </RecoverableSkiaCanvas>
   );
 }
 
@@ -564,6 +617,33 @@ const makeStyles = (faces: LocaleFaces) =>
       overflow: 'hidden',
       borderWidth: 2,
       borderColor: '#241f2e',
+    },
+    graphicsFailure: {
+      height: STAGE_HEIGHT,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingHorizontal: 12,
+      backgroundColor: '#3f8a4a',
+    },
+    graphicsFailureText: {
+      color: '#ffffff',
+      fontFamily: faces.data,
+      fontSize: 13,
+      textAlign: 'center',
+    },
+    graphicsFailureButton: {
+      minHeight: 44,
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: '#241f2e',
+      backgroundColor: '#f4f1ea',
+      paddingHorizontal: 20,
+    },
+    graphicsFailureButtonText: {
+      color: '#241f2e',
+      fontFamily: faces.display,
+      fontSize: 14,
     },
     gainRow: {
       flexDirection: 'row',

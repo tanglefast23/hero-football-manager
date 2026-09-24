@@ -4,7 +4,7 @@
 // authored for the screen comes out invisible there (the screen-space trap).
 // Plain absolutely-positioned Views over the whole root instead, on the same
 // one-Animated.Value-drives-every-piece pattern the podium confetti uses.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { GOAL_CONFETTI_MS, makeGoalConfetti } from './goal-confetti';
 
@@ -16,7 +16,7 @@ interface GoalConfettiProps {
   readonly pieceCount: number;
 }
 
-export function GoalConfetti({
+export const GoalConfetti = memo(function GoalConfetti({
   burstId,
   width,
   height,
@@ -93,7 +93,7 @@ export function GoalConfetti({
       ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   piece: { position: 'absolute' },

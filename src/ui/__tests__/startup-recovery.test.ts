@@ -123,6 +123,10 @@ describe('startup recovery', () => {
     expect(app).toContainSource(
       'store.exportUnreadableSave(async (fileName, contents) => {',
     );
+    expect(app).toContainSource('link.download = fileName;');
+    expect(app).toContainSource(
+      "new Blob([contents], { type: 'application/json' })",
+    );
     expect(app).toContainSource(
       'Share.share({ title: fileName, message: contents })',
     );

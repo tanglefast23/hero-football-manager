@@ -61,6 +61,40 @@ describe('Privacy and support release surface', () => {
     expect(panel).toContainSource('accessibilityRole="alert"');
   });
 
+  test('keeps iOS update claims and build numbers off the desktop screen', () => {
+    const panel = readFileSync(
+      join(process.cwd(), 'src/ui/PrivacySupportPanel.tsx'),
+      'utf8',
+    );
+    const settings = readFileSync(
+      join(process.cwd(), 'src/ui/SettingsOverlay.tsx'),
+      'utf8',
+    );
+    const title = readFileSync(
+      join(process.cwd(), 'src/ui/screens/TitleLandingScreen.tsx'),
+      'utf8',
+    );
+    expect(panel).toContainSource("const isIos = Platform.OS === 'ios'");
+    expect(panel).toContainSource(
+      "'privacySupport.heroFootballManagerDoesWeb'",
+    );
+    expect(panel).toContainSource("t('privacySupport.versionLineWeb'");
+    expect(settings).toContainSource("{Platform.OS !== 'web' ? (");
+    expect(title).toContainSource("{Platform.OS !== 'web' ? (");
+    expect(settings).toContainSource(
+      "t('titleLanding.reduceAnimatedFlourishes')",
+    );
+    for (const locale of LOCALES) {
+      const copy = loadCatalog(locale).strings;
+      expect(copy['privacySupport.heroFootballManagerDoesWeb']).toBeTruthy();
+      expect(copy['privacySupport.heroFootballManagerDoesWeb']).not.toContain(
+        'Expo',
+      );
+      expect(copy['privacySupport.versionLineWeb']).toContain('{version}');
+      expect(copy['privacySupport.versionLineWeb']).not.toContain('{build}');
+    }
+  });
+
   // Apple requires the policy URL in App Store Connect metadata AND an easily
   // accessible link to the same page inside the app. These assertions are the
   // guard against the two halves drifting apart between releases.

@@ -1941,10 +1941,9 @@ export function MatchScreen({
       last = now;
 
       const eventsBefore = s.events.length;
-      const eventFrames = new Map<
-        MatchEvent,
-        Readonly<{ before: PitchFrame; after: PitchFrame }>
-      >();
+      let eventFrames:
+        | Map<MatchEvent, Readonly<{ before: PitchFrame; after: PitchFrame }>>
+        | undefined;
       let snap = false;
       let advanced = false;
       let pauseAfterPublish = false;
@@ -1988,11 +1987,18 @@ export function MatchScreen({
         }
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
-        for (const event of s.events.slice(tickEventsBefore)) {
-          eventFrames.set(event, {
-            before,
-            after: nextRef.current,
-          });
+        if (s.events.length > tickEventsBefore) {
+          eventFrames ??= new Map();
+          for (
+            let index = tickEventsBefore;
+            index < s.events.length;
+            index += 1
+          ) {
+            eventFrames.set(s.events[index], {
+              before,
+              after: nextRef.current,
+            });
+          }
         }
 
         // Half time with a speech in the bank stops the catch-up loop dead,
@@ -2090,7 +2096,9 @@ export function MatchScreen({
           trailRef.current[i] =
             ghosts > 0 && entity !== undefined
               ? [{ ...entity.pos }, ...trailRef.current[i]].slice(0, 7)
-              : [];
+              : trailRef.current[i].length === 0
+                ? trailRef.current[i]
+                : [];
         }
 
         // A longer curved trail makes lifted shots and keeper distributions
@@ -2103,7 +2111,9 @@ export function MatchScreen({
                 { ...nextRef.current!.ball, z: nextRef.current!.ballHeight },
                 ...ballFlightTrailRef.current,
               ].slice(0, BALL_FLIGHT_TRAIL_LEN)
-            : [];
+            : ballFlightTrailRef.current.length === 0
+              ? ballFlightTrailRef.current
+              : [];
 
         if (
           ballFlightWhooshStarted(
@@ -2328,7 +2338,7 @@ export function MatchScreen({
         ),
       );
       for (const e of newEvents) {
-        const captured = eventFrames.get(e);
+        const captured = eventFrames?.get(e);
         const eventBefore = captured?.before ?? prevRef.current!;
         const eventAfter = captured?.after ?? nextRef.current!;
         // Before playForEvent, never after: this sets kick-shot's playback rate

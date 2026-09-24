@@ -1,7 +1,7 @@
 # The gate docs 09/10 promise: typecheck + the full deterministic suite on every
 # PR. Balance probes stay excluded (env-gated, see jest testPathIgnorePatterns).
 #
-# Two jobs, because the suite is dominated by CPU-bound sim probes: on a runner
+# Split test jobs, because the suite is dominated by CPU-bound sim probes: on a runner
 # the whole thing passed 42 minutes without finishing jest, so a single job spent
 # its entire budget before reporting anything at all. `quick` answers the
 # ordinary "did I break the build" question in a couple of minutes; `full` is the
@@ -45,8 +45,24 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npx tsc --noEmit
+      - run: npm run audio:levels:check
       - run: npm run web:first-load:check
       - run: npx jest --ci --silent --testPathIgnorePatterns "$SLOW_SUITES"
+
+  desktop:
+    name: desktop shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run export:web
+      - run: npm ci --prefix desktop
+      - run: xvfb-run -a npm run check --prefix desktop
 
   full:
     name: full suite

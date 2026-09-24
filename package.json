@@ -39,6 +39,16 @@
     "ts-jest": "^29.4.11",
     "typescript": "~6.0.3"
   },
+  "expo": {
+    "install": {
+      "exclude": [
+        "@expo/metro-runtime",
+        "expo",
+        "expo-asset",
+        "expo-updates"
+      ]
+    }
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",

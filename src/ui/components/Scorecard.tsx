@@ -4,6 +4,7 @@ import { PixelText } from './PixelText';
 import {
   formatIntegerForCopy,
   formatMoneyForCopy,
+  formatThousandsForCopy,
   type CopyFn,
 } from '../../i18n';
 import {
@@ -36,9 +37,9 @@ export function formatCurrency(
 export function formatCompactHudNumber(t: CopyFn, value: number): string {
   const abs = Math.abs(value);
   if (abs >= 1_000_000)
-    return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    return `${formatThousandsForCopy(t, value / 1_000).replace(/[.,]0$/, '')}M`;
   if (abs >= 10_000)
-    return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+    return `${formatThousandsForCopy(t, value).replace(/[.,]0$/, '')}k`;
   return formatCompactNumber(t, value);
 }
 

@@ -708,7 +708,7 @@ export function ClubHomeScreen({
                                 fee: formatCurrency(t, candidate.forcedSaleFee),
                               },
                             )}
-                            accessibilityState={{ selected: protectedPlayer }}
+                            accessibilityState={{ checked: protectedPlayer }}
                             onPress={() =>
                               onProtectBoardCandidate(candidate.playerId)
                             }

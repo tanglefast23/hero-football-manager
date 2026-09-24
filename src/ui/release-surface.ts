@@ -14,7 +14,7 @@ export function insideDesktopShell(
 }
 
 /**
- * Static web exports are an intentional review surface, while an App Store
+ * Local web exports are an intentional review surface, while an App Store
  * archive or the desktop shell must always enter the real game even if a QA
  * environment variable is accidentally present when Metro bundles it.
  */
@@ -22,15 +22,30 @@ export function qaRootRoutesEnabled(
   isDev: boolean,
   platform: string,
   desktopShell = false,
+  location:
+    { hostname?: string; protocol?: string } | undefined = globalThis.location,
 ): boolean {
-  return isDev || (platform === 'web' && !desktopShell);
+  return (
+    isDev || (platform === 'web' && !desktopShell && localReview(location))
+  );
+}
+
+function localReview(
+  location: { hostname?: string; protocol?: string } | undefined,
+): boolean {
+  return (
+    location?.protocol === 'file:' ||
+    location?.hostname === 'localhost' ||
+    location?.hostname === '127.0.0.1' ||
+    location?.hostname === '[::1]'
+  );
 }
 
 /**
  * Developer Mode: the Settings toggle, and the save/load slot rail it reveals
  * in the management header.
  *
- * Debug builds and static web review exports get it automatically. The manual
+ * Debug builds and local web review exports get it automatically. The manual
  * switch exists only for a bounded release-like QA build such as TestFlight;
  * production source keeps it off so an App Store archive fails closed.
  *
@@ -47,8 +62,12 @@ export function developerModeAvailable(
   isDev: boolean,
   platform: string,
   desktopShell = false,
+  location:
+    { hostname?: string; protocol?: string } | undefined = globalThis.location,
 ): boolean {
   return (
-    isDev || (platform === 'web' && !desktopShell) || DEVELOPER_MODE_AVAILABLE
+    isDev ||
+    (platform === 'web' && !desktopShell && localReview(location)) ||
+    (platform !== 'web' && DEVELOPER_MODE_AVAILABLE)
   );
 }

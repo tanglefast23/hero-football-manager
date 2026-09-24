@@ -1,3 +1,5 @@
+Historical review reply. Update device and build evidence before reusing it for a new submission.
+
 Thank you for the review. Here is the information requested, in the same order.
 
 1. SCREEN RECORDING
@@ -23,7 +25,7 @@ No credentials, demo account, sample files or special access are required.
 Progress is stored on-device in a local SQLite save. Deleting the app deletes the data.
 
 5. EXTERNAL SERVICES, TOOLS AND PLATFORMS
-None. The app makes no network requests of any kind. There are no data providers, authentication services, payment processors, analytics, advertising SDKs or AI services. Dependencies are Expo and React Native modules only: expo-sqlite, expo-audio, expo-font, expo-asset, expo-localization, expo-haptics, expo-splash-screen, react-native-skia, react-native-reanimated. The app requests no permissions and collects no data: NSPrivacyCollectedDataTypes is empty and NSPrivacyTracking is false.
+Expo Updates checks for compatible app fixes when online. Gameplay and career saves work offline. There are no accounts, payment processors, analytics, advertising SDKs or AI services. The app requests no access to location, contacts, camera, microphone or photos and does not track users for advertising. Expo Updates handles an installation identifier and technical update and crash data. The privacy manifest declares Device ID, Crash Data and Other Diagnostic Data for App Functionality.
 
 6. REGIONAL DIFFERENCES
 None. Features and content are identical in every region. The app ships 7 localizations (English, Spanish, Portuguese (Brazil), French, German, Indonesian, Vietnamese), chosen from the device language. Nothing is gated, added or removed by region or storefront.

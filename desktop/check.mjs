@@ -8,12 +8,13 @@
  * No top-level await: Electron withholds `ready` until the main module has
  * finished evaluating, so awaiting `ready` at top level deadlocks.
  */
-import { app } from 'electron';
+import { Menu, app, screen } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import {
   createWindow,
   exportRoot,
   installHandler,
+  installMenu,
   registerScheme,
 } from './shell.mjs';
 
@@ -28,7 +29,9 @@ function finish(result) {
     result.protocol === 'hfm:' &&
     result.isolated === true &&
     result.sharedArrayBuffer === true &&
-    result.rendered === true;
+    result.rendered === true &&
+    result.menuSafe === true &&
+    result.windowFits === true;
   console.log(JSON.stringify({ ...result, ok }));
   app.exit(ok ? 0 : 1);
 }
@@ -38,7 +41,16 @@ setTimeout(() => finish({ reason: 'hard timeout' }), HARD_TIMEOUT_MS);
 
 app.whenReady().then(async () => {
   installHandler(exportRoot());
+  installMenu();
   const window = createWindow({ show: false, offscreen: true });
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
+  const bounds = window.getBounds();
+  const windowFits =
+    bounds.width <= workArea.width && bounds.height <= workArea.height;
+  const menuSafe =
+    process.platform === 'darwin'
+      ? Menu.getApplicationMenu()?.items.length === 3
+      : Menu.getApplicationMenu() === null;
   const contents = window.webContents;
 
   await new Promise((loaded) => contents.once('did-finish-load', loaded));
@@ -69,5 +81,5 @@ app.whenReady().then(async () => {
   })`);
   const image = await contents.capturePage();
   await writeFile(new URL('./check.png', import.meta.url), image.toPNG());
-  finish({ ...facts, rendered });
+  finish({ ...facts, rendered, menuSafe, windowFits });
 });

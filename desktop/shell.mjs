@@ -1,4 +1,4 @@
-import { BrowserWindow, app, protocol, shell } from 'electron';
+import { BrowserWindow, Menu, app, protocol, screen, shell } from 'electron';
 import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,9 +67,9 @@ function resolveRequestPath(root, requestUrl) {
 /** Must run after app.whenReady(). */
 export function installHandler(root) {
   protocol.handle(SCHEME, async (request) => {
-    const target = resolveRequestPath(root, request.url);
-    if (target === null) return new Response('Forbidden', { status: 403 });
     try {
+      const target = resolveRequestPath(root, request.url);
+      if (target === null) return new Response('Forbidden', { status: 403 });
       const info = await stat(target);
       if (!info.isFile()) return new Response('Not found', { status: 404 });
       const body = await readFile(target);
@@ -87,12 +87,25 @@ export function installHandler(root) {
   });
 }
 
+export function installMenu() {
+  Menu.setApplicationMenu(
+    process.platform === 'darwin'
+      ? Menu.buildFromTemplate([
+          { role: 'appMenu' },
+          { role: 'editMenu' },
+          { label: 'View', submenu: [{ role: 'togglefullscreen' }] },
+        ])
+      : null,
+  );
+}
+
 export function createWindow({ show = true, offscreen = false } = {}) {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const window = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 1100,
-    minHeight: 700,
+    width: Math.min(1280, width),
+    height: Math.min(800, height),
+    minWidth: Math.min(1100, width),
+    minHeight: Math.min(700, height),
     show,
     autoHideMenuBar: true,
     backgroundColor: '#241f2e',
@@ -108,9 +121,25 @@ export function createWindow({ show = true, offscreen = false } = {}) {
   // Privacy-policy and support links go to the system browser, never a
   // second game window.
   window.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    try {
+      if (['https:', 'mailto:'].includes(new URL(url).protocol)) {
+        void shell.openExternal(url);
+      }
+    } catch {
+      // A malformed URL stays inside the denied window request.
+    }
     return { action: 'deny' };
   });
+  window.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith(`${SCHEME}://app/`)) event.preventDefault();
+  });
+  if (process.platform !== 'darwin') {
+    window.webContents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown' || input.key !== 'F11') return;
+      window.setFullScreen(!window.isFullScreen());
+      event.preventDefault();
+    });
+  }
   void window.loadURL(APP_URL);
   return window;
 }
