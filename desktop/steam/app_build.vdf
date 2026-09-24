@@ -1,0 +1,30 @@
+"AppBuild"
+{
+	"AppID" "5323960"
+	"Desc" "Hero Football Manager 1.0.0"
+	"ContentRoot" "../out/"
+	"BuildOutput" "../out/steam-output/"
+	"Depots"
+	{
+		// Windows depot: the CI pack (desktop.yml artifact) unzipped to out/win-unpacked.
+		"5323961"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "win-unpacked/*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+		}
+		// macOS depot: the signed, notarized universal pack from a local `npm run pack`.
+		"5323962"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "mac-universal/*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+		}
+	}
+}

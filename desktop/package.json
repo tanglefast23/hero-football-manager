@@ -40,8 +40,11 @@
           ]
         }
       ],
-      "identity": null,
-      "category": "public.app-category.games"
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist"
     },
     "win": {
       "target": [
