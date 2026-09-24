@@ -45,6 +45,7 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npx tsc --noEmit
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm run audio:levels:check
       - run: npm run web:first-load:check
       - run: npx jest --ci --silent --testPathIgnorePatterns "$SLOW_SUITES"
@@ -62,7 +63,7 @@ jobs:
       - run: npm ci
       - run: npm run export:web
       - run: npm ci --prefix desktop
-      - run: xvfb-run -a npm run check --prefix desktop
+      - run: xvfb-run -a npm run check --prefix desktop -- --no-sandbox
 
   full:
     name: full suite
