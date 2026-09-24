@@ -1,11 +1,16 @@
-# Current App Store release risks
+# App Store release history for the build-3 OTA branch
 
-Last checked: 2026-08-25
+Current status checked 2026-09-24: version 1.0.0, build 3 is live in the US.
+This branch keeps the build-3 fingerprint runtime for a compatible iOS hotfix.
+The public App Privacy label lists Device ID, Crash Data, and Other Diagnostic
+Data for App Functionality, matching the policy and `app.json`. The signed-in
+App Privacy form and the selected App Store binary's runtime were not inspected.
+The corrected update was tested on preview; no production OTA was published.
 
-This is the short, active list of traps found while carrying out the App Store
-readiness work. It is not a substitute for the full submission runbook.
+The checklist below is a historical 2026-08-25 snapshot. It is not a current
+launch checklist. The active release risks are tracked on `main`.
 
-## Must close before the final archive
+## Historical snapshot: checks before the final archive
 
 1. ~~**Publish Hero Football Manager-specific Privacy and Support pages.**~~
    **Closed 2026-08-17.** Both are live over public HTTPS and saved in App Store
@@ -55,8 +60,9 @@ readiness work. It is not a substitute for the full submission runbook.
 - Exact-commit CI passed 516 suites, 4,941 tests, and the unsigned native iOS
   Release build for merged PR #225. The signed archive and physical-device pass
   remain separate gates.
-- Paid Apps and Free Apps agreements are Active. Content Rights is saved. App
-  Privacy is published as Data Not Collected with the live HFM privacy URL.
+- At this 2026-08-25 snapshot, Paid Apps and Free Apps agreements were Active.
+  Content Rights was saved. App Privacy was then published as Data Not Collected;
+  the current public label is described above.
 - Current ratings are 9+ in 172 regions, 12+ in Vietnam and Brazil, and ALL in
   Korea.
 - Steam remains post-launch scope. There is no desktop wrapper, Steamworks
