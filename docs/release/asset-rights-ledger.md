@@ -1,6 +1,6 @@
 # Asset rights ledger
 
-Last reviewed: 2026-08-25
+Inventory reviewed: 2026-09-24. Owner confirmed paid-plan creation of the September cues.
 Release scope: Hero Football Manager 1.0 for iPhone and iPad
 
 This ledger records evidence; it does not create rights that do not already
@@ -38,6 +38,9 @@ for this game and that no third-party visual assets were used.
 | Rival-introduction laughs | `assets/audio/sfx/rival-laugh-*.m4a`, one normalized derivative of each of the five owner-supplied laugh WAV files | Cleared by owner confirmation (2026-08-08) |
 | Cues added after the 2026-08-09 review | `speech-gospel.m4a`, `speech-thunder.m4a`, `awards-celebration.m4a`, `ball-flight-whoosh.m4a`, `coach-voice.m4a`, `fireworks.m4a`, `drill-complete-heavy.wav`, `facility-start-work.wav`, `goal-net-hit.wav`, `midseason-footsteps-loop.wav`, `shot-scorch.wav`, and the re-cut `negative.m4a`. All twelve ship in the Release binary and **none is reproducible from the checked-in synthesis scripts** — they appear only in `scripts/audio/levels.json`, so they are supplied recordings despite five carrying a `.wav` extension | Cleared by owner confirmation (2026-08-17) |
 | Supplied match cues added after the 2026-08-17 review | `goal-confetti.m4a` and `pass-combo.m4a` ship today. `pass-combo-surge.m4a` and `pass-combo-epic.m4a` are unused source assets. Joe confirms commercial App Store use is authorized for all four | Cleared by owner confirmation (2026-08-22) |
+| Goalie save added 2026-09-08 | `goalie-save.wav` is derived from the supplied `a_goalie_in_a_soccer_#3-1788885284999.mp3`. The unchanged MP3 is no longer tracked in the current tree, but remains in Git history. Joe confirms he generated it with ElevenLabs during his paid plan. | Cleared by owner confirmation (2026-09-24); retain private account evidence |
+| Slide tackle added 2026-09-09 | `slide-tackle.m4a` is a supplied recording. Joe confirms he generated it with ElevenLabs during his paid plan. | Cleared by owner confirmation (2026-09-24); retain private account evidence |
+| Substitution footsteps added 2026-09-09 | `footstep-asphalt-01.m4a` through `-03.m4a` were copied from Auto Battler's runtime audio. Joe confirms he generated all three with ElevenLabs during his paid plan. | Cleared by owner confirmation (2026-09-24); retain private account evidence |
 
 ## Third-party software asset
 

@@ -213,15 +213,17 @@ describe('procedural match VFX renderer contract', () => {
       'nextRef.current = snapshotFrame(s, before);',
       tickStart,
     );
-    const capture = screen.indexOf(
-      'for (const event of s.events.slice(tickEventsBefore))',
+    const guard = screen.indexOf(
+      'if (s.events.length > tickEventsBefore)',
       snapshot,
     );
+    const capture = screen.indexOf('eventFrames.set(s.events[index]', guard);
     const batchEnd = screen.indexOf(
       'const newEvents = s.events.slice(eventsBefore);',
     );
     expect(tickStart).toBeGreaterThan(-1);
     expect(snapshot).toBeGreaterThan(tickStart);
+    expect(guard).toBeGreaterThan(snapshot);
     expect(capture).toBeGreaterThan(snapshot);
     expect(capture).toBeLessThan(batchEnd);
     expect(screen).toContain('const eventBefore = captured?.before');
