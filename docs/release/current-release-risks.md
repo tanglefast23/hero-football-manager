@@ -46,12 +46,15 @@ readiness work. It is not a substitute for the full submission runbook.
    still matches them materially; recapture only if that check finds real drift.
 9. **Keep the iOS hotfix source on build `3`'s runtime.** This checkout resolves
    to fingerprint runtime `fe66531874db8294c4ddc0259d95a28a7a906296`.
-   A clean install at `d255bfda` resolves to `4e13cc16040713b5be8f6884fc75eef780b010bc`.
-   The installed build-3 QA simulator app embeds that same fingerprint. A local
-   `release/1.0.x` branch points to the matching source. The selected signed
-   App Store archive still needs its own runtime check before a production OTA.
-   A current-main OTA would miss this build-3 runtime; merging to `main` alone
-   sends nothing to devices.
+   A clean install of `release/1.0.x` resolves to
+   `4e13cc16040713b5be8f6884fc75eef780b010bc`.
+   The installed build-3 QA simulator app embeds that same fingerprint. The
+   `release/1.0.x` branch holds the matching source. An iOS OTA from commit
+   `f0bf642a` was published to production on 2026-09-24 as group
+   `e9809f84-86b5-454f-9a90-75ee5681f546`. The selected signed App Store
+   binary's runtime and delivery of that OTA remain unverified. A current-main
+   OTA would miss the build-3 runtime; merging to `main` alone sends nothing to
+   devices.
 10. **Keep the native dependency gate explicit.** `expo.install.exclude` now
     pins four Expo packages to the current lockfile instead of letting a newer
     patch recommendation fail CI. Reassess and update them together with the
