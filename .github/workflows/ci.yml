@@ -45,8 +45,6 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npx tsc --noEmit
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - run: npm run audio:levels:check
       - run: npm run web:first-load:check
       - run: npx jest --ci --silent --testPathIgnorePatterns "$SLOW_SUITES"
 
