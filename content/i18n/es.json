@@ -3450,7 +3450,7 @@
     "store.assistantCoachHired": "Ayudante fichado.",
     "store.backupRestoreFailed": "No se pudo restaurar la copia: {reason}",
     "store.backupRestored": "Copia restaurada.",
-    "store.backupSaveWarning": "La carrera se guardó, pero falló la copia de esta temporada. El juego lo intentará de nuevo en el próximo guardado.",
+    "store.backupSaveWarning": "La carrera se guardó, pero falló la copia de esta temporada. Se reintentará en el próximo guardado.",
     "store.backupSaveWarningTitle": "Copia sin guardar",
     "store.coachingOfficeClosed": "{facility} cerrada y el ayudante se fue. {amount} netos.",
     "store.contractRenewed": "Contrato renovado.",

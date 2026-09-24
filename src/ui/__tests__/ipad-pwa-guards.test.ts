@@ -38,7 +38,7 @@ describe('iPad and installed web app guards', () => {
     );
     expect(store).toContainSource('&& exclusiveSaveDepth === 0');
     expect(store).toContainSource(
-      'pendingCareerSave = null;\n    try {\n      await repository.save(snapshot.state);',
+      'pendingCareerSave = null;\n    try {\n      const backupResult = await repository.save(snapshot.state);',
     );
     // Multi-statement sequences must never have a cut-ahead land inside them.
     expect(store).toContainSource('let exclusiveSaveDepth = 0;');

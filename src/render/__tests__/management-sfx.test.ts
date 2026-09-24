@@ -401,8 +401,8 @@ describe('management feedback sounds', () => {
     );
 
     expect(scene).toContainSource('playDrillProgressSfx()');
-    // Stopped where the number lands AND on teardown, so a skipped scene is silent.
-    expect(scene.match(/stopDrillProgressSfx\(\)/g)).toHaveLength(2);
+    // Stopped where the number lands, on graphics loss, and on teardown.
+    expect(scene.match(/stopDrillProgressSfx\(\)/g)).toHaveLength(3);
     // The number itself is green; the duplicate inline "+N" stamp is gone
     // because the following full-screen takeover owns the gain.
     expect(scene).not.toContainSource('countLanded');
