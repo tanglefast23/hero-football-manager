@@ -5,7 +5,9 @@ This branch keeps the build-3 fingerprint runtime for a compatible iOS hotfix.
 The public App Privacy label lists Device ID, Crash Data, and Other Diagnostic
 Data for App Functionality, matching the policy and `app.json`. The signed-in
 App Privacy form and the selected App Store binary's runtime were not inspected.
-The corrected update was tested on preview; no production OTA was published.
+The corrected update was tested on preview and published to iOS production on
+2026-09-24 as group `e9809f84-86b5-454f-9a90-75ee5681f546` from commit
+`f0bf642a`. Delivery to the selected signed App Store binary remains unverified.
 
 The checklist below is a historical 2026-08-25 snapshot. It is not a current
 launch checklist. The active release risks are tracked on `main`.
