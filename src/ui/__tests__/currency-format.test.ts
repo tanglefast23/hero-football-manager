@@ -62,6 +62,8 @@ describe('currency formatting', () => {
     expect(formatCompactHudNumber(en, 10_000)).toBe('10k');
     expect(formatCompactHudNumber(en, 12_500)).toBe('12.5k');
     expect(formatCompactHudNumber(en, 2_000_000)).toBe('2M');
+    expect(formatCompactHudNumber(de, 12_500)).toBe('12,5k');
+    expect(formatCompactHudNumber(de, 1_500_000)).toBe('1,5M');
   });
 
   it('formats signed resource movement without a positive-negative prefix', () => {

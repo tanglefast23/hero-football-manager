@@ -391,6 +391,7 @@ function requiredKeys(playerIds: readonly string[]): string[] {
  * structural violation: missing required sprite, wrong row count/width, or a
  * character used in a sprite row that isn't a palette key.
  */
+let validatedBaseSheet: SpriteSheet | null = null;
 export function loadSpriteSheet(
   visualIds: readonly string[] = PLAYER_IDS,
   plan?: KitPlan,
@@ -402,40 +403,42 @@ export function loadSpriteSheet(
   // which is a web first-load file. Measured — it happened.
   const baseSheet = requirePixelSheets().sprites as unknown as SpriteSheet;
 
-  if (!baseSheet.cell || baseSheet.cell.w <= 0 || baseSheet.cell.h <= 0) {
-    throw new Error('loadSpriteSheet: sheet.cell must have positive w/h');
-  }
-  if (!baseSheet.palette || !('.' in baseSheet.palette)) {
-    throw new Error(
-      'loadSpriteSheet: palette must define the transparent "." key',
-    );
-  }
-
-  // Validate the authored pack before deriving action art so malformed source
-  // sprites fail at their own key rather than inside the pose generator.
-  for (const [key, rows] of Object.entries(baseSheet.sprites)) {
-    const isBall = key === BALL_KEY;
-    const expectedH = isBall ? BALL_SIZE : baseSheet.cell.h;
-    const expectedW = isBall ? BALL_SIZE : baseSheet.cell.w;
-    if (rows.length !== expectedH) {
+  if (baseSheet !== validatedBaseSheet) {
+    if (!baseSheet.cell || baseSheet.cell.w <= 0 || baseSheet.cell.h <= 0) {
+      throw new Error('loadSpriteSheet: sheet.cell must have positive w/h');
+    }
+    if (!baseSheet.palette || !('.' in baseSheet.palette)) {
       throw new Error(
-        `loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`,
+        'loadSpriteSheet: palette must define the transparent "." key',
       );
     }
-    rows.forEach((row, i) => {
-      if (row.length !== expectedW) {
+
+    // The authored JSON is a singleton. Validate it once before deriving art.
+    for (const [key, rows] of Object.entries(baseSheet.sprites)) {
+      const isBall = key === BALL_KEY;
+      const expectedH = isBall ? BALL_SIZE : baseSheet.cell.h;
+      const expectedW = isBall ? BALL_SIZE : baseSheet.cell.w;
+      if (rows.length !== expectedH) {
         throw new Error(
-          `loadSpriteSheet: sprite "${key}" row ${i} has width ${row.length}, expected ${expectedW}`,
+          `loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`,
         );
       }
-      for (const ch of row) {
-        if (!(ch in baseSheet.palette)) {
+      rows.forEach((row, i) => {
+        if (row.length !== expectedW) {
           throw new Error(
-            `loadSpriteSheet: sprite "${key}" row ${i} uses char "${ch}" not present in palette`,
+            `loadSpriteSheet: sprite "${key}" row ${i} has width ${row.length}, expected ${expectedW}`,
           );
         }
-      }
-    });
+        for (const ch of row) {
+          if (!(ch in baseSheet.palette)) {
+            throw new Error(
+              `loadSpriteSheet: sprite "${key}" row ${i} uses char "${ch}" not present in palette`,
+            );
+          }
+        }
+      });
+    }
+    validatedBaseSheet = baseSheet;
   }
 
   const uniqueVisualIds = [...new Set(visualIds)];

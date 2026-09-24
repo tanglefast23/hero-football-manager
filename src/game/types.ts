@@ -1,4 +1,5 @@
 import type { Attrs, PowerId, Role } from '../sim/types';
+import type { FormationId } from '../sim/tactics';
 import type { FacilityGridState, FacilityType } from './facilities';
 import type { CareerMarketState } from './market-career';
 import type { DeskTipState } from './desk-tips';
@@ -192,6 +193,8 @@ export interface CareerPlayer {
 export interface ClubLineupState {
   clubId: string;
   playerIds: string[];
+  /** Absent on older saves, whose starting shape was 4-4-2. */
+  formation?: FormationId;
 }
 
 interface FacilityState {

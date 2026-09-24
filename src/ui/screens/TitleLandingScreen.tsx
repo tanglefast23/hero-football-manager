@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import {
+  Platform,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import {
@@ -396,7 +402,10 @@ export function TitleSettingsScreen({
       stamp={t('titleLanding.saved')}
     >
       <Text className="text-base leading-5 text-ink/65">
-        {accessibilityCopy?.body ?? t('titleLanding.reduceAnimatedFlourishes')}
+        {Platform.OS === 'web'
+          ? t('titleLanding.reduceAnimatedFlourishes')
+          : (accessibilityCopy?.body ??
+            t('titleLanding.reduceAnimatedFlourishes'))}
       </Text>
       <View className="mt-5 gap-3">
         <Pressable
@@ -458,12 +467,14 @@ export function TitleSettingsScreen({
           enabled={preferences.quickMatchEnabled}
           onPress={onToggleQuickMatch}
         />
-        <AccessibilityToggle
-          label={t('titleLanding.haptics')}
-          detail={t('titleLanding.turnsAllTouchFeedback')}
-          enabled={preferences.hapticsEnabled}
-          onPress={onToggleHaptics}
-        />
+        {Platform.OS !== 'web' ? (
+          <AccessibilityToggle
+            label={t('titleLanding.haptics')}
+            detail={t('titleLanding.turnsAllTouchFeedback')}
+            enabled={preferences.hapticsEnabled}
+            onPress={onToggleHaptics}
+          />
+        ) : null}
         <AccessibilityChoice
           label={t('settings.textSize.label')}
           detail={t('titleLanding.addsExtraRoom')}

@@ -87,6 +87,10 @@ export interface TrainingDrillModalProps {
    * exists only in memory and never see the alert.
    */
   saveWarning?: string | null;
+  backupWarning?: string | null;
+  season?: number;
+  week?: number;
+  resultSaved?: boolean;
 }
 
 /**
@@ -144,6 +148,10 @@ export function TrainingDrillModal({
   onDismiss,
   reduceMotion = false,
   saveWarning = null,
+  backupWarning = null,
+  season,
+  week,
+  resultSaved = false,
 }: TrainingDrillModalProps) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
@@ -281,6 +289,12 @@ export function TrainingDrillModal({
    * fresh, deliberate tap — however the animation ended, on its own or skipped.
    */
   const presentationClosedAtRef = useRef(0);
+  const [settling, setSettling] = useState(false);
+  useEffect(() => {
+    if (!settling) return;
+    const timer = setTimeout(() => setSettling(false), PRESENTATION_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [settling]);
 
   // Advances the presentation once the current beat finishes or is skipped.
   // The next stage is derived outside the updater — a setState updater must be
@@ -311,6 +325,7 @@ export function TrainingDrillModal({
     }
     if (next === null) {
       presentationClosedAtRef.current = Date.now();
+      setSettling(true);
       setActiveResult(null);
       const batch = batchRef.current;
       if (
@@ -570,20 +585,22 @@ export function TrainingDrillModal({
               </Pressable>
             </View>
 
-            {saveWarning !== null && saveWarning !== undefined ? (
+            {saveWarning !== null || backupWarning !== null ? (
               <View
                 accessible
                 accessibilityRole="alert"
                 accessibilityLabel={t('trainingDrill.a11y.saveProblem', {
-                  message: saveWarning,
+                  message: saveWarning ?? backupWarning ?? '',
                 })}
                 className="border-b-2 border-stamp bg-red-light px-4 py-2"
               >
                 <Text className="font-pixel text-sm uppercase text-stamp">
-                  {t('trainingDrill.yourClubIsNotSaving')}
+                  {saveWarning !== null
+                    ? t('trainingDrill.yourClubIsNotSaving')
+                    : t('store.backupSaveWarningTitle')}
                 </Text>
                 <Text className="mt-1 text-xs leading-4 text-ink/70">
-                  {saveWarning}
+                  {saveWarning ?? backupWarning}
                 </Text>
               </View>
             ) : null}
@@ -684,11 +701,16 @@ export function TrainingDrillModal({
                 </View>
               ) : null}
               <View className="gap-2">
+                {settling ? (
+                  <Text className="text-xs text-ink/70">
+                    {t('trainingDrill.readySoon')}
+                  </Text>
+                ) : null}
                 {options.map((option) => {
                   const blocked =
                     injured || blockedByPromise || option.atSafetyCeiling;
                   const unaffordable = !blocked && !option.affordable;
-                  const disabled = blocked;
+                  const disabled = blocked || settling;
                   const isResultRow =
                     stage === null && activeResult?.pathId === option.pathId;
                   return (
@@ -700,30 +722,32 @@ export function TrainingDrillModal({
                         stat: option.label,
                       })}
                       accessibilityHint={
-                        option.atSafetyCeiling
-                          ? t('trainingDrill.a11y.atMaximum', {
-                              stat: option.label,
-                            })
-                          : injured
-                            ? t('trainingDrill.a11y.injuredCannotTrain', {
-                                player: playerName,
+                        settling
+                          ? t('trainingDrill.readySoon')
+                          : option.atSafetyCeiling
+                            ? t('trainingDrill.a11y.atMaximum', {
+                                stat: option.label,
                               })
-                            : unaffordable
-                              ? t('trainingDrill.a11y.costsTrainingPoints', {
-                                  cost: option.tpCost,
-                                  available: trainingPoints,
+                            : injured
+                              ? t('trainingDrill.a11y.injuredCannotTrain', {
+                                  player: playerName,
                                 })
-                              : t('trainingDrill.a11y.drillHint', {
-                                  drill: option.drillName,
-                                  cost: option.tpCost,
-                                  value: option.currentValue,
-                                  risk:
-                                    injuryRiskPercent > 0
-                                      ? ` ${t('trainingDrill.a11y.percentInjuryRisk', { percent: injuryRiskPercent })}`
-                                      : '',
-                                })
+                              : unaffordable
+                                ? t('trainingDrill.a11y.costsTrainingPoints', {
+                                    cost: option.tpCost,
+                                    available: trainingPoints,
+                                  })
+                                : t('trainingDrill.a11y.drillHint', {
+                                    drill: option.drillName,
+                                    cost: option.tpCost,
+                                    value: option.currentValue,
+                                    risk:
+                                      injuryRiskPercent > 0
+                                        ? ` ${t('trainingDrill.a11y.percentInjuryRisk', { percent: injuryRiskPercent })}`
+                                        : '',
+                                  })
                       }
-                      accessibilityState={{ disabled }}
+                      accessibilityState={{ disabled, busy: settling }}
                       disabled={disabled}
                       onPress={() => {
                         // A drill starts only from a still list: never through a
@@ -840,6 +864,10 @@ export function TrainingDrillModal({
                 after={activeResult.displayedAfter}
                 isSuper={activeResult.isSuper}
                 reduceMotion={reduceMotion}
+                season={season}
+                week={week}
+                saved={resultSaved}
+                saveWarning={saveWarning}
                 onComplete={advanceStage}
               />
             ) : null}

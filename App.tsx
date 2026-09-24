@@ -3040,6 +3040,22 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         }}
         onExportRaw={() => {
           void store.exportUnreadableSave(async (fileName, contents) => {
+            if (Platform.OS === 'web' && typeof document !== 'undefined') {
+              const url = URL.createObjectURL(
+                new Blob([contents], { type: 'application/json' }),
+              );
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = fileName;
+              document.body.appendChild(link);
+              try {
+                link.click();
+              } finally {
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+              }
+              return;
+            }
             const result = await Share.share({
               title: fileName,
               message: contents,
@@ -3816,6 +3832,10 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
             saveWarning={store.saveWarning}
+            backupWarning={store.backupWarning}
+            season={store.career?.season}
+            week={store.career?.week}
+            resultSaved={store.lastPersistedCareer === store.career}
             conditionWarningSeen={
               !careerTeaches ||
               (store.career !== null &&
@@ -4390,6 +4410,15 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
                     // the moment one lands.
                     blocked={store.saveWarning !== null}
                     seasonPaused={store.saveBlocked}
+                    onRetry={store.retrySave}
+                  />
+                )}
+                {store.saveWarning === null && store.backupWarning !== null && (
+                  <SaveWarningBanner
+                    heading={t('store.backupSaveWarningTitle')}
+                    message={store.backupWarning}
+                    blocked
+                    seasonPaused={false}
                     onRetry={store.retrySave}
                   />
                 )}
@@ -5387,11 +5416,13 @@ function BootFailure({
  * designed way out rather than an optional extra.
  */
 function SaveWarningBanner({
+  heading,
   message,
   blocked,
   seasonPaused,
   onRetry,
 }: {
+  heading?: string;
   message: string;
   blocked: boolean;
   seasonPaused: boolean;
@@ -5418,7 +5449,7 @@ function SaveWarningBanner({
         accessibilityLabel={t('app.a11y.saveProblem', { message })}
       >
         <Text className="font-pixel text-sm uppercase text-stamp">
-          {t('trainingDrill.yourClubIsNotSaving')}
+          {heading ?? t('trainingDrill.yourClubIsNotSaving')}
         </Text>
         <Text className="mt-1 text-xs leading-4 text-ink/70">{message}</Text>
       </View>
@@ -5451,6 +5482,11 @@ function FeedbackNotice({
     const timer = setTimeout(onDismiss, 4_000);
     return () => clearTimeout(timer);
   }, [message, onDismiss]);
+  useEffect(() => {
+    if (Platform.OS === 'ios' && tone === 'error') {
+      AccessibilityInfo.announceForAccessibility(message);
+    }
+  }, [message, tone]);
 
   const palette =
     tone === 'success'

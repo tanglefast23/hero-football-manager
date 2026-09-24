@@ -1,4 +1,4 @@
-import { ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
 import appConfig from '../../app.json';
 import { SUPPORT_EMAIL } from '../release/support';
 import { ActionButton, PaperPanel } from './components/Scorecard';
@@ -26,7 +26,7 @@ export function PrivacySupportPanel({
 }: PrivacySupportPanelProps) {
   const t = useCopy();
   const version = appConfig.expo.version;
-  const build = appConfig.expo.ios.buildNumber;
+  const isIos = Platform.OS === 'ios';
 
   return (
     <ScrollView
@@ -37,7 +37,12 @@ export function PrivacySupportPanel({
         {t('settings.privacy.label')}
       </Text>
       <Text className="mt-2 text-sm leading-5 text-ink/60">
-        {t('privacySupport.versionLine', { version, build })}
+        {isIos
+          ? t('privacySupport.versionLine', {
+              version,
+              build: appConfig.expo.ios.buildNumber,
+            })
+          : t('privacySupport.versionLineWeb', { version })}
       </Text>
 
       {supportError ? (
@@ -60,11 +65,17 @@ export function PrivacySupportPanel({
           stamp={t('privacySupport.privacyStamp')}
         >
           <Text className="text-base leading-6 text-ink/70">
-            {t('privacySupport.heroFootballManagerDoes')}
+            {t(
+              isIos
+                ? 'privacySupport.heroFootballManagerDoes'
+                : 'privacySupport.heroFootballManagerDoesWeb',
+            )}
           </Text>
-          <Text className="mt-3 text-base leading-6 text-ink/70">
-            {t('privacySupport.yourPreferencesPlayerAnd')}
-          </Text>
+          {isIos ? (
+            <Text className="mt-3 text-base leading-6 text-ink/70">
+              {t('privacySupport.yourPreferencesPlayerAnd')}
+            </Text>
+          ) : null}
           {/* Apple requires the submitted policy URL to be reachable from
               inside the app, not only from the store listing. */}
           <View className="mt-4">

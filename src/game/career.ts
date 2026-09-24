@@ -226,7 +226,7 @@ export function createCareer(setup: CareerSetup): GameState {
     ),
     players: (setup.players ?? []).map(clonePlayer),
     lineups: (setup.lineups ?? []).map((lineup) => ({
-      clubId: lineup.clubId,
+      ...lineup,
       playerIds: [...lineup.playerIds],
     })),
     facilities: { trainingGroundBuilt: false, grid: createFacilityGrid() },

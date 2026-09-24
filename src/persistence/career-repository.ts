@@ -85,7 +85,8 @@ interface BackupGeneration extends CareerBackupSummary {
 }
 
 export interface CareerRepository {
-  save(state: GameState): Promise<void>;
+  /** The live slot is saved even when its backup needs a retry. */
+  save(state: GameState): Promise<void | 'backup-failed'>;
   load(): Promise<GameState | null>;
   /** Reads the live payload without decoding its game schema. */
   loadRaw(): Promise<RawStoredCareer | null>;
@@ -101,15 +102,6 @@ export interface CareerRepository {
   checkIntegrity(): Promise<boolean>;
 }
 
-/**
- * Production saves skip the serialize-side zod pass: it costs ~50-90ms of JS
- * thread per store action on device (measured; ~95% of serialize cost), the
- * state always came from the typed game module, and the next load still runs
- * the full parse with the backup generation intact. Dev and test builds keep
- * the check so a state bug surfaces where it is written.
- */
-const VALIDATE_ON_SAVE = typeof __DEV__ === 'undefined' || __DEV__;
-
 export async function createCareerRepository(
   database: PersistenceDatabase,
 ): Promise<CareerRepository> {
@@ -118,14 +110,6 @@ export async function createCareerRepository(
   // save path stays a single INSERT instead of re-reading the stored state every
   // week, and only ever updated from a write that succeeded.
   let backedUp = await readBackupGeneration(database);
-  // Which boundary a backup write has been ATTEMPTED for, successfully or not.
-  // `backedUp` alone cannot say: a rejected write leaves it behind, the season
-  // boundary test stays true, and every later save retries — in a release build
-  // that is a full serialize-with-validation (~200ms) on every player action for
-  // the rest of the career. One attempt per boundary; the next genuine boundary
-  // still tries, so a disk that frees up is picked up at the next season.
-  let backupAttempted: BackupGeneration | null = null;
-
   async function readRawCareer(): Promise<RawStoredCareer | null> {
     const row = await database.getFirstAsync<StoredCareerRow>(LOAD_CAREER_SQL, [
       PRIMARY_SLOT,
@@ -151,28 +135,12 @@ export async function createCareerRepository(
   async function writeBackup(
     state: GameState,
     liveJson: string,
-  ): Promise<void> {
-    backupAttempted = {
-      careerSeed: state.careerSeed,
-      season: state.season,
-      week: state.week,
-    };
+  ): Promise<boolean> {
     try {
-      // The live slot skips validation in production for speed, so an unnoticed
-      // state bug would be copied straight into the generation meant to survive
-      // it — both slots then fail the parse on load, and the only way out is
-      // deleting the career. A backup is written about once a season, so this
-      // one pays the full check. It runs inside the same catch as the write:
-      // the live save has already succeeded here, and a backup that cannot be
-      // validated must leave the previous generation in place rather than
-      // report the week as lost.
-      const backupJson = VALIDATE_ON_SAVE
-        ? liveJson
-        : serializeGameState(state, { validate: true });
       await database.runAsync(UPSERT_BACKUP_SQL, [
         BACKUP_SLOT,
         GAME_SCHEMA_VERSION,
-        backupJson,
+        liveJson,
         state.season,
         state.week,
         state.careerSeed,
@@ -182,19 +150,16 @@ export async function createCareerRepository(
         season: state.season,
         week: state.week,
       };
+      return true;
     } catch {
-      // The live save already succeeded, so a failed backup must not report the
-      // week as lost. `backedUp` stays put and `backupAttempted` now names this
-      // boundary, so the retry waits for the next season rather than running on
-      // every save for the rest of the career.
+      // Keep the previous generation and try again on the next save.
+      return false;
     }
   }
 
   return {
-    async save(state: GameState): Promise<void> {
-      const stateJson = serializeGameState(state, {
-        validate: VALIDATE_ON_SAVE,
-      });
+    async save(state: GameState): Promise<void | 'backup-failed'> {
+      const stateJson = serializeGameState(state);
       await database.runAsync(UPSERT_CAREER_SQL, [
         PRIMARY_SLOT,
         GAME_SCHEMA_VERSION,
@@ -205,11 +170,8 @@ export async function createCareerRepository(
       // A different career is always a boundary — otherwise the career this one
       // replaced stays restorable, and season 1 of the new one would never
       // displace season 1 of the old.
-      if (
-        !isBackupBoundaryFor(backedUp, state) &&
-        !isBackupBoundaryFor(backupAttempted, state)
-      ) {
-        await writeBackup(state, stateJson);
+      if (!isBackupBoundaryFor(backedUp, state)) {
+        if (!(await writeBackup(state, stateJson))) return 'backup-failed';
       }
     },
 
@@ -251,7 +213,6 @@ export async function createCareerRepository(
         await database.runAsync(DELETE_BACKUP_SQL, [BACKUP_SLOT]);
       });
       backedUp = null;
-      backupAttempted = null;
     },
 
     /**
@@ -309,7 +270,6 @@ export async function createCareerRepository(
         week:
           typeof row.saved_week === 'number' ? row.saved_week : restored.week,
       };
-      backupAttempted = null;
       return restored;
     },
 

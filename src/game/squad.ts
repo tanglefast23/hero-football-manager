@@ -519,6 +519,7 @@ function repairLineupForInjuries(
   const roster = rosterForClub(state, clubId);
   const playerById = new Map(roster.map((player) => [player.id, player]));
   const playerIds = [...lineup.playerIds];
+  const formation = lineup.formation ?? '4-4-2';
   const heroLimit = careerHeroLimit(state);
   const claimedSlots = new Set(
     roster.flatMap((player) =>
@@ -578,17 +579,18 @@ function repairLineupForInjuries(
           (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK'),
       )
       .sort((left, right) => {
-        const leftRolePenalty = left.role === starter.role ? 0 : 1;
-        const rightRolePenalty = right.role === starter.role ? 0 : 1;
+        const slotRole = formationRoleForSlot(formation, slot);
+        const leftRolePenalty = left.role === slotRole ? 0 : 1;
+        const rightRolePenalty = right.role === slotRole ? 0 : 1;
         if (leftRolePenalty !== rightRolePenalty)
           return leftRolePenalty - rightRolePenalty;
         const ratingDifference =
           conditionedRatingD64(
-            roleOverall(starter.role, right.attrs),
+            roleOverall(slotRole, right.attrs),
             right.condition ?? 100,
           ) -
           conditionedRatingD64(
-            roleOverall(starter.role, left.attrs),
+            roleOverall(slotRole, left.attrs),
             left.condition ?? 100,
           );
         if (ratingDifference !== 0) return ratingDifference;
@@ -599,7 +601,7 @@ function repairLineupForInjuries(
       if (!allowRelief || clubId !== state.userClubId) return undefined;
       const youth = createEmergencyYouthReplacement(
         { ...state, players: [...state.players, ...relief] },
-        slot === 0 ? 'GK' : starter.role,
+        formationRoleForSlot(formation, slot),
         starter.id,
       );
       relief.push(youth);
@@ -908,7 +910,7 @@ export function arrangeCareerLineupForFormation(
     }),
     lineups: state.lineups.map((candidate) =>
       candidate.clubId === state.userClubId
-        ? { ...candidate, playerIds: playerIds as string[] }
+        ? { ...candidate, playerIds: playerIds as string[], formation }
         : candidate,
     ),
   };

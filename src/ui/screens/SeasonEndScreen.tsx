@@ -669,7 +669,7 @@ export function SeasonEndScreen({
                                 'seasonEnd.a11y.seasonContract',
                                 { count: term },
                               )}
-                              accessibilityState={{ selected }}
+                              accessibilityState={{ checked: selected }}
                               onPress={() =>
                                 onSelectContractTerm(contract.playerId, term)
                               }

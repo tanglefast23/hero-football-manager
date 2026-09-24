@@ -14,6 +14,7 @@ import {
 } from '../game/types';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
+import { FORMATION_IDS } from '../sim/tactics';
 import {
   CorruptCareerSaveError,
   InvalidGameStateError,
@@ -441,6 +442,7 @@ const lineupSchema = z
   .object({
     clubId: nonemptyString,
     playerIds: z.array(nonemptyString),
+    formation: z.enum(FORMATION_IDS).optional(),
   })
   .passthrough();
 
@@ -2990,10 +2992,9 @@ const gameStateSchema = z
 
 /**
  * `validate: false` skips the full zod pass — ~95% of serialize cost, paid on
- * every store action because a save follows each one. The state always came
- * from the typed game module, and `parseStoredGameState` re-validates on the
- * next load with the backup generation still intact, so production saves may
- * skip it. Dev builds and every other caller keep the full check.
+ * every store action because a save follows each one. The repository always
+ * validates before replacing the live slot; this option is only for callers
+ * that explicitly accept the risk of writing an unchecked state.
  */
 export function serializeGameState(
   state: GameState,
