@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "main": false,
+      "release/1.0.x": false
+    }
+  },
   "buildCommand": "npm run export:web",
   "outputDirectory": "dist",
   "devCommand": "npm run web -- --port $PORT",
