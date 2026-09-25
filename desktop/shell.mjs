@@ -73,13 +73,46 @@ export function installHandler(root) {
       const info = await stat(target);
       if (!info.isFile()) return new Response('Not found', { status: 404 });
       const body = await readFile(target);
+      const headers = {
+        ...ISOLATION_HEADERS,
+        'Content-Type':
+          CONTENT_TYPES[extname(target)] ?? 'application/octet-stream',
+        'Accept-Ranges': 'bytes',
+      };
+      const requestedRange = request.headers.get('range');
+      if (requestedRange !== null) {
+        const match = /^bytes=(\d*)-(\d*)$/.exec(requestedRange);
+        const first = match?.[1] ? Number(match[1]) : null;
+        const last = match?.[2] ? Number(match[2]) : null;
+        const start = first ?? Math.max(0, body.length - (last ?? 0));
+        const end =
+          first === null || last === null
+            ? body.length - 1
+            : Math.min(last, body.length - 1);
+        if (
+          !match ||
+          (first === null && last === null) ||
+          (first !== null && !Number.isSafeInteger(first)) ||
+          (last !== null && !Number.isSafeInteger(last)) ||
+          start >= body.length ||
+          start > end
+        ) {
+          return new Response(null, {
+            status: 416,
+            headers: { ...headers, 'Content-Range': `bytes */${body.length}` },
+          });
+        }
+        return new Response(body.subarray(start, end + 1), {
+          status: 206,
+          headers: {
+            ...headers,
+            'Content-Range': `bytes ${start}-${end}/${body.length}`,
+            'Content-Length': String(end - start + 1),
+          },
+        });
+      }
       return new Response(body, {
-        headers: {
-          ...ISOLATION_HEADERS,
-          'Content-Type':
-            CONTENT_TYPES[extname(target)] ?? 'application/octet-stream',
-          'Content-Length': String(body.byteLength),
-        },
+        headers: { ...headers, 'Content-Length': String(body.byteLength) },
       });
     } catch {
       return new Response('Not found', { status: 404 });

@@ -1710,6 +1710,7 @@ export function useContractDraft(
   const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
 
   const id = viewModel?.id;
+  const roundLabel = viewModel?.roundLabel;
   const initialWeeklyWage = viewModel?.initialWeeklyWage;
   const lastTermSeasons = viewModel?.lastOffer?.termSeasons;
   const lastPerk = viewModel?.lastOffer?.perk;
@@ -1742,13 +1743,13 @@ export function useContractDraft(
     setReclaimPlayerId(undefined);
   }, [id, perk]);
 
-  // The wage tracks the agent's counter, and the pitch card MUST clear: cards
-  // are one-use, and re-submitting a spent one throws in `submitContractOffer`.
+  // A counter can keep the same wage. Clear the one-use pitch card on every
+  // round or the next offer replays it and `submitContractOffer` throws.
   useEffect(() => {
     if (initialWeeklyWage === undefined) return;
     setWeeklyWage(initialWeeklyWage);
     setPitchCard(undefined);
-  }, [id, initialWeeklyWage]);
+  }, [id, initialWeeklyWage, roundLabel]);
 
   return {
     weeklyWage,

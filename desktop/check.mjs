@@ -9,7 +9,8 @@
  * finished evaluating, so awaiting `ready` at top level deadlocks.
  */
 import { Menu, app, screen } from 'electron';
-import { writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import {
   createWindow,
   exportRoot,
@@ -31,7 +32,8 @@ function finish(result) {
     result.sharedArrayBuffer === true &&
     result.rendered === true &&
     result.menuSafe === true &&
-    result.windowFits === true;
+    result.windowFits === true &&
+    result.musicRangeSafe === true;
   console.log(JSON.stringify({ ...result, ok }));
   app.exit(ok ? 0 : 1);
 }
@@ -79,7 +81,31 @@ app.whenReady().then(async () => {
     isolated: crossOriginIsolated === true,
     sharedArrayBuffer: typeof SharedArrayBuffer === 'function',
   })`);
+  const musicDir = join(exportRoot(), 'assets/assets/audio/music');
+  const musicFile = (await readdir(musicDir)).find((name) =>
+    /^management-theme\..+\.m4a$/.test(name),
+  );
+  if (!musicFile) throw new Error('Management theme missing from web export');
+  const music = await readFile(join(musicDir, musicFile));
+  const range = await contents.executeJavaScript(`(async () => {
+    const response = await fetch('/assets/assets/audio/music/${musicFile}', {
+      headers: { Range: 'bytes=32768-' },
+    });
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return {
+      status: response.status,
+      contentRange: response.headers.get('content-range'),
+      length: bytes.length,
+      firstBytes: Array.from(bytes.slice(0, 16)),
+    };
+  })()`);
+  const musicRangeSafe =
+    range.status === 206 &&
+    range.contentRange === `bytes 32768-${music.length - 1}/${music.length}` &&
+    range.length === music.length - 32768 &&
+    JSON.stringify(range.firstBytes) ===
+      JSON.stringify(Array.from(music.subarray(32768, 32784)));
   const image = await contents.capturePage();
   await writeFile(new URL('./check.png', import.meta.url), image.toPNG());
-  finish({ ...facts, rendered, menuSafe, windowFits });
+  finish({ ...facts, rendered, menuSafe, windowFits, musicRangeSafe });
 });
