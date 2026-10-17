@@ -2,7 +2,11 @@
 // native dev client can still render the review UI when expo-audio is absent.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 import { claimManagementFeedback } from './management-feedback-activation';
-import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  audioIsSuspended,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 type ExplicitManagementSfxKey =
   | 'match-statement'
@@ -227,6 +231,7 @@ function initManagementSfx(): void {
   for (const key of Object.keys(MANAGEMENT_SFX) as ManagementSfxKey[]) {
     try {
       const player = audio.createAudioPlayer(MANAGEMENT_SFX[key], {
+        ...GAME_AUDIO_PLAYER_OPTIONS,
         // A button must not reopen the native audio session on every tap.
         keepAudioSessionActive: true,
       });
@@ -256,6 +261,7 @@ function initManagementSfx(): void {
     while (pool.length < RAPID_SFX_POOL_SIZE) {
       try {
         const player = audio.createAudioPlayer(MANAGEMENT_SFX[key], {
+          ...GAME_AUDIO_PLAYER_OPTIONS,
           keepAudioSessionActive: true,
         });
         player.volume = masterVolume;

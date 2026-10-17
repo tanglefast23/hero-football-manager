@@ -1,5 +1,6 @@
 import { createMatch } from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
+import { createAudioPlayer } from 'expo-audio';
 import {
   advanceMatchVfxShowcase,
   initializeMatchVfxShowcase,
@@ -46,11 +47,23 @@ describe('master audio volume', () => {
   beforeEach(() => {
     teardownAudio();
     mockPlayers.length = 0;
+    jest.mocked(createAudioPlayer).mockClear();
     setMasterVolume(1);
   });
 
   afterEach(() => {
     teardownAudio();
+  });
+
+  it('reduces unused status reports for every match player', () => {
+    initAudio();
+
+    expect(createAudioPlayer).toHaveBeenCalledTimes(
+      audioKeysForProfile('full').length + 2,
+    );
+    for (const [, options] of jest.mocked(createAudioPlayer).mock.calls) {
+      expect(options?.updateInterval).toBe(60_000);
+    }
   });
 
   it('applies a preselected level while preserving the existing mix', () => {

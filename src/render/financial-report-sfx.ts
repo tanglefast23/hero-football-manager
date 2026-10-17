@@ -14,7 +14,11 @@
  * long, and a cue must go quiet, not permanently dead.
  */
 import type { AudioPlayer, AudioSource } from 'expo-audio';
-import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  audioIsSuspended,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 const SPIN_SOURCE: AudioSource = require('../../assets/audio/sfx/ledger-spin.wav');
 const THUNK_SOURCE: AudioSource = require('../../assets/audio/sfx/ledger-thunk.wav');
@@ -73,7 +77,7 @@ function recreatePlayer(cue: Cue): AudioPlayer | null {
   cue.player = null;
   try {
     const mod = require('expo-audio') as typeof import('expo-audio');
-    const player = mod.createAudioPlayer(cue.source);
+    const player = mod.createAudioPlayer(cue.source, GAME_AUDIO_PLAYER_OPTIONS);
     if (cue.loop) player.loop = true;
     cue.player = player;
     applyVolumeTo(cue);

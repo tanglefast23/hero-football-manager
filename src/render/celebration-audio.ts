@@ -6,7 +6,11 @@
 // Fail-soft like the other render-ring audio modules: an out-of-date native
 // client or a bad asset costs the music, never the celebration.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
-import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  audioIsSuspended,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 /**
  * The victory song. Division titles, the Global League screen, the Cup, and the
@@ -72,7 +76,10 @@ export function initCelebrationAudio(): void {
       ['farewell', FAREWELL_SOURCE],
     ] as const) {
       try {
-        const player = audio.createAudioPlayer(source);
+        const player = audio.createAudioPlayer(
+          source,
+          GAME_AUDIO_PLAYER_OPTIONS,
+        );
         // The anthem is a song that plays out; the farewell holds the speech
         // for as long as the player reads it.
         player.loop = bed === 'farewell';

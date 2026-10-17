@@ -5,6 +5,7 @@
 // Fail-soft like the other render-ring audio modules: an out-of-date native
 // client or a bad asset disables this cue without blocking the cutscene.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
+import { GAME_AUDIO_PLAYER_OPTIONS } from './audio-lifecycle';
 
 const ANGELS_SOURCE: AudioSource = require('../../assets/audio/sfx/awakening-angels.m4a');
 const HARPS_SOURCE: AudioSource = require('../../assets/audio/sfx/awakening-harps.m4a');
@@ -84,21 +85,30 @@ export function initAwakeningAudio(): void {
       .catch((error: unknown) => warnOnce('setAudioModeAsync failed', error));
 
     try {
-      angelsPlayer = audio.createAudioPlayer(ANGELS_SOURCE);
+      angelsPlayer = audio.createAudioPlayer(
+        ANGELS_SOURCE,
+        GAME_AUDIO_PLAYER_OPTIONS,
+      );
     } catch (error) {
       angelsPlayer = null;
       warnOnce('createAudioPlayer failed (angels)', error);
     }
 
     try {
-      harpsPlayer = audio.createAudioPlayer(HARPS_SOURCE);
+      harpsPlayer = audio.createAudioPlayer(
+        HARPS_SOURCE,
+        GAME_AUDIO_PLAYER_OPTIONS,
+      );
     } catch (error) {
       harpsPlayer = null;
       warnOnce('createAudioPlayer failed (harps)', error);
     }
 
     try {
-      limpPlayer = audio.createAudioPlayer(LIMP_SOURCE);
+      limpPlayer = audio.createAudioPlayer(
+        LIMP_SOURCE,
+        GAME_AUDIO_PLAYER_OPTIONS,
+      );
       limpPlayer.loop = false;
     } catch (error) {
       limpPlayer = null;

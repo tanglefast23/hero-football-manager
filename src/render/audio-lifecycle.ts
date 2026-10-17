@@ -12,6 +12,9 @@
  * AppState or `document` simply never suspend, which is the old behaviour.
  */
 
+// Game audio has no progress UI or status listeners; avoid unused status reports.
+export const GAME_AUDIO_PLAYER_OPTIONS = { updateInterval: 60_000 } as const;
+
 interface AudioOwner {
   /** Silence now. Called once per transition, never twice in a row. */
   readonly suspend: () => void;

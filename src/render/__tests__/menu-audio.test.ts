@@ -38,6 +38,9 @@ jest.mock('expo-audio', () => ({
   }),
 }));
 
+const { createAudioPlayer } =
+  require('expo-audio') as typeof import('expo-audio');
+
 import {
   menuThemeForScreen,
   playAdvanceWeekSfx,
@@ -77,6 +80,7 @@ describe('non-match music ownership', () => {
     jest.useFakeTimers();
     teardownMenuAudio();
     mockPlayers.length = 0;
+    jest.mocked(createAudioPlayer).mockClear();
     setAudioModeAsync.mockClear();
     setMenuMasterVolume(1);
   });
@@ -84,6 +88,15 @@ describe('non-match music ownership', () => {
   afterEach(() => {
     teardownMenuAudio();
     jest.useRealTimers();
+  });
+
+  it('reduces unused status reports for every menu player', () => {
+    setMenuTheme('management');
+
+    expect(createAudioPlayer).toHaveBeenCalledTimes(PLAYERS_PER_BUILD);
+    for (const [, options] of jest.mocked(createAudioPlayer).mock.calls) {
+      expect(options?.updateInterval).toBe(60_000);
+    }
   });
 
   it('uses the normal management music while creating the first player', () => {

@@ -1,6 +1,10 @@
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { RivalHeroIntroHeroId } from '../game/rival-hero-intro';
-import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  audioIsSuspended,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 /** One authored laugh per division-headline rival, chosen to match their character. */
 const RIVAL_HERO_LAUGH_SOURCES: Readonly<
@@ -46,6 +50,7 @@ function initRivalHeroVoice(): void {
   ) as RivalHeroIntroHeroId[]) {
     try {
       const player = audio.createAudioPlayer(RIVAL_HERO_LAUGH_SOURCES[heroId], {
+        ...GAME_AUDIO_PLAYER_OPTIONS,
         keepAudioSessionActive: true,
       });
       player.loop = false;

@@ -5,7 +5,11 @@
 // still render the UI even when expo-audio is unavailable.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { M1Screen } from '../application/store';
-import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  audioIsSuspended,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 export type MenuTheme =
   'opening' | 'management' | 'event' | 'awards' | 'rival' | null;
@@ -345,7 +349,10 @@ export function initMenuAudio(): void {
       Exclude<MenuTheme, null>
     >) {
       try {
-        const player = audio.createAudioPlayer(MENU_SOURCES[theme]);
+        const player = audio.createAudioPlayer(
+          MENU_SOURCES[theme],
+          GAME_AUDIO_PLAYER_OPTIONS,
+        );
         player.loop = true;
         players.set(theme, player);
       } catch (error) {
@@ -354,7 +361,13 @@ export function initMenuAudio(): void {
     }
     for (const key of Object.keys(MENU_SFX_SOURCES) as MenuSfx[]) {
       try {
-        sfxPlayers.set(key, audio.createAudioPlayer(MENU_SFX_SOURCES[key]));
+        sfxPlayers.set(
+          key,
+          audio.createAudioPlayer(
+            MENU_SFX_SOURCES[key],
+            GAME_AUDIO_PLAYER_OPTIONS,
+          ),
+        );
       } catch (error) {
         warnOnce(`createAudioPlayer failed (${key})`, error);
       }

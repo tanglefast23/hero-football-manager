@@ -8,7 +8,10 @@
 // out-of-date native client disables the cutscene's sound without blocking the
 // cutscene itself.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
-import { registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 const THUNDER_SOURCE: AudioSource = require('../../assets/audio/sfx/speech-thunder.m4a');
 const GOSPEL_SOURCE: AudioSource = require('../../assets/audio/music/speech-gospel.m4a');
@@ -91,14 +94,20 @@ export function initCoachSpeechAudio(): void {
     const audio = require('expo-audio') as typeof import('expo-audio');
 
     try {
-      thunderPlayer = audio.createAudioPlayer(THUNDER_SOURCE);
+      thunderPlayer = audio.createAudioPlayer(
+        THUNDER_SOURCE,
+        GAME_AUDIO_PLAYER_OPTIONS,
+      );
     } catch (error) {
       thunderPlayer = null;
       warnOnce('createAudioPlayer failed (thunder)', error);
     }
 
     try {
-      gospelPlayer = audio.createAudioPlayer(GOSPEL_SOURCE);
+      gospelPlayer = audio.createAudioPlayer(
+        GOSPEL_SOURCE,
+        GAME_AUDIO_PLAYER_OPTIONS,
+      );
       // The bed is trimmed to just outlast the cutscene, so its end is
       // unreachable and looping would only matter if it were not.
       gospelPlayer.loop = false;
@@ -109,6 +118,7 @@ export function initCoachSpeechAudio(): void {
 
     try {
       voicePlayer = audio.createAudioPlayer(VOICE_SOURCE, {
+        ...GAME_AUDIO_PLAYER_OPTIONS,
         // The coach talks on every line and on every tap; reopening the native
         // audio session per line would clip the first syllable off the front.
         keepAudioSessionActive: true,

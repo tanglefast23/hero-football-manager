@@ -14,7 +14,11 @@
 // crash a match.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { MatchEvent, PowerId } from '../sim/types';
-import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  audioIsSuspended,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 // -- Asset table (the one place SFX filenames are named) --------------------
 // SFX are short one-shots. Supplied replacement effects use runtime-optimized
@@ -435,13 +439,19 @@ export function initAudio(
     // (playForEvent already skips missing map entries).
     for (const key of audioKeysForProfile(profile, showcasePower)) {
       try {
-        sfxPlayers.set(key, mod.createAudioPlayer(SFX_SOURCES[key]));
+        sfxPlayers.set(
+          key,
+          mod.createAudioPlayer(SFX_SOURCES[key], GAME_AUDIO_PLAYER_OPTIONS),
+        );
       } catch (err) {
         warnOnce(`createAudioPlayer failed (${key})`, err);
       }
     }
     try {
-      themePlayer = mod.createAudioPlayer(THEME_SOURCE);
+      themePlayer = mod.createAudioPlayer(
+        THEME_SOURCE,
+        GAME_AUDIO_PLAYER_OPTIONS,
+      );
       themePlayer.loop = true;
     } catch (err) {
       themePlayer = null;
@@ -449,7 +459,10 @@ export function initAudio(
     }
     if (profile === 'full' || showcasePower === 'FIRE_TORCH') {
       try {
-        fireLoopPlayer = mod.createAudioPlayer(FIRE_LOOP_SOURCE);
+        fireLoopPlayer = mod.createAudioPlayer(
+          FIRE_LOOP_SOURCE,
+          GAME_AUDIO_PLAYER_OPTIONS,
+        );
         fireLoopPlayer.loop = true;
       } catch (err) {
         fireLoopPlayer = null;

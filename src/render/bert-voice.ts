@@ -3,7 +3,10 @@
 // headless Jest and an out-of-date native dev client still render the guide
 // with no audio.
 import type { AudioPlayer } from 'expo-audio';
-import { registerAudioOwner } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 /**
  * The supplied dialogue run: 8.8s of continuous chatter, entered at an
@@ -81,6 +84,7 @@ function initBertVoice(): void {
   try {
     const audio = require('expo-audio') as typeof import('expo-audio');
     const created = audio.createAudioPlayer(VOICE_SOURCE, {
+      ...GAME_AUDIO_PLAYER_OPTIONS,
       // Bert talks on nearly every guide beat; reopening the native audio
       // session for each bubble would clip the first tick off the front.
       keepAudioSessionActive: true,
