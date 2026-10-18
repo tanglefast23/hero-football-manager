@@ -1,0 +1,1052 @@
+Repository: /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager
+Current branch: main
++ git status -sb
+## main...origin/main
+ M AGENTS.md
+ M App.tsx
+ M content/i18n/de.json
+ M content/i18n/en.json
+ M content/i18n/es.json
+ M content/i18n/fr.json
+ M content/i18n/id.json
+ M content/i18n/pt-BR.json
+ M content/i18n/vi.json
+ M docs/05-players-training-coaches.md
+ M package-lock.json
+ M package.json
+ M src/application/__tests__/market-source-adapter.test.ts
+ M src/application/__tests__/player-request-view-model.test.ts
+ M src/application/__tests__/preferences.test.ts
+ M src/application/market-source-adapter.ts
+ M src/application/player-request-view-model.ts
+ M src/application/preferences.ts
+ M src/application/view-models.ts
+ M src/game/__tests__/market-career.test.ts
+ M src/game/__tests__/squad.test.ts
+ M src/game/market-career.ts
+ M src/game/squad.ts
+ M src/persistence/index.ts
+ M src/persistence/preferences-repository.ts
+ M src/render/__tests__/audio-lifecycle.test.ts
+ M src/render/audio.ts
+ M src/render/awakening-audio.ts
+ M src/render/celebration-audio.ts
+ M src/ui/__tests__/character-creation-copy.test.ts
+ M src/ui/components/CrossPlatformModal.web.tsx
+ M src/ui/screens/CharacterCreationScreen.tsx
+?? artifacts/playtest-2026-10-18/
+?? docs/qa/game-playtest.md
+?? scripts/qa/check-career.cjs
+?? scripts/qa/playtest-browser.js
+?? scripts/qa/test-playtest-tools.cjs
+?? src/ui/__tests__/playtest-bridge.test.ts
+?? src/ui/playtest-bridge.ts
++ git fetch --prune origin
++ git add -A
++ git commit -m fix(career): resolve playtest blockers and preserve pending recovery fixes
+[main fa36eb50] fix(career): resolve playtest blockers and preserve pending recovery fixes
+ 81 files changed, 6164 insertions(+), 227 deletions(-)
+ create mode 100644 artifacts/playtest-2026-10-18/01-opening-match.png
+ create mode 100644 artifacts/playtest-2026-10-18/02-season-1-promotion.png
+ create mode 100644 artifacts/playtest-2026-10-18/03-three-forwards-7-0.png
+ create mode 100644 artifacts/playtest-2026-10-18/04-unlicensed-hero-crash.png
+ create mode 100644 artifacts/playtest-2026-10-18/05-fixed-career-4-2.png
+ create mode 100644 artifacts/playtest-2026-10-18/06-fixed-squad-refusal.png
+ create mode 100644 artifacts/playtest-2026-10-18/blocker-check.txt
+ create mode 100644 artifacts/playtest-2026-10-18/browser-driver.js
+ create mode 100644 artifacts/playtest-2026-10-18/browser-reload-log.json
+ create mode 100644 artifacts/playtest-2026-10-18/build-report.py
+ create mode 100644 artifacts/playtest-2026-10-18/crash-browser-log.json
+ create mode 100644 artifacts/playtest-2026-10-18/current-source-blocker-check.txt
+ create mode 100644 artifacts/playtest-2026-10-18/evidence-segment-2.json
+ create mode 100644 artifacts/playtest-2026-10-18/evidence.json
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-checkpoint-check.json
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-focused-tests.txt
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-match-screen.txt
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-report-layout-check.json
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-request-ui.json
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-tools-check.txt
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-typescript-check.txt
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-ui-checks.json
+ create mode 100644 artifacts/playtest-2026-10-18/fixed-verification.json
+ create mode 100644 artifacts/playtest-2026-10-18/focused-tests.txt
+ create mode 100644 artifacts/playtest-2026-10-18/follow-up.json
+ create mode 100644 artifacts/playtest-2026-10-18/grok-review.md
+ create mode 100644 artifacts/playtest-2026-10-18/grok-tooling-review.md
+ create mode 100644 artifacts/playtest-2026-10-18/recovered-checkpoint-check.json
+ create mode 100644 artifacts/playtest-2026-10-18/recovered-checkpoint.json
+ create mode 100644 artifacts/playtest-2026-10-18/report-check.txt
+ create mode 100644 artifacts/playtest-2026-10-18/report-data.json
+ create mode 100644 artifacts/playtest-2026-10-18/report.html
+ create mode 100644 artifacts/playtest-2026-10-18/report.md
+ create mode 100644 artifacts/playtest-2026-10-18/reproduce-career-blocker.cjs
+ create mode 100644 artifacts/playtest-2026-10-18/request-ui-fixture.patch
+ create mode 100644 artifacts/playtest-2026-10-18/review-decisions.md
+ create mode 100644 artifacts/playtest-2026-10-18/status-recheck.json
+ create mode 100644 artifacts/playtest-2026-10-18/tactics-console.txt
+ create mode 100644 artifacts/playtest-2026-10-18/tactics-probe.cjs
+ create mode 100644 artifacts/playtest-2026-10-18/tactics-results.json
+ create mode 100644 artifacts/playtest-2026-10-18/tactics-teams.json
+ create mode 100644 artifacts/playtest-2026-10-18/verification-results.json
+ create mode 100644 artifacts/playtest-2026-10-18/verify-report.py
+ create mode 100644 docs/qa/game-playtest.md
+ create mode 100644 scripts/qa/check-career.cjs
+ create mode 100644 scripts/qa/playtest-browser.js
+ create mode 100644 scripts/qa/test-playtest-tools.cjs
+ create mode 100644 src/ui/__tests__/playtest-bridge.test.ts
+ create mode 100644 src/ui/playtest-bridge.ts
++ git pull --rebase
+Current branch main is up to date.
++ bash -c npx tsc --noEmit
++ bash -c bash /tmp/hfm-final-checks-20261019.sh
+PASS src/application/__tests__/store.test.ts (76.538 s)
+PASS src/audit/__tests__/opening-sentinel.test.ts (6.957 s)
+PASS src/audit/__tests__/opening-production-truth.test.ts
+PASS src/audit/__tests__/training-leverage-rails.test.ts (389.641 s)
+  ● Console
+
+    console.log
+      LEVERAGE RAIL prevented/shot-faced/100TP=0.0706 created/shot-taken/100TP=0.0484 ratio=1.46 (max 10) over 600 paired seeds
+
+      at Object.<anonymous> (src/audit/__tests__/training-leverage-rails.test.ts:196:13)
+
+    console.log
+      LEVERAGE RAIL keeper-only opener loss rate 56.8%
+
+      at Object.<anonymous> (src/audit/__tests__/training-leverage-rails.test.ts:209:13)
+
+PASS src/sim/__tests__/balance-rails.test.ts (94.469 s)
+  ● Console
+
+    console.log
+      BALANCE RAILS normal: goals/match=2.275 maxGoalsInAMatch=6 shots/match=12.995 saveRate=0.6337 slides/match=18.470 slideWinRate=0.259 over 200 seeds
+
+      at Object.<anonymous> (src/sim/__tests__/balance-rails.test.ts:52:15)
+
+    console.log
+      BALANCE RAILS mismatch: homeStrongWins=193 awayStrongWins=195 homeWeakWins=0 awayWeakWins=0 strongGoals/match=3.800 weakGoals/match=0.025 p95GoalMargin=7 p99GoalMargin=8 maxGoalMargin=10 sideGoalGap=0.180 strongShots/match=15.438 strongPasses/match=105.282 over 200 paired seeds
+
+      at Object.<anonymous> (src/sim/__tests__/balance-rails.test.ts:129:15)
+
+PASS src/audit/__tests__/keeper-display-drift-rail.test.ts
+PASS src/application/__tests__/match-stamina-balance.test.ts (68.809 s)
+PASS src/game/__tests__/active-manager-balance.test.ts
+PASS src/game/__tests__/m2-balance.test.ts (9.104 s)
+PASS src/application/__tests__/m4-event-balance.test.ts
+PASS src/render/sprites/__tests__/sprites.test.ts (87.25 s)
+PASS src/application/__tests__/m2-managed-recovery-soak.test.ts (74.195 s)
+PASS src/sim/__tests__/attacking-balance.test.ts (25.726 s)
+  ● Console
+
+    console.log
+      ATTACKING MIX goals=2.275 shots=12.995 passes=153.445 completion=0.810 zoneEntries=7.575 heroEntries=[525,393,597] rivalFires=582 rivalCardMatches=0 over 200 seeds
+
+      at Object.<anonymous> (src/sim/__tests__/attacking-balance.test.ts:43:13)
+
+PASS src/audit/__tests__/auto-substitution-scale-gate.test.ts (32.185 s)
+PASS src/audit/__tests__/scale-invariant-opening-artifact.test.ts (9.599 s)
+PASS src/sim/__tests__/power-cadence.test.ts (36.501 s)
+PASS src/audit/__tests__/promotion-survival-summary.test.ts
+PASS src/audit/__tests__/opening-economy-balance.test.ts (31.064 s)
+  ● Console
+
+    console.log
+      
+      === D5 OPENING ECONOMY (300 seeds per mode) ===
+      Cozy: loan 0.0%, P10 $38054, median $55145
+      Chairman: loan 0.0%, median $43520
+      No-prize/safety median: Cozy $38031, Chairman $26406
+
+      at Object.<anonymous> (src/audit/__tests__/opening-economy-balance.test.ts:71:13)
+
+PASS src/sim/__tests__/shooting.test.ts (112.312 s)
+PASS src/game/__tests__/balance.test.ts (14.929 s)
+PASS src/sim/__tests__/gates-auto.test.ts (128.223 s)
+  ● Console
+
+    console.log
+      GATE-1 powers-matter floor: mean diff 0.5175, 95% CI [0.4125, 0.6300] over 400 seeds
+
+      at Object.<anonymous> (src/sim/__tests__/gates-auto.test.ts:37:15)
+
+    console.log
+      GATE-3 auto sanity: contextual=496 blind=404 ratio=1.2277; paired mean diff 0.2300, 95% CI [0.1250, 0.3400] over 400 seeds
+
+      at Object.<anonymous> (src/sim/__tests__/gates-auto.test.ts:65:15)
+
+PASS src/audit/__tests__/hero-value-tap-policy.test.ts
+PASS src/audit/__tests__/division-goalkeeper-gate.test.ts
+PASS src/audit/__tests__/probe-calibration.test.ts
+PASS src/game/__tests__/division-award-snapshot.test.ts (39.502 s)
+PASS src/render/sprites/__tests__/slide-tackle.test.ts (12.77 s)
+PASS src/render/sprites/__tests__/portraits.test.ts (12.791 s)
+PASS src/__tests__/store-seed-search.test.ts (12.145 s)
+PASS src/render/sprites/__tests__/career-look-diversity.test.ts (6.399 s)
+PASS src/sim/__tests__/movement-rework.test.ts (5.803 s)
+  ● Console
+
+    console.log
+      SPACING metrics: crowding<300cm=0.85% supportPressure=1.293/held-tick
+
+      at Object.<anonymous> (src/sim/__tests__/movement-rework.test.ts:311:13)
+
+    console.log
+      Y-VELOCITY CORRELATION: m0.4=0.46059936294381776 now=0.3765860994489595
+
+      at Object.<anonymous> (src/sim/__tests__/movement-rework.test.ts:330:13)
+
+PASS src/sim/__tests__/assists.test.ts
+PASS src/application/__tests__/cup-match-flow.test.ts
+PASS src/application/__tests__/rival-preload-integration.test.ts
+PASS src/sim/__tests__/gates-moments.test.ts
+  ● Console
+
+    console.log
+      GATE-2 SUPER_SPEED: mean diff 0.9100, 95% CI [0.7900, 1.0250] over 200 paired seeds
+
+      at Object.<anonymous> (src/sim/__tests__/gates-moments.test.ts:85:15)
+
+PASS src/render/sprites/__tests__/management-sprites.test.ts
+PASS src/game/__tests__/stat-line-recording.test.ts
+PASS src/game/__tests__/assist-yield-rail.test.ts
+  ● Console
+
+    console.log
+      ASSIST YIELD RAIL: 34/38 goals assisted (89.5%, 1.70 assists/match) over 20 seeds
+
+      at Object.<anonymous> (src/game/__tests__/assist-yield-rail.test.ts:82:13)
+
+PASS src/application/__tests__/m4-event-persistence.test.ts
+PASS src/game/__tests__/matchday.test.ts
+PASS src/i18n/__tests__/no-hardcoded-prose.test.ts
+  ● Console
+
+    console.log
+      hardcoded prose remaining: 0 (ceiling 0)
+
+      at Object.<anonymous> (src/i18n/__tests__/no-hardcoded-prose.test.ts:23:11)
+
+PASS src/game/__tests__/player-requests.test.ts
+PASS src/render/__tests__/substitution-board-render.test.ts
+PASS src/render/__tests__/atlas-packing.test.ts
+PASS src/game/__tests__/cup-mismatch-warning.test.ts
+PASS src/ui/__tests__/acceptance-audit-regressions.test.ts
+PASS src/game/__tests__/full-career.test.ts
+PASS src/i18n/__tests__/gates.test.ts
+  ● Console
+
+    console.log
+      content prose coverage: {
+        es: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        'pt-BR': {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        fr: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        id: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        de: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        vi: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        }
+      }
+
+      at Object.<anonymous> (src/i18n/__tests__/gates.test.ts:919:13)
+
+PASS src/persistence/__tests__/career-repository.test.ts
+PASS src/ui/__tests__/facility-placement-guidance.test.ts
+PASS src/ui/dev-harness/entries/__tests__/promotion-transition.test.ts
+PASS src/sim/__tests__/match.test.ts
+PASS src/application/__tests__/coach-speech-store.test.ts
+PASS src/application/__tests__/fulltime-reaction.test.ts
+PASS src/game/__tests__/pyramid.test.ts
+PASS src/game/__tests__/ledger-retention.test.ts
+PASS src/application/__tests__/match-day-banner.test.ts
+PASS src/application/__tests__/rival-preload.test.ts
+PASS src/game/__tests__/finance-reveal-settlement.test.ts
+PASS src/game/__tests__/fixture-resolver.test.ts
+PASS src/game/__tests__/special-heroes.test.ts
+PASS src/ui/__tests__/transfer-window-lesson.test.ts
+PASS src/persistence/__tests__/ledger-reveal-sanitize.test.ts
+PASS src/ui/__tests__/info-tips-and-team-sheet.test.ts
+PASS src/ui/__tests__/first-training-guidance.test.ts
+PASS src/application/__tests__/watched-match-contributions.test.ts
+PASS src/render/__tests__/pixel-snap-layout.test.ts
+PASS src/application/__tests__/assistant-mode.test.ts
+PASS src/application/__tests__/launch.test.ts
+PASS src/sim/__tests__/m1-17-power-mechanics.test.ts
+PASS src/render/__tests__/match-rail.test.ts
+PASS src/sim/__tests__/parity-replay.test.ts
+  ● Console
+
+    console.log
+      CAUSAL DIVERGENCE evidence: seed 1: base score [0,2] shots 16 vs tapped score [0,0] shots 7
+
+      at Object.<anonymous> (src/sim/__tests__/parity-replay.test.ts:82:15)
+
+PASS src/persistence/__tests__/m2-game-state-codec.test.ts
+PASS src/application/__tests__/suspend-save-flush.test.ts
+PASS src/render/__tests__/first-match-coaching.test.ts
+PASS src/application/__tests__/preferences.test.ts
+PASS src/game/__tests__/m2-career.test.ts
+PASS src/sim/__tests__/motivational-speech.test.ts
+PASS src/game/__tests__/goal-scorer-substitution.test.ts
+PASS src/game/__tests__/market-career.test.ts
+PASS src/ui/__tests__/assistant-mode-choice.test.ts
+PASS src/sim/__tests__/auto-coaching.test.ts
+PASS src/ui/__tests__/web-confirmation-and-guidance.test.ts
+PASS src/ui/__tests__/player-feedback-contracts.test.ts
+PASS src/ui/__tests__/bert-briefing-beats.test.ts
+PASS src/render/__tests__/power-juice.test.ts
+PASS src/game/__tests__/youth-intake.test.ts
+PASS src/persistence/__tests__/hall-of-fame-codec.test.ts
+PASS src/sim/__tests__/engine.test.ts
+PASS src/ui/__tests__/club-office-tabs.test.ts
+PASS src/ui/__tests__/market-scroll-guidance.test.ts
+PASS src/ui/__tests__/squad-register-columns.test.ts
+PASS src/game/__tests__/cup-history-retention.test.ts
+PASS src/ui/__tests__/board-finance-briefing-flow.test.ts
+PASS src/ui/__tests__/club-business-ui.test.ts
+PASS src/game/__tests__/career.test.ts
+PASS src/ui/__tests__/ipad-pwa-guards.test.ts
+PASS src/render/__tests__/match-button-response.test.ts
+PASS src/render/__tests__/cup-title-card.test.ts
+PASS src/sim/__tests__/runtime-golden.test.ts
+PASS src/application/__tests__/assistant-guide.test.ts
+PASS src/persistence/__tests__/facility-game-state-codec.test.ts
+PASS src/ui/__tests__/midseason-training-sequence.test.ts
+PASS src/application/__tests__/default-career-journey.test.ts
+PASS src/ui/__tests__/finances-two-column.test.ts
+PASS src/game/__tests__/instant-training.test.ts
+PASS src/application/__tests__/endgame-celebration.test.ts
+PASS src/render/__tests__/team-kit-ui.test.ts
+PASS src/ui/dev-harness/entries/__tests__/hall-of-fame.test.ts
+PASS src/application/__tests__/season-podium.test.ts
+PASS src/game/__tests__/renewal-negotiation-repair.test.ts
+PASS src/application/__tests__/career-event-flow.test.ts
+PASS src/ui/__tests__/squad-potential-labels.test.ts
+PASS src/persistence/__tests__/coach-speech-bank-codec.test.ts
+PASS src/persistence/__tests__/developer-save-repository.test.ts
+PASS src/persistence/__tests__/club-business-game-state-codec.test.ts
+PASS src/persistence/__tests__/game-state-migrations.test.ts
+PASS src/ui/__tests__/training-progress-render.test.ts
+PASS src/ui/__tests__/release-readiness.test.ts
+PASS src/application/__tests__/management-injury-lineup-view-models.test.ts
+PASS src/ui/__tests__/squad-sort-hint.test.ts
+PASS src/render/__tests__/match-render-hot-path.test.ts
+PASS src/game/__tests__/squad.test.ts
+PASS src/render/sprites/__tests__/foot-direction.test.ts
+PASS src/game/__tests__/m2-weekly-integration.test.ts
+PASS src/game/__tests__/keeper-display-bonus.test.ts
+PASS src/persistence/__tests__/game-state-codec-transfer-talks.test.ts
+PASS src/persistence/__tests__/player-gift-game-state-codec.test.ts
+PASS src/persistence/__tests__/i18n-label-codec.test.ts
+PASS src/application/__tests__/awards-ceremony-flow.test.ts
+PASS src/application/__tests__/board-finance-briefing.test.ts
+PASS src/ui/__tests__/audit-023-026-grok-regressions.test.ts
+PASS src/ui/dev-harness/entries/__tests__/board-ultimatum.test.ts
+PASS src/ui/__tests__/cup-exit-consolation.test.ts
+PASS src/ui/__tests__/inbox-duty-navigation.test.ts
+PASS src/ui/__tests__/coach-hiring-guidance.test.ts
+PASS src/render/__tests__/motivational-speech-cutscene.test.ts
+PASS src/render/__tests__/match-mentality-ui.test.ts
+PASS src/ui/dev-harness/entries/__tests__/retirement-legacy.test.ts
+PASS src/content/__tests__/content.test.ts
+PASS src/ui/__tests__/startup-recovery.test.ts
+PASS src/ui/__tests__/first-fans-lesson.test.ts
+PASS src/persistence/__tests__/game-state-codec-scout-reports.test.ts
+PASS src/game/__tests__/coach-speech.test.ts
+PASS src/persistence/__tests__/player-request-game-state-codec.test.ts
+PASS src/ui/dev-harness/entries/__tests__/player-requests.test.ts
+PASS src/render/__tests__/worklet-atlas-retarget.test.ts
+PASS src/ui/__tests__/concierge-targets.test.ts
+PASS src/ui/__tests__/commit-tap-guards.test.ts
+PASS src/ui/__tests__/character-creation-copy.test.ts
+PASS src/sim/__tests__/decoy-extra-player.test.ts
+PASS src/game/__tests__/matchday-contributions.test.ts
+PASS src/application/__tests__/name-copy-translates.test.ts
+PASS src/persistence/__tests__/stat-line-codec.test.ts
+PASS src/sim/__tests__/rng.test.ts
+PASS src/game/__tests__/career-milestones.test.ts
+PASS src/sim/__tests__/pass-combo-speed.test.ts
+PASS src/render/__tests__/match-graphics-recovery.test.ts
+PASS src/ui/__tests__/first-cup-win-guide.test.ts
+PASS src/application/__tests__/club-finances-transactions.test.ts
+PASS src/game/__tests__/midseason-training.test.ts
+PASS src/game/__tests__/contract-promises.test.ts
+PASS src/game/__tests__/post-match-awakening.test.ts
+PASS src/application/__tests__/manager-notes.test.ts
+PASS src/application/__tests__/market-source-adapter.test.ts
+PASS src/render/__tests__/power-match-showcase.test.ts
+PASS src/application/__tests__/retirement-visibility.test.ts
+PASS src/render/sprites/__tests__/facing.test.ts
+PASS src/game/__tests__/event-session-effects.test.ts
+PASS src/ui/__tests__/facility-placement-consent.test.ts
+PASS src/game/__tests__/m4-difficulty-recap.test.ts
+PASS src/game/__tests__/promotion-progression.test.ts
+PASS src/persistence/__tests__/division-award-codec.test.ts
+PASS src/game/__tests__/player-gifts.test.ts
+PASS src/game/__tests__/board-ultimatum.test.ts
+PASS src/application/__tests__/displayed-attributes.test.ts
+PASS src/ui/dev-harness/__tests__/career.test.ts
+PASS src/persistence/__tests__/sponsor-settlement-integration.test.ts
+PASS src/ui/__tests__/squad-two-column.test.ts
+PASS src/game/__tests__/facility-event-effects.test.ts
+PASS src/ui/__tests__/staff-and-youth-screen-ownership.test.ts
+PASS src/sim/__tests__/tactics.test.ts
+PASS src/game/__tests__/league-prize-label.test.ts
+PASS src/application/__tests__/desk-tips.test.ts
+PASS src/persistence/__tests__/ledger-idempotency-codec.test.ts
+PASS src/application/__tests__/career-event-targets.test.ts
+PASS src/persistence/__tests__/club-kit-codec.test.ts
+PASS src/application/__tests__/sponsor-copy-translates.test.ts
+PASS src/render/__tests__/pass-combo.test.ts
+PASS src/ui/__tests__/privacy-support.test.ts
+PASS src/game/__tests__/assistant-guide.test.ts
+PASS src/application/__tests__/player-request-view-model.test.ts
+PASS src/application/__tests__/keeper-display-parity.test.ts
+PASS src/game/__tests__/youth-intake-reload.test.ts
+PASS src/ui/__tests__/cup-bracket.test.ts
+PASS src/sim/__tests__/contest.test.ts
+PASS src/application/__tests__/hero-license-purchase.test.ts
+PASS src/render/sprites/__tests__/kit-rewrite.test.ts
+PASS src/game/__tests__/player-wellbeing.test.ts
+PASS src/application/__tests__/event-selection.test.ts
+PASS src/application/__tests__/inbox-duty-gate.test.ts
+PASS src/game/__tests__/event-injury-effects.test.ts
+PASS src/ui/__tests__/player-sale-farewell.test.ts
+PASS src/render/__tests__/hero-charge-meter.test.ts
+PASS src/render/__tests__/management-sfx.test.ts
+PASS src/ui/__tests__/matchday-condition.test.ts
+PASS src/application/__tests__/training-point-income-view-model.test.ts
+PASS src/render/sprites/__tests__/pixel-bible-geometry.test.ts
+PASS src/ui/__tests__/rival-hero-intro-harness.test.ts
+PASS src/ui/__tests__/league-truthfulness.test.ts
+PASS src/ui/__tests__/fulltime-cup-lines.test.ts
+PASS src/render/sprites/__tests__/atlas-cache.test.ts
+PASS src/ui/__tests__/playtest-bridge.test.ts
+PASS src/i18n/__tests__/display-leaves.test.ts
+PASS src/game/__tests__/cup-match-flow.test.ts
+PASS src/ui/__tests__/awards-ceremony-screen.test.ts
+PASS src/application/__tests__/season-finale-week.test.ts
+PASS src/ui/__tests__/hover-pointer-capability.test.ts
+PASS src/application/__tests__/story-recruitment-progression.test.ts
+PASS src/persistence/__tests__/assistant-mode-codec.test.ts
+PASS src/application/__tests__/weekly-review.test.ts
+PASS src/render/__tests__/penalty-shootout.test.ts
+PASS src/game/__tests__/retirement-contract-cap.test.ts
+PASS src/ui/__tests__/closed-registration-desk.test.ts
+PASS src/game/__tests__/m2-contracts-fame.test.ts
+PASS src/application/__tests__/training-copy-translates.test.ts
+PASS src/ui/__tests__/awakening-scene-framing.test.ts
+PASS src/game/__tests__/staffed-office.test.ts
+PASS src/persistence/__tests__/onboarding-history-codec.test.ts
+PASS src/application/__tests__/drill-shop-nudge.test.ts
+PASS src/ui/__tests__/statement-facility-badges.test.ts
+PASS src/game/__tests__/career-events.test.ts
+PASS src/game/__tests__/division-award-prize.test.ts
+PASS src/application/__tests__/hall-of-fame.test.ts
+PASS src/persistence/__tests__/game-state-codec-retired-power.test.ts
+PASS src/sim/__tests__/gk-narrowing.test.ts
+PASS src/application/__tests__/assistant-mode-blocks.test.ts
+PASS src/game/__tests__/facility-weekly-integration.test.ts
+PASS src/application/__tests__/home-training-ground-inbox.test.ts
+PASS src/application/__tests__/championship-celebration.test.ts
+PASS src/ui/__tests__/story-event-target-picker.test.ts
+PASS src/ui/__tests__/facility-combo-lesson-flow.test.ts
+PASS src/application/__tests__/m2-league-view-model.test.ts
+PASS src/application/__tests__/legacy-flow.test.ts
+PASS src/game/__tests__/story-callbacks.test.ts
+PASS src/application/__tests__/season-end-expired-queue.test.ts
+PASS src/ui/__tests__/formation-picker.test.ts
+PASS src/game/__tests__/rival-hero-intro.test.ts
+PASS src/ui/dev-harness/entries/__tests__/career-events.test.ts
+PASS src/application/__tests__/home-build-reminder.test.ts
+PASS src/persistence/__tests__/game-state-codec-weekly-training.test.ts
+PASS src/application/__tests__/player-gift-view-model.test.ts
+PASS src/ui/__tests__/club-home-inbox-colors.test.ts
+PASS src/application/__tests__/desk-story-inbox.test.ts
+PASS src/render/__tests__/ball-flight-visuals.test.ts
+PASS src/ui/__tests__/player-requests-tutorial.test.ts
+PASS src/game/__tests__/m2-training-growth.test.ts
+PASS src/application/__tests__/training-tier-unlocks.test.ts
+PASS src/ui/__tests__/expired-contract-lesson.test.ts
+PASS src/application/__tests__/rival-hero-intro-store.test.ts
+PASS src/ui/__tests__/fulltime-report-layout.test.ts
+PASS src/application/__tests__/contract-promise-projection.test.ts
+PASS src/application/__tests__/archetype-cap-view-model.test.ts
+PASS src/game/__tests__/management.test.ts
+PASS src/application/__tests__/midseason-training-store.test.ts
+PASS src/i18n/__tests__/vietnamese-face.test.ts
+PASS src/application/__tests__/screen-crash-recovery.test.ts
+PASS src/application/__tests__/player-gift-store.test.ts
+PASS src/game/__tests__/fan-growth.test.ts
+PASS src/application/__tests__/youth-flow.test.ts
+PASS src/ui/__tests__/endgame-ground.test.ts
+PASS src/application/__tests__/penalty-shootout.test.ts
+PASS src/application/__tests__/celebration-staff.test.ts
+PASS src/game/__tests__/story-event-player-lock.test.ts
+PASS src/ui/__tests__/renewal-talks-dismissal.test.ts
+PASS src/ui/__tests__/bert-poses.test.ts
+PASS src/sim/__tests__/powers.test.ts
+PASS src/application/__tests__/climb-completed-unlock.test.ts
+PASS src/i18n/__tests__/content-strings.test.ts
+PASS src/application/__tests__/division-leaders-view-model.test.ts
+PASS src/application/__tests__/quick-result-faceoff-store.test.ts
+PASS src/ui/__tests__/settings-button.test.ts
+PASS src/application/__tests__/forced-lineup-swap.test.ts
+PASS src/__tests__/store-seed.test.ts
+PASS src/render/sprites/__tests__/club-kit-persistence.test.ts
+PASS src/sim/__tests__/tables-drift.test.ts
+PASS src/application/__tests__/coach-staff-view-model.test.ts
+PASS src/ui/__tests__/fixture-rival-heroes.test.ts
+PASS src/ui/__tests__/endgame-finale.test.ts
+PASS src/ui/__tests__/advisor-milestones.test.ts
+PASS src/application/__tests__/season-end-club-business.test.ts
+PASS src/game/__tests__/market.test.ts
+PASS src/persistence/__tests__/hard-reset.test.ts
+PASS src/ui/__tests__/desktop-key-bindings.test.ts
+PASS src/game/__tests__/finance-variance.test.ts
+PASS src/render/sprites/__tests__/hero-build.test.ts
+PASS src/render/__tests__/haptics-toggle.test.ts
+PASS src/game/__tests__/training-paths.test.ts
+PASS src/application/__tests__/penalty-shootout-store.test.ts
+PASS src/ui/__tests__/award-ceremony-lines.test.ts
+PASS src/ui/__tests__/rival-hero-intro-sequence.test.ts
+PASS src/ui/__tests__/club-kit-render-wiring.test.ts
+PASS src/ui/__tests__/awards-ceremony-qa.test.ts
+PASS src/i18n/__tests__/singular-copy.test.ts
+PASS src/content/__tests__/glossary.test.ts
+PASS src/render/__tests__/match-energy-ui.test.ts
+PASS src/sim/__tests__/m1-18-approved-power-contracts.test.ts
+PASS src/content/__tests__/rival-hero-intros.test.ts
+PASS src/game/__tests__/cash-transactions.test.ts
+PASS src/i18n/__tests__/use-copy.test.ts
+PASS src/application/__tests__/training-stat-options.test.ts
+PASS src/game/__tests__/cup-giant-killing.test.ts
+PASS src/application/__tests__/recent-form-week.test.ts
+PASS src/game/__tests__/club-business-determinism.test.ts
+PASS src/ui/__tests__/finance-pixel-art.test.ts
+PASS src/game/__tests__/sponsors.test.ts
+PASS src/application/__tests__/squad-training-created-player.test.ts
+PASS src/application/__tests__/league-fixtures-vm.test.ts
+PASS src/ui/__tests__/cross-platform-modal-coverage.test.ts
+PASS src/application/__tests__/copy-fallback-braces.test.ts
+PASS src/game/__tests__/schedule.test.ts
+PASS src/game/__tests__/retirement.test.ts
+PASS src/ui/__tests__/hud-fans-chip.test.ts
+PASS src/render/sprites/__tests__/webbed.test.ts
+PASS src/ui/__tests__/division-leader-board.test.ts
+PASS src/ui/__tests__/currency-format.test.ts
+PASS src/render/__tests__/substitution-board.test.ts
+PASS src/ui/dev-harness/entries/__tests__/cup-giant-killing.test.ts
+PASS src/persistence/__tests__/preferences-repository.test.ts
+PASS src/ui/__tests__/event-pixel-art.test.ts
+PASS src/ui/__tests__/club-home-two-column.test.ts
+PASS src/sim/__tests__/attributes.test.ts
+PASS src/application/__tests__/market-view-model.test.ts
+PASS src/ui/__tests__/audit-022-localization.test.ts
+PASS src/game/__tests__/renewal-market-anchor.test.ts
+PASS src/content/__tests__/player-requests.test.ts
+PASS src/render/sprites/__tests__/pixel-sheet-owner.test.ts
+PASS src/ui/__tests__/pixel-type-and-empty-states.test.ts
+PASS src/render/__tests__/audio-lifecycle.test.ts
+PASS src/render/__tests__/automatic-power-ui.test.ts
+PASS src/__tests__/competition-names.test.ts
+PASS src/ui/__tests__/hall-of-fame-settings.test.ts
+PASS src/ui/__tests__/facility-adjacency.test.ts
+PASS src/render/__tests__/menu-audio.test.ts
+PASS src/render/__tests__/interpolate.test.ts
+PASS src/game/__tests__/architecture.test.ts
+PASS src/ui/__tests__/cup-mismatch-warning.test.ts
+PASS src/render/__tests__/slide-tackle-effects.test.ts
+PASS src/render/__tests__/live-power-effect-actors.test.ts
+PASS src/game/__tests__/loyalty.test.ts
+PASS src/render/__tests__/power-cut-in.test.ts
+PASS src/render/__tests__/incapacity-countdown.test.ts
+PASS src/game/__tests__/renewal-agent-negotiation.test.ts
+PASS src/ui/__tests__/youth-arrival-walk-on.test.ts
+PASS src/application/__tests__/agent-final-demand.test.ts
+PASS src/render/__tests__/financial-report-sfx.test.ts
+PASS src/render/__tests__/goal-confetti.test.ts
+PASS src/ui/__tests__/facility-benefit.test.ts
+PASS src/ui/__tests__/archetype-development.test.ts
+PASS src/sim/__tests__/m1-19-power-audio-events.test.ts
+PASS src/application/__tests__/quick-result-faceoff.test.ts
+PASS src/game/onboarding/__tests__/story-onboarding.test.ts
+PASS src/render/__tests__/substitution-footsteps.test.ts
+PASS src/render/sprites/__tests__/club-kit.test.ts
+PASS src/render/sprites/__tests__/hair-skin-separation.test.ts
+PASS src/render/__tests__/power-effects.test.ts
+PASS src/ui/dev-harness/__tests__/route.test.ts
+PASS src/render/__tests__/audio-volume.test.ts
+PASS src/ui/__tests__/title-player-layering.test.ts
+PASS src/render/__tests__/duel-scuff.test.ts
+PASS src/render/__tests__/ball-flame.test.ts
+PASS src/ui/screens/__tests__/awakening-trigger-art.test.ts
+PASS src/ui/__tests__/endgame-fireworks.test.ts
+PASS src/sim/__tests__/m2-9-context-only-manual-power.test.ts
+PASS src/application/__tests__/award-ceremony-view-model.test.ts
+PASS src/content/__tests__/event-effect-gates.test.ts
+PASS src/persistence/__tests__/replay-repository.test.ts
+PASS src/ui/dev-harness/entries/__tests__/assistant-beats.test.ts
+PASS src/game/__tests__/legacy-career.test.ts
+PASS src/render/__tests__/audio-recovery.test.ts
+PASS src/ui/__tests__/portrait-blink.test.ts
+PASS src/ui/__tests__/app-blocking-overlays.test.ts
+PASS src/render/__tests__/zone-ready-look.test.ts
+PASS src/render/__tests__/hero-power-tutorial.test.ts
+PASS src/i18n/__tests__/catalog.test.ts
+PASS src/game/__tests__/facilities.test.ts
+PASS src/ui/__tests__/club-home-open-count.test.ts
+PASS src/render/__tests__/match-vfx.test.ts
+PASS src/render/__tests__/formation-role-labels.test.ts
+PASS src/game/__tests__/coach-boosts.test.ts
+PASS src/ui/__tests__/web-dialog-focus.test.ts
+PASS src/ui/__tests__/volume-slider-thumb.test.ts
+PASS src/ui/__tests__/pixel-portrait-web.test.ts
+PASS src/ui/__tests__/financial-statement-machine.test.ts
+PASS src/i18n/__tests__/number-format-boundary.test.ts
+PASS src/render/__tests__/shot-power-pop.test.ts
+PASS src/render/__tests__/pixel-glyphs.test.ts
+PASS src/sim/__tests__/m4-power-catalog.test.ts
+PASS src/game/__tests__/hero-renewal-floor.test.ts
+PASS src/ui/__tests__/suspend-flush-lifecycle.test.ts
+PASS src/render/__tests__/pixel-art-sampling.test.ts
+PASS src/render/__tests__/awakening-audio.test.ts
+PASS src/game/__tests__/cup-fans.test.ts
+PASS src/game/__tests__/coach-event-effects.test.ts
+PASS src/persistence/__tests__/migrations.test.ts
+PASS src/ui/__tests__/post-match-summary-layer.test.ts
+PASS src/ui/__tests__/language-panel-rows.test.ts
+PASS src/ui/__tests__/layout-mode.test.ts
+PASS src/ui/__tests__/animated-classname.test.ts
+PASS src/render/__tests__/match-vfx-showcase.test.ts
+PASS src/render/__tests__/ball-xray.test.ts
+PASS src/render/__tests__/audio-mapping.test.ts
+PASS src/ui/__tests__/management-shell-large-text.test.ts
+PASS src/ui/__tests__/appearance-stepper.test.ts
+PASS src/render/__tests__/hero-power-dock.test.ts
+PASS src/render/__tests__/bert-voice.test.ts
+PASS src/i18n/__tests__/no-literal-faces.test.ts
+PASS src/ui/screens/__tests__/season-podium-screen.test.ts
+PASS src/ui/__tests__/section-partition.test.ts
+PASS src/ui/__tests__/request-pixel-art.test.ts
+PASS src/game/__tests__/lineup.test.ts
+PASS src/ui/__tests__/tutorial-drag-dismiss.test.ts
+PASS src/render/__tests__/match-banners.test.ts
+PASS src/sim/__tests__/loose-ball-recovery.test.ts
+PASS src/sim/__tests__/airborne-ball.test.ts
+PASS src/game/__tests__/pending-match-impact.test.ts
+PASS src/i18n/__tests__/format-number.test.ts
+PASS src/ui/__tests__/guide-tab-claim-conflict.test.ts
+PASS src/ui/__tests__/financial-statement-runtime.test.ts
+PASS src/sim/__tests__/import-layers.test.ts
+PASS src/render/sprites/__tests__/title-sprites.test.ts
+PASS src/ui/__tests__/semantic-type-and-controls.test.ts
+PASS src/ui/__tests__/portrait-club-kit.test.ts
+PASS src/ui/__tests__/player-gift-celebration.test.ts
+PASS src/ui/__tests__/desktop-content-width.test.ts
+PASS src/ui/__tests__/bert-typewriter.test.ts
+PASS src/render/__tests__/tackle-poses.test.ts
+PASS src/game/__tests__/player-appearance.test.ts
+PASS src/game/__tests__/coach-weekly.test.ts
+PASS src/i18n/__tests__/use-pixel-styles.test.ts
+PASS src/game/onboarding/__tests__/player-creation.test.ts
+PASS src/render/__tests__/rival-hero-voice.test.ts
+PASS src/game/__tests__/power-catalog.test.ts
+PASS src/game/__tests__/event-clock.test.ts
+PASS src/game/__tests__/archetype-caps.test.ts
+PASS src/i18n/__tests__/locales.test.ts
+PASS src/ui/__tests__/screen-transition.test.ts
+PASS src/ui/__tests__/coach-portrait-resolver.test.ts
+PASS src/render/__tests__/match-ticker.test.ts
+PASS src/render/__tests__/match-pause.test.ts
+PASS src/sim/__tests__/teams.test.ts
+PASS src/ui/__tests__/press-cue-timing.test.ts
+PASS src/render/__tests__/substitution-walk.test.ts
+PASS src/ui/__tests__/count-up.test.ts
+PASS src/render/__tests__/management-sfx-voices.test.ts
+PASS src/game/__tests__/growth-grade.test.ts
+PASS src/ui/__tests__/tutorial-cue-position.test.ts
+PASS src/ui/__tests__/league-table-columns.test.ts
+PASS src/ui/__tests__/form-strip.test.ts
+PASS src/ui/__tests__/dom-capability-guards.test.ts
+PASS src/render/__tests__/three-x-lite-wiring.test.ts
+PASS src/render/__tests__/match-speed.test.ts
+PASS src/render/__tests__/match-performance.test.ts
+PASS src/render/__tests__/auto-subs-preference.test.ts
+PASS src/i18n/__tests__/glyph-coverage.test.ts
+PASS src/ui/__tests__/training-repeat.test.ts
+PASS src/ui/__tests__/title-pop-scene-clock.test.ts
+PASS src/ui/__tests__/squad-sort.test.ts
+PASS src/ui/__tests__/market-two-column.test.ts
+PASS src/ui/__tests__/league-table-motion.test.ts
+PASS src/render/__tests__/match-control.test.ts
+PASS src/render/__tests__/animation.test.ts
+PASS src/sim/__tests__/attacking-decision.test.ts
+PASS src/game/__tests__/progression.test.ts
+PASS src/application/__tests__/rival-result-cache.test.ts
+PASS src/render/__tests__/possession-ring.test.ts
+PASS src/game/__tests__/training-catalog.test.ts
+PASS src/ui/__tests__/text-scale.test.ts
+PASS src/ui/__tests__/rookie-signing-flow.test.ts
+PASS src/ui/__tests__/rival-hero-power-showcase-layering.test.ts
+PASS src/ui/__tests__/bert-walk-frames.test.ts
+PASS src/render/__tests__/substitution-walk-wiring.test.ts
+PASS src/render/__tests__/carrier-card-geometry.test.ts
+PASS src/test/__tests__/source-contract-matchers.test.ts
+PASS src/game/__tests__/club-business.test.ts
+PASS src/i18n/__tests__/plural.test.ts
+PASS src/ui/__tests__/screen-error-boundary-stale-bundle.test.ts
+PASS src/ui/__tests__/opening-brief.test.ts
+PASS src/ui/__tests__/manager-tip-navigation.test.ts
+PASS src/ui/__tests__/management-header.test.ts
+PASS src/ui/__tests__/league-two-column.test.ts
+PASS src/ui/__tests__/guidance-double-flash.test.ts
+PASS src/render/__tests__/speed-boost-labels.test.ts
+PASS src/render/__tests__/rival-victory.test.ts
+PASS src/render/__tests__/audio-profile.test.ts
+PASS src/sim/__tests__/determinism-guard.test.ts
+PASS src/game/__tests__/weekly-settlement-awards.test.ts
+PASS src/i18n/__tests__/device-locale.test.ts
+PASS src/i18n/__tests__/advance.test.ts
+PASS src/ui/screens/__tests__/awakening-progression.test.ts
+PASS src/ui/__tests__/startup-shell.test.ts
+PASS src/ui/__tests__/navigation-guide.test.ts
+PASS src/ui/__tests__/management-shell-safe-area.test.ts
+PASS src/ui/__tests__/language-button-placement.test.ts
+PASS src/ui/__tests__/club-crest-art.test.ts
+PASS src/game/__tests__/match-contributions.test.ts
+PASS src/game/__tests__/created-appearance.test.ts
+PASS src/i18n/__tests__/resolve.test.ts
+PASS src/content/__tests__/content-schema-validation-only.test.ts
+PASS src/ui/dev-harness/entries/__tests__/match-vfx.test.ts
+PASS src/ui/__tests__/overlay-dismissal.test.ts
+PASS src/ui/__tests__/endgame-new-game-choice.test.ts
+PASS src/ui/__tests__/audit-020-021-regressions.test.ts
+PASS src/render/__tests__/haptic-cues.test.ts
+PASS src/sim/__tests__/geometry.test.ts
+PASS src/ui/__tests__/pixel-portrait-native.test.ts
+PASS src/ui/__tests__/motion.test.ts
+PASS src/render/__tests__/dev-volume.test.ts
+PASS src/ui/__tests__/m2-league-two-column.test.ts
+PASS src/render/__tests__/match-clone-entity-lookups.test.ts
+PASS src/game/__tests__/division-leaders.test.ts
+PASS src/persistence/__tests__/web-database-recovery.test.ts
+PASS src/i18n/__tests__/voice.test.ts
+
+Test Suites: 1 skipped, 522 passed, 522 of 523 total
+Tests:       1 skipped, 5023 passed, 5024 total
+Snapshots:   3 passed, 3 total
+Time:        1431.28 s
+Ran all test suites.
+
+> hero-football-manager@1.0.0 qa:tools:check
+> node scripts/qa/test-playtest-tools.cjs
+
+PASS: checkpoint codec, real match policy, immutable input, lineup failure, guarded browser controls, bounded waits, logs, and export chunks.
+REPORT_CHECK_PASSED: 8 findings; 39 original matches plus 1 after the fix; 290 drills; 6 embedded screenshots; all anchors and source paths valid.
+
+> hero-football-manager@1.0.0 export:web
+> expo export --platform web && node scripts/web/fix-worker-bundles.mjs
+
+Starting Metro Bundler
+
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:30249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Web Bundled 7892ms index.web.ts (1802 modules)
+
+› Assets (107):
+assets/audio/music/awakening-limp.a3f10cb515a1f33c1945d0adf16d4084.m4a (150KB)
+assets/audio/music/awards-theme.707430696c493edc198b091b3f4141aa.m4a (280KB)
+assets/audio/music/celebration-anthem.8c42df74c852e79e80f65ca5f41d5884.m4a (1.5MB)
+assets/audio/music/ending-farewell.d9de628da476817cf3b7da4dfdb2ac8c.m4a (249KB)
+assets/audio/music/event-theme.8901ae610d0726b6e23d2e3b80a40fb5.m4a (782KB)
+assets/audio/music/management-theme.ba62811fbf8b6f973379ce0b5b73749d.m4a (1.2MB)
+assets/audio/music/match-theme.f0c7ead35e45b4ca085f8ad7b120d35c.m4a (806KB)
+assets/audio/music/opening-theme.44febcc496f7ab4d2b4119b7b40fcf3a.m4a (605KB)
+assets/audio/music/rival-intro-theme.fa5ef57def235272bb11fecc6ed29037.m4a (470KB)
+assets/audio/music/speech-gospel.d016f48d6decd22a5a5130ab78b18a45.m4a (61KB)
+assets/audio/sfx/advance-week.aa0782a273ff156aa4e4d61ef1c3dd98.m4a (6.7KB)
+assets/audio/sfx/awakening-angels.07434adc5d7ccf875952a840e13294f8.m4a (16KB)
+assets/audio/sfx/awakening-harps.5397cf9dd7ff66b213d1ab4244870fa2.m4a (7.5KB)
+assets/audio/sfx/awards-celebration.953399f12f2b0b8b6519b405bf922d7c.m4a (52KB)
+assets/audio/sfx/back-button.054422bd130e646e2ee8c5adf014d58a.m4a (7.5KB)
+assets/audio/sfx/ball-flight-whoosh.9a8a1857a02a50117ea67c710767eb4f.m4a (9.6KB)
+assets/audio/sfx/bert-voice-dialogue2.076192b9ead4ffbbb369aa3588018d51.m4a (127KB)
+assets/audio/sfx/blink-teleport.f9fdc10649613aebad9e5e6ee017b41f.wav (19KB)
+assets/audio/sfx/body-fall.9a87f1e37b5c84f56af1fe2fa9a88478.m4a (2.7KB)
+assets/audio/sfx/card-whistle.0ead03eddbcc931e05d599a6595fc2a1.wav (8.9KB)
+assets/audio/sfx/coach-voice.430ae54ec9c0bedd9e3646c22bf73f51.m4a (74KB)
+assets/audio/sfx/crowd-jeer.7cc20f0acdaade1c0f969b15c29b4203.wav (53KB)
+assets/audio/sfx/crowd-ooh.65d36633075d6745b5f6e47ad4025736.wav (53KB)
+assets/audio/sfx/decoy-pop.e9ba802280f9936f5e27c54838dbe31a.wav (9.8KB)
+assets/audio/sfx/drill-complete-heavy.c5a39f2ad931c4dc3aad910a6666318f.wav (476KB)
+assets/audio/sfx/drill-gain-reveal.116debdf4d6a63a264d9af3afddbb7e9.m4a (5.9KB)
+assets/audio/sfx/drill-progress.66a9c768210aafc6fb70b8ef877b8ba0.m4a (33KB)
+assets/audio/sfx/duel-scuff.86062fcd767277ba18199e2cfab3c485.wav (3.6KB)
+assets/audio/sfx/event-success-fanfare.5b6db74516d44eef9dabd4fe45e97bca.m4a (44KB)
+assets/audio/sfx/extinguisher-spray.1b3c1cec6cc763c5c0dcbd4ed1d782b6.wav (29KB)
+assets/audio/sfx/facility-complete.26bd64d303423dd516ce1ccf59f465ff.m4a (64KB)
+assets/audio/sfx/facility-start-work.a50f2df15325adc840725ae505820d15.wav (200KB)
+assets/audio/sfx/fireworks.e139c1f3aeb34df3adf209588f61d764.m4a (100KB)
+assets/audio/sfx/flame-hit.80a7ccc033853c18453faba1429d2f29.wav (192KB)
+assets/audio/sfx/flame-loop.66e4d0613045cd9e6b0911264c8abd58.m4a (18KB)
+assets/audio/sfx/flame-up.dbf54e9b855c146f6847bb7d7da0d8a0.wav (414KB)
+assets/audio/sfx/footstep-asphalt-01.d1b82dcf971c3d6bd34027f1390d0538.m4a (6.1KB)
+assets/audio/sfx/footstep-asphalt-02.68694bff57eea3288209e96ee8e4a91b.m4a (5.8KB)
+assets/audio/sfx/footstep-asphalt-03.54d16937ba2b9db0c9768da6066ccee0.m4a (5.8KB)
+assets/audio/sfx/fulltime-whistle.356aa7cc5166dbed91ac7cfc3b59aa31.wav (31KB)
+assets/audio/sfx/future-sight-intercept.00b725869a04cf3f6d4c1918137d9659.wav (15KB)
+assets/audio/sfx/future-sight-read.8d3ce422d3494193b0288041476ec288.wav (24KB)
+assets/audio/sfx/giant-grow.2a664171c4c055fd95f7c3443ea251d5.wav (29KB)
+assets/audio/sfx/goal-celebration.1b656445375cbe17547259b5c673cd46.m4a (25KB)
+assets/audio/sfx/goal-confetti.e013dae91f4e1b183f0148e54b56d556.m4a (29KB)
+assets/audio/sfx/goal-crowd.d3fc6af6e3ecf62b857d69bc68f271dc.m4a (26KB)
+assets/audio/sfx/goal-fanfare.305152cc397e28e267791d71f4df195f.m4a (20KB)
+assets/audio/sfx/goal-net-hit.fa7d3a3f62020392ae9af8984865ab6e.wav (64KB)
+assets/audio/sfx/goalie-save.690f430c1d4db6a7db280f1ebed3ab2b.wav (58KB)
+assets/audio/sfx/grunt.de372355b39ced19fcac4f086a545682.wav (8.9KB)
+assets/audio/sfx/halftime-whistle.54cd568dab72948c38f0615ee2902442.wav (40KB)
+assets/audio/sfx/ice-freeze.9f4c67405f7c2578aa543f1f1f20a270.wav (27KB)
+assets/audio/sfx/ice-slide.93db92a42b31ab72b3746ff0ae64eb34.wav (33KB)
+assets/audio/sfx/keeper-stretch.e3964146a61ec4d41355093cdbe7a43f.wav (22KB)
+assets/audio/sfx/kick-pass.049d0c2adcd07d06a78e72852be231a4.wav (4KB)
+assets/audio/sfx/kick-shot.2673f2255a88908850f460e40dc0648c.m4a (3.9KB)
+assets/audio/sfx/kickoff-whistle.41f446e57800538833fdc96bb2733f28.m4a (9.9KB)
+assets/audio/sfx/league-champions.c49ffd6da432c2c9b7b34efee3c0557e.m4a (31KB)
+assets/audio/sfx/ledger-spin.5d2a1c98e112c6a23d62aa2569375b9b.wav (768KB)
+assets/audio/sfx/ledger-thunk.c07f81f20557eb17a109681cfc8551b6.wav (71KB)
+assets/audio/sfx/level-up.4ce3243f057392b81417cb4aa6a28bac.m4a (34KB)
+assets/audio/sfx/match-control-whistle.89c29ed04c351350206cf11924d07e43.wav (576KB)
+assets/audio/sfx/match-day-bugle.d4591c6d805d156d1898f788747573c0.m4a (45KB)
+assets/audio/sfx/match-day-fanfare.d116c9d991d582a89c6561d658259e00.m4a (28KB)
+assets/audio/sfx/match-statement-positive.acac146bb40475d73f43b19586cee8de.m4a (47KB)
+assets/audio/sfx/midseason-footsteps-loop.f9546d1bbd8f44546b90f9f3a364e58b.wav (297KB)
+assets/audio/sfx/negative.c4fe14a721b2c566494bfb9e307bc6fd.m4a (8.9KB)
+assets/audio/sfx/pass-combo.2beb7ad4425be2881183832cadb0cbb7.m4a (3.2KB)
+assets/audio/sfx/phase-shift.762de07239b68940123634fd52184dba.wav (19KB)
+assets/audio/sfx/plan-locked-chime.8daa7dc89f87484e334e628fe50e5229.m4a (32KB)
+assets/audio/sfx/portal-warp.1acd709ce4fe61317d96d486302404d6.wav (29KB)
+assets/audio/sfx/positive.a79b8cd786280ec3d1c1ff451037032b.m4a (17KB)
+assets/audio/sfx/power-interrupt.7f1be13c72ebaa0ca0137dc9dae32d31.wav (13KB)
+assets/audio/sfx/quick-result-faceoff.2a92d1bf14642fb4a037411b49e70a3b.m4a (30KB)
+assets/audio/sfx/rally-drums.8afbd44fb7365d82a5b3053b7d3f9f3f.m4a (55KB)
+assets/audio/sfx/rival-laugh-barry-allan.1a640a7ce91b7ce875da34462a8bbc9a.m4a (13KB)
+assets/audio/sfx/rival-laugh-bruce-wain.1e3f2059cb48626222d5994938f1d3ac.m4a (38KB)
+assets/audio/sfx/rival-laugh-bruno-bannor.77c306d001d8ee61f3f7c207f36e5259.m4a (38KB)
+assets/audio/sfx/rival-laugh-scott-somers.fce840a751198064f3065ce4a044efd8.m4a (38KB)
+assets/audio/sfx/rival-laugh-steve-rodgers.ee1927b055b118cf638d54ffcc30fc08.m4a (38KB)
+assets/audio/sfx/save-slap.82e45f2a49825e612f55553fd1a0bf1b.wav (8.5KB)
+assets/audio/sfx/shadow-burrow.bf498e0370697cb3b2d6100326b0df08.wav (29KB)
+assets/audio/sfx/shadow-emerge.d7b8152ff55fdef260b186b96eb36b06.wav (22KB)
+assets/audio/sfx/shot-scorch.fdb9ad07f3d6f2db2e5da2ded7759209.wav (69KB)
+assets/audio/sfx/slide-tackle.74d3f2deaf8c3bc96e796f137fc74626.m4a (9.1KB)
+assets/audio/sfx/speech-thunder.ec89edc42ad116f4c5073b55cb73a846.m4a (36KB)
+assets/audio/sfx/stat-step-tap-loud.cfb1f3e3c56aac7aa0258b52cb798399.m4a (2KB)
+assets/audio/sfx/super-speed-whoosh.a834be87a2b558d0c23d653bf913f48b.wav (20KB)
+assets/audio/sfx/super-strength-boom.de204572b6362f907b2b7cfcea102310.wav (38KB)
+assets/audio/sfx/super-training-yay.064c93cba0af873ae601adbdfd14203f.m4a (11KB)
+assets/audio/sfx/tackle-thud.099ca9f8e22203b3ddf181ae545b9498.m4a (4KB)
+assets/audio/sfx/thunder-charge.46624f36e544b92d0bd1bbfa19c2526a.wav (25KB)
+assets/audio/sfx/training-stat-ding.d0a20d64f8244aba8b3b33bffe2c6317.m4a (6.7KB)
+assets/audio/sfx/ui-tap.2ec960c91ec54baa09a185bf069aae87.wav (6.1KB)
+assets/audio/sfx/web-cast.d9867dc4015a94eed88bcf2f07bf2f03.wav (15KB)
+assets/audio/sfx/web-spring.952d0a9c92418268474d0b6569ab269d.wav (20KB)
+assets/audio/sfx/zone-enter.956bc4a755380ccb93a041e5f345ade6.m4a (13KB)
+assets/audio/sfx/zone-expire.0f4e2df925f7aaebe053653dd56ba412.wav (17KB)
+assets/fonts/HFMSilkscreen_400Regular.bb637d133411e8300fc5356611b44efe.ttf (52KB)
+assets/fonts/HFMSilkscreen_700Bold.efb95be271e7d4457212c780c2b96719.ttf (49KB)
+assets/fonts/OFL.7cbbc700e264e05ac8cc38b2d7e851f1.txt (4.4KB)
+assets/images/rival-hero-intros/barry-allan.3e10e34ecca3be1297dcc7fb4798c32e.png (26KB)
+assets/images/rival-hero-intros/bruce-wain.881ff314cd4f7072ea09cd759bb192a3.png (28KB)
+assets/images/rival-hero-intros/bruno-bannor.816d40e11876894c1c79ab8bc399efe1.png (29KB)
+assets/images/rival-hero-intros/scott-somers.e255dbb58831d4df8098961062972718.png (30KB)
+assets/images/rival-hero-intros/steve-rodgers.10a2ffe4aa1f2423950255f48a4c2b93.png (31KB)
+node_modules/expo-sqlite/web/wa-sqlite/wa-sqlite.7ca566fbbc2ec2a172c5aefa63a20f4b.wasm (621KB)
+
+› web bundles (15):
+_expo/static/css/web-c64225ae35b633c6361c6f95462a91e7.css (31KB)
+_expo/static/js/web/__common-bdef2d83fa5d54bcb3569c5a087a0824.js (60KB)
+_expo/static/js/web/__expo-metro-runtime-1f8f5d3ca6b7f58204d51e14506d73fb.js (3.8KB)
+_expo/static/js/web/de-6daf1f46709a0f391c9762392e2cf705.js (336KB)
+_expo/static/js/web/es-3a32dbfa13976d66ac00d5f6d800b1ae.js (335KB)
+_expo/static/js/web/fr-6b12c6dd8febcb47714c063affc6e76d.js (346KB)
+_expo/static/js/web/id-a5dfdf120c99e161adf53e94b90e455e.js (324KB)
+_expo/static/js/web/index-14fd1b4c0da3b9361bd1484c29c4731d.js (3.4MB)
+_expo/static/js/web/index-95e6faf62882f9b45c3aeb70760ad7c0.js (124KB)
+_expo/static/js/web/portraits-a87f84104e98c53d95e9a357de27c151.js (1.2MB)
+_expo/static/js/web/pt-BR-a1ad2390c333e22d0c8387ba091464a3.js (335KB)
+_expo/static/js/web/SkiaSurfaceImplementations-cc7d555f639f7138340f907ff5e227cc.js (2MB)
+_expo/static/js/web/sprites-8478d95828e0dff038312eeca85ee32a.js (1.8MB)
+_expo/static/js/web/vi-a2a335601ddc28498abed78bf5bcd354.js (446KB)
+_expo/static/js/web/worker-f7d777a867bb32adb9d1be8779ba7f69.js (133KB)
+
+› Files (3):
+favicon.ico (15KB)
+index.html (5.3KB)
+metadata.json (49B)
+
+Exported: dist
+Made worker-f7d777a867bb32adb9d1be8779ba7f69.js self-contained with __common-bdef2d83fa5d54bcb3569c5a087a0824.js.
++ git push
+To https://github.com/tanglefast23/hero-football-manager.git
+   17577f73..fa36eb50  main -> main
++ git switch main
+Already on 'main'
+Your branch is up to date with 'origin/main'.
++ git pull --ff-only origin main
+From https://github.com/tanglefast23/hero-football-manager
+ * branch              main       -> FETCH_HEAD
+Already up to date.
+claude/confident-colden-5cc8fc is already contained in main
+Merging fix/desktop-check-capture-flake into main
+Auto-merging AGENTS.md
+Automatic merge went well; stopped before committing as requested
++ bash -c npx tsc --noEmit
++ bash -c bash /tmp/hfm-final-checks-20261019.sh
+Checking formatting...
+All matched files use Prettier code style!
+
+> hero-football-manager-desktop@1.0.0 check
+> electron check.mjs
+
+{"protocol":"hfm:","isolated":true,"sharedArrayBuffer":true,"rendered":true,"menuSafe":true,"windowFits":true,"musicRangeSafe":true,"screenshot":true,"ok":true}
++ git commit --no-edit
+[main 28386452] Merge branch 'fix/desktop-check-capture-flake'
++ git push origin main
+To https://github.com/tanglefast23/hero-football-manager.git
+   fa36eb50..28386452  main -> main
++ git branch -d claude/confident-colden-5cc8fc
+Deleted branch claude/confident-colden-5cc8fc (was a18fa65b).
++ git branch -d fix/desktop-check-capture-flake
+Deleted branch fix/desktop-check-capture-flake (was 3938fa15).
++ git push origin --delete fix/desktop-check-capture-flake
+To https://github.com/tanglefast23/hero-football-manager.git
+ - [deleted]           fix/desktop-check-capture-flake
++ git fetch --prune origin
++ git status -sb
+## main...origin/main
+
+Final commit summary
+Committed: fa36eb50 fix(career): resolve playtest blockers and preserve pending recovery fixes
+Pushed current branch: main
+Pushed main: yes
+Merged branches: claude/confident-colden-5cc8fc fix/desktop-check-capture-flake
+Skipped branches: none
+Deleted local branches: claude/confident-colden-5cc8fc fix/desktop-check-capture-flake
+Deleted remote branches: fix/desktop-check-capture-flake
+Passed checks: main: typecheck main: tests fix/desktop-check-capture-flake: typecheck fix/desktop-check-capture-flake: tests
+Skipped checks: none
+Final commit workflow completed.

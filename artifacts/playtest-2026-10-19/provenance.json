@@ -1,0 +1,65 @@
+{
+  "sourceCommit": "283864525cb73e81ceabb9c0431d67198ecb967d",
+  "sourceCheckout": "/tmp/hfm-final-commit-20261019",
+  "engineVersion": "m2.9",
+  "lockSha256": "5fd377e378418ea2573e2f44eee32d2abe83c5f1e7905fd956601d3d46ca70d9",
+  "surface": "Paseo background browser pane",
+  "viewport": {
+    "width": 900,
+    "height": 600
+  },
+  "url": "http://127.0.0.1:8093/?qa=playtest",
+  "browserId": "ced104aa-cfdd-4bf9-a58f-ed27e52d817a",
+  "serverPid": 20985,
+  "serverSession": 17993,
+  "difficulty": "CHAIRMAN",
+  "freshOrigin": true,
+  "policy": "First generated career seed. No result, money, roster, or stat injection. No rerolls. Career actions use rendered controls.",
+  "mute": [
+    "Immediate media and AudioContext guard",
+    "Master audio 0 percent in rendered Settings"
+  ],
+  "preferences": [
+    "Quick Match enabled",
+    "Reduce motion enabled"
+  ],
+  "verification": {
+    "suitesPassed": 522,
+    "suitesSkipped": 1,
+    "testsPassed": 5023,
+    "testsSkipped": 1,
+    "snapshotsPassed": 3,
+    "typescript": "passed",
+    "qaTools": "passed",
+    "reportCheck": "passed",
+    "webExport": "passed",
+    "desktopCheck": "passed; screenshot true"
+  },
+  "gitFinish": {
+    "main": "283864525cb73e81ceabb9c0431d67198ecb967d",
+    "branchesMerged": [
+      "claude/confident-colden-5cc8fc",
+      "fix/desktop-check-capture-flake"
+    ],
+    "pruned": true,
+    "remoteHeads": [
+      "main"
+    ],
+    "cleanBeforePlaythrough": true
+  },
+  "started": "2026-10-18T18:35:30.537594+00:00",
+  "careerSeed": 3464191111,
+  "createdPlayer": {
+    "name": "Ace II",
+    "role": "FWD",
+    "plannedAttrs": {
+      "pac": 65,
+      "sho": 65,
+      "pas": 40,
+      "def": 35,
+      "tec": 60,
+      "sta": 50
+    },
+    "allocation": "15 bonus points, with legal reductions to passing and defending."
+  }
+}
