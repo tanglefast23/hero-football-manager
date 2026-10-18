@@ -105,11 +105,7 @@ export function playerRequestViewModel(
     (candidate) => candidate.id === pending.playerId,
   );
   const difficulty = careerDifficulty(state);
-  const refuse = resolutionDeltas(
-    'REFUSED',
-    requestTarget(definition.cost),
-    difficulty,
-  ).asker;
+  const refuse = playerRequestRefusalCost(state, definition, t);
   const grantCostLabel = grantLabel(
     definition,
     pending.costAmount,
@@ -143,16 +139,46 @@ export function playerRequestViewModel(
       artKey: `request-${definition.id}`,
       grantLabel: grantCostLabel,
       ...(moneyCost ? { grantMoneyCost: grantCostLabel } : {}),
-      refuseLabel: t('playerRequests.refuseCost', {
-        loyalty: Math.abs(refuse.loyalty),
-        morale: Math.abs(refuse.morale),
-      }),
+      refuseLabel: refuse.label,
       canAfford: canAffordRequest(state),
       weeksToAnswer: Math.max(
         0,
         catalog.tuning.answerWeeks - (state.week - pending.askedWeek),
       ),
     },
+  };
+}
+
+/** Shared by the refusal button and the inbox warning about a lapse. */
+export function playerRequestRefusalCost(
+  state: GameState,
+  definition: PlayerRequestDefinition,
+  t: CopyFn = englishCopy(),
+) {
+  const target = requestTarget(definition.cost);
+  const { asker, squad } = resolutionDeltas(
+    'REFUSED',
+    target,
+    careerDifficulty(state),
+  );
+  const loyalty = Math.abs(asker.loyalty + squad.loyalty);
+  const morale = Math.abs(asker.morale + squad.morale);
+  const affectsSquad = target === 'SQUAD';
+  return {
+    loyalty,
+    morale,
+    affectsSquad,
+    label: t(
+      affectsSquad
+        ? 'playerRequests.refuseSquadCost'
+        : 'playerRequests.refuseCost',
+      {
+        loyalty,
+        morale,
+        squadLoyalty: Math.abs(squad.loyalty),
+        squadMorale: Math.abs(squad.morale),
+      },
+    ),
   };
 }
 

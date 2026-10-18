@@ -144,6 +144,29 @@ describe('playerRequestViewModel', () => {
     expect(model.pending!.refuseLabel).toBe('Lose 5 loyalty and 8 morale');
   });
 
+  it.each([
+    ['CHAIRMAN', 7, 11, 2, 3],
+    ['COZY', 4, 6, 1, 2],
+  ] as const)(
+    'shows the full %s squad refusal and lapse costs',
+    (difficulty, loyalty, morale, squadLoyalty, squadMorale) => {
+      const state = {
+        ...withPending(atStartWeek(career()), 'one-big-night-out'),
+        difficulty,
+      };
+      const cost = playerRequestViewModel(state).pending!.refuseLabel;
+      expect(cost).toContain(`${loyalty} loyalty and ${morale} morale`);
+      expect(cost).toContain(
+        `${squadLoyalty} loyalty and ${squadMorale} morale`,
+      );
+      expect(
+        homeViewModel(state).alerts.find(
+          (alert) => alert.id === 'player-request-waiting',
+        )!.detail,
+      ).toContain(cost);
+    },
+  );
+
   it('writes Spanish losses without duplicate minus signs', () => {
     const refusal = playerRequestViewModel(
       withPending(atStartWeek(career()), 'bahamas-fortnight'),

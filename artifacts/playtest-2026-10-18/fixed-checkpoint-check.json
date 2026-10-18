@@ -1,0 +1,311 @@
+{
+  "ok": true,
+  "engineVersion": "m2.9",
+  "checkpointEngineVersion": null,
+  "engineVersionMatches": null,
+  "seed": 3521330691,
+  "season": 3,
+  "week": 5,
+  "phase": "matchday",
+  "normalizedByCodec": true,
+  "teamsChecked": 10,
+  "failures": [],
+  "matchday": {
+    "kind": "league",
+    "fixtureId": "s3-r1-m1",
+    "seed": 4031397268
+  },
+  "simulation": {
+    "status": "completed",
+    "policy": {
+      "userClubId": "bramble-rovers",
+      "initialFormation": "3-4-3",
+      "autoSubs": true
+    },
+    "onboardingPowersRemoved": false,
+    "userPowersAtKickoff": 2,
+    "result": {
+      "fixtureId": "s3-r1-m1",
+      "homeGoals": 4,
+      "awayGoals": 2,
+      "homeParticipantPlayerIds": [
+        "d3-club-06-p02",
+        "bramble-rovers-p02",
+        "bramble-rovers-p03",
+        "bramble-rovers-p14",
+        "bramble-rovers-p06",
+        "bramble-rovers-p09",
+        "bramble-rovers-p08",
+        "bramble-rovers-p07",
+        "d4-club-01-p13",
+        "bramble-rovers-created-player",
+        "bramble-rovers-academy-s2-fwd-2",
+        "bramble-rovers-academy-s3-fwd-1",
+        "bramble-rovers-p04",
+        "bramble-rovers-academy-s3-def-1"
+      ],
+      "awayParticipantPlayerIds": [
+        "d4-club-08-p02",
+        "d4-club-08-p03",
+        "d4-club-08-p04",
+        "d4-club-08-p05",
+        "d4-club-08-p06",
+        "d4-club-08-p08",
+        "d4-club-08-p11",
+        "d4-club-08-p09",
+        "d4-club-08-p12",
+        "d4-club-08-p13",
+        "d4-club-08-p16",
+        "d4-club-08-p10",
+        "d4-club-08-p14",
+        "d4-club-08-p15",
+        "d4-club-08-p07"
+      ],
+      "scorerPlayerIds": [
+        "bramble-rovers-academy-s2-fwd-2",
+        "bramble-rovers-academy-s2-fwd-2",
+        "d4-club-08-p13",
+        "d4-club-08-p13",
+        "bramble-rovers-academy-s2-fwd-2",
+        "d4-club-01-p13"
+      ],
+      "contributions": [
+        {
+          "playerId": "bramble-rovers-academy-s3-fwd-1",
+          "goals": 0,
+          "assists": 1,
+          "tacklesWon": 2,
+          "saves": 0,
+          "passesCompleted": 6
+        },
+        {
+          "playerId": "bramble-rovers-p07",
+          "goals": 0,
+          "assists": 1,
+          "tacklesWon": 4,
+          "saves": 0,
+          "passesCompleted": 11
+        },
+        {
+          "playerId": "bramble-rovers-academy-s3-def-1",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 0,
+          "saves": 0,
+          "passesCompleted": 2
+        },
+        {
+          "playerId": "d4-club-08-p15",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 1,
+          "saves": 0,
+          "passesCompleted": 3
+        },
+        {
+          "playerId": "bramble-rovers-p04",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 1,
+          "saves": 0,
+          "passesCompleted": 0
+        },
+        {
+          "playerId": "d4-club-08-p14",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 0,
+          "saves": 0,
+          "passesCompleted": 2
+        },
+        {
+          "playerId": "bramble-rovers-created-player",
+          "goals": 0,
+          "assists": 1,
+          "tacklesWon": 1,
+          "saves": 0,
+          "passesCompleted": 12
+        },
+        {
+          "playerId": "bramble-rovers-p08",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 5,
+          "saves": 0,
+          "passesCompleted": 6
+        },
+        {
+          "playerId": "d4-club-01-p13",
+          "goals": 1,
+          "assists": 0,
+          "tacklesWon": 1,
+          "saves": 0,
+          "passesCompleted": 3
+        },
+        {
+          "playerId": "d4-club-08-p10",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 2,
+          "saves": 0,
+          "passesCompleted": 8
+        },
+        {
+          "playerId": "d4-club-08-p08",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 2,
+          "saves": 0,
+          "passesCompleted": 5
+        },
+        {
+          "playerId": "bramble-rovers-p14",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 2,
+          "saves": 0,
+          "passesCompleted": 0
+        },
+        {
+          "playerId": "d4-club-08-p11",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 3,
+          "saves": 0,
+          "passesCompleted": 7
+        },
+        {
+          "playerId": "d4-club-08-p04",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 1,
+          "saves": 0,
+          "passesCompleted": 2
+        },
+        {
+          "playerId": "bramble-rovers-p06",
+          "goals": 0,
+          "assists": 1,
+          "tacklesWon": 0,
+          "saves": 0,
+          "passesCompleted": 5
+        },
+        {
+          "playerId": "bramble-rovers-p03",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 5,
+          "saves": 0,
+          "passesCompleted": 1
+        },
+        {
+          "playerId": "d4-club-08-p03",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 2,
+          "saves": 0,
+          "passesCompleted": 2
+        },
+        {
+          "playerId": "d4-club-08-p02",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 0,
+          "saves": 2,
+          "passesCompleted": 2
+        },
+        {
+          "playerId": "bramble-rovers-academy-s2-fwd-2",
+          "goals": 3,
+          "assists": 0,
+          "tacklesWon": 5,
+          "saves": 0,
+          "passesCompleted": 11
+        },
+        {
+          "playerId": "d4-club-08-p05",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 2,
+          "saves": 0,
+          "passesCompleted": 0
+        },
+        {
+          "playerId": "d4-club-08-p13",
+          "goals": 2,
+          "assists": 0,
+          "tacklesWon": 4,
+          "saves": 0,
+          "passesCompleted": 1
+        },
+        {
+          "playerId": "bramble-rovers-p09",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 0,
+          "saves": 0,
+          "passesCompleted": 1
+        },
+        {
+          "playerId": "d3-club-06-p02",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 0,
+          "saves": 1,
+          "passesCompleted": 1
+        },
+        {
+          "playerId": "bramble-rovers-p02",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 2,
+          "saves": 0,
+          "passesCompleted": 1
+        },
+        {
+          "playerId": "d4-club-08-p16",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 1,
+          "saves": 0,
+          "passesCompleted": 0
+        },
+        {
+          "playerId": "d4-club-08-p12",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 0,
+          "saves": 0,
+          "passesCompleted": 2
+        },
+        {
+          "playerId": "d4-club-08-p09",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 1,
+          "saves": 0,
+          "passesCompleted": 3
+        },
+        {
+          "playerId": "d4-club-08-p06",
+          "goals": 0,
+          "assists": 0,
+          "tacklesWon": 0,
+          "saves": 0,
+          "passesCompleted": 1
+        }
+      ]
+    },
+    "ticks": 2004,
+    "evidence": "Supplemental simulation only; the career was not advanced."
+  },
+  "source": {
+    "commit": "17577f73205890dd20fc1a935c75c036e8e0b1ed",
+    "files": 1137,
+    "sha256": "b494aa790e1ac4c93ef77d1481d3cd7852cc304161def23aa65c89359de79208"
+  },
+  "input": {
+    "file": "/Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/artifacts/playtest-2026-10-18/evidence-segment-2.json",
+    "sha256": "67177a7749e533ada73f7d2ef1a666f4d8b015d0b9cad25ecb2c10f03b3f7e96"
+  }
+}

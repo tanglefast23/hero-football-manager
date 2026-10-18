@@ -1,0 +1,109 @@
+{
+  "kind": "Isolated UI fixture only; not the real career",
+  "before": {
+    "controls": [
+      {
+        "label": "Grant. Downside: Squad loses 10 condition",
+        "disabled": false
+      },
+      {
+        "label": "Refuse. Asking player: lose 7 loyalty and 11 morale. Every other player: lose 2 loyalty and 3 morale",
+        "disabled": false
+      }
+    ],
+    "text": "SQUAD ROOM\nROSTER & TRAINING\nDRILLS\nREQUESTS\nTHE DRESSING ROOM\nREQUESTS\n2 WK TO ANSWER\nKEN ASH\nOne big night out\n“The whole squad. One night. Trust me.”\n□\nNOTHING DECIDED YET\nAnswered or ignored, every request ends up here.\nSTAGE\nTab\nWalk-on\nCard\nANSWER\nGrant\nRefuse\nReset\nReduced\nHide\nKen Ash · ×2 weight · grant Squad loses 10 condition · refuse Asking player: lose 7 loyalty and 11 morale. Every other player: lose 2 loyalty and 3 morale · 2 wk left\nS6 W7 · TAB LIVE\n◂ MENU\n▴\nPlayer requests\nStar\nSquad\nLast week\nTradeoff\nQuiet\nA reserve asks · base weight, and a much smaller ask\nKEN ASH ASKS\nONE BIG NIGHT OUT\n“The whole squad. One night. Trust me.”\n!\nDOWNSIDE: SQUAD LOSES 10 CONDITION\nGRANT\nDOWNSIDE: SQUAD LOSES 10 CONDITION\nREFUSE\nASKING PLAYER: LOSE 7 LOYALTY AND 11 MORALE. EVERY OTHER PLAYER: LOSE 2 LOYALTY AND 3 MORALE"
+  },
+  "after": {
+    "text": "SQUAD ROOM\nROSTER & TRAINING\nDRILLS\nREQUESTS\nTHE DRESSING ROOM\nREQUESTS\n□\nNO REQUESTS\nThe dressing room is quiet. It won’t last.\nRECENTLY\nWHAT YOU DECIDED\nOne big night out · S6 W7\nREFUSED\nSTAGE\nTab\nWalk-on\nCard\nANSWER\nGrant\nRefuse\nReset\nReduced\nHide\nNothing pending · 1 settled\nREFUSED · loyalty 65 → 58 · morale 64 → 53\n◂ MENU\n▴\nPlayer requests\nStar\nSquad\nLast week\nTradeoff\nQuiet\nA reserve asks · base weight, and a much smaller ask",
+    "log": [
+      {
+        "label": "Nobody waiting · the empty docket and the ledger of what lapsed",
+        "time": "2026-10-18T17:53:19.076Z",
+        "before": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        },
+        "after": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        }
+      },
+      {
+        "label": "A reserve asks · base weight, and a much smaller ask",
+        "time": "2026-10-18T17:53:19.992Z",
+        "before": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        },
+        "after": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        }
+      },
+      {
+        "label": "Show the decision card",
+        "time": "2026-10-18T17:53:20.894Z",
+        "before": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        },
+        "after": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        }
+      },
+      {
+        "label": "Refuse. Asking player: lose 7 loyalty and 11 morale. Every other player: lose 2 loyalty and 3 morale",
+        "time": "2026-10-18T17:53:26.438Z",
+        "before": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        },
+        "after": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": false
+        }
+      }
+    ]
+  }
+}

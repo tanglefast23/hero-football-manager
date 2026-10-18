@@ -1,0 +1,2 @@
+CAUSE_CHECK_OK: excluding the unlicensed sold hero allows the AI team to build.
+CAREER_BLOCKER_REPRODUCED: Hero bramble-rovers-p15 must be licensed or benched

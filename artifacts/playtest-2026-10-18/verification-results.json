@@ -1,0 +1,73 @@
+{
+  "baseline": "17577f73205890dd20fc1a935c75c036e8e0b1ed",
+  "engine": "m2.9",
+  "focusedJest": {
+    "status": "passed",
+    "suites": 4,
+    "tests": 106,
+    "output": "focused-tests.txt"
+  },
+  "typecheck": {
+    "command": "npx tsc --noEmit",
+    "source": "isolated baseline",
+    "exitCode": 0,
+    "output": "No diagnostics"
+  },
+  "blockerBaseline": {
+    "exitCode": 1,
+    "status": "reproduced",
+    "output": "blocker-check.txt"
+  },
+  "blockerMain": {
+    "exitCode": 1,
+    "status": "reproduced",
+    "output": "current-source-blocker-check.txt"
+  },
+  "tactics": {
+    "status": "passed",
+    "matches": 648,
+    "notes": "Supplemental fixed-team home matches; immutable inputs and deterministic repeat"
+  },
+  "reportDesktop": {
+    "viewport": [
+      900,
+      600
+    ],
+    "horizontalOverflow": false,
+    "allImagesLoaded": true,
+    "functionalBugFilter": [
+      "F01",
+      "F03",
+      "F04"
+    ]
+  },
+  "reportMobile": {
+    "viewport": [
+      390,
+      700
+    ],
+    "documentWidth": 375,
+    "clientWidth": 375,
+    "noHorizontalOverflow": true,
+    "filterCounts": {
+      "bug": 3,
+      "balance": 1,
+      "design": 1,
+      "copy": 2,
+      "docs": 1,
+      "all": 8
+    },
+    "imagesReady": true,
+    "mediaElements": 0
+  },
+  "cleanup": {
+    "gamePage": "destroyed and closed",
+    "reportPages": "destroyed and closed",
+    "gameServerSession": 94448,
+    "reportServerSessions": [
+      93896,
+      42917
+    ],
+    "status": "stopped"
+  }
+}

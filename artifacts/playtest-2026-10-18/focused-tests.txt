@@ -1,0 +1,10 @@
+PASS src/game/__tests__/instant-training.test.ts
+PASS src/game/__tests__/market-career.test.ts
+PASS src/persistence/__tests__/career-repository.test.ts
+PASS src/game/__tests__/midseason-training.test.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       106 passed, 106 total
+Snapshots:   0 total
+Time:        3.592 s, estimated 4 s
+Ran all test suites within paths "src/game/__tests__/instant-training.test.ts", "src/game/__tests__/midseason-training.test.ts", "src/game/__tests__/market-career.test.ts", "src/persistence/__tests__/career-repository.test.ts".

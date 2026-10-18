@@ -368,6 +368,7 @@ let fireLoopPlayer: AudioPlayer | null = null;
 /** What the match asked for, so backgrounding can pause and returning can restore. */
 let themeWanted = false;
 let fireWanted = false;
+let firePlaybackGeneration = 0;
 let activeProfile: MatchAudioProfile = 'full';
 let activeShowcasePower: PowerId | undefined;
 
@@ -485,6 +486,7 @@ export function initAudio(
 }
 
 export function teardownAudio(): void {
+  firePlaybackGeneration += 1;
   pauseSubstitutionFootsteps();
   footstepTailMs = 0;
   footstepWalking = false;
@@ -552,6 +554,7 @@ function tryRecoverMatchAudio(): boolean {
   const now = Date.now();
   if (now - lastRecoveryAt < RECOVERY_COOLDOWN_MS) return false;
   lastRecoveryAt = now;
+  firePlaybackGeneration += 1;
   pauseSubstitutionFootsteps();
   for (const player of [...sfxPlayers.values(), themePlayer, fireLoopPlayer]) {
     if (!player) continue;
@@ -581,19 +584,7 @@ function resumeWantedLoops(): void {
   } catch (err) {
     warnOnce('theme resume after recovery failed', err);
   }
-  const fire = fireLoopPlayer;
-  if (fireWanted && fire) {
-    try {
-      fire
-        .seekTo(0)
-        .then(() => fire.play())
-        .catch((err: unknown) =>
-          warnOnce('fire loop resume after recovery failed', err),
-        );
-    } catch (err) {
-      warnOnce('fire loop resume after recovery failed', err);
-    }
-  }
+  if (fireWanted) startFireAmbience();
 }
 
 function playSfxKey(key: SfxKey, isRetry: boolean): void {
@@ -808,16 +799,26 @@ export function stopTheme(): void {
 // crackle from the top rather than resuming wherever the last burn paused.
 export function startFireAmbience(): void {
   fireWanted = true;
+  const generation = ++firePlaybackGeneration;
   if (!ready || !fireLoopPlayer || audioIsSuspended()) return;
   const p = fireLoopPlayer;
+  const isCurrent = () =>
+    generation === firePlaybackGeneration &&
+    p === fireLoopPlayer &&
+    ready &&
+    fireWanted &&
+    !audioIsSuspended();
   const recoverOr = (err: unknown): void => {
+    if (!isCurrent()) return;
     // Recovery restarts the wanted fire loop itself, so success needs no retry.
     if (tryRecoverMatchAudio()) return;
     warnOnce('fire loop start failed', err);
   };
   try {
     p.seekTo(0)
-      .then(() => p.play())
+      .then(() => {
+        if (isCurrent()) p.play();
+      })
       .catch((err: unknown) => recoverOr(err));
   } catch (err) {
     recoverOr(err);
@@ -826,6 +827,7 @@ export function startFireAmbience(): void {
 
 export function stopFireAmbience(): void {
   fireWanted = false;
+  firePlaybackGeneration += 1;
   if (!ready || !fireLoopPlayer) return;
   try {
     fireLoopPlayer.pause();
@@ -842,6 +844,7 @@ export function stopFireAmbience(): void {
  */
 registerAudioOwner({
   suspend: () => {
+    firePlaybackGeneration += 1;
     cancelResumeVerify();
     pauseSubstitutionFootsteps();
     if (!ready) return;

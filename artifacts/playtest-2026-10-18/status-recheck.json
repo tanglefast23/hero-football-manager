@@ -1,0 +1,12 @@
+{
+  "allAcceptedGrokFixesPresent": true,
+  "gameSourceMatchesPreviousPassing206Tests": true,
+  "source": {
+    "commit": "17577f73205890dd20fc1a935c75c036e8e0b1ed",
+    "files": 1137,
+    "sha256": "b494aa790e1ac4c93ef77d1481d3cd7852cc304161def23aa65c89359de79208"
+  },
+  "checkpointTeamsChecked": 10,
+  "reportFindingStatuses": "Six corrected; two design or balance decisions remain.",
+  "note": "This check preceded final Git publication. New playthrough will record the merged source commit."
+}

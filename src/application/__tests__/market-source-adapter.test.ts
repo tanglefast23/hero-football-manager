@@ -414,6 +414,76 @@ describe('career market view-model source adapter', () => {
     });
   });
 
+  it.each([
+    ['HEAD', 2, 600, 900],
+    ['ASSISTANT', 1, 300, 300],
+  ] as const)(
+    'quotes the office-adjusted %s hire before committing',
+    (role, level, wage, expectedWage) => {
+      const initial = fullCareer(1015);
+      const candidate = {
+        ...initial.market!.coachCandidates[0],
+        level,
+        weeklyWage: wage,
+        requiredDivision: 5,
+        requiredFame: 0,
+        loyaltyDiscountPercent: 0,
+      };
+      const state: GameState = {
+        ...initial,
+        facilities: {
+          ...initial.facilities,
+          grid: {
+            ...initial.facilities.grid!,
+            buildings: [
+              {
+                id: 'office',
+                type: 'coaching-office',
+                level: 2,
+                capitalInvested: 13000,
+                x: 2,
+                y: 0,
+              },
+            ],
+          },
+        },
+        market: { ...initial.market!, coachCandidates: [candidate] },
+      };
+      const card = marketViewModel(careerMarketViewModelSource(state))
+        .coaches[0];
+      const hired = hireCareerCoach(state, state.market!, candidate.id, role);
+      const employed =
+        role === 'HEAD' ? hired.headCoach! : hired.assistantCoach!;
+
+      expect(card.level).toBe(level + 1);
+      expect(
+        role === 'HEAD' ? card.headWeeklyWage : card.assistantWeeklyWage,
+      ).toBe(expectedWage);
+      expect(employed).toMatchObject({
+        level: card.level,
+        weeklyWage: expectedWage,
+      });
+      expect(state.market!.coachCandidates[0]).toEqual(candidate);
+
+      const shortOfCash = {
+        ...state,
+        clubs: state.clubs.map((club) =>
+          club.id === state.userClubId
+            ? { ...club, cash: expectedWage - 1 }
+            : club,
+        ),
+      };
+      const blocked = marketViewModel(careerMarketViewModelSource(shortOfCash))
+        .coaches[0];
+      expect(
+        role === 'HEAD' ? blocked.headAvailable : blocked.assistantAvailable,
+      ).toBe(false);
+      expect(() =>
+        hireCareerCoach(shortOfCash, state.market!, candidate.id, role),
+      ).toThrow('cannot cover');
+    },
+  );
+
   /**
    * A full Hero License cap with a scouted rival hero on the desk. `licensed`
    * is true on every AI-club hero, so this is also the shape that used to slip

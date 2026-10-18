@@ -185,11 +185,8 @@ import {
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
 import { playerLoyalty } from '../game/loyalty';
-import {
-  requestDefinition,
-  requestTarget,
-  resolutionDeltas,
-} from '../game/player-requests';
+import { requestDefinition } from '../game/player-requests';
+import { playerRequestRefusalCost } from './player-request-view-model';
 import {
   facilityUpgradeBlockedReason,
   highestDivisionReached,
@@ -2979,21 +2976,25 @@ export function homeProductAlerts(
               const asker = roster.find(
                 (player) => player.id === waitingRequest.playerId,
               );
-              const cost = resolutionDeltas(
-                'REFUSED',
-                requestTarget(
-                  requestDefinition(
-                    state.playerRequestRules!,
-                    waitingRequest.requestId,
-                  ).cost,
+              const cost = playerRequestRefusalCost(
+                state,
+                requestDefinition(
+                  state.playerRequestRules!,
+                  waitingRequest.requestId,
                 ),
-                careerDifficulty(state),
-              ).asker;
-              return t('clubHome.stillWaitingDetail', {
-                player: asker?.name ?? t('clubHome.aPlayer'),
-                loyalty: Math.abs(cost.loyalty),
-                morale: Math.abs(cost.morale),
-              });
+                t,
+              );
+              return t(
+                cost.affectsSquad
+                  ? 'clubHome.stillWaitingSquadDetail'
+                  : 'clubHome.stillWaitingDetail',
+                {
+                  player: asker?.name ?? t('clubHome.aPlayer'),
+                  loyalty: cost.loyalty,
+                  morale: cost.morale,
+                  cost: cost.label,
+                },
+              );
             })(),
             tone: 'urgent' as const,
             destination: 'squad' as const,

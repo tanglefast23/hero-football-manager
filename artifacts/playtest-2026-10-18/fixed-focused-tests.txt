@@ -1,0 +1,128 @@
+PASS src/application/__tests__/rival-preload-integration.test.ts
+PASS src/i18n/__tests__/gates.test.ts
+  ● Console
+
+    console.log
+      content prose coverage: {
+        es: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        'pt-BR': {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        fr: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        id: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        de: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        },
+        vi: {
+          'events.json': '424/424 (100%)',
+          'tips.json': '36/36 (100%)',
+          'player-requests.json': '60/60 (100%)',
+          'rival-hero-intros.json': '15/15 (100%)',
+          'glossary.json': '110/110 (100%)',
+          'assistant-guide.json': '105/105 (100%)',
+          'onboarding.json': '110/110 (100%)',
+          'powers.json': '17/17 (100%)',
+          'training.json': '35/35 (100%)',
+          'sponsors.json': '15/15 (100%)',
+          'fulltime-coach-lines.json': '180/180 (100%)',
+          'fulltime-blame-lines.json': '20/20 (100%)',
+          'coach-speech-lines.json': '20/20 (100%)',
+          'agent-final-lines.json': '15/15 (100%)',
+          'award-ceremony-lines.json': '60/60 (100%)'
+        }
+      }
+
+      at Object.<anonymous> (src/i18n/__tests__/gates.test.ts:919:13)
+
+PASS src/game/__tests__/market-career.test.ts
+PASS src/ui/__tests__/playtest-bridge.test.ts
+PASS src/game/__tests__/squad.test.ts
+PASS src/application/__tests__/market-source-adapter.test.ts
+PASS src/ui/__tests__/character-creation-copy.test.ts
+PASS src/ui/__tests__/startup-recovery.test.ts
+PASS src/application/__tests__/player-request-view-model.test.ts
+PASS src/application/__tests__/screen-crash-recovery.test.ts
+PASS src/application/__tests__/market-view-model.test.ts
+PASS src/i18n/__tests__/catalog.test.ts
+
+Test Suites: 12 passed, 12 total
+Tests:       206 passed, 206 total
+Snapshots:   0 total
+Time:        8.071 s, estimated 12 s
+Ran all test suites within paths "src/game/__tests__/squad.test.ts", "src/game/__tests__/market-career.test.ts", "src/application/__tests__/market-source-adapter.test.ts", "src/application/__tests__/market-view-model.test.ts", "src/application/__tests__/player-request-view-model.test.ts", "src/application/__tests__/screen-crash-recovery.test.ts", "src/application/__tests__/rival-preload-integration.test.ts", "src/ui/__tests__/character-creation-copy.test.ts", "src/ui/__tests__/startup-recovery.test.ts", "src/ui/__tests__/playtest-bridge.test.ts", "src/i18n/__tests__/catalog.test.ts", "src/i18n/__tests__/gates.test.ts".

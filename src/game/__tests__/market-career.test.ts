@@ -5,6 +5,7 @@ import {
 } from '../../persistence/game-state-codec';
 import {
   advanceFacilityConstruction,
+  arrangeCareerLineupForFormation,
   buildCareerFacility,
   buildCareerTeamDef,
   createCareer,
@@ -995,6 +996,39 @@ describe('career market integration', () => {
 
     expect(repaired.playerIds[1]).toBe(defender.id);
     expect(repaired.playerIds[1]).not.toBe(forward.id);
+  });
+
+  test('replaces a listed 4-3-3 forward with available forward cover', () => {
+    const state = arrangeCareerLineupForFormation(
+      createCareer(createLaunchCareerSetup(20261018)),
+      '4-3-3',
+    );
+    const lineup = state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+    const soldId = lineup.playerIds[8];
+    const forwardCover = state.players.find(
+      (player) =>
+        player.clubId === state.userClubId &&
+        player.role === 'FWD' &&
+        !lineup.playerIds.includes(player.id),
+    )!;
+    expect(forwardCover).toBeDefined();
+    const listed = listCareerPlayer(state, state.market!, soldId);
+    const bid = listed.transferListings!.find(
+      (listing) => listing.playerId === soldId,
+    )!.bids[0];
+
+    const sold = acceptCareerTransferBid(state, listed, bid.id);
+    const repaired = sold.state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+
+    expect(repaired.formation).toBe('4-3-3');
+    expect(repaired.playerIds[8]).toBe(forwardCover.id);
+    expect(() =>
+      buildCareerTeamDef(sold.state, state.userClubId),
+    ).not.toThrow();
   });
 
   test('refuses to sell or list the only spare goalkeeper', () => {

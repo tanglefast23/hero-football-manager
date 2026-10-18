@@ -1,0 +1,111 @@
+{
+  "status": "Local fixes and permanent playtest tools verified",
+  "checks": {
+    "focusedJest": {
+      "exitCode": 0,
+      "suites": 12,
+      "tests": 206,
+      "log": "fixed-focused-tests.txt"
+    },
+    "typescript": {
+      "exitCode": 0,
+      "diagnostics": 0,
+      "log": "fixed-typescript-check.txt"
+    },
+    "tools": {
+      "exitCode": 0,
+      "log": "fixed-tools-check.txt",
+      "coverage": [
+        "codec validation",
+        "lineup errors",
+        "immutable inputs",
+        "empty checkpoints",
+        "engine mismatch",
+        "phase and screen guards",
+        "no active fixture",
+        "opening-match power removal with a powered fixture",
+        "production Quick Match policy",
+        "visible control guards",
+        "bounded waits",
+        "JSON exports"
+      ]
+    },
+    "originalBlockedCheckpoint": {
+      "exitCode": 0,
+      "resultFile": "fixed-checkpoint-check.json",
+      "note": "One supplemental production simulation; not browser progress."
+    },
+    "resumedBrowserCareer": {
+      "seed": 3521330691,
+      "fixtureId": "s3-r1-m1",
+      "score": {
+        "home": 4,
+        "away": 2
+      },
+      "season": 3,
+      "week": 6,
+      "reloadVerified": true,
+      "checkpoint": "recovered-checkpoint.json"
+    },
+    "rookieUi": {
+      "displayedWeeklyWage": 153,
+      "source": "fixed-ui-checks.json"
+    },
+    "coachUi": {
+      "bonusLevelAndWageVerified": true,
+      "newHireInBrowser": false,
+      "productionHireTestsPassed": true
+    },
+    "squadRefusalUi": {
+      "syntheticFixture": true,
+      "loyalty": [
+        65,
+        58
+      ],
+      "morale": [
+        64,
+        53
+      ],
+      "source": "fixed-request-ui.json"
+    },
+    "report": {
+      "exitCode": 0,
+      "source": "report-check.txt",
+      "layout": "fixed-report-layout-check.json"
+    },
+    "unrelatedEdits": {
+      "reversePatchCheckExitCode": 0,
+      "patch": "Pre-existing dirty patch preserved"
+    },
+    "diffWhitespace": {
+      "exitCode": 0
+    },
+    "formatting": {
+      "exitCode": 0,
+      "note": "Changed test tools only"
+    }
+  },
+  "cleanup": {
+    "tabsClosed": 4,
+    "startedServerPids": [
+      55457,
+      77771,
+      81361
+    ],
+    "serversStopped": true,
+    "temporaryWorktreeRemoved": true,
+    "listenerAuditExitCode": 1,
+    "listenerAuditOutput": "",
+    "note": "Empty listener match means success. No other task resources were stopped."
+  },
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "limits": [
+    "D1 and Hero Cup wins remain unproved.",
+    "No phone, native, audible audio, or Steam performance claim.",
+    "REF display and academy resale balance were not changed."
+  ]
+}

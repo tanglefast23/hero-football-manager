@@ -292,6 +292,14 @@ export interface PreferencesRepository {
   save(preferences: AppPreferences): Promise<void>;
 }
 
+/** A known settings schema was read, but its payload cannot be used. */
+export class InvalidPreferencesError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidPreferencesError';
+  }
+}
+
 export async function createPreferencesRepository(
   database: PersistenceDatabase,
 ): Promise<PreferencesRepository> {
@@ -329,14 +337,32 @@ export async function createPreferencesRepository(
         PRIMARY_SLOT,
       ]);
       if (row === null) return clonePreferences(DEFAULT_APP_PREFERENCES);
-      if (typeof row.preferences_json !== 'string') {
-        throw new Error('Saved settings use an unsupported or corrupt format.');
+      // An unreadable or newer schema is not proof of damaged settings.
+      if (
+        typeof row.schema_version !== 'number' ||
+        !Number.isSafeInteger(row.schema_version) ||
+        row.schema_version < LEGACY_PREFERENCES_SCHEMA_VERSION ||
+        row.schema_version > PREFERENCES_SCHEMA_VERSION
+      ) {
+        throw new Error('Saved settings use an unsupported format.');
       }
-      const decoded = JSON.parse(row.preferences_json);
+      if (typeof row.preferences_json !== 'string') {
+        throw new InvalidPreferencesError(
+          'Saved settings use a corrupt format.',
+        );
+      }
+      let decoded: unknown;
+      try {
+        decoded = JSON.parse(row.preferences_json);
+      } catch {
+        throw new InvalidPreferencesError(
+          'Saved settings contain invalid JSON.',
+        );
+      }
       if (row.schema_version === LEGACY_PREFERENCES_SCHEMA_VERSION) {
         const legacy = LegacyPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -365,7 +391,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === M2_PREFERENCES_SCHEMA_VERSION) {
         const legacy = M2PreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -392,7 +418,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === M4_PREFERENCES_SCHEMA_VERSION) {
         const legacy = M4PreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -414,7 +440,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === CUT_IN_HISTORY_PREFERENCES_SCHEMA_VERSION) {
         const legacy = CutInHistoryPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -436,7 +462,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION) {
         const legacy = ManagerTipsPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -459,7 +485,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === AUTO_SUBS_PREFERENCES_SCHEMA_VERSION) {
         const legacy = AutoSubsPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -481,7 +507,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === SQUAD_SORT_PREFERENCES_SCHEMA_VERSION) {
         const legacy = SquadSortPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -506,7 +532,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION) {
         const legacy = ClimbCompletedPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -529,7 +555,7 @@ export async function createPreferencesRepository(
       if (row.schema_version === DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION) {
         const legacy = V9PreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(
+          throw new InvalidPreferencesError(
             `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
           );
         }
@@ -548,12 +574,9 @@ export async function createPreferencesRepository(
         };
         return persistMigrated(migrated);
       }
-      if (row.schema_version !== PREFERENCES_SCHEMA_VERSION) {
-        throw new Error('Saved settings use an unsupported or corrupt format.');
-      }
       const parsed = PreferencesSchema.safeParse(decoded);
       if (!parsed.success)
-        throw new Error(
+        throw new InvalidPreferencesError(
           `Saved settings are invalid: ${parsed.error.issues[0]?.message ?? 'unknown error'}`,
         );
       return clonePreferences(parsed.data);

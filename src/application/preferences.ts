@@ -1,5 +1,6 @@
 import {
   DEFAULT_APP_PREFERENCES,
+  InvalidPreferencesError,
   type AppPreferences,
   type PreferencesRepository,
 } from '../persistence';
@@ -16,6 +17,8 @@ function englishCopy(): CopyFn {
 
 export interface LoadedPreferences {
   preferences: AppPreferences;
+  /** False while session defaults stand in for settings we could not read. */
+  canPersist: boolean;
   warning?: string;
 }
 
@@ -33,21 +36,26 @@ export async function loadPreferencesFailSoft(
   t: CopyFn = englishCopy(),
 ): Promise<LoadedPreferences> {
   try {
-    return { preferences: await repository.load() };
-  } catch {
+    return { preferences: await repository.load(), canPersist: true };
+  } catch (error) {
     const preferences = defaultPreferences();
-    try {
-      await repository.save(preferences);
-      return {
-        preferences,
-        warning: t('settings.savedSettingsWereDamaged'),
-      };
-    } catch {
-      return {
-        preferences,
-        warning: t('settings.savedSettingsCouldNotBeRead'),
-      };
+    if (error instanceof InvalidPreferencesError) {
+      try {
+        await repository.save(preferences);
+        return {
+          preferences,
+          canPersist: true,
+          warning: t('settings.savedSettingsWereDamaged'),
+        };
+      } catch {
+        // A failed repair leaves defaults limited to this session too.
+      }
     }
+    return {
+      preferences,
+      canPersist: false,
+      warning: t('settings.savedSettingsCouldNotBeRead'),
+    };
   }
 }
 

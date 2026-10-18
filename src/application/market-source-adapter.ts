@@ -3,6 +3,7 @@ import { isFacilityOperational } from '../game/facilities';
 import { isAvailableForSelection } from '../game/lineup';
 import {
   careerBuyingTransferQuote,
+  careerCoachHireCandidate,
   careerTransferTarget,
   type CareerMarketState,
 } from '../game/market-career';
@@ -281,7 +282,9 @@ export function careerMarketViewModelSource(
     ...(scoutResult === undefined ? {} : { scoutResult }),
     ...(identities.length === 0 ? {} : { scoutedPlayerIdentities: identities }),
     transferListings,
-    coachCandidates: market.coachCandidates.map(cloneCoachCandidate),
+    coachCandidates: market.coachCandidates.map((candidate) =>
+      cloneCoachCandidate(careerCoachHireCandidate(state, candidate)),
+    ),
     ...(market.headCoach === undefined
       ? {}
       : { headCoach: cloneCoachCandidate(market.headCoach) }),

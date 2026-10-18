@@ -1,5 +1,6 @@
 import { compareIds } from './ordering';
 import { PROMOTION_WAGE_CLAUSE_PERCENT } from './contract-wages';
+import { formationRoleForSlot } from '../sim/tactics';
 
 // The window rule is career-facing: the UI has to explain a shut desk, not just
 // be refused by it. Re-exported here so the game barrel carries it alongside
@@ -1662,7 +1663,8 @@ export function hireCareerCoach(
   if (!isCoachCandidateEligible(candidate, division, fame)) {
     throw new Error(`${candidate.name} is not eligible for this club`);
   }
-  const weeklyWage = coachWeeklyWageForRole(candidate, role);
+  const arrival = careerCoachHireCandidate(state, candidate);
+  const weeklyWage = coachWeeklyWageForRole(arrival, role);
   if (userClub(state).cash < weeklyWage) {
     throw new Error('the club cannot cover the coach weekly wage');
   }
@@ -1682,33 +1684,7 @@ export function hireCareerCoach(
             candidate.unlockId,
           ]),
         );
-  // A level-2 office hires better: the coach arrives already developed, and is
-  // paid for the level he actually works at rather than the one he applied at.
-  const hiredLevel = Math.min(
-    5,
-    candidate.level + coachHireLevelBonus(coachingOfficeLevel(state)),
-  );
-  const employed =
-    hiredLevel === candidate.level
-      ? { ...candidate, weeklyWage }
-      : {
-          ...candidate,
-          level: hiredLevel,
-          weeklyWage: coachWeeklyWageForRole(
-            {
-              weeklyWage: Math.round(
-                (checkedMultiply(
-                  COACH_WAGE_PER_LEVEL,
-                  hiredLevel,
-                  'hired coach base wage',
-                ) *
-                  (100 - candidate.loyaltyDiscountPercent)) /
-                  100,
-              ),
-            },
-            role,
-          ),
-        };
+  const employed = { ...arrival, weeklyWage };
   return {
     ...market,
     coachCandidates: market.coachCandidates.filter(
@@ -2381,14 +2357,10 @@ function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
   if (lineup === undefined || !lineup.playerIds.includes(player.id))
     return state.lineups;
   const lineupSlot = lineup.playerIds.indexOf(player.id);
-  const slotRole =
-    lineupSlot === 0
-      ? 'GK'
-      : lineupSlot <= 4
-        ? 'DEF'
-        : lineupSlot <= 8
-          ? 'MID'
-          : 'FWD';
+  const slotRole = formationRoleForSlot(
+    lineup.formation ?? '4-4-2',
+    lineupSlot,
+  );
   const starters = new Set(lineup.playerIds);
   const replacement =
     state.players.find(
@@ -2587,6 +2559,27 @@ export function coachSeasonsPerLevel(officeLevel: number): number {
 /** Levels a newly hired coach gains from the office he walks into. */
 export function coachHireLevelBonus(officeLevel: number): number {
   return officeLevel >= 2 ? 1 : 0;
+}
+
+/** The same arrival level and base wage for the hire quote and transaction. */
+export function careerCoachHireCandidate(
+  state: GameState,
+  candidate: CoachCandidate,
+): CoachCandidate {
+  const level = Math.min(
+    5,
+    candidate.level + coachHireLevelBonus(coachingOfficeLevel(state)),
+  );
+  if (level === candidate.level) return candidate;
+  return {
+    ...candidate,
+    level,
+    weeklyWage: Math.round(
+      (checkedMultiply(COACH_WAGE_PER_LEVEL, level, 'hired coach base wage') *
+        (100 - candidate.loyaltyDiscountPercent)) /
+        100,
+    ),
+  };
 }
 
 function careerClubFame(state: GameState, market: CareerMarketState): number {

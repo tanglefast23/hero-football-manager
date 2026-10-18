@@ -1,0 +1,22 @@
+diff --git a/src/ui/dev-harness/entries/player-requests.tsx b/src/ui/dev-harness/entries/player-requests.tsx
+index 65888423..e4771e02 100644
+--- a/src/ui/dev-harness/entries/player-requests.tsx
++++ b/src/ui/dev-harness/entries/player-requests.tsx
+@@ -160,7 +160,16 @@ function askerWeight(state: GameState): number {
+ 
+ function careerForCase(caseId: string): GameState {
+   if (caseId === 'squad') {
+-    return steppedCareer((state) => askerWeight(state) === 1);
++    // Temporary isolated UI regression fixture, never an actual career run.
++    const base = steppedCareer((state) => state.playerRequests?.pending !== undefined);
++    return {
++      ...base,
++      difficulty: 'CHAIRMAN',
++      playerRequests: {
++        ...base.playerRequests!,
++        pending: { ...base.playerRequests!.pending!, requestId: 'one-big-night-out' },
++      },
++    };
+   }
+   if (caseId === 'last-week') {
+     return steppedCareer(

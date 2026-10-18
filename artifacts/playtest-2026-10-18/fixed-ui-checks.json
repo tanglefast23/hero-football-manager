@@ -1,0 +1,319 @@
+{
+  "surface": "Paseo background browser 900x600; muted",
+  "recovery": {
+    "seed": 3521330691,
+    "original": "Season 3 Week 5 blocked before first league match",
+    "fixture": "s3-r1-m1",
+    "browserScore": {
+      "homeGoals": 4,
+      "awayGoals": 2
+    },
+    "after": {
+      "season": 3,
+      "week": 6,
+      "cash": 40312
+    },
+    "reloadVerified": true
+  },
+  "coach": {
+    "buildings": [],
+    "candidates": [
+      {
+        "name": "Nia Thompson",
+        "level": 2,
+        "weeklyWage": 600
+      },
+      {
+        "name": "Kwame Boateng",
+        "level": 1,
+        "weeklyWage": 300
+      },
+      {
+        "name": "Ingrid Berg",
+        "level": 1,
+        "weeklyWage": 300
+      },
+      {
+        "name": "Amara Okafor",
+        "level": 1,
+        "weeklyWage": 300
+      }
+    ],
+    "text": "BRAMBLE ROVERS\n$\n40.3k\nTP\n49\n1,527\n⚙\nSEASON 3 · D4 · WEEK 6 / 30\nRECRUITMENT OFFICE\nMARKET DOCKET\nS3 · W6\nYOUTH\nSCOUT\nDEALS\nCOACHES\nREGISTRATION DESK\nSHUT\nBUILD THE NEXT GREAT SIDE\nCASH\n$40,312\nLEVEL\nD4 · County League\nWINDOW\nCLOSED\nScout and plan now. Signings reopen in pre-season or weeks 17-18. Selling stays open every week.\nOPEN IN 11 WEEKS\nPRE-SEASON SHORTLIST\nA VOICE FOR THE TOUCHLINE\n3 CANDIDATES\nNia Thompson\nAGE 34 · JOKER · LV3\nATTACK\nMOTIVATOR\nHEAD $900/WK · ASSISTANT $450/WK\nAS HEAD COACH\nSHO training +18%\nMorale loss -12% · Hero Gauge +12%\n+7 TP weekly\nAS ASSISTANT\nSHO training +9%\nMorale loss -6% · Hero Gauge +6%\n+4 TP weekly\nBoth coaching roles are already filled.\nHIRE AS HEAD\nHIRE AS ASSISTANT\nKwame Boateng\nAGE 59 · TIMID · LV2\nGOALKEEPING\nFITNESS\nHEAD $600/WK · ASSISTANT $300/WK\nAS HEAD COACH\nREF training +12%\nPAC & STA training +12%\n+6 TP weekly\nAS ASSISTANT\nREF training +6%\nPAC & STA training +6%\n+3 TP weekly\nBoth coaching roles are already filled.\nHIRE AS HEAD\nHIRE AS ASSISTANT\nIngrid Berg\nAGE 58 · FIERY · LV2\nMOTIVATOR\nATTACK\nHEAD $600/WK · ASSISTANT $300/WK\nAS HEAD COACH\nMorale loss -8% · Hero Gauge +8%\nSHO training +12%\n+6 TP weekly\nAS ASSISTANT\nMorale loss -4% · Hero Gauge +4%\nSHO training +6%\n+3 TP weekly\nBoth coaching roles are already filled.\nHIRE AS HEAD\nHIRE AS ASSISTANT\nADVANCE WEEK  ›\n⌂\nHOME\n11\nSQUAD\n▦\nCLUB\n⇄\nMARKET\n≡\nLEAGUE"
+  },
+  "rookie": {
+    "screen": {
+      "screen": "create-player",
+      "tab": "home",
+      "error": null,
+      "saveError": null,
+      "serializationError": null,
+      "saving": false,
+      "persisted": true,
+      "seed": 3457356909,
+      "season": 1,
+      "week": 1,
+      "phase": "manage",
+      "cash": 53000,
+      "tp": 12
+    },
+    "rookieTerms": [
+      "$153 / WEEK · 1 SEASON",
+      "SIGN THE ROOKIE  ›"
+    ],
+    "text": "CLUB FILE 00\nYOUR FIRST\nHIRE\n15\nLEFT\nPAPER DOLL\nSAVED\nCHOOSE THEIR LOOK\nSKIN TONE\n‹\n1/6\n›\nHAIR\n‹\n1/10\n›\nKIT ACCENT\n‹\n1/5\n›\nCUST CLUB KIT\nTAP\nCAREER PRESSURE\nCHAIRMAN\nCHOOSE DIFFICULTY\n●\nCHAIRMAN (Expert mode)\n○\nCOZY (Casual mode)\nREGISTRATION CARD\nREQUIRED\nNAME\nPOSITION: FWD\n$153 / WEEK · 1 SEASON\nTEAM NAME (OPTIONAL)\nTEAMMATE'S NAMES (OPTIONAL):\nRENAME ROSTER\nPACE\nBurst and recovery runs\n-\n50\n+\nSHOOTING\nFinishing and striking\n-\n50\n+\nPASSING\nWeight and vision\n-\n50\n+\nDEFENDING\nChallenges and marking\n-\n50\n+\nTECHNIQUE\nTouch under pressure\n-\n50\n+\nSTAMINA\nLate-match engine\n-\n50\n+\nSIGN THE ROOKIE  ›"
+  },
+  "scoutAndLog": {
+    "text": "BRAMBLE ROVERS\n$\n40.3k\nTP\n49\n1,527\n⚙\nSEASON 3 · D4 · WEEK 6 / 30\nRECRUITMENT OFFICE\nMARKET DOCKET\nS3 · W6\nYOUTH\nSCOUT\nDEALS\nCOACHES\nREGISTRATION DESK\nSHUT\nBUILD THE NEXT GREAT SIDE\nCASH\n$40,312\nLEVEL\nD4 · County League\nWINDOW\nCLOSED\nScout and plan now. Signings reopen in pre-season or weeks 17-18. Selling stays open every week.\nOPEN IN 11 WEEKS\nSCOUT DISPATCH\nFIND THE OVERLOOKED\nSCOUT OFFICE · LV2\n4 REPORTS ON THE DESK\nOpen a scouting report to compare the estimated ability with the transfer price.\nCOMPLETE\nEXACT DETAILS · 4 NAMES PER MISSION\nSCOUTING REPORTS\nSol Hart\nMID · AGE 25\nPOTENTIAL C · SUPER 13%\nPAC\n98\nSHO\n67\nPAS\n74\nDEF\n68\nTEC\n72\nSTA\n73\nSIGN THE PLAYER\nDISMISS REPORT\nCal Tate\nMID · AGE 23\nPOTENTIAL C+ · SUPER 9%\nPAC\n93\nSHO\n52\nPAS\n124\nDEF\n48\nTEC\n125\nSTA\n123\nAbility has no ceiling of 100. A trained player grows past it, so a range can too.\nSIGN THE PLAYER\nDISMISS REPORT\nZane North\nMID · AGE 18\nPOTENTIAL C+ · SUPER 9%\nPAC\n89\nSHO\n45\nPAS\n50\nDEF\n43\nTEC\n49\nSTA\n49\nSIGN THE PLAYER\nDISMISS REPORT\nTavi Baird\nMID · AGE 24\nPOTENTIAL B · SUPER 17%\nPAC\n101\nSHO\n71\nPAS\n77\nDEF\n70\nTEC\n77\nSTA\n71\nAbility has no ceiling of 100. A trained player grows past it, so a range can too.\nSIGN THE PLAYER\nDISMISS REPORT\nMISSION SLIPS\nCHOOSE REGION\nLOCAL\nEUROPE\nSOUTH AMERICA\nAFRICA\nASIA\nCHOOSE POSITION\nANY\nGK\nDEF\nMID\nFWD\nCHOOSE PROSPECT TYPE\nIMMEDIATE STARTER\nYOUNG PROSPECT\nSPECIALIST\nBARGAIN\nSOUTH AMERICA\nIMMEDIATE STARTER\n$4,750\nPrioritizes players who could improve the chosen position now.\n2 WEEKS\nSEND SCOUT\nADVANCE WEEK  ›\n⌂\nHOME\n11\nSQUAD\n▦\nCLUB\n⇄\nMARKET\n≡\nLEAGUE",
+    "office": [
+      {
+        "id": "facility-2",
+        "type": "coaching-office",
+        "level": 2,
+        "capitalInvested": 13000,
+        "x": 2,
+        "y": 0
+      }
+    ],
+    "log": [
+      {
+        "label": "Open story and saved career options",
+        "time": "2026-10-18T17:51:30.767Z",
+        "before": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        },
+        "after": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        }
+      },
+      {
+        "label": "Continue saved career",
+        "time": "2026-10-18T17:51:31.683Z",
+        "before": {
+          "screen": "welcome",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        },
+        "after": {
+          "screen": "management",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        }
+      },
+      {
+        "label": "Market tab",
+        "time": "2026-10-18T17:51:32.598Z",
+        "before": {
+          "screen": "management",
+          "tab": "home",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        },
+        "after": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        }
+      },
+      {
+        "label": "Bert Rudge: Signings only happen inside a transfer window: Weeks 1 to 4, then Weeks 17 and 18. Outside them nobody joins, however much you offer. Selling your own players stays open all season.",
+        "time": "2026-10-18T17:51:42.453Z",
+        "before": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        },
+        "after": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        }
+      },
+      {
+        "label": "Bert Rudge: So scout now and decide now. Walk in on the first day of the window with the name already chosen and the money already put aside.",
+        "time": "2026-10-18T17:51:51.503Z",
+        "before": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        },
+        "after": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        }
+      },
+      {
+        "label": "Coaches desk",
+        "time": "2026-10-18T17:51:58.805Z",
+        "before": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        },
+        "after": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        }
+      },
+      {
+        "label": "Scout desk",
+        "time": "2026-10-18T17:52:15.614Z",
+        "before": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        },
+        "after": {
+          "screen": "management",
+          "tab": "market",
+          "error": null,
+          "saveError": null,
+          "serializationError": null,
+          "saving": false,
+          "persisted": true,
+          "seed": 3521330691,
+          "season": 3,
+          "week": 6,
+          "phase": "manage",
+          "cash": 40312,
+          "tp": 49
+        }
+      }
+    ]
+  }
+}

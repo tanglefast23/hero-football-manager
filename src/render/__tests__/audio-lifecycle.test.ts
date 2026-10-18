@@ -84,19 +84,59 @@ const { audioIsSuspended, registerAudioOwner } =
   require('../audio-lifecycle') as typeof import('../audio-lifecycle');
 const { setMenuTheme, teardownMenuAudio } =
   require('../menu-audio') as typeof import('../menu-audio');
-const { initAudio, startTheme, stopTheme, teardownAudio } =
-  require('../audio') as typeof import('../audio');
+const {
+  initAudio,
+  startTheme,
+  stopTheme,
+  startFireAmbience,
+  stopFireAmbience,
+  playForEvent,
+  teardownAudio,
+} = require('../audio') as typeof import('../audio');
+const {
+  playAwakeningLimp,
+  playAwakeningAscension,
+  AWAKENING_HARPS_DELAY_MS,
+  teardownAwakeningAudio,
+} = require('../awakening-audio') as typeof import('../awakening-audio');
+const {
+  playEndingFarewell,
+  playCelebrationAnthem,
+  stopCelebrationAudio,
+  teardownCelebrationAudio,
+} = require('../celebration-audio') as typeof import('../celebration-audio');
+
+function pendingSeek(player: (typeof mockPlayers)[number]) {
+  let resolve!: () => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<void>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  player.seekTo.mockReturnValueOnce(promise);
+  return { resolve: () => resolve(), reject: (error: Error) => reject(error) };
+}
+
+async function flushPromises(): Promise<void> {
+  for (let count = 0; count < 6; count += 1) await Promise.resolve();
+}
 
 describe('audio lifecycle', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     teardownMenuAudio();
+    teardownAudio();
+    teardownAwakeningAudio();
+    teardownCelebrationAudio();
     mockPlayers.length = 0;
   });
 
   afterEach(() => {
-    setTabHidden(false);
+    teardownAudio();
+    teardownAwakeningAudio();
+    teardownCelebrationAudio();
     teardownMenuAudio();
+    setTabHidden(false);
     jest.useRealTimers();
   });
 
@@ -169,6 +209,198 @@ describe('audio lifecycle', () => {
 
     setTabHidden(false);
     expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start awakening cues in a hidden tab', async () => {
+    setTabHidden(true);
+    playAwakeningLimp();
+    playAwakeningAscension();
+    await flushPromises();
+    jest.advanceTimersByTime(AWAKENING_HARPS_DELAY_MS);
+    await flushPromises();
+
+    expect(
+      mockPlayers.every((player) => player.play.mock.calls.length === 0),
+    ).toBe(true);
+    setTabHidden(false);
+    await flushPromises();
+    expect(
+      mockPlayers.every((player) => player.play.mock.calls.length === 0),
+    ).toBe(true);
+  });
+
+  it('pauses awakening audio and cancels its delayed harp entrance on hide', async () => {
+    playAwakeningAscension();
+    await flushPromises();
+    const [angels, harps, limp] = mockPlayers;
+    expect(angels.play).toHaveBeenCalledTimes(1);
+
+    setTabHidden(true);
+    expect(angels.pause).toHaveBeenCalled();
+    expect(harps.pause).toHaveBeenCalled();
+    expect(limp.pause).toHaveBeenCalled();
+    setTabHidden(false);
+    jest.advanceTimersByTime(AWAKENING_HARPS_DELAY_MS);
+    await flushPromises();
+
+    expect(angels.play).toHaveBeenCalledTimes(1);
+    expect(harps.play).not.toHaveBeenCalled();
+  });
+
+  it.each(['resolve', 'reject'] as const)(
+    'cancels an awakening seek after hide: %s',
+    async (outcome) => {
+      playAwakeningLimp();
+      await flushPromises();
+      const limp = mockPlayers[2];
+      const seek = pendingSeek(limp);
+      playAwakeningLimp();
+      setTabHidden(true);
+      if (outcome === 'resolve') seek.resolve();
+      else seek.reject(new Error('Session lookup failed'));
+      await flushPromises();
+
+      expect(mockPlayers).toHaveLength(3);
+      expect(limp.play).toHaveBeenCalledTimes(1);
+      setTabHidden(false);
+      await flushPromises();
+      expect(limp.play).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(['stop', 'hide', 'teardown'] as const)(
+    'cancels a pending fire start after %s',
+    async (action) => {
+      initAudio();
+      const fire = mockPlayers.at(-1)!;
+      const seek = pendingSeek(fire);
+      startFireAmbience();
+      if (action === 'stop') stopFireAmbience();
+      else if (action === 'hide') setTabHidden(true);
+      else teardownAudio();
+      seek.resolve();
+      await flushPromises();
+
+      expect(fire.play).not.toHaveBeenCalled();
+      if (action === 'hide') {
+        setTabHidden(false);
+        expect(fire.play).toHaveBeenCalledTimes(1);
+      }
+    },
+  );
+
+  it('does not replay an old fire ignition after a new ignition', async () => {
+    initAudio();
+    const fire = mockPlayers.at(-1)!;
+    const oldSeek = pendingSeek(fire);
+    startFireAmbience();
+    stopFireAmbience();
+    startFireAmbience();
+    await flushPromises();
+    expect(fire.play).toHaveBeenCalledTimes(1);
+
+    oldSeek.resolve();
+    await flushPromises();
+    expect(fire.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels a recovery fire seek when the fire is stopped', async () => {
+    initAudio();
+    startFireAmbience();
+    await flushPromises();
+    const fire = mockPlayers.at(-1)!;
+    const createAudioPlayer = jest.requireMock('expo-audio')
+      .createAudioPlayer as jest.Mock;
+    const create = createAudioPlayer.getMockImplementation()!;
+    const seeks: Array<ReturnType<typeof pendingSeek>> = [];
+    createAudioPlayer.mockImplementation((...args: unknown[]) => {
+      const player = create(...args);
+      seeks.push(pendingSeek(player));
+      return player;
+    });
+    mockPlayers[0].seekTo.mockRejectedValueOnce(
+      new Error('Session lookup failed'),
+    );
+    try {
+      playForEvent({ t: 0, kind: 'KICKOFF', half: 1 });
+      await flushPromises();
+      expect(mockPlayers.at(-1)).not.toBe(fire);
+      stopFireAmbience();
+      for (const seek of seeks) seek.resolve();
+      await flushPromises();
+      expect(mockPlayers.at(-1)!.play).not.toHaveBeenCalled();
+    } finally {
+      createAudioPlayer.mockImplementation(create);
+    }
+  });
+
+  it('does not recover a canceled fire seek', async () => {
+    initAudio();
+    const count = mockPlayers.length;
+    const fire = mockPlayers.at(-1)!;
+    const seek = pendingSeek(fire);
+    startFireAmbience();
+    stopFireAmbience();
+    seek.reject(new Error('Session lookup failed'));
+    await flushPromises();
+
+    expect(mockPlayers).toHaveLength(count);
+    expect(fire.play).not.toHaveBeenCalled();
+  });
+
+  it.each(['stop', 'hide', 'replace', 'teardown'] as const)(
+    'cancels a pending celebration seek after %s',
+    async (action) => {
+      playEndingFarewell();
+      await flushPromises();
+      const farewell = mockPlayers[1];
+      farewell.play.mockClear();
+      const seek = pendingSeek(farewell);
+      playEndingFarewell();
+      if (action === 'stop') stopCelebrationAudio();
+      else if (action === 'hide') setTabHidden(true);
+      else if (action === 'replace') playCelebrationAnthem();
+      else teardownCelebrationAudio();
+      seek.resolve();
+      await flushPromises();
+
+      expect(farewell.play).not.toHaveBeenCalled();
+      if (action === 'hide') {
+        setTabHidden(false);
+        await flushPromises();
+        expect(farewell.play).toHaveBeenCalledTimes(1);
+      }
+    },
+  );
+
+  it('does not recover a canceled celebration seek', async () => {
+    playEndingFarewell();
+    await flushPromises();
+    const seek = pendingSeek(mockPlayers[1]);
+    playEndingFarewell();
+    stopCelebrationAudio();
+    seek.reject(new Error('Session lookup failed'));
+    await flushPromises();
+
+    expect(mockPlayers).toHaveLength(2);
+    expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not replay a stale seek after the same celebration restarts', async () => {
+    playEndingFarewell();
+    await flushPromises();
+    const farewell = mockPlayers[1];
+    farewell.play.mockClear();
+    const seek = pendingSeek(farewell);
+    playEndingFarewell();
+    stopCelebrationAudio();
+    playEndingFarewell();
+    await flushPromises();
+    expect(farewell.play).toHaveBeenCalledTimes(1);
+
+    seek.resolve();
+    await flushPromises();
+    expect(farewell.play).toHaveBeenCalledTimes(1);
   });
 
   describe('a match theme coming back from the background', () => {

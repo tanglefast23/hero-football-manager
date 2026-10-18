@@ -1,0 +1,96 @@
+{
+  "desktop": {
+    "width": 900,
+    "scrollWidth": 885,
+    "images": [
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      }
+    ],
+    "headings": [
+      "19 October follow-up: the blocked career now continues",
+      "Original run: blocked in Season 3, not beaten"
+    ],
+    "status": "Blocker fixed locally · Game not beaten",
+    "visibleFindings": 8
+  },
+  "mobile": {
+    "width": 390,
+    "scrollWidth": 375,
+    "images": [
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      },
+      {
+        "loaded": true,
+        "width": 900,
+        "height": 600
+      }
+    ],
+    "headings": [
+      "19 October follow-up: the blocked career now continues",
+      "Original run: blocked in Season 3, not beaten"
+    ],
+    "status": "Blocker fixed locally · Game not beaten",
+    "visibleFindings": 8
+  },
+  "filter": {
+    "selected": "bug",
+    "visible": [
+      "F01",
+      "F03",
+      "F04"
+    ],
+    "count": 3
+  },
+  "note": "Phone-sized browser layout only; no physical phone test."
+}

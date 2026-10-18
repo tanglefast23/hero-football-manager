@@ -1,0 +1,578 @@
+{
+  "ok": true,
+  "result": {
+    "command": "logs",
+    "browserId": "1a8485d5-4d4c-4f4e-8a33-eb97176f323d",
+    "console": [
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293170
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293262
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293354
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293538
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293559
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293630
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293721
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293813
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293905
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343293996
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294089
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294270
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294362
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294454
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294546
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294638
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294729
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343294821
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343295003
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343295095
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343295187
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343295278
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343295369
+      },
+      {
+        "level": "3",
+        "message": "%o\n\n%s\n\n%s\n Error: Hero bramble-rovers-p15 must be licensed or benched The above error occurred in the <GameApp> component. React will try to recreate this component tree from scratch using the error boundary you provided, ScreenErrorBoundary.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343295468
+      },
+      {
+        "level": "3",
+        "message": "[screen] render failed Error: Hero bramble-rovers-p15 must be licensed or benched \n    at GameApp (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53409:5)\n    at ScreenErrorBoundary (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:196214:3)\n    at div (<anonymous>)\n    at View (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:29615:27)\n    at CssInteropComponent (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:26191:10)\n    at NativeSafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:51309:5)\n    at SafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:50974:5)\n    at App (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53361:61)\n    at withDevTools(App) (<anonymous>)\n    at AppContainer (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:5700:5)",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343295469
+      },
+      {
+        "level": "3",
+        "message": "Blocked call to navigator.vibrate because user hasn't tapped on the frame or any embedded frame yet: https://www.chromestatus.com/feature/5644273861001216.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 116768,
+        "timestamp": 1792343317804
+      },
+      {
+        "level": "3",
+        "message": "%o\n\n%s\n\n%s\n Error: Hero bramble-rovers-p15 must be licensed or benched The above error occurred in the <GameApp> component. React will try to recreate this component tree from scratch using the error boundary you provided, ScreenErrorBoundary.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343317810
+      },
+      {
+        "level": "3",
+        "message": "[screen] render failed Error: Hero bramble-rovers-p15 must be licensed or benched \n    at GameApp (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53409:5)\n    at ScreenErrorBoundary (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:196214:3)\n    at div (<anonymous>)\n    at View (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:29615:27)\n    at CssInteropComponent (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:26191:10)\n    at NativeSafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:51309:5)\n    at SafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:50974:5)\n    at App (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53361:61)\n    at withDevTools(App) (<anonymous>)\n    at AppContainer (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:5700:5)",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343317810
+      },
+      {
+        "level": "1",
+        "message": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343328916
+      },
+      {
+        "level": "2",
+        "message": "Require cycle: src/game/player-requests.ts -> src/game/squad.ts -> src/game/coach-weekly.ts -> src/game/market-career.ts -> src/game/player-requests.ts\n\nRequire cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343328920
+      },
+      {
+        "level": "2",
+        "message": "\"textShadow*\" style props are deprecated. Use \"textShadow\".",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343328968
+      },
+      {
+        "level": "2",
+        "message": "\"shadow*\" style props are deprecated. Use \"boxShadow\".",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343328969
+      },
+      {
+        "level": "1",
+        "message": "Running application \"main\" with appParams:\n [object Object] \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343328975
+      },
+      {
+        "level": "2",
+        "message": "props.pointerEvents is deprecated. Use style.pointerEvents",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343328990
+      },
+      {
+        "level": "1",
+        "message": "HERMES_GOLDEN_OK d8a5603b 9e56a3c3",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343329070
+      },
+      {
+        "level": "1",
+        "message": "persistence: browser storage is granted",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343329076
+      },
+      {
+        "level": "3",
+        "message": "%o\n\n%s\n\n%s\n Error: Hero bramble-rovers-p15 must be licensed or benched The above error occurred in the <GameApp> component. React will try to recreate this component tree from scratch using the error boundary you provided, ScreenErrorBoundary.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343329134
+      },
+      {
+        "level": "3",
+        "message": "[screen] render failed Error: Hero bramble-rovers-p15 must be licensed or benched \n    at GameApp (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53409:5)\n    at ScreenErrorBoundary (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:196214:3)\n    at div (<anonymous>)\n    at View (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:29615:27)\n    at CssInteropComponent (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:26191:10)\n    at NativeSafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:51309:5)\n    at SafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:50974:5)\n    at App (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53361:61)\n    at withDevTools(App) (<anonymous>)\n    at AppContainer (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:5700:5)",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343329134
+      },
+      {
+        "level": "3",
+        "message": "%o\n\n%s\n\n%s\n Error: Hero bramble-rovers-p15 must be licensed or benched The above error occurred in the <GameApp> component. React will try to recreate this component tree from scratch using the error boundary you provided, ScreenErrorBoundary.",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343357766
+      },
+      {
+        "level": "3",
+        "message": "[screen] render failed Error: Hero bramble-rovers-p15 must be licensed or benched \n    at GameApp (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53409:5)\n    at ScreenErrorBoundary (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:196214:3)\n    at div (<anonymous>)\n    at View (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:29615:27)\n    at CssInteropComponent (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:26191:10)\n    at NativeSafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:51309:5)\n    at SafeAreaProvider (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:50974:5)\n    at App (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53361:61)\n    at withDevTools(App) (<anonymous>)\n    at AppContainer (http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:5700:5)",
+        "source": "http://localhost:8092/index.web.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable",
+        "line": 1506,
+        "timestamp": 1792343357767
+      }
+    ],
+    "network": [
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Ffonts/HFMSilkscreen_700Bold.ttf",
+        "type": "css",
+        "startTime": 189.69999998807907,
+        "duration": 78.5,
+        "transferSize": 49508
+      },
+      {
+        "url": "http://localhost:8092/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+        "type": "other",
+        "startTime": 278.80000001192093,
+        "duration": -9.100000023841858,
+        "transferSize": 64236
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/match-statement-positive.m4a",
+        "type": "audio",
+        "startTime": 28962.80000001192,
+        "duration": 31.299999952316284,
+        "transferSize": 47045
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/training-stat-ding.m4a",
+        "type": "audio",
+        "startTime": 28962.899999976158,
+        "duration": 31.400000035762787,
+        "transferSize": 6957
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/ui-tap.wav",
+        "type": "audio",
+        "startTime": 28963.099999964237,
+        "duration": 31.200000047683716,
+        "transferSize": 6432
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/match-statement-positive.m4a",
+        "type": "audio",
+        "startTime": 28963.099999964237,
+        "duration": 34,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/fulltime-whistle.wav",
+        "type": "audio",
+        "startTime": 28963.30000001192,
+        "duration": 31.099999964237213,
+        "transferSize": 30812
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/facility-start-work.wav",
+        "type": "audio",
+        "startTime": 28963.5,
+        "duration": 31.30000001192093,
+        "transferSize": 200746
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/facility-complete.m4a",
+        "type": "audio",
+        "startTime": 28963.69999998808,
+        "duration": 33.89999997615814,
+        "transferSize": 64748
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/event-success-fanfare.m4a",
+        "type": "audio",
+        "startTime": 28963.80000001192,
+        "duration": 33.89999997615814,
+        "transferSize": 44738
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/ui-tap.wav",
+        "type": "audio",
+        "startTime": 28963.899999976158,
+        "duration": 33.30000001192093,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/save-slap.wav",
+        "type": "audio",
+        "startTime": 28964,
+        "duration": 33.89999997615814,
+        "transferSize": 8758
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/tackle-thud.m4a",
+        "type": "audio",
+        "startTime": 28964.099999964237,
+        "duration": 34,
+        "transferSize": 4315
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/save-slap.wav",
+        "type": "audio",
+        "startTime": 28964.30000001192,
+        "duration": 36.299999952316284,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/save-slap.wav",
+        "type": "audio",
+        "startTime": 28964.399999976158,
+        "duration": 38.60000002384186,
+        "transferSize": 8758
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/plan-locked-chime.m4a",
+        "type": "audio",
+        "startTime": 28964.5,
+        "duration": 36.39999997615814,
+        "transferSize": 32382
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/zone-enter.m4a",
+        "type": "audio",
+        "startTime": 28964.599999964237,
+        "duration": 36.40000003576279,
+        "transferSize": 13532
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/negative.m4a",
+        "type": "audio",
+        "startTime": 28964.80000001192,
+        "duration": 36.39999997615814,
+        "transferSize": 9245
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/positive.m4a",
+        "type": "audio",
+        "startTime": 28964.899999976158,
+        "duration": 36.40000003576279,
+        "transferSize": 16964
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/stat-step-tap-loud.m4a",
+        "type": "audio",
+        "startTime": 28965,
+        "duration": 38.30000001192093,
+        "transferSize": 2322
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/drill-progress.m4a",
+        "type": "audio",
+        "startTime": 28965.099999964237,
+        "duration": 39,
+        "transferSize": 32975
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/drill-gain-reveal.m4a",
+        "type": "audio",
+        "startTime": 28965.19999998808,
+        "duration": 38.89999997615814,
+        "transferSize": 6169
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/super-training-yay.m4a",
+        "type": "audio",
+        "startTime": 28965.30000001192,
+        "duration": 39.299999952316284,
+        "transferSize": 11698
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/back-button.m4a",
+        "type": "audio",
+        "startTime": 28965.399999976158,
+        "duration": 38.90000003576279,
+        "transferSize": 7795
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/level-up.m4a",
+        "type": "audio",
+        "startTime": 28965.5,
+        "duration": 41.39999997615814,
+        "transferSize": 34333
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/match-day-bugle.m4a",
+        "type": "audio",
+        "startTime": 28965.599999964237,
+        "duration": 41.40000003576279,
+        "transferSize": 45473
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/quick-result-faceoff.m4a",
+        "type": "audio",
+        "startTime": 28965.69999998808,
+        "duration": 41.39999997615814,
+        "transferSize": 29918
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/match-day-fanfare.m4a",
+        "type": "audio",
+        "startTime": 28965.899999976158,
+        "duration": 41.30000001192093,
+        "transferSize": 28354
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/match-control-whistle.wav",
+        "type": "audio",
+        "startTime": 28966,
+        "duration": 42.19999998807907,
+        "transferSize": 576378
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/drill-complete-heavy.wav",
+        "type": "audio",
+        "startTime": 28966.099999964237,
+        "duration": 42.200000047683716,
+        "transferSize": 476538
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/midseason-footsteps-loop.wav",
+        "type": "audio",
+        "startTime": 28966.19999998808,
+        "duration": 44.39999997615814,
+        "transferSize": 297530
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/fireworks.m4a",
+        "type": "audio",
+        "startTime": 28966.30000001192,
+        "duration": 44.19999998807907,
+        "transferSize": 100062
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/awards-celebration.m4a",
+        "type": "audio",
+        "startTime": 28966.399999976158,
+        "duration": 43.10000002384186,
+        "transferSize": 52640
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/ui-tap.wav",
+        "type": "audio",
+        "startTime": 28966.5,
+        "duration": 43.19999998807907,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/ui-tap.wav",
+        "type": "audio",
+        "startTime": 28966.599999964237,
+        "duration": 45.60000002384186,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/ui-tap.wav",
+        "type": "audio",
+        "startTime": 28966.69999998808,
+        "duration": 46.89999997615814,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/stat-step-tap-loud.m4a",
+        "type": "audio",
+        "startTime": 28966.899999976158,
+        "duration": 45.19999998807907,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/stat-step-tap-loud.m4a",
+        "type": "audio",
+        "startTime": 28967,
+        "duration": 46.5,
+        "transferSize": 300
+      },
+      {
+        "url": "http://localhost:8092/assets/?unstable_path=.%2Fassets%2Faudio%2Fsfx/stat-step-tap-loud.m4a",
+        "type": "audio",
+        "startTime": 28967,
+        "duration": 47.89999997615814,
+        "transferSize": 2322
+      },
+      {
+        "url": "http://localhost:8092/?mute=1",
+        "method": "GET",
+        "type": "navigation",
+        "startTime": 0,
+        "duration": 170.69999998807907,
+        "transferSize": 5229
+      }
+    ]
+  },
+  "context": {
+    "agentId": "c9061292-5986-4d58-8753-3b12fcfa6919",
+    "cwd": "/Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager",
+    "workspaceId": "wks_5cc4456544839711",
+    "browserId": "1a8485d5-4d4c-4f4e-8a33-eb97176f323d"
+  }
+}

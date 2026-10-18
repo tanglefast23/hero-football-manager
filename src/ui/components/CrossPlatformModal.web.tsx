@@ -134,8 +134,14 @@ export function CrossPlatformModal({
   useEffect(() => {
     if (!visible || typeof document === 'undefined') return undefined;
     const dismissOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape')
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        const layer = layerRef.current as unknown as HTMLElement | null;
+        const layers = document.querySelectorAll('[data-hfm-modal]');
+        if (layer === null || layers[layers.length - 1] !== layer) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
         onRequestCloseRef.current?.(undefined as never);
+      }
     };
     document.addEventListener('keydown', dismissOnEscape);
     return () => document.removeEventListener('keydown', dismissOnEscape);

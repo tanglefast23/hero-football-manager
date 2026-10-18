@@ -1,0 +1,59 @@
+┌─────────┬───────────────────┬───────────┬────────────┬───────────────┬─────────┬──────┬───────┬────────┬──────────┬──────────────┬────────────────────┬───────────────┐
+│ (index) │ opponent          │ formation │ mentality  │ energyUse     │ matches │ wins │ draws │ losses │ goalsFor │ goalsAgainst │ meanFinalCondition │ pointsPerGame │
+├─────────┼───────────────────┼───────────┼────────────┼───────────────┼─────────┼──────┼───────┼────────┼──────────┼──────────────┼────────────────────┼───────────────┤
+│ 0       │ 'Hollow Union'    │ '4-4-2'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 2    │ 5     │ 5      │ 17       │ 25           │ 57.1               │ 0.92          │
+│ 1       │ 'Hollow Union'    │ '4-4-2'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 3    │ 1     │ 8      │ 13       │ 27           │ 22.7               │ 0.83          │
+│ 2       │ 'Hollow Union'    │ '4-4-2'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 1    │ 2     │ 9      │ 12       │ 29           │ 2.1                │ 0.42          │
+│ 3       │ 'Hollow Union'    │ '4-4-2'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 1    │ 3     │ 8      │ 16       │ 31           │ 50.9               │ 0.5           │
+│ 4       │ 'Hollow Union'    │ '4-4-2'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 4    │ 2     │ 6      │ 22       │ 31           │ 14.6               │ 1.17          │
+│ 5       │ 'Hollow Union'    │ '4-4-2'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 0    │ 1     │ 11     │ 9        │ 41           │ 1.2                │ 0.08          │
+│ 6       │ 'Hollow Union'    │ '4-3-3'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 2    │ 4     │ 6      │ 11       │ 18           │ 56.9               │ 0.83          │
+│ 7       │ 'Hollow Union'    │ '4-3-3'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 2    │ 1     │ 9      │ 11       │ 24           │ 23.2               │ 0.58          │
+│ 8       │ 'Hollow Union'    │ '4-3-3'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 1    │ 2     │ 9      │ 11       │ 31           │ 1.8                │ 0.42          │
+│ 9       │ 'Hollow Union'    │ '4-3-3'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 3    │ 3     │ 6      │ 16       │ 21           │ 51.4               │ 1             │
+│ 10      │ 'Hollow Union'    │ '4-3-3'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 1    │ 2     │ 9      │ 12       │ 27           │ 14.3               │ 0.42          │
+│ 11      │ 'Hollow Union'    │ '4-3-3'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 1    │ 2     │ 9      │ 8        │ 32           │ 1.3                │ 0.42          │
+│ 12      │ 'Hollow Union'    │ '3-4-3'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 2    │ 5     │ 5      │ 16       │ 18           │ 46.8               │ 0.92          │
+│ 13      │ 'Hollow Union'    │ '3-4-3'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 3    │ 3     │ 6      │ 14       │ 21           │ 16.9               │ 1             │
+│ 14      │ 'Hollow Union'    │ '3-4-3'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 0    │ 1     │ 11     │ 8        │ 27           │ 2.7                │ 0.08          │
+│ 15      │ 'Hollow Union'    │ '3-4-3'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 4    │ 3     │ 5      │ 23       │ 26           │ 45.3               │ 1.25          │
+│ 16      │ 'Hollow Union'    │ '3-4-3'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 2    │ 3     │ 7      │ 14       │ 32           │ 12.9               │ 0.75          │
+│ 17      │ 'Hollow Union'    │ '3-4-3'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 1    │ 2     │ 9      │ 13       │ 39           │ 1.5                │ 0.42          │
+│ 18      │ 'Ashford Olympic' │ '4-4-2'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 7    │ 5     │ 0      │ 17       │ 9            │ 60.1               │ 2.17          │
+│ 19      │ 'Ashford Olympic' │ '4-4-2'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 4    │ 4     │ 4      │ 8        │ 8            │ 24.9               │ 1.33          │
+│ 20      │ 'Ashford Olympic' │ '4-4-2'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 5    │ 2     │ 5      │ 13       │ 16           │ 2.3                │ 1.42          │
+│ 21      │ 'Ashford Olympic' │ '4-4-2'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 7    │ 2     │ 3      │ 24       │ 8            │ 53.7               │ 1.92          │
+│ 22      │ 'Ashford Olympic' │ '4-4-2'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 9    │ 1     │ 2      │ 18       │ 7            │ 17.1               │ 2.33          │
+│ 23      │ 'Ashford Olympic' │ '4-4-2'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 2    │ 3     │ 7      │ 9        │ 16           │ 1.6                │ 0.75          │
+│ 24      │ 'Ashford Olympic' │ '4-3-3'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 6    │ 4     │ 2      │ 14       │ 6            │ 57.2               │ 1.83          │
+│ 25      │ 'Ashford Olympic' │ '4-3-3'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 5    │ 4     │ 3      │ 11       │ 9            │ 22.9               │ 1.58          │
+│ 26      │ 'Ashford Olympic' │ '4-3-3'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 3    │ 5     │ 4      │ 6        │ 11           │ 2                  │ 1.17          │
+│ 27      │ 'Ashford Olympic' │ '4-3-3'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 6    │ 4     │ 2      │ 16       │ 9            │ 53.4               │ 1.83          │
+│ 28      │ 'Ashford Olympic' │ '4-3-3'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 6    │ 3     │ 3      │ 10       │ 11           │ 17.3               │ 1.75          │
+│ 29      │ 'Ashford Olympic' │ '4-3-3'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 4    │ 3     │ 5      │ 7        │ 10           │ 1.7                │ 1.25          │
+│ 30      │ 'Ashford Olympic' │ '3-4-3'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 8    │ 2     │ 2      │ 24       │ 12           │ 48.4               │ 2.17          │
+│ 31      │ 'Ashford Olympic' │ '3-4-3'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 1    │ 5     │ 6      │ 10       │ 17           │ 17.4               │ 0.67          │
+│ 32      │ 'Ashford Olympic' │ '3-4-3'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 2    │ 2     │ 8      │ 5        │ 17           │ 3.5                │ 0.67          │
+│ 33      │ 'Ashford Olympic' │ '3-4-3'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 4    │ 0     │ 8      │ 15       │ 19           │ 45.9               │ 1             │
+│ 34      │ 'Ashford Olympic' │ '3-4-3'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 4    │ 4     │ 4      │ 10       │ 11           │ 13.7               │ 1.33          │
+│ 35      │ 'Ashford Olympic' │ '3-4-3'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 2    │ 2     │ 8      │ 7        │ 23           │ 2.5                │ 0.67          │
+│ 36      │ 'Zircon Casuals'  │ '4-4-2'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 11   │ 1     │ 0      │ 37       │ 3            │ 58.9               │ 2.83          │
+│ 37      │ 'Zircon Casuals'  │ '4-4-2'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 12   │ 0     │ 0      │ 47       │ 5            │ 24.2               │ 3             │
+│ 38      │ 'Zircon Casuals'  │ '4-4-2'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 12   │ 0     │ 0      │ 30       │ 1            │ 2                  │ 3             │
+│ 39      │ 'Zircon Casuals'  │ '4-4-2'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 12   │ 0     │ 0      │ 42       │ 3            │ 53                 │ 3             │
+│ 40      │ 'Zircon Casuals'  │ '4-4-2'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 11   │ 1     │ 0      │ 40       │ 6            │ 16.9               │ 2.83          │
+│ 41      │ 'Zircon Casuals'  │ '4-4-2'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 12   │ 0     │ 0      │ 34       │ 2            │ 1.5                │ 3             │
+│ 42      │ 'Zircon Casuals'  │ '4-3-3'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 12   │ 0     │ 0      │ 43       │ 1            │ 55.5               │ 3             │
+│ 43      │ 'Zircon Casuals'  │ '4-3-3'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 11   │ 1     │ 0      │ 23       │ 1            │ 21                 │ 2.83          │
+│ 44      │ 'Zircon Casuals'  │ '4-3-3'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 8    │ 4     │ 0      │ 15       │ 1            │ 2                  │ 2.33          │
+│ 45      │ 'Zircon Casuals'  │ '4-3-3'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 11   │ 1     │ 0      │ 48       │ 3            │ 50.8               │ 2.83          │
+│ 46      │ 'Zircon Casuals'  │ '4-3-3'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 12   │ 0     │ 0      │ 42       │ 2            │ 15.8               │ 3             │
+│ 47      │ 'Zircon Casuals'  │ '4-3-3'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 12   │ 0     │ 0      │ 35       │ 2            │ 1.7                │ 3             │
+│ 48      │ 'Zircon Casuals'  │ '3-4-3'   │ 'BALANCED' │ 'SAVE_ENERGY' │ 12      │ 12   │ 0     │ 0      │ 52       │ 2            │ 48.6               │ 3             │
+│ 49      │ 'Zircon Casuals'  │ '3-4-3'   │ 'BALANCED' │ 'BALANCED'    │ 12      │ 11   │ 1     │ 0      │ 38       │ 1            │ 18.9               │ 2.83          │
+│ 50      │ 'Zircon Casuals'  │ '3-4-3'   │ 'BALANCED' │ 'ALL_OUT'     │ 12      │ 12   │ 0     │ 0      │ 44       │ 2            │ 3.6                │ 3             │
+│ 51      │ 'Zircon Casuals'  │ '3-4-3'   │ 'ATTACK'   │ 'SAVE_ENERGY' │ 12      │ 12   │ 0     │ 0      │ 65       │ 2            │ 46.7               │ 3             │
+│ 52      │ 'Zircon Casuals'  │ '3-4-3'   │ 'ATTACK'   │ 'BALANCED'    │ 12      │ 12   │ 0     │ 0      │ 52       │ 4            │ 14.1               │ 3             │
+│ 53      │ 'Zircon Casuals'  │ '3-4-3'   │ 'ATTACK'   │ 'ALL_OUT'     │ 12      │ 11   │ 1     │ 0      │ 33       │ 3            │ 3                  │ 2.83          │
+└─────────┴───────────────────┴───────────┴────────────┴───────────────┴─────────┴──────┴───────┴────────┴──────────┴──────────────┴────────────────────┴───────────────┘
+TACTICS_PROBE_OK 648 matches; immutable inputs and deterministic repeat passed

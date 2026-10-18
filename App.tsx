@@ -260,6 +260,7 @@ import { assistantFiction } from './src/ui/assistant-fiction';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
 import { useSuspendFlush } from './src/ui/use-suspend-flush';
+import { installPlaytestBridge } from './src/ui/playtest-bridge';
 import {
   developerModeAvailable as developerModeAvailableForSurface,
   insideDesktopShell,
@@ -451,6 +452,10 @@ function requestedQaRoot(
 export default function App() {
   const [qaBypassed, setQaBypassed] = useState(false);
   const [gameGeneration, setGameGeneration] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    return installPlaytestBridge(window, useM1Store.getState, Platform.OS);
+  }, []);
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
   // QA roots are available in development and static web review exports, where
   // __DEV__ is false. Native Release builds always continue to the real game,
@@ -1699,7 +1704,10 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
       }))
       .then(async (repositories) => {
         if (!active) return undefined;
-        preferencesRepositoryRef.current = repositories.preferencesRepository;
+        // Never let later settings or career effects persist unread defaults.
+        preferencesRepositoryRef.current = repositories.canPersist
+          ? repositories.preferencesRepository
+          : null;
         developerSaveRepositoryRef.current =
           repositories.developerSaveRepository;
         // Open in the device's language, once ever, before anything is drawn.
@@ -2668,25 +2676,30 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
     if (matchdayPreloadKey === null) return null;
     const career = useM1Store.getState().career;
     if (career === null) return null;
-    const matchday = activeCareerMatchday(career);
-    if (matchday === undefined || matchday.kind !== 'league') return null;
-    const rivals = matchday.fixtures.filter(
-      (candidate) => candidate.id !== matchday.fixture.id,
-    );
-    if (rivals.length === 0) return null;
-    return {
-      rivals,
-      // Only the rival clubs: the user's own team is not an input to any of
-      // these fixtures, and rebuilding it here would churn on every swap.
-      teams: buildCareerMatchTeams(career, [
-        ...new Set(
-          rivals.flatMap((candidate) => [
-            candidate.homeClubId,
-            candidate.awayClubId,
-          ]),
-        ),
-      ]),
-    };
+    try {
+      const matchday = activeCareerMatchday(career);
+      if (matchday === undefined || matchday.kind !== 'league') return null;
+      const rivals = matchday.fixtures.filter(
+        (candidate) => candidate.id !== matchday.fixture.id,
+      );
+      if (rivals.length === 0) return null;
+      return {
+        rivals,
+        // Only the rival clubs: the user's own team is not an input to any of
+        // these fixtures, and rebuilding it here would churn on every swap.
+        teams: buildCareerMatchTeams(career, [
+          ...new Set(
+            rivals.flatMap((candidate) => [
+              candidate.homeClubId,
+              candidate.awayClubId,
+            ]),
+          ),
+        ]),
+      };
+    } catch {
+      // Preloading is optional; a refused squad must not trap crash recovery.
+      return null;
+    }
   }, [matchdayPreloadKey]);
 
   useRivalPreload(

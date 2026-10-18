@@ -363,6 +363,42 @@ describe('career squad integration', () => {
     expect(selectedIds).not.toContain(tiredStarterId);
   });
 
+  it.each([false, true])(
+    'only selects a strong reserve hero when licensed is %s',
+    (licensed) => {
+      const state = career();
+      const opponentId = CLUB_IDS[1];
+      const reserveId = `${opponentId}-p11`;
+      const prepared = {
+        ...state,
+        players: state.players.map((player) =>
+          player.id === reserveId
+            ? {
+                ...player,
+                power: 'SUPER_SPEED' as const,
+                licensed,
+                attrs: {
+                  pac: 150,
+                  sho: 150,
+                  pas: 150,
+                  def: 150,
+                  tec: 150,
+                  sta: 150,
+                  ref: 150,
+                },
+              }
+            : player,
+        ),
+      };
+
+      const team = buildCareerTeamDef(prepared, opponentId);
+      expect(team.players.some((player) => player.id === reserveId)).toBe(
+        licensed,
+      );
+      expect(team.players).toHaveLength(11);
+    },
+  );
+
   it('persists same-role bench swaps and rejects unavailable replacements', () => {
     const initial = career();
     const starterId = `${CLUB_IDS[0]}-p10`;

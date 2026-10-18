@@ -12,6 +12,7 @@ import {
   CREATED_APPEARANCE_OPTION_COUNTS as APPEARANCE_OPTIONS,
   CREATION_STAT_MAX,
   CREATION_STAT_MIN,
+  CREATED_PLAYER_ROOKIE_WAGE,
   DEFAULT_CREATED_APPEARANCE,
   DEFAULT_CREATION_RATINGS,
   OUTFIELD_CREATION_STATS,
@@ -37,7 +38,7 @@ import { PixelText } from '../components/PixelText';
 import { KitEditorModal, DEFAULT_CLUB_KIT } from '../KitEditorModal';
 import { ClubKitProvider } from '../club-kit-context';
 import type { ClubKitChoice } from '../../render/sprites/club-kit';
-import { useCopy } from '../../i18n';
+import { formatMoneyForCopy, useCopy } from '../../i18n';
 
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
@@ -438,7 +439,9 @@ export function CharacterCreationScreen({
         <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
           <StatusChip label={t('characterCreation.positionFwd')} selected />
           <PixelText className="shrink text-sm uppercase text-ink/50">
-            {t('creation.rookieTerms')}
+            {t('creation.rookieTerms', {
+              wage: formatMoneyForCopy(t, CREATED_PLAYER_ROOKIE_WAGE),
+            })}
           </PixelText>
         </View>
 

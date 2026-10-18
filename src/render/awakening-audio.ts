@@ -5,7 +5,11 @@
 // Fail-soft like the other render-ring audio modules: an out-of-date native
 // client or a bad asset disables this cue without blocking the cutscene.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
-import { GAME_AUDIO_PLAYER_OPTIONS } from './audio-lifecycle';
+import {
+  GAME_AUDIO_PLAYER_OPTIONS,
+  audioIsSuspended,
+  registerAudioOwner,
+} from './audio-lifecycle';
 
 const ANGELS_SOURCE: AudioSource = require('../../assets/audio/sfx/awakening-angels.m4a');
 const HARPS_SOURCE: AudioSource = require('../../assets/audio/sfx/awakening-harps.m4a');
@@ -182,8 +186,12 @@ function playFromStart(
   isRetry = false,
 ): Promise<boolean> {
   const player = getPlayer();
-  if (!player) return Promise.resolve(false);
+  if (!player || !shouldStart() || audioIsSuspended())
+    return Promise.resolve(false);
+  const isCurrent = () =>
+    player === getPlayer() && shouldStart() && !audioIsSuspended();
   const recoverOr = (label: string, error: unknown): Promise<boolean> => {
+    if (!isCurrent()) return Promise.resolve(false);
     if (!isRetry && tryRecoverAwakeningAudio()) {
       return playFromStart(getPlayer, context, shouldStart, true);
     }
@@ -194,7 +202,7 @@ function playFromStart(
     return player
       .seekTo(0)
       .then(() => {
-        if (!shouldStart()) return false;
+        if (!isCurrent()) return false;
         player.play();
         return true;
       })
@@ -208,7 +216,7 @@ function playFromStart(
 
 export function playAwakeningAscension(): void {
   initAwakeningAudio();
-  if (!ready) return;
+  if (!ready || audioIsSuspended()) return;
   stopAwakeningLimp();
 
   playbackGeneration += 1;
@@ -238,7 +246,7 @@ export function playAwakeningAscension(): void {
 
 export function playAwakeningLimp(): void {
   initAwakeningAudio();
-  if (!ready || !limpPlayer) return;
+  if (!ready || !limpPlayer || audioIsSuspended()) return;
   stopAwakeningAscension();
   limpPlaybackGeneration += 1;
   const generation = limpPlaybackGeneration;
@@ -261,6 +269,15 @@ export function stopAwakeningAscension(): void {
   pausePlayer(angelsPlayer, 'angels');
   pausePlayer(harpsPlayer, 'harps');
 }
+
+registerAudioOwner({
+  suspend: () => {
+    stopAwakeningLimp();
+    stopAwakeningAscension();
+  },
+  // These cues follow cutscene beats; replaying them on return would be late.
+  resume: () => undefined,
+});
 
 function releasePlayer(player: AudioPlayer | null, context: string): void {
   if (!player) return;

@@ -23,6 +23,8 @@ Kairosoft-style soccer club management sim with superpowered players. iOS-first 
 
 ## Preview & QA hygiene (background, silent, cleaned up)
 
+For browser careers, strategy checks, saved-game blockers, or playtest reports, read [docs/qa/game-playtest.md](docs/qa/game-playtest.md). Use its maintained browser helper and read-only checkpoint validator.
+
 Verification must never take the Mac away from Joe: no stolen focus, no stolen mouse or keyboard, no full-screen window, and above all no game audio. The web build auto-plays looping music, and tabs, dev servers and simulators all outlive your turn.
 
 1. **Headless first.** `npx jest <affected test paths>` plus `npx tsc --noEmit` answer most questions with no UI at all. Do NOT reach for bare `npm test` as the default — it runs every suite including `m2-managed-recovery-soak` and the balance rails, which the rule above forbids for UI, copy, art or audio-only work. Open a browser only when the claim is about what renders or what the player hears.

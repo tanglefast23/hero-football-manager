@@ -32,6 +32,7 @@ const MUSIC_VOLUME = 0.5;
 
 const players = new Map<Bed, AudioPlayer>();
 let activeBed: Bed | null = null;
+let playbackGeneration = 0;
 let masterVolume = 1;
 let ready = false;
 let initAttempted = false;
@@ -114,6 +115,7 @@ function tryRecoverCelebrationAudio(): boolean {
   const now = Date.now();
   if (now - lastRecoveryAt < RECOVERY_COOLDOWN_MS) return false;
   lastRecoveryAt = now;
+  playbackGeneration += 1;
   for (const [, player] of players) {
     try {
       player.remove();
@@ -138,9 +140,17 @@ function pause(bed: Bed): void {
 }
 
 function start(bed: Bed, isRetry = false): void {
+  const generation = ++playbackGeneration;
   const player = players.get(bed);
   if (player === undefined || audioIsSuspended()) return;
+  const isCurrent = () =>
+    generation === playbackGeneration &&
+    players.get(bed) === player &&
+    activeBed === bed &&
+    ready &&
+    !audioIsSuspended();
   const recoverOr = (label: string, error: unknown): void => {
+    if (!isCurrent()) return;
     if (!isRetry && tryRecoverCelebrationAudio()) {
       start(bed, true);
       return;
@@ -152,7 +162,7 @@ function start(bed: Bed, isRetry = false): void {
       .seekTo(0)
       .then(() => {
         // A later call may have taken the stage while the seek was in flight.
-        if (activeBed !== bed) return;
+        if (!isCurrent()) return;
         player.play();
       })
       .catch((error: unknown) => recoverOr(`${bed} seek/play failed`, error));
@@ -190,6 +200,7 @@ export function playEndingFarewell(): void {
  * would play on over the season boundary behind it.
  */
 export function stopCelebrationAudio(): void {
+  playbackGeneration += 1;
   if (activeBed === null) return;
   pause(activeBed);
   activeBed = null;
@@ -202,6 +213,7 @@ export function stopCelebrationAudio(): void {
  */
 registerAudioOwner({
   suspend: () => {
+    playbackGeneration += 1;
     if (!ready || activeBed === null) return;
     pause(activeBed);
   },
@@ -212,6 +224,7 @@ registerAudioOwner({
 });
 
 export function teardownCelebrationAudio(): void {
+  playbackGeneration += 1;
   for (const [bed, player] of players) {
     try {
       player.pause();

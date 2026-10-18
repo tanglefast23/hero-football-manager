@@ -57,6 +57,7 @@ export {
 export { REPLAY_SCHEMA_VERSION } from './replay-codec';
 export {
   createPreferencesRepository,
+  InvalidPreferencesError,
   availableFormationIds,
   DEFAULT_APP_PREFERENCES,
   rememberInitialFormation,

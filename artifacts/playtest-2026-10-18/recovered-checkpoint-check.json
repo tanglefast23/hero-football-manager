@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "engineVersion": "m2.9",
+  "checkpointEngineVersion": "m2.9",
+  "engineVersionMatches": true,
+  "seed": 3521330691,
+  "season": 3,
+  "week": 6,
+  "phase": "manage",
+  "normalizedByCodec": false,
+  "teamsChecked": 10,
+  "failures": [],
+  "matchday": {
+    "kind": "league",
+    "fixtureId": "s3-r2-m1",
+    "seed": 3723454977
+  },
+  "simulation": {
+    "status": "skipped",
+    "reason": "Career is not in matchday phase."
+  },
+  "source": {
+    "commit": "17577f73205890dd20fc1a935c75c036e8e0b1ed",
+    "files": 1137,
+    "sha256": "b494aa790e1ac4c93ef77d1481d3cd7852cc304161def23aa65c89359de79208"
+  },
+  "input": {
+    "file": "/Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/artifacts/playtest-2026-10-18/recovered-checkpoint.json",
+    "sha256": "2f7c8ec26d1016a584d4eaf1781107c947b0e667422eb50fe03817c8f1e15c2a"
+  }
+}

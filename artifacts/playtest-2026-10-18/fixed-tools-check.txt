@@ -1,0 +1,5 @@
+
+> hero-football-manager@1.0.0 qa:tools:check
+> node scripts/qa/test-playtest-tools.cjs
+
+PASS: checkpoint codec, real match policy, immutable input, lineup failure, guarded browser controls, bounded waits, logs, and export chunks.

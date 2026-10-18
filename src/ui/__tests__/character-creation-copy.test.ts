@@ -70,9 +70,9 @@ describe('first-hire screen copy', () => {
     expect(source).toContainSource(
       'flex-row flex-wrap items-center justify-between gap-2',
     );
-    expect(source).toContainSource("t('creation.rookieTerms')");
+    expect(source).toContainSource("t('creation.rookieTerms', {");
     expect(loadCatalog('en').strings['creation.rookieTerms']).toBe(
-      '$180 / week · 1 season',
+      '{wage} / week · 1 season',
     );
   });
 

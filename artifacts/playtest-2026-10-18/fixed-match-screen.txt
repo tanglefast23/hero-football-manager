@@ -1,0 +1,18 @@
+- document "Hero Football Manager"
+  - text: "You need to enable JavaScript to run this app."
+  - text: "Match complete"
+  - text: "Full-time report"
+  - button "Open settings" [ref=@e1]
+    - text: "⚙"
+  - text: "Full time"
+  - text: "D4 · County League"
+  - text: "Bramble Rovers"
+  - text: "We Won!"
+  - text: "4"
+  - text: "–"
+  - text: "2"
+  - text: "Ulric Rockets"
+  - text: "Never in doubt. I'm lying. It was all doubt."
+  - img "Mei Chen is celebrating. \"Never in doubt. I'm lying. It was all doubt.\""
+  - button "Continue to the Home screen and review the financial report" [ref=@e2]
+    - text: "Back to the office ▸"

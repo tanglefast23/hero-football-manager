@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-19",
+  "title": "19 October follow-up: the blocked career now continues",
+  "paragraphs": [
+    "The original 39-match run remains recorded below. It ended at Season 3, Week 5. It did not beat D1 or the Hero Cup.",
+    "After the local fixes, I reopened that same saved career in the muted background browser. Quick Match completed s3-r1-m1 as a 4–2 win over Ulric Rockets.",
+    "The career advanced to Season 3, Week 6, with $40,312 and 49 TP. A full reload kept the result. This is one additional real browser match.",
+    "The coach cards now include the Level 2 Coaching Office bonus: Nia Thompson's stored Level 2/$600 candidate showed Level 3/$900 head wage and $450 assistant wage. Both roles were occupied, so I did not perform a new browser hire. Focused tests verify the actual head and assistant hire wages.",
+    "The rookie creation screen showed $153/week on a separate fresh origin. All seven catalogs use the real wage value.",
+    "In a separate UI fixture, the One big night out refusal showed 7 loyalty and 11 morale for the asker, plus 2 loyalty and 3 morale for every other player. Clicking Refuse changed Ken Ash from 65 to 58 loyalty and 64 to 53 morale. This fixture is not career progress.",
+    "Grok reviewed the report and fixes. I accepted the confirmed fixes, kept intentional REF display behavior, and deferred academy resale balance changes. Muse and Opus were unavailable because their providers reported usage limits.",
+    "Grok caught three checkpoint tool edge cases. The final check covers missing careers, codec failures, engine differences, unavailable matches, and opening-match power removal. His earlier Quick Match energy claim was corrected: only the opponent receives automatic energy changes in a user-controlled Quick Match.",
+    "Passed: 206 focused Jest tests across 12 suites; TypeScript; the permanent tool self-check; the captured blocker check; and read-only checkpoint validation with one production-engine simulation. No scoreline goldens, balance changes, new dependencies, commits, pushes, or releases were added.",
+    "The permanent tools are scripts/qa/playtest-browser.js and scripts/qa/check-career.cjs. The read-only bridge requires a local ?qa=playtest URL. AGENTS.md points to docs/qa/game-playtest.md. Phone, Tailscale, and Practice Battle instructions belong to the user's other game and were excluded.",
+    "Limits: D1 and Hero Cup wins remain unproved. No phone, native, Steam, audible audio, or physical-device performance test was performed. A team with too few legal available players can still be refused; the optional preload now lets the title recover."
+  ],
+  "table": {
+    "headers": [
+      "Finding",
+      "Status after local fixes",
+      "Verification or decision"
+    ],
+    "rows": [
+      [
+        "F01",
+        "Fixed locally",
+        "Same save completed 4–2, reached S3 W6, and survived reload."
+      ],
+      [
+        "F02",
+        "Kept; owner decision",
+        "REF display bonus is intentional. No display or balance change."
+      ],
+      [
+        "F03",
+        "Fixed locally",
+        "Shared arrival quote; rendered bonus level/wage; head and assistant hire tests passed."
+      ],
+      [
+        "F04",
+        "Fixed locally",
+        "Shared full-cost copy in card and lapse warning; UI refusal matched asker cost; both difficulty tests passed."
+      ],
+      [
+        "F05",
+        "Deferred",
+        "One profitable academy sale does not establish an unlimited money exploit."
+      ],
+      [
+        "F06",
+        "Fixed locally",
+        "Rookie wage comes from the real constant; browser displayed $153."
+      ],
+      [
+        "F07",
+        "Guide corrected",
+        "Tier 5 +18/+10 and lower raw efficiency documented. Training rules unchanged."
+      ],
+      [
+        "F08",
+        "Copy corrected",
+        "Generic scouting text says 2–4 weeks in all seven catalogs. Exact mission slips unchanged."
+      ]
+    ]
+  },
+  "figures": [
+    [
+      "05-fixed-career-4-2.png",
+      "The same career completed its previously blocked match: Bramble Rovers 4–2 Ulric Rockets. Background browser, 900 × 600."
+    ],
+    [
+      "06-fixed-squad-refusal.png",
+      "Separate synthetic UI fixture: full squad refusal costs are visible. Background browser, 1280 × 800. This is not career progress."
+    ]
+  ]
+}

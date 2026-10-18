@@ -446,6 +446,7 @@ function fresherOpponentLineupIds(
           candidate.role === role &&
           !selected.has(candidate.id) &&
           isAvailableForSelection(candidate) &&
+          (candidate.power === undefined || candidate.licensed) &&
           (!candidate.licensed || licensedHeroes < heroLimit),
       )
       .sort((left, right) => {
