@@ -17,9 +17,9 @@
     element.muted = true;
     element.pause();
   });
-  // Start each delay in a fresh task. Long timer chains can be throttled to
-  // one wake-up per minute in an occluded browser, even for a 450 ms guard.
-  const pause = (ms) =>
+  // Fallback for browsers that block workers. A fresh task avoids nested
+  // timer clamps, but an occluded page can still throttle this clock.
+  const pagePause = (ms) =>
     new Promise((resolve) => {
       const channel = new MessageChannel();
       channel.port1.onmessage = () => {
@@ -29,6 +29,52 @@
       };
       channel.port2.postMessage(null);
     });
+  // Keep the 450 ms input guards without relying on the page's timer budget.
+  // Each worker owns one delay and is released before the promise resolves.
+  const pause = (ms = 450) => {
+    if (!Number.isFinite(ms) || ms < 0 || ms > 30000)
+      throw Error('Delay must be 0–30000 ms.');
+    if (
+      typeof Worker !== 'function' ||
+      typeof Blob !== 'function' ||
+      typeof URL === 'undefined' ||
+      typeof URL.createObjectURL !== 'function' ||
+      typeof URL.revokeObjectURL !== 'function'
+    )
+      return pagePause(ms);
+    return new Promise((resolve) => {
+      let worker, url;
+      let finished = false;
+      const finish = (fallback = false) => {
+        if (finished) return;
+        finished = true;
+        if (worker) {
+          worker.onmessage = null;
+          worker.onerror = null;
+          worker.terminate();
+        }
+        if (url) URL.revokeObjectURL(url);
+        if (fallback) pagePause(ms).then(resolve);
+        else resolve();
+      };
+      try {
+        url = URL.createObjectURL(
+          new Blob(
+            [
+              'self.onmessage = ({data}) => setTimeout(() => self.postMessage(null), data);',
+            ],
+            { type: 'text/javascript' },
+          ),
+        );
+        worker = new Worker(url);
+        worker.onmessage = () => finish();
+        worker.onerror = () => finish(true);
+        worker.postMessage(ms);
+      } catch {
+        finish(true);
+      }
+    });
+  };
   const actions = [];
   let busy = false;
   let lastClick = 0;
@@ -136,6 +182,7 @@
       })),
     tap,
     waitFor,
+    pause,
     log: () => JSON.parse(JSON.stringify(actions)),
     checkpoint: () => ({
       ...read(),

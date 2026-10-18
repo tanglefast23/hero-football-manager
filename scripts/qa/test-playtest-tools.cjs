@@ -151,8 +151,135 @@ async function main() {
   const checkpoint = { large: 'x'.repeat(90000) };
   assert.deepEqual(JSON.parse(helper.chunks(checkpoint).join('')), checkpoint);
   assert.throws(() => helper.chunks(checkpoint, 46000));
+
+  const workerWaits = [],
+    openUrls = new Map(),
+    fallbackTimers = [];
+  let terminatedWorkers = 0,
+    workerMode = 'success',
+    nextUrl = 0,
+    holdFallback = false;
+  class ClockWorker {
+    constructor(url) {
+      if (workerMode === 'blocked') throw Error('worker blocked');
+      this.blob = openUrls.get(url);
+      assert.ok(this.blob);
+    }
+    postMessage(ms) {
+      workerWaits.push(ms);
+      if (workerMode === 'error') {
+        setImmediate(() => this.onerror?.({ message: 'clock failed' }));
+        return;
+      }
+      this.blob
+        .text()
+        .then((source) => {
+          let scheduled = false;
+          const self = {
+            postMessage: (data) => this.onmessage?.({ data }),
+          };
+          vm.runInNewContext(source, {
+            self,
+            setTimeout: (callback, delay) => {
+              assert.equal(delay, ms, 'the worker must use the posted delay');
+              scheduled = true;
+              setImmediate(callback);
+            },
+          });
+          self.onmessage({ data: ms });
+          assert.ok(
+            scheduled,
+            'the blob must schedule its reply through a timer',
+          );
+        })
+        .catch((error) => {
+          console.error(error);
+          process.exitCode = 1;
+          this.onerror?.(error);
+        });
+    }
+    terminate() {
+      terminatedWorkers += 1;
+    }
+  }
+  const workerContext = {
+    ...context,
+    window: { __HFM_QA__: context.window.__HFM_QA__ },
+    Worker: ClockWorker,
+    Blob,
+    setTimeout: (resolve, ms) => {
+      waits.push(ms);
+      if (holdFallback) fallbackTimers.push(resolve);
+      else resolve();
+    },
+    URL: {
+      createObjectURL: (blob) => {
+        const url = `blob:qa-${nextUrl++}`;
+        openUrls.set(url, blob);
+        return url;
+      },
+      revokeObjectURL: (url) => assert.ok(openUrls.delete(url)),
+    },
+  };
+  vm.runInNewContext(
+    fs.readFileSync(require.resolve('./playtest-browser.js'), 'utf8'),
+    workerContext,
+  );
+  const workerHelper = workerContext.window.HFMPlaytest;
+  elements = [button('Go')];
+  const fallbackWaitCount = waits.length;
+  const workerTap = workerHelper.tap('Go');
+  assert.equal(clicks, 1, 'worker-backed taps also wait for their guard');
+  await workerTap;
+  assert.equal(clicks, 2);
+  assert.deepEqual(workerWaits, [450, 450]);
+  assert.equal(
+    waits.length,
+    fallbackWaitCount,
+    'worker path uses no page timers',
+  );
+  assert.equal(terminatedWorkers, 2);
+  assert.equal(openUrls.size, 0);
+  await workerHelper.pause(1000);
+  assert.deepEqual(workerWaits, [450, 450, 1000]);
+  assert.equal(terminatedWorkers, 3);
+  assert.equal(openUrls.size, 0);
+  workerMode = 'error';
+  holdFallback = true;
+  let fallbackTapFinished = false;
+  const fallbackTap = workerHelper.tap('Go').then(() => {
+    fallbackTapFinished = true;
+  });
+  const waitForFallbackTimer = async () => {
+    for (let attempt = 0; attempt < 100 && !fallbackTimers.length; attempt += 1)
+      await new Promise(setImmediate);
+    assert.equal(fallbackTimers.length, 1, 'a fallback guard must be queued');
+  };
+  await waitForFallbackTimer();
+  assert.equal(clicks, 2, 'fallback must wait before clicking');
+  fallbackTimers.shift()();
+  await waitForFallbackTimer();
+  assert.equal(clicks, 3, 'worker errors fall back to guarded page timers');
+  assert.equal(
+    fallbackTapFinished,
+    false,
+    'the post-click guard must also wait',
+  );
+  fallbackTimers.shift()();
+  await fallbackTap;
+  assert.equal(terminatedWorkers, 5);
+  assert.equal(openUrls.size, 0);
+  holdFallback = false;
+  workerMode = 'blocked';
+  await workerHelper.tap('Go');
+  assert.equal(clicks, 4, 'blocked worker construction keeps controls usable');
+  assert.equal(openUrls.size, 0);
+  assert.ok(waits.slice(fallbackWaitCount).every((ms) => ms >= 450));
+  assert.throws(() => workerHelper.pause(-1), /Delay must/);
+  assert.throws(() => workerHelper.pause(30001), /Delay must/);
+  assert.throws(() => workerHelper.pause(NaN), /Delay must/);
   console.log(
-    'PASS: checkpoint codec, real match policy, immutable input, lineup failure, guarded browser controls, bounded waits, logs, and export chunks.',
+    'PASS: checkpoint codec, real match policy, immutable input, lineup failure, guarded browser controls, worker cleanup and fallback, bounded waits, logs, and export chunks.',
   );
 }
 main().catch((error) => {

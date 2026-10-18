@@ -27,6 +27,20 @@ Missing, duplicate, disabled, or failing controls stop the action and enter the 
 Use `await HFMPlaytest.waitFor(s => s.screen === 'management')` for a bounded screen wait.
 Inspect the rendered page and browser logs when a wait fails.
 
+The helper keeps both 450 ms input guards. Its short-lived worker clock avoids
+the page timer budget in an occluded browser. Each delay terminates its worker
+and releases its Blob URL. Browsers that block workers use the MessageChannel
+fallback, which can still run slowly in a covered pane. Use
+`await HFMPlaytest.pause(ms)` for driver delays of 0–30000 ms.
+
+A pane can suspend animation frames while still reporting visible and focused.
+If an animation stops responding, probe a fresh `requestAnimationFrame` first.
+If no frame arrives and a screenshot says the tab has not painted, resize the
+background viewport by one pixel, then restore it. Stop repeated clicks first.
+This redraw needs no foreground focus, reload, or game-state change. Record it
+as a QA environment incident. It does not prove normal browser, Steam, or phone
+performance. Keep screenshots at the recorded viewport size.
+
 Read the full roster, finances, facilities, requests, and fixtures with `HFMPlaytest.read()`.
 Use production training previews when checking diminishing returns; displayed ratings can contain presentation bonuses.
 Make purchases, training, lineup changes, and match choices through rendered controls.
