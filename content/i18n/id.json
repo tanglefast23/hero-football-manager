@@ -4049,6 +4049,7 @@
     "store.chooseBidFirst": "Pilih tawaran satu klub dulu sebelum terima, Bos.",
     "store.coachUnavailable": "Pelatih itu sudah tidak tersedia, Bos.",
     "store.heroesOnlyLicense": "Cuma pahlawan yang bisa punya lisensi, Bos.",
+    "store.heroLicenseNeedsCover": "Tak ada pemain bugar untuk menggantikannya. Beri lisensi ke pahlawan cadangan, atau pulihkan atau rekrut pengganti dulu.",
     "store.heroLicensePromiseRequired": "Janji starter {player} membutuhkan Lisensi Pahlawan ini. Akhiri atau ganti janji sebelum mencabutnya.",
     "store.heroLicensePromiseRequired.CAPTAINCY": "Kita menjanjikan jabatan kapten kepada {player} pada Musim {season}. Kapten harus menjadi starter, dan pahlawan starter membutuhkan Lisensi Pahlawan. Akhiri atau ganti janji itu sebelum mencabut lisensi.",
     "store.heroLicensePromiseRequired.GUARANTEED_STARTER": "Kita menjanjikan posisi XI Utama kepada {player} pada Musim {season}. Pahlawan starter membutuhkan Lisensi Pahlawan. Akhiri atau ganti janji itu sebelum mencabut lisensi.",

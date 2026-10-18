@@ -17,6 +17,7 @@ import {
   energyDrainMultiplier,
   energyMovementMultiplier,
   formationRoleForSlot,
+  formationSlotX,
   formationTarget,
   isEnergyUse,
   mentalityTarget,
@@ -65,6 +66,27 @@ describe('match tactics', () => {
     // Sequential grouping would incorrectly draw slot 8 in midfield.
     expect(formationRoleForSlot('5-3-2', 8)).toBe('DEF');
   });
+
+  it.each([
+    ['3-4-3', 'FWD', [9, 10, 8]],
+    ['3-4-3', 'MID', [5, 6, 7, 4]],
+    ['3-4-3', 'DEF', [1, 2, 3]],
+    ['4-3-3', 'FWD', [9, 10, 8]],
+    ['4-4-2', 'FWD', [9, 10]],
+    ['4-4-2', 'MID', [5, 6, 7, 8]],
+    ['5-3-2', 'DEF', [1, 2, 3, 4, 8]],
+  ] as const)(
+    'orders %s %s slots on their actual sides',
+    (formation, role, order) => {
+      const slots = Array.from({ length: 11 }, (_, slot) => slot)
+        .filter((slot) => formationRoleForSlot(formation, slot) === role)
+        .sort(
+          (left, right) =>
+            formationSlotX(formation, left) - formationSlotX(formation, right),
+        );
+      expect(slots).toEqual(order);
+    },
+  );
 
   it('cycles mentality in the agreed balanced, attack, protect order', () => {
     expect(nextMentality('BALANCED')).toBe('ATTACK');

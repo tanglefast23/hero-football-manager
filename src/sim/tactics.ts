@@ -299,6 +299,21 @@ export function formationRoleForSlot(
     : FORMATION_SLOT_ROLES[formation][engineSlot - 1];
 }
 
+/** Team-relative horizontal anchor, for drawing cards on their actual side. */
+export function formationSlotX(
+  formation: FormationId,
+  engineSlot: number,
+): number {
+  if (!Number.isSafeInteger(engineSlot) || engineSlot < 0 || engineSlot > 10) {
+    throw new Error(
+      `formation slot must be an integer from 0 to 10, got ${String(engineSlot)}`,
+    );
+  }
+  return engineSlot === 0
+    ? 0.5
+    : FORMATION_ENGINE_ANCHORS[formation][engineSlot - 1][0];
+}
+
 export function isFormationId(value: unknown): value is FormationId {
   return (
     typeof value === 'string' && FORMATION_IDS.includes(value as FormationId)

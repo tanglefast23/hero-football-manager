@@ -45,6 +45,10 @@ export interface FixtureMatchDayScreenProps {
   viewModel: MatchDayViewModel;
   onBack: () => void;
   onToggleHeroLicense: (playerId: string) => void;
+  onExchangeHeroLicense: (
+    playerId: string,
+    releaseFromPlayerId: string,
+  ) => void;
   onBuyHeroLicense: () => void;
   onSwapStartingPlayer: (starterId: string, replacementId: string) => void;
   onWatchMatch: () => void;
@@ -298,6 +302,7 @@ export function FixtureMatchDayScreen({
   viewModel,
   onBack,
   onToggleHeroLicense,
+  onExchangeHeroLicense,
   onBuyHeroLicense,
   onSwapStartingPlayer,
   onWatchMatch,
@@ -325,6 +330,7 @@ export function FixtureMatchDayScreen({
   const benchTopRef = useRef(0);
   const [hoveredStarterId, setHoveredStarterId] = useState<string | null>(null);
   const [formationPickerOpen, setFormationPickerOpen] = useState(false);
+  const [exchangeFor, setExchangeFor] = useState<string | null>(null);
   const selectedStarter = viewModel.lineup.find(
     (player) => player.id === selectedStarterId,
   );
@@ -506,9 +512,9 @@ export function FixtureMatchDayScreen({
         <View className="absolute inset-x-3 top-1/2 h-px bg-paper/50" />
         <View className="absolute left-1/2 top-0 h-full w-px bg-paper/40" />
         {ROLE_ORDER.map((role) => {
-          const players = viewModel.lineup.filter(
-            (player) => player.formationRole === role,
-          );
+          const players = viewModel.lineup
+            .filter((player) => player.formationRole === role)
+            .sort((left, right) => left.pitchX - right.pitchX);
           return (
             <View
               key={role}
@@ -877,8 +883,19 @@ export function FixtureMatchDayScreen({
                   accessibilityLabel={t('fixtureMatchDay.a11y.heroLicenseFor', {
                     player: hero.playerName,
                   })}
-                  accessibilityState={{ checked: hero.licensed }}
-                  onPress={() => onToggleHeroLicense(hero.playerId)}
+                  accessibilityState={{
+                    checked: hero.licensed,
+                    ...(hero.exchangeHolders === undefined
+                      ? {}
+                      : { expanded: exchangeFor === hero.playerId }),
+                  }}
+                  onPress={() =>
+                    hero.exchangeHolders === undefined
+                      ? onToggleHeroLicense(hero.playerId)
+                      : setExchangeFor((current) =>
+                          current === hero.playerId ? null : hero.playerId,
+                        )
+                  }
                   className={
                     hero.licensed
                       ? 'h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold'
@@ -902,6 +919,36 @@ export function FixtureMatchDayScreen({
                   </PixelText>
                 </View>
               </View>
+              {exchangeFor === hero.playerId &&
+              hero.exchangeHolders !== undefined ? (
+                <View className="mt-3 border-2 border-ink/30 bg-white px-3 py-3">
+                  <Text className="text-sm leading-5 text-ink/80">
+                    {hero.exchangePrompt}
+                  </Text>
+                  <View className="mt-2 gap-2">
+                    {hero.exchangeHolders.map((holder) => (
+                      <Pressable
+                        key={holder.playerId}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${holder.name}, ${holder.role}, ${holder.statusLabel}`}
+                        onPress={() => {
+                          onExchangeHeroLicense(hero.playerId, holder.playerId);
+                          setExchangeFor(null);
+                        }}
+                        className="flex-row items-center justify-between gap-3 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+                        style={{ minHeight: 44 }}
+                      >
+                        <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
+                          {holder.name}
+                        </PixelText>
+                        <PixelText className="text-sm uppercase text-ink/70">
+                          {`${holder.role} · ${holder.statusLabel}`}
+                        </PixelText>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
             </PaperPanel>
           ))
         )}

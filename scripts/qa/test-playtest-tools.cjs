@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const { MessageChannel } = require('node:worker_threads');
 const { checkCareer } = require('./check-career.cjs');
 const { createCareer } = require('../../src/game/career.ts');
 const { createLaunchCareerSetup } = require('../../src/application/launch.ts');
@@ -103,6 +104,7 @@ async function main() {
         selector === 'audio,video' ? [] : elements,
     },
     getComputedStyle: () => ({ visibility: 'visible' }),
+    MessageChannel,
     setTimeout: (resolve, ms) => {
       waits.push(ms);
       resolve();
@@ -124,7 +126,10 @@ async function main() {
     },
   });
   elements = [button('Go')];
-  await helper.tap('Go');
+  const pendingTap = helper.tap('Go');
+  assert.equal(waits.length, 0, 'the guard timer starts in a later task');
+  assert.equal(clicks, 0, 'a tap must wait for its guard');
+  await pendingTap;
   assert.equal(clicks, 1);
   assert.ok(waits.every((ms) => ms >= 450));
   elements = [button('Go'), button('Go')];

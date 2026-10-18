@@ -4049,6 +4049,7 @@
     "store.chooseBidFirst": "Escolha a proposta de um clube antes de aceitar, chefe.",
     "store.coachUnavailable": "Esse treinador não está mais disponível, chefe.",
     "store.heroesOnlyLicense": "Só heróis podem ter licença, chefe.",
+    "store.heroLicenseNeedsCover": "Nenhum jogador em forma pode substituir este herói. Dê a licença a um herói no banco, ou primeiro recupere ou contrate um reserva.",
     "store.heroLicensePromiseRequired": "A promessa de titular de {player} precisa desta Licença de Herói. Encerre ou troque a promessa antes de removê-la.",
     "store.heroLicensePromiseRequired.CAPTAINCY": "Prometemos a faixa de capitão a {player} na temporada {season}. O capitão deve ser titular, e um herói titular precisa de uma Licença de Herói. Encerre ou troque essa promessa antes de remover a licença.",
     "store.heroLicensePromiseRequired.GUARANTEED_STARTER": "Prometemos a {player} um lugar no time titular na temporada {season}. Um herói titular precisa de uma Licença de Herói. Encerre ou troque essa promessa antes de remover a licença.",

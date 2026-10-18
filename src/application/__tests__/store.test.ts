@@ -21,6 +21,7 @@ import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
 import { formationRoleForSlot } from '../../sim/tactics';
 import {
   buildCareerFacility,
+  arrangeCareerLineupForFormation,
   careerHeroLimit,
   completeAssistantGuideMilestone,
   CREATED_PLAYER_ROOKIE_WAGE,
@@ -32,6 +33,7 @@ import {
   offerCareerEvent,
   pendingRivalHeroIntro,
   startNextSeason,
+  swapCareerLineupPlayer,
   type GameState,
 } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
@@ -46,6 +48,8 @@ import {
 import { careerMarketScoutOptions } from '../market-source-adapter';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 import { copyFor } from '../../i18n';
+import { completeChampionshipCelebration } from '../championship-celebration';
+import { markAwardsCeremonyComplete } from '../awards-ceremony';
 import {
   parseStoredGameState,
   serializeGameState,
@@ -58,6 +62,86 @@ import {
 describe('M1 app store integration', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
+  });
+
+  function manualSeasonEndLineup(): GameState {
+    const arranged = arrangeCareerLineupForFormation(
+      createCareer(createLaunchCareerSetup(20261019)),
+      '3-4-3',
+    );
+    const ids = arranged.lineups.find(
+      (lineup) => lineup.clubId === arranged.userClubId,
+    )!.playerIds;
+    const forwards = swapCareerLineupPlayer(arranged, ids[8], ids[10]);
+    const custom = swapCareerLineupPlayer(forwards, ids[1], ids[4]);
+    return markAwardsCeremonyComplete(
+      completeChampionshipCelebration(completedSeasonForUser(custom)),
+    );
+  }
+
+  it('preserves manual slots and formation at the season boundary', () => {
+    const career = manualSeasonEndLineup();
+    const before = career.lineups.find(
+      (lineup) => lineup.clubId === career.userClubId,
+    )!;
+    useM1Store.setState({ career, screen: 'season-end' });
+    useM1Store.getState().advanceCareer('3-4-3');
+    const state = useM1Store.getState();
+    expect(state.error).toBeNull();
+    expect(state.career?.season).toBe(2);
+    expect(
+      state.career?.lineups.find(
+        (lineup) => lineup.clubId === career.userClubId,
+      ),
+    ).toEqual(before);
+  });
+
+  it('arranges a newly selected formation at the season boundary', () => {
+    const career = manualSeasonEndLineup();
+    useM1Store.setState({ career, screen: 'season-end' });
+    useM1Store.getState().advanceCareer('4-3-3');
+    const state = useM1Store.getState();
+    expect(state.error).toBeNull();
+    const next = state.career!;
+    const lineup = next.lineups.find(
+      (item) => item.clubId === next.userClubId,
+    )!;
+    expect(lineup.formation).toBe('4-3-3');
+    lineup.playerIds.forEach((id, slot) => {
+      expect(next.players.find((player) => player.id === id)?.role).toBe(
+        formationRoleForSlot('4-3-3', slot),
+      );
+    });
+  });
+
+  it('benches an injured retained starter at the season boundary without reshuffling fit players', () => {
+    const base = manualSeasonEndLineup();
+    const before = base.lineups.find(
+      (lineup) => lineup.clubId === base.userClubId,
+    )!;
+    const injuredId = before.playerIds[2];
+    const career = {
+      ...base,
+      players: base.players.map((player) =>
+        player.id === injuredId ? { ...player, injuryWeeks: 3 } : player,
+      ),
+    };
+    useM1Store.setState({ career, screen: 'season-end' });
+    useM1Store.getState().advanceCareer('3-4-3');
+    const state = useM1Store.getState();
+    expect(state.error).toBeNull();
+    const next = state.career!;
+    const lineup = next.lineups.find(
+      (item) => item.clubId === next.userClubId,
+    )!;
+    expect(lineup.formation).toBe('3-4-3');
+    expect(lineup.playerIds).not.toContain(injuredId);
+    expect(
+      next.players.find((player) => player.id === injuredId),
+    ).toMatchObject({ injuryWeeks: 3, returnLineupSlot: 2 });
+    before.playerIds.forEach((id, slot) => {
+      if (slot !== 2) expect(lineup.playerIds[slot]).toBe(id);
+    });
   });
 
   it('warns when only the backup fails and clears the warning after retry', async () => {
@@ -202,6 +286,107 @@ describe('M1 app store integration', () => {
             loadedTarget.attrs[attribute as keyof typeof loadedTarget.attrs],
       ),
     ).toBe(true);
+  });
+
+  function thinLicenseCareer() {
+    const initial = createCareer(createLaunchCareerSetup(20261019));
+    const starters = new Set(
+      initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+        .playerIds,
+    );
+    const roster = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const [first, outgoing] = roster.filter(
+      (player) => starters.has(player.id) && player.role !== 'GK',
+    );
+    const incoming = roster.find(
+      (player) => !starters.has(player.id) && player.role !== 'GK',
+    )!;
+    const heroes = [first.id, outgoing.id, incoming.id];
+    const career: GameState = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.clubId !== initial.userClubId
+          ? player
+          : {
+              ...player,
+              power: heroes.includes(player.id) ? 'SUPER_SPEED' : undefined,
+              licensed: player.id === first.id || player.id === outgoing.id,
+              injuryWeeks:
+                !starters.has(player.id) &&
+                player.role !== 'GK' &&
+                player.id !== incoming.id
+                  ? 2
+                  : 0,
+            },
+      ),
+    };
+    return { career, first, outgoing, incoming };
+  }
+
+  it('exchanges a full hero license in one state change without creating a player', () => {
+    const { career, first, outgoing, incoming } = thinLicenseCareer();
+    useM1Store.setState({ career, screen: 'matchday' });
+    useM1Store.getState().toggleHeroLicense(incoming.id, outgoing.id);
+    const state = useM1Store.getState();
+    expect(state.error).toBeNull();
+    expect(
+      state
+        .career!.players.filter(
+          (player) => player.clubId === career.userClubId && player.licensed,
+        )
+        .map((player) => player.id)
+        .sort(),
+    ).toEqual([first.id, incoming.id].sort());
+    expect(state.career!.players.map((player) => player.id)).toEqual(
+      career.players.map((player) => player.id),
+    );
+    expect(
+      state.career!.lineups.find(
+        (lineup) => lineup.clubId === career.userClubId,
+      )!.playerIds,
+    ).toContain(incoming.id);
+    useM1Store.getState().toggleHeroLicense(incoming.id, outgoing.id);
+    expect(useM1Store.getState().career).toBe(state.career);
+    expect(useM1Store.getState().error).toBeNull();
+  });
+
+  it('keeps the full license refusal when no holder is selected', () => {
+    const { career, incoming } = thinLicenseCareer();
+    useM1Store.setState({ career, screen: 'matchday' });
+    useM1Store.getState().toggleHeroLicense(incoming.id);
+    expect(useM1Store.getState().career).toBe(career);
+    expect(useM1Store.getState().error).toBe(
+      copyFor('en')('store.unlicenseFirst'),
+    );
+  });
+
+  it('explains missing license cover and leaves the career unchanged', () => {
+    const { career, outgoing } = thinLicenseCareer();
+    useM1Store.setState({ career, screen: 'matchday' });
+    useM1Store.getState().toggleHeroLicense(outgoing.id);
+    expect(useM1Store.getState().career).toBe(career);
+    expect(useM1Store.getState().error).toBe(
+      copyFor('en')('store.heroLicenseNeedsCover'),
+    );
+  });
+
+  it('does not turn a licensed hero off when an exchange is dispatched', () => {
+    const { career, first, outgoing, incoming } = thinLicenseCareer();
+    const covered = {
+      ...career,
+      players: career.players.map((player) =>
+        player.id === incoming.id
+          ? { ...player, power: undefined, licensed: false }
+          : player,
+      ),
+    };
+    useM1Store.setState({ career: covered, screen: 'matchday' });
+    useM1Store.getState().toggleHeroLicense(outgoing.id, first.id);
+    const state = useM1Store.getState();
+    expect(state.error).toBeNull();
+    expect(state.career).toBe(covered);
   });
 
   it('uses a fifth permit without forcing a lineup swap and can restore a benched starter', () => {

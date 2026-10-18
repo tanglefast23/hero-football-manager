@@ -331,11 +331,10 @@ export function MidseasonTrainingCelebrationScreen({
 
   return (
     <Pressable
-      accessibilityRole="button"
+      accessible={!finished}
+      accessibilityRole={finished ? undefined : 'button'}
       accessibilityLabel={
-        finished
-          ? t('midseasonTraining.a11y.continue')
-          : t('midseasonTraining.a11y.skip')
+        finished ? undefined : t('midseasonTraining.a11y.skip')
       }
       onPress={handleWholeScreenPress}
       style={styles.root}

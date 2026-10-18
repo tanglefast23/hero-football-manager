@@ -4049,6 +4049,7 @@
     "store.chooseBidFirst": "Chọn giá của một CLB trước khi nhận, sếp.",
     "store.coachUnavailable": "HLV đó không còn nữa, sếp.",
     "store.heroesOnlyLicense": "Chỉ anh hùng mới được cấp phép, sếp.",
+    "store.heroLicenseNeedsCover": "Không có người khỏe để thay. Cấp phép cho anh hùng dự bị, hoặc hồi phục hay ký hợp đồng với người thay thế trước.",
     "store.heroLicensePromiseRequired": "Lời hứa cho {player} đá chính cần Giấy Phép Anh Hùng này. Hãy kết thúc hoặc thay lời hứa trước khi rút phép.",
     "store.heroLicensePromiseRequired.CAPTAINCY": "Ta đã hứa trao băng đội trưởng cho {player} ở Mùa {season}. Đội trưởng phải đá chính, và anh hùng đá chính cần Giấy Phép Anh Hùng. Hãy kết thúc hoặc thay lời hứa đó trước khi rút phép.",
     "store.heroLicensePromiseRequired.GUARANTEED_STARTER": "Ta đã hứa cho {player} một suất đá chính ở Mùa {season}. Anh hùng đá chính cần Giấy Phép Anh Hùng. Hãy kết thúc hoặc thay lời hứa đó trước khi rút phép.",

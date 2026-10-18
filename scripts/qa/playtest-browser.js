@@ -17,7 +17,18 @@
     element.muted = true;
     element.pause();
   });
-  const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  // Start each delay in a fresh task. Long timer chains can be throttled to
+  // one wake-up per minute in an occluded browser, even for a 450 ms guard.
+  const pause = (ms) =>
+    new Promise((resolve) => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
+        channel.port1.close();
+        channel.port2.close();
+        setTimeout(resolve, ms);
+      };
+      channel.port2.postMessage(null);
+    });
   const actions = [];
   let busy = false;
   let lastClick = 0;

@@ -22,6 +22,7 @@ import {
   trainingModifierLabel,
 } from './name-copy';
 import { managerNotes } from './manager-notes';
+import { reclaimableHeroLicenseHolders } from '../game/contract-promises';
 import { eventOfferForWeek } from './event-selection';
 import {
   careerEventTargetCandidates,
@@ -231,7 +232,11 @@ import {
   type OpeningInboxDutyId,
 } from './assistant-guide';
 import { eventChoiceUnavailableReason } from './event-selection';
-import { formationRoleForSlot, type FormationId } from '../sim/tactics';
+import {
+  formationRoleForSlot,
+  formationSlotX,
+  type FormationId,
+} from '../sim/tactics';
 
 const LAUNCH_CONTENT = loadLaunchContent();
 const ASSISTANT_GUIDE_CONTENT = LAUNCH_CONTENT.assistantGuide;
@@ -4265,6 +4270,8 @@ export function matchDayViewModel(
     return player;
   });
   const lineupIds = new Set(lineup.playerIds);
+  const licensesFull =
+    roster.filter((player) => player.licensed).length >= careerHeroLimit(state);
 
   return {
     fixture: fixtureViewModel(
@@ -4296,6 +4303,7 @@ export function matchDayViewModel(
         name: playerLabels.get(player.id) ?? player.name,
         role: player.role,
         formationRole: formationRoleForSlot(formation, index),
+        pitchX: formationSlotX(formation, index),
         lookId: player.lookId,
         shirtNumber: shirtNumbers.get(player.id)!,
         isHero: player.power !== undefined,
@@ -4354,12 +4362,36 @@ export function matchDayViewModel(
     heroLimit: careerHeroLimit(state),
     heroes: roster
       .filter((player) => player.power !== undefined)
-      .map((player) => ({
-        playerId: player.id,
-        playerName: playerLabels.get(player.id) ?? player.name,
-        powerName: powerNames.get(player.power!) ?? player.power!,
-        licensed: player.licensed,
-      })),
+      .map((player) => {
+        const holders =
+          !player.licensed && licensesFull
+            ? reclaimableHeroLicenseHolders(state, player)
+            : [];
+        const playerName = playerLabels.get(player.id) ?? player.name;
+        return {
+          playerId: player.id,
+          playerName,
+          powerName: powerNames.get(player.power!) ?? player.power!,
+          licensed: player.licensed,
+          ...(holders.length === 0
+            ? {}
+            : {
+                exchangePrompt: t('market.reclaimHeroLicensePrompt', {
+                  player: playerName,
+                }),
+                exchangeHolders: holders.map((holder) => ({
+                  playerId: holder.id,
+                  name: playerLabels.get(holder.id) ?? holder.name,
+                  role: holder.role,
+                  statusLabel: t(
+                    lineupIds.has(holder.id)
+                      ? 'market.reclaimHolderStarting'
+                      : 'market.reclaimHolderBench',
+                  ),
+                })),
+              }),
+        };
+      }),
     licenseReady:
       lineupPlayers.every(
         (player) => player.power === undefined || player.licensed,

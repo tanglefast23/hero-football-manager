@@ -340,6 +340,40 @@ describe('career squad integration', () => {
     ).toHaveLength(2);
   });
 
+  it('exchanges licenses on a thin bench without creating emergency players', () => {
+    const initial = career();
+    const prepared = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === `${CLUB_IDS[0]}-p12`
+          ? { ...player, injuryWeeks: 2 }
+          : player,
+      ),
+    };
+    const incomingId = `${CLUB_IDS[0]}-p11`;
+    const outgoingId = `${CLUB_IDS[0]}-p10`;
+    const exchanged = selectCareerLicensedHeroes(prepared, [
+      `${CLUB_IDS[0]}-p9`,
+      incomingId,
+    ]);
+    expect(exchanged.players.map((player) => player.id)).toEqual(
+      prepared.players.map((player) => player.id),
+    );
+    expect(exchanged.lineups[0].playerIds).toContain(incomingId);
+    expect(exchanged.lineups[0].playerIds).not.toContain(outgoingId);
+    expect(
+      exchanged.players.find((player) => player.id === outgoingId)
+        ?.returnLineupSlot,
+    ).toBe(10);
+    expect(() => buildCareerTeamDef(exchanged, CLUB_IDS[0])).not.toThrow();
+
+    const original = JSON.stringify(prepared);
+    expect(() =>
+      selectCareerLicensedHeroes(prepared, [`${CLUB_IDS[0]}-p9`]),
+    ).toThrow('no fit player can replace the unlicensed hero');
+    expect(JSON.stringify(prepared)).toBe(original);
+  });
+
   it('lets computer clubs bench a tired starter for a fresher same-role player', () => {
     const state = career();
     const opponentId = CLUB_IDS[1];

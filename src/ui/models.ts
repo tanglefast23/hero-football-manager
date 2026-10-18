@@ -233,6 +233,8 @@ export interface MatchDayPlayerViewModel {
 export interface LineupPlayerViewModel extends MatchDayPlayerViewModel {
   /** The positional line owned by this player's current formation slot. */
   formationRole: Role;
+  /** Team-relative horizontal engine anchor, from left (0) to right (1). */
+  pitchX: number;
   /** Current growth grade, matching the player file's Potential column. */
   potentialGrade: PotentialGrade;
   /** The complete card values; goalkeepers draw REF in SHO's place. */
@@ -261,6 +263,13 @@ export interface HeroLicenseViewModel {
   playerName: string;
   powerName: string;
   licensed: boolean;
+  exchangePrompt?: string;
+  exchangeHolders?: readonly {
+    playerId: string;
+    name: string;
+    role: Role;
+    statusLabel: string;
+  }[];
 }
 
 /** The permit the league will sell the club next, priced and ready to draw. */

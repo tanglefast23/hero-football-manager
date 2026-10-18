@@ -1035,7 +1035,7 @@ export function selectCareerLicensedHeroes(
   // separate step a caller may forget. Without it the hero stayed in the eleven
   // unlicensed, `buildTeamDef` refused to build it, and the career stopped at
   // "Hero <id> must be licensed or benched" with no way forward from the save.
-  return repairCareerLineupForInjuries({
+  const repaired = tryRepairCareerLineupForInjuries({
     ...state,
     players: state.players.map((player) => {
       const next = selectedById.get(player.id);
@@ -1044,6 +1044,10 @@ export function selectCareerLicensedHeroes(
         : { ...player, ...next, attrs: { ...next.attrs } };
     }),
   });
+  if (repaired === undefined) {
+    throw new Error('no fit player can replace the unlicensed hero');
+  }
+  return repaired;
 }
 
 /**

@@ -15,6 +15,7 @@ function player(id: string, condition: number): LineupPlayerViewModel {
     name: id === 'jojo' ? 'Jojo' : id,
     role: 'FWD',
     formationRole: 'FWD',
+    pitchX: 0.5,
     shirtNumber: 9,
     isHero: false,
     overall: 50,

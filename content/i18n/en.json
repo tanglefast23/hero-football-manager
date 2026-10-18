@@ -2853,6 +2853,7 @@
     "store.chooseBidFirst": "Pick one club's bid before you accept, boss.",
     "store.coachUnavailable": "That coach is no longer available, boss.",
     "store.heroesOnlyLicense": "Only heroes can hold a license, boss.",
+    "store.heroLicenseNeedsCover": "No fit player can take this hero's place. Give the license to a benched hero, or heal or sign cover first.",
     "store.heroLicensePromiseRequired": "{player}'s starting promise needs this Hero License. End or replace the promise before removing it.",
     "store.heroLicensePromiseRequired.CAPTAINCY": "We promised {player} the captaincy in Season {season}. The captain must start, and a starting hero needs a Hero License. End or replace that promise before removing this license.",
     "store.heroLicensePromiseRequired.GUARANTEED_STARTER": "We promised {player} a Starting XI place in Season {season}. A starting hero needs a Hero License. End or replace that promise before removing this license.",

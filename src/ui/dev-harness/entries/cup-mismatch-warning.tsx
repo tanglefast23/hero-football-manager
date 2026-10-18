@@ -132,6 +132,7 @@ export function CupMismatchWarningReel({
         clubKit={state.clubKit}
         onBack={() => {}}
         onToggleHeroLicense={() => {}}
+        onExchangeHeroLicense={() => {}}
         onBuyHeroLicense={() => {}}
         onSwapStartingPlayer={() => {}}
         onWatchMatch={() => {}}

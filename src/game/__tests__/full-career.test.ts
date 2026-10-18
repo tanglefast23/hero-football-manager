@@ -8,7 +8,12 @@ import { clubSquadStrength, currentUserDivision } from '../m2-career';
 import { DIVISION_STRENGTH_BANDS, tuneSquadToStrength } from '../pyramid';
 import { runHeadlessFullCareer } from '../headless';
 import { isSpecialHeroId } from '../special-heroes';
-import { buildCareerTeamDef, setCareerLineup } from '../squad';
+import {
+  arrangeCareerLineupForFormation,
+  buildCareerTeamDef,
+  setCareerLineup,
+  swapCareerLineupPlayer,
+} from '../squad';
 import { careerRosterCapacity, userCareerRosterCount } from '../youth-intake';
 import type { GameState } from '../types';
 import {
@@ -191,7 +196,14 @@ describe('full M2 career clock', () => {
   });
 
   test('starts an endless next season with an active ten-club division', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(78) });
+    const arranged = arrangeCareerLineupForFormation(
+      createCareer(createLaunchCareerSetup(78)),
+      '3-4-3',
+    );
+    const slots = arranged.lineups.find(
+      (lineup) => lineup.clubId === arranged.userClubId,
+    )!.playerIds;
+    const initial = swapCareerLineupPlayer(arranged, slots[8], slots[10]);
     const seasonEnd = {
       ...initial,
       phase: 'season-end' as const,
@@ -218,6 +230,11 @@ describe('full M2 career clock', () => {
     expect(next.m2?.nationalCups.at(-1)?.season).toBe(2);
     expect(next.youthIntake).toMatchObject({ season: 2, status: 'OPEN' });
     expect(next.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
+    expect(
+      next.lineups.find((lineup) => lineup.clubId === next.userClubId),
+    ).toEqual(
+      initial.lineups.find((lineup) => lineup.clubId === initial.userClubId),
+    );
   });
 
   test('never replenishes a role-skewed squad past the roster capacity', () => {

@@ -73,6 +73,7 @@ import {
   closeStaffedCareerCoachingOffice,
   relocateCareerFacility,
   releaseCareerPlayer,
+  repairCareerLineupForInjuries,
   closeCareerRenewalTalks,
   signYouthIntakeOffer,
   resolvePostMatchAwakening,
@@ -619,7 +620,7 @@ interface M1Store {
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
   skipUnavailableEvent: () => void;
-  toggleHeroLicense: (playerId: string) => void;
+  toggleHeroLicense: (playerId: string, releaseFromPlayerId?: string) => void;
   arrangeStartingLineup: (formation: FormationId) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
@@ -1659,9 +1660,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const started = reconcilePendingClubLegends(
           startNextSeason(guidedCareer),
         );
+        const savedFormation = started.lineups.find(
+          (lineup) => lineup.clubId === started.userClubId,
+        )?.formation;
         const next =
-          formation === undefined
-            ? started
+          formation === undefined || savedFormation === formation
+            ? repairCareerLineupForInjuries(started)
             : arrangeCareerLineupForFormation(started, formation);
         set({
           career: next,
@@ -2549,7 +2553,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  toggleHeroLicense(playerId) {
+  toggleHeroLicense(playerId, releaseFromPlayerId) {
     guarded(set, () => {
       const career = requireCareer(get());
       const player = career.players.find(
@@ -2558,13 +2562,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
       );
       if (player?.power === undefined)
         throw new Error('only heroes can receive a license');
+      // An exchange is a final choice, so a repeated dispatch must not undo it.
+      if (releaseFromPlayerId !== undefined && player.licensed) return;
       const selected = career.players
         .filter(
           (candidate) =>
             candidate.clubId === career.userClubId && candidate.licensed,
         )
         .map((candidate) => candidate.id)
-        .filter((id) => id !== playerId);
+        .filter(
+          (id) =>
+            id !== playerId && (player.licensed || id !== releaseFromPlayerId),
+        );
       if (!player.licensed) {
         if (selected.length >= careerHeroLimit(career)) {
           playerError('store.unlicenseFirst');
@@ -4448,6 +4457,10 @@ const PLAYER_REACHABLE_REFUSALS: readonly RefusalRule[] = [
     'store.lineupOwnPlayersOnly',
   ],
   [/^only heroes can receive a license$/, 'store.heroesOnlyLicense'],
+  [
+    /^no fit player can replace the unlicensed hero$/,
+    'store.heroLicenseNeedsCover',
+  ],
   [
     / uses characters the game cannot display$/,
     'store.nameHasUnsupportedCharacters',

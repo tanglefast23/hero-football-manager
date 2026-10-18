@@ -104,6 +104,19 @@ describe('Week 19 team training presentation', () => {
     expect(celebration).toContainSource('stopDrillCompleteSfx();');
   });
 
+  it('leaves one accessible Continue button when the animation finishes', () => {
+    const celebration = source(
+      'src/ui/screens/MidseasonTrainingCelebrationScreen.tsx',
+    );
+    expect(celebration).toContainSource('accessible={!finished}');
+    expect(celebration).toContainSource(
+      "accessibilityRole={finished ? undefined : 'button'}",
+    );
+    expect(
+      celebration.match(/midseasonTraining\.a11y\.continue/g),
+    ).toHaveLength(1);
+  });
+
   it('uses two hard close-up cuts and the shared two-column footer width', () => {
     const celebration = source(
       'src/ui/screens/MidseasonTrainingCelebrationScreen.tsx',

@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { loadLaunchContent } from '../../../content/load';
 import { matchDayViewModel } from '../../../application/view-models';
 import { activeCareerMatchday } from '../../../game/career';
-import { selectCareerLicensedHeroes } from '../../../game/squad';
+import {
+  arrangeCareerLineupForFormation,
+  selectCareerLicensedHeroes,
+} from '../../../game/squad';
 import type { GameState } from '../../../game/types';
 import { FixtureMatchDayScreen } from '../../screens/FixtureMatchDayScreen';
 import { COACHING_FORMATION_IDS } from '../../../sim/tactics';
@@ -17,14 +20,21 @@ interface ShopCase {
   readonly sponsorChallenge?: boolean;
   readonly permitFive?: boolean;
   readonly promisedStarter?: boolean;
+  readonly thinExchange?: boolean;
 }
 
 /**
- * The counter opens once the club owns as many heroes as it can field, so both
- * cases carry two heroes against the District League's cap of two. The only
- * axis that varies is whether the club can pay.
+ * The counter opens once the club owns as many heroes as it can field.
+ * Cases vary cash, promises, permits, and the cover needed for an exchange.
  */
 const SHOP_CASES: readonly ShopCase[] = Object.freeze([
+  {
+    id: 'thin-exchange',
+    label: 'Thin bench exchange',
+    note: 'Two permits, three heroes, and no fit ordinary outfield cover',
+    cash: 12_000,
+    thinExchange: true,
+  },
   {
     id: 'affordable',
     label: 'Can pay',
@@ -96,7 +106,18 @@ function shopCareer(shopCase: ShopCase): GameState {
       .slice(0, 4),
     squad.find((player) => !starterIds.has(player.id) && player.role !== 'GK')!,
   ];
-  const heroes = shopCase.permitFive ? permitFiveHeroes : squad.slice(0, 2);
+  const heroes = shopCase.thinExchange
+    ? [
+        ...squad
+          .filter((player) => starterIds.has(player.id) && player.role !== 'GK')
+          .slice(0, 2),
+        squad.find(
+          (player) => !starterIds.has(player.id) && player.role !== 'GK',
+        )!,
+      ]
+    : shopCase.permitFive
+      ? permitFiveHeroes
+      : squad.slice(0, 2);
   const heroIds = new Set(heroes.map((player) => player.id));
   const licensedIds = new Set(
     heroes.slice(0, shopCase.permitFive ? 4 : 2).map((player) => player.id),
@@ -123,7 +144,12 @@ function shopCareer(shopCase: ShopCase): GameState {
                 agreedSeason: base.season,
               },
             }
-          : player,
+          : shopCase.thinExchange &&
+              player.clubId === base.userClubId &&
+              !starterIds.has(player.id) &&
+              player.role !== 'GK'
+            ? { ...player, injuryWeeks: 2 }
+            : player,
     ),
     ...(shopCase.sponsorChallenge
       ? {
@@ -154,7 +180,13 @@ export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
   const [state, setState] = useState(() => shopCareer(shopCase));
   useEffect(() => setState(shopCareer(shopCase)), [shopCase]);
   const viewModel = useMemo(
-    () => matchDayViewModel(state, content),
+    () =>
+      matchDayViewModel(
+        state,
+        content,
+        state.lineups.find((lineup) => lineup.clubId === state.userClubId)
+          ?.formation ?? '4-4-2',
+      ),
     [content, state],
   );
 
@@ -180,12 +212,31 @@ export function HeroLicenseShopReel({ caseId }: { readonly caseId: string }) {
         })
       }
       onBuyHeroLicense={() => {}}
+      onExchangeHeroLicense={(playerId, releaseFromPlayerId) =>
+        setState((current) =>
+          selectCareerLicensedHeroes(current, [
+            ...current.players
+              .filter(
+                (player) =>
+                  player.clubId === current.userClubId &&
+                  player.licensed &&
+                  player.id !== releaseFromPlayerId,
+              )
+              .map((player) => player.id),
+            playerId,
+          ]),
+        )
+      }
       onSwapStartingPlayer={() => {}}
       onWatchMatch={() => {}}
       onQuickMatch={() => {}}
       quickMatchEnabled={false}
       formationOptions={COACHING_FORMATION_IDS}
-      onSelectFormation={() => {}}
+      onSelectFormation={(formation) =>
+        setState((current) =>
+          arrangeCareerLineupForFormation(current, formation),
+        )
+      }
       onOpenSettings={() => {}}
       autoPowers={false}
       onAutoPowersChange={() => {}}

@@ -3320,6 +3320,13 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
               'hero',
             );
           }}
+          onExchangeHeroLicense={(playerId, releaseFromPlayerId) => {
+            performManagementAction(
+              () => store.toggleHeroLicense(playerId, releaseFromPlayerId),
+              'hero',
+              'hero',
+            );
+          }}
           onBuyHeroLicense={() => {
             const offer = matchday.heroLicenseOffer;
             if (offer.blockedReason !== undefined) return;

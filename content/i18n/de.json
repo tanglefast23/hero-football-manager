@@ -4049,6 +4049,7 @@
     "store.chooseBidFirst": "Wähl erst das Gebot eines Vereins, dann nimm an, Chef.",
     "store.coachUnavailable": "Dieser Trainer ist nicht mehr verfügbar, Chef.",
     "store.heroesOnlyLicense": "Nur Helden können eine Lizenz haben, Chef.",
+    "store.heroLicenseNeedsCover": "Kein fitter Spieler kann diesen Helden ersetzen. Gib die Lizenz einem Helden auf der Bank, oder heile oder verpflichte erst einen Ersatz.",
     "store.heroLicensePromiseRequired": "Das Startelf-Versprechen an {player} braucht diese Heldenlizenz. Beende oder ersetze das Versprechen, bevor du sie entziehst.",
     "store.heroLicensePromiseRequired.CAPTAINCY": "Wir haben {player} in Saison {season} das Kapitänsamt versprochen. Der Kapitän muss starten, und ein startender Held braucht eine Heldenlizenz. Beende oder ersetze das Versprechen, bevor du die Lizenz entziehst.",
     "store.heroLicensePromiseRequired.GUARANTEED_STARTER": "Wir haben {player} in Saison {season} einen Startelfplatz versprochen. Ein startender Held braucht eine Heldenlizenz. Beende oder ersetze das Versprechen, bevor du die Lizenz entziehst.",

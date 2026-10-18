@@ -1040,7 +1040,7 @@ function repairUserLineup(
   if (retained.length !== 11)
     throw new Error('retirements leave the user without a starting eleven');
   ensureKeeperFirst(retained, players);
-  return { clubId: current.clubId, playerIds: retained };
+  return { ...current, playerIds: retained };
 }
 
 /**

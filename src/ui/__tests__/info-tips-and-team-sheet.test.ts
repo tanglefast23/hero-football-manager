@@ -137,7 +137,7 @@ describe('starting eleven team sheet', () => {
     const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
 
     expect(screen).toContainSource(
-      'viewModel.lineup.filter(player => player.formationRole === role)',
+      'viewModel.lineup.filter(player => player.formationRole === role).sort((left, right) => left.pitchX - right.pitchX)',
     );
     expect(screen).not.toContainSource(
       'viewModel.lineup.filter(player => player.role === role)',

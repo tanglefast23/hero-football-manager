@@ -22,6 +22,7 @@ import {
   beginStoryOnboarding,
 } from '../../game/onboarding/story-onboarding';
 import { reconcileStoryYouthIntake } from '../../game/youth-intake';
+import { reclaimableHeroLicenseHolders } from '../../game/contract-promises';
 import { createLaunchCareerSetup } from '../launch';
 import {
   homeViewModel,
@@ -34,6 +35,92 @@ import {
 
 describe('management injury and lineup presentation', () => {
   const content = loadLaunchContent();
+
+  it('keeps engine slot order while giving cards their actual horizontal anchors', () => {
+    const initial = createCareer(createLaunchCareerSetup(20261019));
+    const fixture = initial.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === initial.userClubId ||
+        candidate.awayClubId === initial.userClubId,
+    )!;
+    const ids = initial.lineups.find(
+      (lineup) => lineup.clubId === initial.userClubId,
+    )!.playerIds;
+    const matchday = matchDayViewModel(
+      { ...initial, week: fixture.week, phase: 'matchday' },
+      content,
+      '3-4-3',
+    );
+    expect(matchday.lineup.map((player) => player.id)).toEqual(ids);
+    const displayIds = (role: 'FWD' | 'MID') =>
+      matchday.lineup
+        .filter((player) => player.formationRole === role)
+        .sort((left, right) => left.pitchX - right.pitchX)
+        .map((player) => player.id);
+    expect(displayIds('FWD')).toEqual([ids[9], ids[10], ids[8]]);
+    expect(displayIds('MID')).toEqual([ids[5], ids[6], ids[7], ids[4]]);
+  });
+
+  it('offers eligible license holders at the full cap, excluding starting promises', () => {
+    const initial = createCareer(createLaunchCareerSetup(20261019));
+    const fixture = initial.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === initial.userClubId ||
+        candidate.awayClubId === initial.userClubId,
+    )!;
+    const roster = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const [first, second, incoming] = roster
+      .filter((player) => player.role !== 'GK')
+      .slice(0, 3);
+    const state: GameState = {
+      ...initial,
+      week: fixture.week,
+      phase: 'matchday',
+      players: initial.players.map((player) =>
+        player.clubId !== initial.userClubId
+          ? player
+          : {
+              ...player,
+              power: [first.id, second.id, incoming.id].includes(player.id)
+                ? 'SUPER_SPEED'
+                : undefined,
+              licensed: player.id === first.id || player.id === second.id,
+            },
+      ),
+    };
+    const hero = (career: GameState) =>
+      matchDayViewModel(career, content).heroes.find(
+        (player) => player.playerId === incoming.id,
+      )!;
+    expect(
+      hero(state).exchangeHolders?.map((holder) => holder.playerId),
+    ).toEqual(
+      reclaimableHeroLicenseHolders(state, incoming).map((holder) => holder.id),
+    );
+    expect(hero(state).exchangePrompt).toContain(incoming.name);
+    expect(
+      hero({ ...state, purchasedHeroLicenseCap: 3 }).exchangeHolders,
+    ).toBeUndefined();
+    const promised: GameState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === first.id
+          ? {
+              ...player,
+              contractPromise: {
+                perk: 'GUARANTEED_STARTER',
+                agreedSeason: state.season,
+              },
+            }
+          : player,
+      ),
+    };
+    expect(
+      hero(promised).exchangeHolders?.map((holder) => holder.playerId),
+    ).toEqual([second.id]);
+  });
 
   it('explains the current awakening cap and clears the promise warning when a permit is free', () => {
     const initial = createCareer(createLaunchCareerSetup(20260907));
