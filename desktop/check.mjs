@@ -40,6 +40,26 @@ function finish(result) {
 
 // Nothing below may hang the check.
 setTimeout(() => finish({ reason: 'hard timeout' }), HARD_TIMEOUT_MS);
+process.on('unhandledRejection', (error) =>
+  finish({ reason: String(error?.message ?? error) }),
+);
+
+// check.png is a debugging aid, not an assertion. The Linux CI compositor
+// sometimes fails the copy with UnknownVizError, so retry once, then go on
+// without the file.
+async function saveScreenshot(contents) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const image = await contents.capturePage();
+      await writeFile(new URL('./check.png', import.meta.url), image.toPNG());
+      return true;
+    } catch (error) {
+      console.warn(`capturePage attempt ${attempt} failed: ${error.message}`);
+      await new Promise((settled) => setTimeout(settled, 500));
+    }
+  }
+  return false;
+}
 
 app.whenReady().then(async () => {
   installHandler(exportRoot());
@@ -105,7 +125,13 @@ app.whenReady().then(async () => {
     range.length === music.length - 32768 &&
     JSON.stringify(range.firstBytes) ===
       JSON.stringify(Array.from(music.subarray(32768, 32784)));
-  const image = await contents.capturePage();
-  await writeFile(new URL('./check.png', import.meta.url), image.toPNG());
-  finish({ ...facts, rendered, menuSafe, windowFits, musicRangeSafe });
+  const screenshot = await saveScreenshot(contents);
+  finish({
+    ...facts,
+    rendered,
+    menuSafe,
+    windowFits,
+    musicRangeSafe,
+    screenshot,
+  });
 });
