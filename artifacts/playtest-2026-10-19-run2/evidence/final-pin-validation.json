@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "engineVersion": "m2.9",
+  "checkpointEngineVersion": "m2.9",
+  "engineVersionMatches": true,
+  "seed": 3464191111,
+  "season": 6,
+  "week": 30,
+  "phase": "season-end",
+  "normalizedByCodec": true,
+  "teamsChecked": 10,
+  "failures": [],
+  "matchday": null,
+  "source": {
+    "commit": "283864525cb73e81ceabb9c0431d67198ecb967d",
+    "files": 1137,
+    "sha256": "b494aa790e1ac4c93ef77d1481d3cd7852cc304161def23aa65c89359de79208"
+  },
+  "input": {
+    "file": "/tmp/hfm-run2-evidence/season-6-end.json",
+    "sha256": "50065f7b37e06d233bd38f53429c3865622a47727f13dc81cee6278a74df75eb"
+  }
+}

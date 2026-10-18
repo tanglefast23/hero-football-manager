@@ -1,0 +1,3552 @@
+{
+  "formatVersion": 1,
+  "careerSeed": 3464191111,
+  "difficulty": "CHAIRMAN",
+  "engineVersion": "m2.9",
+  "totals": {
+    "league": 108,
+    "cup": 16,
+    "all": 124,
+    "drills": 675,
+    "won": 92,
+    "drawn": 11,
+    "lost": 5,
+    "goalsFor": 361,
+    "goalsAgainst": 65
+  },
+  "seasons": [
+    {
+      "season": 1,
+      "division": 5,
+      "position": 5,
+      "won": 7,
+      "drawn": 7,
+      "lost": 4,
+      "goalsFor": 32,
+      "goalsAgainst": 23,
+      "points": 28,
+      "leaguePlayed": 18,
+      "cupPlayed": 1,
+      "cupResult": "Play-in",
+      "cash": 6421,
+      "tp": 48,
+      "fans": 677,
+      "cumulativeDrills": 158,
+      "drillsThisSeason": 158,
+      "capturedCumulativeActions": 965,
+      "ledgerTotals": {
+        "wages": -76515,
+        "subsidy": 30594,
+        "tickets": 12032,
+        "facilities": -6340,
+        "sponsor": 16800,
+        "merch": 6738,
+        "prize": 7500
+      }
+    },
+    {
+      "season": 2,
+      "division": 5,
+      "position": 1,
+      "won": 17,
+      "drawn": 1,
+      "lost": 0,
+      "goalsFor": 73,
+      "goalsAgainst": 4,
+      "points": 52,
+      "leaguePlayed": 18,
+      "cupPlayed": 2,
+      "cupResult": "Round of 32",
+      "cash": 42216,
+      "tp": 42,
+      "fans": 813,
+      "cumulativeDrills": 336,
+      "drillsThisSeason": 178,
+      "capturedCumulativeActions": 1919,
+      "ledgerTotals": {
+        "merch": 32818,
+        "facilities": -11590,
+        "wages": -89051,
+        "sponsor": 16800,
+        "tickets": 45854,
+        "prize": 30500,
+        "emergency-loan": 15000,
+        "subsidy": 15000
+      }
+    },
+    {
+      "season": 3,
+      "division": 4,
+      "position": 1,
+      "won": 18,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 64,
+      "goalsAgainst": 11,
+      "points": 54,
+      "leaguePlayed": 18,
+      "cupPlayed": 2,
+      "cupResult": "Round of 32",
+      "cash": 167018,
+      "tp": 131,
+      "fans": 1789,
+      "cumulativeDrills": 442,
+      "drillsThisSeason": 106,
+      "capturedCumulativeActions": 2664,
+      "ledgerTotals": {
+        "merch": 83230,
+        "facilities": -28255,
+        "wages": -129830,
+        "loan-repayment": -16500,
+        "sponsor": 28800,
+        "tickets": 209584,
+        "prize": 45500
+      }
+    },
+    {
+      "season": 4,
+      "division": 3,
+      "position": 1,
+      "won": 16,
+      "drawn": 1,
+      "lost": 1,
+      "goalsFor": 62,
+      "goalsAgainst": 8,
+      "points": 49,
+      "leaguePlayed": 18,
+      "cupPlayed": 3,
+      "cupResult": "Round of 16",
+      "cash": 461369,
+      "tp": 52,
+      "fans": 2814,
+      "cumulativeDrills": 536,
+      "drillsThisSeason": 94,
+      "capturedCumulativeActions": 3438,
+      "ledgerTotals": {
+        "merch": 126222,
+        "facilities": -37530,
+        "wages": -263847,
+        "sponsor": 43200,
+        "tickets": 489384,
+        "prize": 61000
+      }
+    },
+    {
+      "season": 5,
+      "division": 2,
+      "position": 1,
+      "won": 18,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 69,
+      "goalsAgainst": 4,
+      "points": 54,
+      "leaguePlayed": 18,
+      "cupPlayed": 5,
+      "cupResult": "Winners",
+      "cash": 1137832,
+      "tp": 71,
+      "fans": 4256,
+      "cumulativeDrills": 609,
+      "drillsThisSeason": 73,
+      "capturedCumulativeActions": 4104,
+      "ledgerTotals": {
+        "merch": 180956,
+        "facilities": -43305,
+        "wages": -386280,
+        "sponsor": 57600,
+        "tickets": 1093700,
+        "prize": 193500
+      }
+    },
+    {
+      "season": 6,
+      "division": 1,
+      "position": 1,
+      "won": 16,
+      "drawn": 2,
+      "lost": 0,
+      "goalsFor": 61,
+      "goalsAgainst": 15,
+      "points": 50,
+      "leaguePlayed": 18,
+      "cupPlayed": 3,
+      "cupResult": "Quarter-final",
+      "cash": 2101097,
+      "tp": 80,
+      "fans": 5632,
+      "cumulativeDrills": 675,
+      "drillsThisSeason": 66,
+      "capturedCumulativeActions": null,
+      "ledgerTotals": {
+        "merch": 259038,
+        "facilities": -48475,
+        "wages": -594420,
+        "sponsor": 56000,
+        "tickets": 1470395,
+        "prize": 91000
+      }
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "s1-r1-m1",
+      "season": 1,
+      "round": 1,
+      "week": 3,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "quartz-fc",
+      "matchSeed": 3333693873,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Quartz FC"
+    },
+    {
+      "id": "s1-r2-m1",
+      "season": 1,
+      "round": 2,
+      "week": 4,
+      "homeClubId": "harbor-comets",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 457145177,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Harbor Comets",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r3-m1",
+      "season": 1,
+      "round": 3,
+      "week": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "cedar-crown",
+      "matchSeed": 1528556684,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Cedar Crown"
+    },
+    {
+      "id": "s1-r4-m1",
+      "season": 1,
+      "round": 4,
+      "week": 6,
+      "homeClubId": "oakridge-owls",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2579392666,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Oakridge Owls",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r5-m1",
+      "season": 1,
+      "round": 5,
+      "week": 8,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "meadow-city",
+      "matchSeed": 3215546626,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Meadow City"
+    },
+    {
+      "id": "s1-r6-m1",
+      "season": 1,
+      "round": 6,
+      "week": 9,
+      "homeClubId": "thunder-borough",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 714757035,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Thunder Borough",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r7-m1",
+      "season": 1,
+      "round": 7,
+      "week": 11,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "neon-athletic",
+      "matchSeed": 2512298460,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Neon Athletic"
+    },
+    {
+      "id": "s1-r8-m1",
+      "season": 1,
+      "round": 8,
+      "week": 12,
+      "homeClubId": "moonlight-town",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3052552642,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Moonlight Town",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r9-m1",
+      "season": 1,
+      "round": 9,
+      "week": 15,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "ferrous-united",
+      "matchSeed": 2696076845,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Ferrous United"
+    },
+    {
+      "id": "s1-r10-m1",
+      "season": 1,
+      "round": 10,
+      "week": 16,
+      "homeClubId": "quartz-fc",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2479362181,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Quartz FC",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r11-m1",
+      "season": 1,
+      "round": 11,
+      "week": 17,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "harbor-comets",
+      "matchSeed": 1591226223,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Harbor Comets"
+    },
+    {
+      "id": "s1-r12-m1",
+      "season": 1,
+      "round": 12,
+      "week": 19,
+      "homeClubId": "cedar-crown",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2435321131,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Cedar Crown",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r13-m1",
+      "season": 1,
+      "round": 13,
+      "week": 21,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "oakridge-owls",
+      "matchSeed": 110269808,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Oakridge Owls"
+    },
+    {
+      "id": "s1-r14-m1",
+      "season": 1,
+      "round": 14,
+      "week": 23,
+      "homeClubId": "meadow-city",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2510020280,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 6
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Meadow City",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r15-m1",
+      "season": 1,
+      "round": 15,
+      "week": 24,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "thunder-borough",
+      "matchSeed": 1476400951,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Thunder Borough"
+    },
+    {
+      "id": "s1-r16-m1",
+      "season": 1,
+      "round": 16,
+      "week": 25,
+      "homeClubId": "neon-athletic",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2733501519,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Neon Athletic",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-r17-m1",
+      "season": 1,
+      "round": 17,
+      "week": 28,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "moonlight-town",
+      "matchSeed": 3660238613,
+      "status": "played",
+      "score": {
+        "homeGoals": 6,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Moonlight Town"
+    },
+    {
+      "id": "s1-r18-m1",
+      "season": 1,
+      "round": 18,
+      "week": 30,
+      "homeClubId": "ferrous-united",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3350559135,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Ferrous United",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s1-cup-r1-m15",
+      "season": 1,
+      "round": 1,
+      "homeClubId": "meadow-city",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2427742144,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      "winnerClubId": "meadow-city",
+      "kind": "cup",
+      "cupRound": "Play-in",
+      "userHome": false,
+      "opponentDivision": 5,
+      "homeName": "Meadow City",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r1-m1",
+      "season": 2,
+      "round": 1,
+      "week": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "quartz-fc",
+      "matchSeed": 3775381120,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Quartz FC"
+    },
+    {
+      "id": "s2-r2-m1",
+      "season": 2,
+      "round": 2,
+      "week": 6,
+      "homeClubId": "harbor-comets",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3718921884,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Harbor Comets",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r3-m1",
+      "season": 2,
+      "round": 3,
+      "week": 7,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "cedar-crown",
+      "matchSeed": 2859329591,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Cedar Crown"
+    },
+    {
+      "id": "s2-r4-m1",
+      "season": 2,
+      "round": 4,
+      "week": 8,
+      "homeClubId": "oakridge-owls",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 325744957,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Oakridge Owls",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r5-m1",
+      "season": 2,
+      "round": 5,
+      "week": 9,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "meadow-city",
+      "matchSeed": 2515589698,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Meadow City"
+    },
+    {
+      "id": "s2-r6-m1",
+      "season": 2,
+      "round": 6,
+      "week": 11,
+      "homeClubId": "neon-athletic",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2523237465,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 10
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Neon Athletic",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r7-m1",
+      "season": 2,
+      "round": 7,
+      "week": 12,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "moonlight-town",
+      "matchSeed": 2608354788,
+      "status": "played",
+      "score": {
+        "homeGoals": 5,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Moonlight Town"
+    },
+    {
+      "id": "s2-r8-m1",
+      "season": 2,
+      "round": 8,
+      "week": 13,
+      "homeClubId": "d4-club-08",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 4090267856,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 6
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Ember Saints",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r9-m1",
+      "season": 2,
+      "round": 9,
+      "week": 16,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-03",
+      "matchSeed": 116767168,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Lumen Union"
+    },
+    {
+      "id": "s2-r10-m1",
+      "season": 2,
+      "round": 10,
+      "week": 17,
+      "homeClubId": "quartz-fc",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2182549406,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Quartz FC",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r11-m1",
+      "season": 2,
+      "round": 11,
+      "week": 19,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "harbor-comets",
+      "matchSeed": 3137730929,
+      "status": "played",
+      "score": {
+        "homeGoals": 5,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Harbor Comets"
+    },
+    {
+      "id": "s2-r12-m1",
+      "season": 2,
+      "round": 12,
+      "week": 20,
+      "homeClubId": "cedar-crown",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2792572706,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 6
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Cedar Crown",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r13-m1",
+      "season": 2,
+      "round": 13,
+      "week": 21,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "oakridge-owls",
+      "matchSeed": 1902931098,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Oakridge Owls"
+    },
+    {
+      "id": "s2-r14-m1",
+      "season": 2,
+      "round": 14,
+      "week": 23,
+      "homeClubId": "meadow-city",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2678437021,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 7
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Meadow City",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r15-m1",
+      "season": 2,
+      "round": 15,
+      "week": 24,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "neon-athletic",
+      "matchSeed": 4131577860,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Neon Athletic"
+    },
+    {
+      "id": "s2-r16-m1",
+      "season": 2,
+      "round": 16,
+      "week": 25,
+      "homeClubId": "moonlight-town",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1370228743,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Moonlight Town",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-r17-m1",
+      "season": 2,
+      "round": 17,
+      "week": 28,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-08",
+      "matchSeed": 1343020795,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Ember Saints"
+    },
+    {
+      "id": "s2-r18-m1",
+      "season": 2,
+      "round": 18,
+      "week": 30,
+      "homeClubId": "d4-club-03",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3315927523,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Lumen Union",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-cup-r1-m16",
+      "season": 2,
+      "round": 1,
+      "homeClubId": "d4-club-03",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3776545781,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Play-in",
+      "userHome": false,
+      "opponentDivision": 5,
+      "homeName": "Lumen Union",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s2-cup-r2-m11",
+      "season": 2,
+      "round": 2,
+      "homeClubId": "d2-club-07",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 277040454,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "winnerClubId": "d2-club-07",
+      "kind": "cup",
+      "cupRound": "Round of 32",
+      "userHome": false,
+      "opponentDivision": 2,
+      "homeName": "Ashford Sporting",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r1-m1",
+      "season": 3,
+      "round": 1,
+      "week": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-02",
+      "matchSeed": 2188852107,
+      "status": "played",
+      "score": {
+        "homeGoals": 6,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Yarrow Phoenix"
+    },
+    {
+      "id": "s3-r2-m1",
+      "season": 3,
+      "round": 2,
+      "week": 6,
+      "homeClubId": "d4-club-04",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2926337366,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Bracken Falcons",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r3-m1",
+      "season": 3,
+      "round": 3,
+      "week": 7,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-05",
+      "matchSeed": 1544514638,
+      "status": "played",
+      "score": {
+        "homeGoals": 8,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Jasper Hawks"
+    },
+    {
+      "id": "s3-r4-m1",
+      "season": 3,
+      "round": 4,
+      "week": 8,
+      "homeClubId": "d4-club-09",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 582435901,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Verdant Guardians",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r5-m1",
+      "season": 3,
+      "round": 5,
+      "week": 9,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-08",
+      "matchSeed": 1658791423,
+      "status": "played",
+      "score": {
+        "homeGoals": 5,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Ember Saints"
+    },
+    {
+      "id": "s3-r6-m1",
+      "season": 3,
+      "round": 6,
+      "week": 11,
+      "homeClubId": "d4-club-10",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1142184063,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Hollow Pilgrims",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r7-m1",
+      "season": 3,
+      "round": 7,
+      "week": 12,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-07",
+      "matchSeed": 2495999186,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Zephyr Legion"
+    },
+    {
+      "id": "s3-r8-m1",
+      "season": 3,
+      "round": 8,
+      "week": 13,
+      "homeClubId": "d4-club-06",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3845695136,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Redmarch Lions",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r9-m1",
+      "season": 3,
+      "round": 9,
+      "week": 16,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-01",
+      "matchSeed": 2173242405,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Sable Dragons"
+    },
+    {
+      "id": "s3-r10-m1",
+      "season": 3,
+      "round": 10,
+      "week": 17,
+      "homeClubId": "d4-club-02",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 4149293115,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Yarrow Phoenix",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r11-m1",
+      "season": 3,
+      "round": 11,
+      "week": 19,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-04",
+      "matchSeed": 3945520138,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Bracken Falcons"
+    },
+    {
+      "id": "s3-r12-m1",
+      "season": 3,
+      "round": 12,
+      "week": 20,
+      "homeClubId": "d4-club-05",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 431155154,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Jasper Hawks",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r13-m1",
+      "season": 3,
+      "round": 13,
+      "week": 21,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-09",
+      "matchSeed": 3841242835,
+      "status": "played",
+      "score": {
+        "homeGoals": 7,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Verdant Guardians"
+    },
+    {
+      "id": "s3-r14-m1",
+      "season": 3,
+      "round": 14,
+      "week": 23,
+      "homeClubId": "d4-club-08",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 4096132396,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Ember Saints",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r15-m1",
+      "season": 3,
+      "round": 15,
+      "week": 24,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-10",
+      "matchSeed": 474415876,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Hollow Pilgrims"
+    },
+    {
+      "id": "s3-r16-m1",
+      "season": 3,
+      "round": 16,
+      "week": 25,
+      "homeClubId": "d4-club-07",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 353457855,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Zephyr Legion",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-r17-m1",
+      "season": 3,
+      "round": 17,
+      "week": 28,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-06",
+      "matchSeed": 2424469694,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Redmarch Lions"
+    },
+    {
+      "id": "s3-r18-m1",
+      "season": 3,
+      "round": 18,
+      "week": 30,
+      "homeClubId": "d4-club-01",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1051276062,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Sable Dragons",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s3-cup-r1-m11",
+      "season": 3,
+      "round": 1,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-10",
+      "matchSeed": 52497153,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Play-in",
+      "userHome": true,
+      "opponentDivision": 4,
+      "homeName": "Bramble Rovers",
+      "awayName": "Hollow Pilgrims"
+    },
+    {
+      "id": "s3-cup-r2-m08",
+      "season": 3,
+      "round": 2,
+      "homeClubId": "d1-club-07",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3342244736,
+      "status": "played",
+      "score": {
+        "homeGoals": 7,
+        "awayGoals": 0
+      },
+      "winnerClubId": "d1-club-07",
+      "kind": "cup",
+      "cupRound": "Round of 32",
+      "userHome": false,
+      "opponentDivision": 1,
+      "homeName": "Dovewell Stags",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r1-m1",
+      "season": 4,
+      "round": 1,
+      "week": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d3-club-08",
+      "matchSeed": 2577704598,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Iron Vikings"
+    },
+    {
+      "id": "s4-r2-m1",
+      "season": 4,
+      "round": 2,
+      "week": 6,
+      "homeClubId": "d3-club-03",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 360146954,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Nettle Harriers",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r3-m1",
+      "season": 4,
+      "round": 3,
+      "week": 7,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d3-club-05",
+      "matchSeed": 2377866004,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Northgate Ravens"
+    },
+    {
+      "id": "s4-r4-m1",
+      "season": 4,
+      "round": 4,
+      "week": 8,
+      "homeClubId": "d3-club-09",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3522143356,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Mistral Argyle",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r5-m1",
+      "season": 4,
+      "round": 5,
+      "week": 9,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-01",
+      "matchSeed": 2504144000,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Sable Dragons"
+    },
+    {
+      "id": "s4-r6-m1",
+      "season": 4,
+      "round": 6,
+      "week": 11,
+      "homeClubId": "d3-club-06",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1333873649,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Beacon Albion",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r7-m1",
+      "season": 4,
+      "round": 7,
+      "week": 12,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d3-club-04",
+      "matchSeed": 1356197259,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Fernhill Foxes"
+    },
+    {
+      "id": "s4-r8-m1",
+      "season": 4,
+      "round": 8,
+      "week": 13,
+      "homeClubId": "d2-club-05",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3222231973,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Cinder Swifts",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r9-m1",
+      "season": 4,
+      "round": 9,
+      "week": 16,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-02",
+      "matchSeed": 3729474583,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Kestrel Griffins"
+    },
+    {
+      "id": "s4-r10-m1",
+      "season": 4,
+      "round": 10,
+      "week": 17,
+      "homeClubId": "d3-club-08",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3544790377,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Iron Vikings",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r11-m1",
+      "season": 4,
+      "round": 11,
+      "week": 19,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d3-club-03",
+      "matchSeed": 2169449372,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Nettle Harriers"
+    },
+    {
+      "id": "s4-r12-m1",
+      "season": 4,
+      "round": 12,
+      "week": 20,
+      "homeClubId": "d3-club-05",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3720561104,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Northgate Ravens",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r13-m1",
+      "season": 4,
+      "round": 13,
+      "week": 21,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d3-club-09",
+      "matchSeed": 2249256307,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Mistral Argyle"
+    },
+    {
+      "id": "s4-r14-m1",
+      "season": 4,
+      "round": 14,
+      "week": 23,
+      "homeClubId": "d4-club-01",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 380378750,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 8
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Sable Dragons",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r15-m1",
+      "season": 4,
+      "round": 15,
+      "week": 24,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d3-club-06",
+      "matchSeed": 2260938808,
+      "status": "played",
+      "score": {
+        "homeGoals": 5,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Beacon Albion"
+    },
+    {
+      "id": "s4-r16-m1",
+      "season": 4,
+      "round": 16,
+      "week": 25,
+      "homeClubId": "d3-club-04",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3660304384,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Fernhill Foxes",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-r17-m1",
+      "season": 4,
+      "round": 17,
+      "week": 28,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-05",
+      "matchSeed": 196735002,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Cinder Swifts"
+    },
+    {
+      "id": "s4-r18-m1",
+      "season": 4,
+      "round": 18,
+      "week": 30,
+      "homeClubId": "d2-club-02",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1331920947,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Kestrel Griffins",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-cup-r1-m05",
+      "season": 4,
+      "round": 1,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d4-club-01",
+      "matchSeed": 3179202449,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Play-in",
+      "userHome": true,
+      "opponentDivision": 3,
+      "homeName": "Bramble Rovers",
+      "awayName": "Sable Dragons"
+    },
+    {
+      "id": "s4-cup-r2-m01",
+      "season": 4,
+      "round": 2,
+      "homeClubId": "d2-club-09",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3811243144,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 0
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Round of 32",
+      "userHome": false,
+      "opponentDivision": 1,
+      "homeName": "Silverbeck Giants",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s4-cup-r3-m01",
+      "season": 4,
+      "round": 3,
+      "homeClubId": "d1-club-01",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1646375899,
+      "status": "played",
+      "score": {
+        "homeGoals": 7,
+        "awayGoals": 1
+      },
+      "winnerClubId": "d1-club-01",
+      "kind": "cup",
+      "cupRound": "Round of 16",
+      "userHome": false,
+      "opponentDivision": 1,
+      "homeName": "Fable Hotspur",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r1-m1",
+      "season": 5,
+      "round": 1,
+      "week": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-10",
+      "matchSeed": 2973539208,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Alder Casuals"
+    },
+    {
+      "id": "s5-r2-m1",
+      "season": 5,
+      "round": 2,
+      "week": 6,
+      "homeClubId": "d2-club-07",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 4201279681,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 7
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Ashford Sporting",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r3-m1",
+      "season": 5,
+      "round": 3,
+      "week": 7,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-01",
+      "matchSeed": 2237149882,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Willowbank Badgers"
+    },
+    {
+      "id": "s5-r4-m1",
+      "season": 5,
+      "round": 4,
+      "week": 8,
+      "homeClubId": "d2-club-08",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1243362380,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Briarwood Titans",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r5-m1",
+      "season": 5,
+      "round": 5,
+      "week": 9,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-02",
+      "matchSeed": 464450698,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Kestrel Griffins"
+    },
+    {
+      "id": "s5-r6-m1",
+      "season": 5,
+      "round": 6,
+      "week": 11,
+      "homeClubId": "d2-club-09",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3200203562,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Silverbeck Giants",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r7-m1",
+      "season": 5,
+      "round": 7,
+      "week": 12,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-06",
+      "matchSeed": 1856609808,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Orchard Panthers"
+    },
+    {
+      "id": "s5-r8-m1",
+      "season": 5,
+      "round": 8,
+      "week": 13,
+      "homeClubId": "d2-club-04",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 149595585,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Garnet Foundry",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r9-m1",
+      "season": 5,
+      "round": 9,
+      "week": 16,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-03",
+      "matchSeed": 1145964363,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Copper Rockets"
+    },
+    {
+      "id": "s5-r10-m1",
+      "season": 5,
+      "round": 10,
+      "week": 17,
+      "homeClubId": "d2-club-10",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1943484636,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 6
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Alder Casuals",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r11-m1",
+      "season": 5,
+      "round": 11,
+      "week": 19,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-07",
+      "matchSeed": 516300953,
+      "status": "played",
+      "score": {
+        "homeGoals": 6,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Ashford Sporting"
+    },
+    {
+      "id": "s5-r12-m1",
+      "season": 5,
+      "round": 12,
+      "week": 20,
+      "homeClubId": "d2-club-01",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 239363712,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Willowbank Badgers",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r13-m1",
+      "season": 5,
+      "round": 13,
+      "week": 21,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-08",
+      "matchSeed": 1517309402,
+      "status": "played",
+      "score": {
+        "homeGoals": 6,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Briarwood Titans"
+    },
+    {
+      "id": "s5-r14-m1",
+      "season": 5,
+      "round": 14,
+      "week": 23,
+      "homeClubId": "d2-club-02",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1758888060,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Kestrel Griffins",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r15-m1",
+      "season": 5,
+      "round": 15,
+      "week": 24,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-09",
+      "matchSeed": 737108805,
+      "status": "played",
+      "score": {
+        "homeGoals": 5,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Silverbeck Giants"
+    },
+    {
+      "id": "s5-r16-m1",
+      "season": 5,
+      "round": 16,
+      "week": 25,
+      "homeClubId": "d2-club-06",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 800026797,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Orchard Panthers",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-r17-m1",
+      "season": 5,
+      "round": 17,
+      "week": 28,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-04",
+      "matchSeed": 130595760,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Garnet Foundry"
+    },
+    {
+      "id": "s5-r18-m1",
+      "season": 5,
+      "round": 18,
+      "week": 30,
+      "homeClubId": "d2-club-03",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 926062943,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Copper Rockets",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-cup-r2-m15",
+      "season": 5,
+      "round": 2,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-07",
+      "matchSeed": 3856523162,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Round of 32",
+      "userHome": true,
+      "opponentDivision": 2,
+      "homeName": "Bramble Rovers",
+      "awayName": "Ashford Sporting"
+    },
+    {
+      "id": "s5-cup-r3-m02",
+      "season": 5,
+      "round": 3,
+      "homeClubId": "d1-club-05",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3821005479,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 6
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Round of 16",
+      "userHome": false,
+      "opponentDivision": 1,
+      "homeName": "Quarry Sentinels",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s5-cup-r4-m02",
+      "season": 5,
+      "round": 4,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-08",
+      "matchSeed": 2291716375,
+      "status": "played",
+      "score": {
+        "homeGoals": 7,
+        "awayGoals": 3
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Quarter-final",
+      "userHome": true,
+      "opponentDivision": 1,
+      "homeName": "Bramble Rovers",
+      "awayName": "Vellum Collieries"
+    },
+    {
+      "id": "s5-cup-r5-m01",
+      "season": 5,
+      "round": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-02",
+      "matchSeed": 4162448058,
+      "status": "played",
+      "score": {
+        "homeGoals": 5,
+        "awayGoals": 3
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Semi-final",
+      "userHome": true,
+      "opponentDivision": 1,
+      "homeName": "Bramble Rovers",
+      "awayName": "Thistle Bulls"
+    },
+    {
+      "id": "s5-cup-r6-m01",
+      "season": 5,
+      "round": 6,
+      "homeClubId": "d1-club-07",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 905366842,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Final",
+      "userHome": false,
+      "opponentDivision": 1,
+      "homeName": "Dovewell Stags",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r1-m1",
+      "season": 6,
+      "round": 1,
+      "week": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-09",
+      "matchSeed": 169173429,
+      "status": "played",
+      "score": {
+        "homeGoals": 6,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Juniper Wyverns"
+    },
+    {
+      "id": "s6-r2-m1",
+      "season": 6,
+      "round": 2,
+      "week": 6,
+      "homeClubId": "d1-club-08",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1273273444,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Vellum Collieries",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r3-m1",
+      "season": 6,
+      "round": 3,
+      "week": 7,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-07",
+      "matchSeed": 214779929,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Dovewell Stags"
+    },
+    {
+      "id": "s6-r4-m1",
+      "season": 6,
+      "round": 4,
+      "week": 8,
+      "homeClubId": "d1-club-05",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 4250233578,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Quarry Sentinels",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r5-m1",
+      "season": 6,
+      "round": 5,
+      "week": 9,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-06",
+      "matchSeed": 3309043113,
+      "status": "played",
+      "score": {
+        "homeGoals": 5,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Orchard Panthers"
+    },
+    {
+      "id": "s6-r6-m1",
+      "season": 6,
+      "round": 6,
+      "week": 11,
+      "homeClubId": "d1-club-04",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3666832575,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Marlow Steelworks",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r7-m1",
+      "season": 6,
+      "round": 7,
+      "week": 12,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-03",
+      "matchSeed": 2427787411,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Larkspur Alliance"
+    },
+    {
+      "id": "s6-r8-m1",
+      "season": 6,
+      "round": 8,
+      "week": 13,
+      "homeClubId": "d1-club-02",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1804035326,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Thistle Bulls",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r9-m1",
+      "season": 6,
+      "round": 9,
+      "week": 16,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-01",
+      "matchSeed": 81136791,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 3
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Fable Hotspur"
+    },
+    {
+      "id": "s6-r10-m1",
+      "season": 6,
+      "round": 10,
+      "week": 17,
+      "homeClubId": "d1-club-09",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2158746992,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Juniper Wyverns",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r11-m1",
+      "season": 6,
+      "round": 11,
+      "week": 19,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-08",
+      "matchSeed": 3245899734,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Vellum Collieries"
+    },
+    {
+      "id": "s6-r12-m1",
+      "season": 6,
+      "round": 12,
+      "week": 20,
+      "homeClubId": "d1-club-07",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 1160806017,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Dovewell Stags",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r13-m1",
+      "season": 6,
+      "round": 13,
+      "week": 21,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-05",
+      "matchSeed": 3401854005,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Quarry Sentinels"
+    },
+    {
+      "id": "s6-r14-m1",
+      "season": 6,
+      "round": 14,
+      "week": 23,
+      "homeClubId": "d2-club-06",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 642790268,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 5
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Orchard Panthers",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r15-m1",
+      "season": 6,
+      "round": 15,
+      "week": 24,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-04",
+      "matchSeed": 15397843,
+      "status": "played",
+      "score": {
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Marlow Steelworks"
+    },
+    {
+      "id": "s6-r16-m1",
+      "season": 6,
+      "round": 16,
+      "week": 25,
+      "homeClubId": "d1-club-03",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3089009389,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Larkspur Alliance",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-r17-m1",
+      "season": 6,
+      "round": 17,
+      "week": 28,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d1-club-02",
+      "matchSeed": 13020913,
+      "status": "played",
+      "score": {
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      "kind": "league",
+      "userHome": true,
+      "homeName": "Bramble Rovers",
+      "awayName": "Thistle Bulls"
+    },
+    {
+      "id": "s6-r18-m1",
+      "season": 6,
+      "round": 18,
+      "week": 30,
+      "homeClubId": "d1-club-01",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 2305629270,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 4
+      },
+      "kind": "league",
+      "userHome": false,
+      "homeName": "Fable Hotspur",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-cup-r2-m05",
+      "season": 6,
+      "round": 2,
+      "homeClubId": "d3-club-06",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 502450829,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 9
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Round of 32",
+      "userHome": false,
+      "opponentDivision": 3,
+      "homeName": "Beacon Albion",
+      "awayName": "Bramble Rovers"
+    },
+    {
+      "id": "s6-cup-r3-m05",
+      "season": 6,
+      "round": 3,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d2-club-04",
+      "matchSeed": 2346086932,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 0
+      },
+      "winnerClubId": "bramble-rovers",
+      "kind": "cup",
+      "cupRound": "Round of 16",
+      "userHome": true,
+      "opponentDivision": 2,
+      "homeName": "Bramble Rovers",
+      "awayName": "Garnet Foundry"
+    },
+    {
+      "id": "s6-cup-r4-m02",
+      "season": 6,
+      "round": 4,
+      "homeClubId": "d1-club-02",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 3480714709,
+      "status": "played",
+      "score": {
+        "homeGoals": 4,
+        "awayGoals": 1
+      },
+      "winnerClubId": "d1-club-02",
+      "kind": "cup",
+      "cupRound": "Quarter-final",
+      "userHome": false,
+      "opponentDivision": 1,
+      "homeName": "Thistle Bulls",
+      "awayName": "Bramble Rovers"
+    }
+  ],
+  "hallOfFame": {
+    "season": 6,
+    "clubName": "Bramble Rovers",
+    "played": 108,
+    "won": 92,
+    "drawn": 11,
+    "lost": 5,
+    "goalsFor": 361,
+    "goalsAgainst": 65,
+    "divisionTitles": [
+      {
+        "season": 2,
+        "division": 5
+      },
+      {
+        "season": 3,
+        "division": 4
+      },
+      {
+        "season": 4,
+        "division": 3
+      },
+      {
+        "season": 5,
+        "division": 2
+      },
+      {
+        "season": 6,
+        "division": 1
+      }
+    ],
+    "cupWinSeasons": [
+      5
+    ],
+    "tiers": [
+      {
+        "division": 5,
+        "firstSeason": 1,
+        "seasons": 2,
+        "bestPosition": 1
+      },
+      {
+        "division": 4,
+        "firstSeason": 3,
+        "seasons": 1,
+        "bestPosition": 1
+      },
+      {
+        "division": 3,
+        "firstSeason": 4,
+        "seasons": 1,
+        "bestPosition": 1
+      },
+      {
+        "division": 2,
+        "firstSeason": 5,
+        "seasons": 1,
+        "bestPosition": 1
+      },
+      {
+        "division": 1,
+        "firstSeason": 6,
+        "seasons": 1,
+        "bestPosition": 1
+      }
+    ],
+    "topScorer": {
+      "playerId": "bramble-rovers-created-player",
+      "playerName": "Ace II",
+      "goals": 314,
+      "goldenBoots": 5
+    },
+    "star": {
+      "playerId": "bramble-rovers-created-player",
+      "playerName": "Ace II",
+      "fame": 999,
+      "seasonsAtClub": 5
+    }
+  },
+  "final": {
+    "cash": 2101097,
+    "tp": 80,
+    "fans": 5632,
+    "formation": "3-4-3",
+    "roster": [
+      {
+        "id": "bramble-rovers-p02",
+        "clubId": "bramble-rovers",
+        "name": "Ed Stone",
+        "role": "DEF",
+        "lookId": "f00",
+        "attrs": {
+          "pac": 205,
+          "sho": 21,
+          "pas": 105,
+          "def": 248,
+          "tec": 112,
+          "sta": 132,
+          "ref": 5
+        },
+        "power": "FUTURE_SIGHT",
+        "powerTier": 1,
+        "licensed": true,
+        "weeklyWage": 1980,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 5,
+        "onHeroWage": true,
+        "contractSeasonsRemaining": 2,
+        "contractPromise": {
+          "perk": "TRAINING_PRIORITY",
+          "agreedSeason": 5
+        },
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 59,
+        "age": 26,
+        "archetype": "Anchor",
+        "potential": 2,
+        "potentialCeiling": 59,
+        "consistency": 70,
+        "personality": "Joker",
+        "condition": 100,
+        "seasonsAtClub": 5,
+        "fame": 365,
+        "retirementAge": 38,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 585,
+        "facilityStaBonusRemainder": 80,
+        "trainingBonusRemainders": {
+          "pac": 23,
+          "pas": 47,
+          "def": 33,
+          "tec": 13,
+          "sta": 92
+        },
+        "drillsSinceSuper": 1,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "bramble-rovers-p03",
+        "clubId": "bramble-rovers",
+        "name": "Bo Hedges",
+        "role": "DEF",
+        "lookId": "f01",
+        "attrs": {
+          "pac": 164,
+          "sho": 21,
+          "pas": 92,
+          "def": 185,
+          "tec": 72,
+          "sta": 83,
+          "ref": 5
+        },
+        "licensed": false,
+        "weeklyWage": 901,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 3,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 0,
+        "morale": 94,
+        "injuryWeeks": 0,
+        "loyalty": 49,
+        "age": 27,
+        "archetype": "Wall",
+        "potential": 1,
+        "potentialCeiling": 58,
+        "consistency": 82,
+        "personality": "Timid",
+        "condition": 100,
+        "seasonsAtClub": 5,
+        "fame": 331,
+        "retirementAge": 37,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 459,
+        "facilityStaBonusRemainder": 20,
+        "trainingBonusRemainders": {
+          "pac": 42,
+          "pas": 54,
+          "def": 27,
+          "tec": 24,
+          "sta": 19
+        },
+        "drillsSinceSuper": 1,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "bramble-rovers-p05",
+        "clubId": "bramble-rovers",
+        "name": "Ty Brooks",
+        "role": "DEF",
+        "lookId": "f03",
+        "attrs": {
+          "pac": 140,
+          "sho": 21,
+          "pas": 58,
+          "def": 157,
+          "tec": 66,
+          "sta": 78,
+          "ref": 5
+        },
+        "licensed": false,
+        "weeklyWage": 1194,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 5,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 2,
+        "morale": 71,
+        "injuryWeeks": 0,
+        "loyalty": 77,
+        "age": 29,
+        "archetype": "All-Rounder",
+        "potential": 1,
+        "potentialCeiling": 57,
+        "consistency": 71,
+        "personality": "Fiery",
+        "condition": 100,
+        "seasonsAtClub": 5,
+        "fame": 300,
+        "retirementAge": 35,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 525,
+        "facilityStaBonusRemainder": 90,
+        "trainingBonusRemainders": {
+          "pac": 25,
+          "pas": 65,
+          "def": 5,
+          "tec": 81,
+          "sta": 83
+        },
+        "drillsSinceSuper": 3,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "bramble-rovers-p06",
+        "clubId": "bramble-rovers",
+        "name": "Gio Marsh",
+        "role": "MID",
+        "lookId": "f04",
+        "attrs": {
+          "pac": 147,
+          "sho": 37,
+          "pas": 156,
+          "def": 62,
+          "tec": 154,
+          "sta": 85,
+          "ref": 5
+        },
+        "licensed": false,
+        "weeklyWage": 901,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 3,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 0,
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 71,
+        "age": 30,
+        "archetype": "Playmaker",
+        "potential": 1,
+        "potentialCeiling": 63,
+        "consistency": 69,
+        "personality": "Loyal",
+        "condition": 82,
+        "seasonsAtClub": 5,
+        "fame": 371,
+        "retirementAge": 37,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 531,
+        "facilityStaBonusRemainder": 50,
+        "trainingBonusRemainders": {
+          "pac": 62,
+          "pas": 52,
+          "tec": 21,
+          "sta": 95
+        },
+        "drillsSinceSuper": 2,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "bramble-rovers-p08",
+        "clubId": "bramble-rovers",
+        "name": "Leo Quick",
+        "role": "MID",
+        "lookId": "f06",
+        "attrs": {
+          "pac": 68,
+          "sho": 36,
+          "pas": 77,
+          "def": 41,
+          "tec": 73,
+          "sta": 53,
+          "ref": 5
+        },
+        "licensed": false,
+        "weeklyWage": 807,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 5,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 2,
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 71,
+        "age": 32,
+        "archetype": "Speedster",
+        "potential": 1,
+        "potentialCeiling": 62,
+        "consistency": 68,
+        "personality": "Greedy",
+        "condition": 100,
+        "seasonsAtClub": 5,
+        "fame": 371,
+        "retirementAge": 37,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 356,
+        "trainingBonusRemainders": {
+          "pac": 20,
+          "pas": 31,
+          "tec": 20
+        },
+        "drillsSinceSuper": 1,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "bramble-rovers-created-player",
+        "clubId": "bramble-rovers",
+        "name": "Ace II",
+        "role": "FWD",
+        "lookId": "c000",
+        "createdAppearance": {
+          "skinTone": 0,
+          "hairstyle": 0,
+          "kitAccent": 0
+        },
+        "attrs": {
+          "pac": 220,
+          "sho": 458,
+          "pas": 44,
+          "def": 39,
+          "tec": 243,
+          "sta": 133,
+          "ref": 14
+        },
+        "power": "THUNDER_STRIKE",
+        "powerTier": 1,
+        "licensed": true,
+        "weeklyWage": 3375,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 4,
+        "onHeroWage": true,
+        "contractSeasonsRemaining": 1,
+        "contractPromise": {
+          "perk": "TRAINING_PRIORITY",
+          "agreedSeason": 4
+        },
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 79,
+        "age": 23,
+        "archetype": "All-Rounder",
+        "potential": 4,
+        "potentialCeiling": 83,
+        "consistency": 70,
+        "personality": "Professional",
+        "condition": 100,
+        "seasonsAtClub": 5,
+        "fame": 999,
+        "retirementAge": 38,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 836,
+        "facilityStaBonusRemainder": 20,
+        "trainingBonusRemainders": {
+          "pac": 60,
+          "sho": 39,
+          "tec": 39,
+          "sta": 4
+        },
+        "drillsSinceSuper": 0,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "youth-s1-1",
+        "clubId": "bramble-rovers",
+        "name": "Kai Ward",
+        "role": "FWD",
+        "lookId": "f140",
+        "attrs": {
+          "pac": 231,
+          "sho": 451,
+          "pas": 45,
+          "def": 37,
+          "tec": 204,
+          "sta": 79,
+          "ref": 36
+        },
+        "power": "SUPER_SPEED",
+        "powerTier": 1,
+        "licensed": true,
+        "weeklyWage": 1860,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 3,
+        "onHeroWage": true,
+        "contractSeasonsRemaining": 0,
+        "contractPromise": {
+          "perk": "TRAINING_PRIORITY",
+          "agreedSeason": 3
+        },
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 58,
+        "age": 22,
+        "archetype": "All-Rounder",
+        "potential": 1,
+        "potentialCeiling": 54,
+        "consistency": 63,
+        "personality": "Professional",
+        "condition": 100,
+        "seasonsAtClub": 5,
+        "fame": 492,
+        "retirementAge": 38,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 540,
+        "facilityStaBonusRemainder": 40,
+        "trainingBonusRemainders": {
+          "pac": 80,
+          "sho": 25,
+          "tec": 50,
+          "sta": 84
+        },
+        "drillsSinceSuper": 1,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "d3-club-09-p01",
+        "clubId": "bramble-rovers",
+        "name": "Ben Irons",
+        "role": "GK",
+        "lookId": "g20",
+        "attrs": {
+          "pac": 89,
+          "sho": 50,
+          "pas": 61,
+          "def": 61,
+          "tec": 63,
+          "sta": 60,
+          "ref": 361
+        },
+        "licensed": false,
+        "weeklyWage": 1216,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 3,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 0,
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 56,
+        "age": 28,
+        "archetype": "Playmaker",
+        "potential": 3,
+        "potentialCeiling": 78,
+        "consistency": 70,
+        "personality": "Fiery",
+        "condition": 100,
+        "seasonsAtClub": 5,
+        "fame": 633,
+        "retirementAge": 38,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 566,
+        "trainingBonusRemainders": {
+          "ref": 73
+        },
+        "drillsSinceSuper": 1,
+        "priorityDrillsRemaining": 0,
+        "refDisplayBonus": 270
+      },
+      {
+        "id": "board-relief-s2-w8-402da4e",
+        "clubId": "bramble-rovers",
+        "name": "Eli Stone",
+        "role": "MID",
+        "lookId": "f23",
+        "attrs": {
+          "pac": 185,
+          "sho": 37,
+          "pas": 197,
+          "def": 111,
+          "tec": 183,
+          "sta": 126,
+          "ref": 37
+        },
+        "licensed": false,
+        "weeklyWage": 860,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 3,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 0,
+        "contractPromise": {
+          "perk": "JERSEY_10",
+          "agreedSeason": 3
+        },
+        "shirtNumber": 10,
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 57,
+        "age": 21,
+        "archetype": "All-Rounder",
+        "potential": 2,
+        "potentialCeiling": 62,
+        "consistency": 59,
+        "personality": "Professional",
+        "condition": 100,
+        "seasonsAtClub": 4,
+        "fame": 322,
+        "retirementAge": 35,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 514,
+        "facilityStaBonusRemainder": 20,
+        "trainingBonusRemainders": {
+          "pac": 35,
+          "pas": 60,
+          "def": 36,
+          "tec": 50,
+          "sta": 3
+        },
+        "drillsSinceSuper": 5,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "d4-club-06-p08",
+        "clubId": "bramble-rovers",
+        "name": "Cal Ash",
+        "role": "MID",
+        "lookId": "f20",
+        "attrs": {
+          "pac": 184,
+          "sho": 56,
+          "pas": 215,
+          "def": 87,
+          "tec": 194,
+          "sta": 125,
+          "ref": 54
+        },
+        "licensed": false,
+        "weeklyWage": 1713,
+        "promotionWagePercent": 25,
+        "promotionWageStartsAfterSeason": 5,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 2,
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 76,
+        "age": 24,
+        "archetype": "Sniper",
+        "potential": 1,
+        "potentialCeiling": 99,
+        "consistency": 70,
+        "personality": "Joker",
+        "condition": 100,
+        "seasonsAtClub": 3,
+        "fame": 459,
+        "retirementAge": 33,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 767,
+        "trainingBonusRemainders": {
+          "pac": 82,
+          "pas": 67,
+          "tec": 70
+        },
+        "drillsSinceSuper": 5,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "d2-club-03-p16",
+        "clubId": "bramble-rovers",
+        "name": "Zane Ash",
+        "role": "FWD",
+        "lookId": "f139",
+        "attrs": {
+          "pac": 210,
+          "sho": 276,
+          "pas": 79,
+          "def": 78,
+          "tec": 152,
+          "sta": 84,
+          "ref": 79
+        },
+        "licensed": false,
+        "weeklyWage": 781,
+        "promotionWagePercent": 25,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 0,
+        "contractPromise": {
+          "perk": "TRAINING_PRIORITY",
+          "agreedSeason": 4
+        },
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 72,
+        "age": 25,
+        "archetype": "Playmaker",
+        "potential": 3,
+        "potentialCeiling": 97,
+        "consistency": 70,
+        "personality": "Joker",
+        "condition": 100,
+        "seasonsAtClub": 2,
+        "fame": 572,
+        "retirementAge": 34,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 620,
+        "trainingBonusRemainders": {
+          "pac": 84,
+          "sho": 19,
+          "tec": 90
+        },
+        "drillsSinceSuper": 9,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "d3-club-02-p08",
+        "clubId": "bramble-rovers",
+        "name": "Ari Ward",
+        "role": "MID",
+        "lookId": "f52",
+        "attrs": {
+          "pac": 118,
+          "sho": 60,
+          "pas": 158,
+          "def": 60,
+          "tec": 155,
+          "sta": 154,
+          "ref": 53
+        },
+        "power": "GUST",
+        "powerTier": 1,
+        "licensed": true,
+        "weeklyWage": 548,
+        "promotionWagePercent": 25,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 0,
+        "contractPromise": {
+          "perk": "TRAINING_PRIORITY",
+          "agreedSeason": 4
+        },
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 59,
+        "age": 33,
+        "archetype": "Engine",
+        "potential": 2,
+        "potentialCeiling": 99,
+        "consistency": 70,
+        "personality": "Fiery",
+        "condition": 100,
+        "seasonsAtClub": 2,
+        "fame": 432,
+        "retirementAge": 35,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 751,
+        "trainingBonusRemainders": {
+          "pac": 65
+        },
+        "drillsSinceSuper": 5,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "d2-club-08-p03",
+        "clubId": "bramble-rovers",
+        "name": "Vik York",
+        "role": "DEF",
+        "lookId": "f126",
+        "attrs": {
+          "pac": 216,
+          "sho": 78,
+          "pas": 189,
+          "def": 262,
+          "tec": 115,
+          "sta": 191,
+          "ref": 72
+        },
+        "licensed": false,
+        "weeklyWage": 938,
+        "promotionWagePercent": 25,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 1,
+        "contractPromise": {
+          "perk": "TRAINING_PRIORITY",
+          "agreedSeason": 5
+        },
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 63,
+        "age": 24,
+        "archetype": "Anchor",
+        "potential": 3,
+        "potentialCeiling": 99,
+        "consistency": 70,
+        "personality": "Fiery",
+        "condition": 100,
+        "seasonsAtClub": 1,
+        "fame": 505,
+        "retirementAge": 34,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 924,
+        "trainingBonusRemainders": {
+          "pac": 65,
+          "def": 36,
+          "tec": 62
+        },
+        "drillsSinceSuper": 7,
+        "priorityDrillsRemaining": 0
+      },
+      {
+        "id": "bramble-rovers-academy-s6-gk-1",
+        "clubId": "bramble-rovers",
+        "name": "Ben Reed",
+        "role": "GK",
+        "lookId": "g00",
+        "attrs": {
+          "pac": 52,
+          "sho": 50,
+          "pas": 51,
+          "def": 55,
+          "tec": 52,
+          "sta": 54,
+          "ref": 60
+        },
+        "licensed": false,
+        "weeklyWage": 230,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 2,
+        "morale": 96,
+        "injuryWeeks": 0,
+        "loyalty": 60,
+        "age": 17,
+        "archetype": "Wall",
+        "potential": 5,
+        "potentialCeiling": 97,
+        "consistency": 71,
+        "personality": "Fiery",
+        "condition": 100,
+        "seasonsAtClub": 0,
+        "fame": 5,
+        "retirementAge": 35,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 374
+      },
+      {
+        "id": "bramble-rovers-academy-s6-def-1",
+        "clubId": "bramble-rovers",
+        "name": "Jae Gray",
+        "role": "DEF",
+        "lookId": "f35",
+        "attrs": {
+          "pac": 51,
+          "sho": 49,
+          "pas": 50,
+          "def": 57,
+          "tec": 51,
+          "sta": 53,
+          "ref": 49
+        },
+        "licensed": false,
+        "weeklyWage": 230,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 2,
+        "morale": 96,
+        "injuryWeeks": 0,
+        "loyalty": 69,
+        "age": 17,
+        "archetype": "Anchor",
+        "potential": 5,
+        "potentialCeiling": 98,
+        "consistency": 68,
+        "personality": "Loyal",
+        "condition": 100,
+        "seasonsAtClub": 0,
+        "fame": 5,
+        "retirementAge": 37,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 360
+      },
+      {
+        "id": "bramble-rovers-academy-s6-fwd-1",
+        "clubId": "bramble-rovers",
+        "name": "Ivo Hart",
+        "role": "FWD",
+        "lookId": "f73",
+        "attrs": {
+          "pac": 46,
+          "sho": 48,
+          "pas": 41,
+          "def": 40,
+          "tec": 42,
+          "sta": 44,
+          "ref": 40
+        },
+        "licensed": false,
+        "weeklyWage": 230,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 2,
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 62,
+        "age": 17,
+        "archetype": "Sniper",
+        "potential": 5,
+        "potentialCeiling": 96,
+        "consistency": 69,
+        "personality": "Professional",
+        "condition": 100,
+        "seasonsAtClub": 0,
+        "fame": 64,
+        "retirementAge": 36,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 301
+      },
+      {
+        "id": "d1-club-07-p05",
+        "clubId": "bramble-rovers",
+        "name": "Uma Knox",
+        "role": "DEF",
+        "lookId": "f122",
+        "attrs": {
+          "pac": 273,
+          "sho": 117,
+          "pas": 119,
+          "def": 239,
+          "tec": 118,
+          "sta": 126,
+          "ref": 116
+        },
+        "licensed": false,
+        "weeklyWage": 750,
+        "promotionWagePercent": 25,
+        "onHeroWage": false,
+        "contractSeasonsRemaining": 2,
+        "contractPromise": {
+          "perk": "TRAINING_PRIORITY",
+          "agreedSeason": 6
+        },
+        "morale": 100,
+        "injuryWeeks": 0,
+        "loyalty": 74,
+        "age": 19,
+        "archetype": "All-Rounder",
+        "potential": 5,
+        "potentialCeiling": 99,
+        "consistency": 70,
+        "personality": "Fiery",
+        "condition": 100,
+        "seasonsAtClub": 0,
+        "fame": 540,
+        "retirementAge": 36,
+        "retirementAnnounced": false,
+        "consecutiveLowMoraleWeeks": 0,
+        "transferRequested": false,
+        "motivatorMoraleRemainderHalfPoints": 0,
+        "signingStatTotal": 869,
+        "trainingBonusRemainders": {
+          "pac": 48,
+          "def": 44
+        },
+        "drillsSinceSuper": 0,
+        "priorityDrillsRemaining": 0
+      }
+    ],
+    "facilities": [
+      {
+        "id": "facility-1",
+        "type": "training-pitch",
+        "level": 3,
+        "capitalInvested": 88000,
+        "x": 0,
+        "y": 0,
+        "boosts": {
+          "tpBonusPercent": 3
+        }
+      },
+      {
+        "id": "facility-2",
+        "type": "coaching-office",
+        "level": 1,
+        "capitalInvested": 6500,
+        "x": 2,
+        "y": 0
+      },
+      {
+        "id": "facility-5",
+        "type": "stadium-stand",
+        "level": 2,
+        "capitalInvested": 35000,
+        "x": 0,
+        "y": 3,
+        "boosts": {
+          "incomeBonusPercent": 3
+        }
+      },
+      {
+        "id": "facility-6",
+        "type": "fan-shop",
+        "level": 1,
+        "capitalInvested": 5000,
+        "x": 2,
+        "y": 2
+      },
+      {
+        "id": "facility-7",
+        "type": "stadium-stand",
+        "level": 2,
+        "capitalInvested": 35000,
+        "x": 2,
+        "y": 3
+      },
+      {
+        "id": "facility-8",
+        "type": "fan-shop",
+        "level": 1,
+        "capitalInvested": 5000,
+        "x": 0,
+        "y": 2
+      },
+      {
+        "id": "facility-9",
+        "type": "fan-shop",
+        "level": 1,
+        "capitalInvested": 5000,
+        "x": 1,
+        "y": 2
+      },
+      {
+        "id": "facility-10",
+        "type": "stadium-stand",
+        "level": 2,
+        "capitalInvested": 35000,
+        "x": 4,
+        "y": 3
+      },
+      {
+        "id": "facility-11",
+        "type": "dorm",
+        "level": 1,
+        "capitalInvested": 6000,
+        "x": 3,
+        "y": 1,
+        "boosts": {
+          "recoveryBonus": 1
+        }
+      },
+      {
+        "id": "facility-12",
+        "type": "gym",
+        "level": 2,
+        "capitalInvested": 25000,
+        "x": 3,
+        "y": 0
+      },
+      {
+        "id": "facility-13",
+        "type": "tech-center",
+        "level": 3,
+        "capitalInvested": 97000,
+        "x": 4,
+        "y": 0
+      },
+      {
+        "id": "facility-14",
+        "type": "shooting-range",
+        "level": 1,
+        "capitalInvested": 7500,
+        "x": 4,
+        "y": 1,
+        "boosts": {
+          "trainingBonusPercent": 3
+        }
+      },
+      {
+        "id": "facility-15",
+        "type": "medical-bay",
+        "level": 2,
+        "capitalInvested": 35000,
+        "x": 2,
+        "y": 1
+      },
+      {
+        "id": "facility-16",
+        "type": "scout-office",
+        "level": 1,
+        "capitalInvested": 6000,
+        "x": 5,
+        "y": 0
+      },
+      {
+        "id": "facility-17",
+        "type": "keeper-court",
+        "level": 2,
+        "capitalInvested": 27500,
+        "x": 5,
+        "y": 1
+      }
+    ],
+    "ownedTrainingTiers": {
+      "keeper-drills": 4,
+      "sprints": 4,
+      "finishing": 4,
+      "rondo": 4,
+      "duels": 4,
+      "first-touch": 4,
+      "circuit": 4
+    },
+    "coaches": [
+      {
+        "id": "coach-s1-noor-al-khatib",
+        "portraitId": "noor-al-khatib",
+        "name": "Noor Al-Khatib",
+        "age": 46,
+        "specialties": [
+          "ATTACK",
+          "TECHNIQUE"
+        ],
+        "level": 3,
+        "weeklyWage": 900,
+        "personality": "GREEDY",
+        "requiredDivision": 5,
+        "requiredFame": 0,
+        "loyaltyDiscountPercent": 0
+      },
+      {
+        "id": "coach-s1-thandi-mokoena",
+        "portraitId": "thandi-mokoena",
+        "name": "Thandi Mokoena",
+        "age": 45,
+        "specialties": [
+          "FITNESS",
+          "GOALKEEPING"
+        ],
+        "level": 3,
+        "boosts": {
+          "trainingPercent": -5
+        },
+        "weeklyWage": 450,
+        "personality": "JOKER",
+        "requiredDivision": 5,
+        "requiredFame": 0,
+        "loyaltyDiscountPercent": 0
+      }
+    ]
+  }
+}

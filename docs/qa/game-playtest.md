@@ -54,6 +54,20 @@ Join all chunks, parse the JSON, and save it under the run's artifact folder.
 Logs live in the page only. Export them before a reload.
 Completion: the saved JSON parses, the source is recorded, and fixture totals match reported progress.
 
+Club IDs remain stable after promotion and relegation. Read the current division
+from the pyramid divisions, or the Cup's seedDivisionByClubId. An ID prefix
+such as d2- does not prove that club is still in Division 2.
+
+Export before trying a costly full-page capture. A successful frame probe does
+not guarantee that screenshot capture works. Stop repeated capture attempts
+after three failures. Record missing images and any lost page logs.
+If a capture leaves a tab unusable, first confirm the career was persisted.
+A fresh same-origin tab can report the single-tab club-file lock until the old
+tab closes. Close only your old tab, then use Retry opening club files.
+Retry can reload the page: install the mute guard and helper again immediately.
+Continue the saved career and compare its seed, week, funds, and fixtures.
+Do not replace the save or replay a completed fixture to obtain an image.
+
 ## Validate a checkpoint without changing it
 
 ```sh

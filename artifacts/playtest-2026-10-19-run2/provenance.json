@@ -1,0 +1,92 @@
+{
+  "formatVersion": 1,
+  "careerSeed": 3464191111,
+  "engineVersion": "m2.9",
+  "surface": {
+    "type": "Paseo background Chromium browser pane",
+    "url": "http://127.0.0.1:8093/?qa=playtest",
+    "server": "Expo web development server",
+    "viewport": {
+      "width": 1200,
+      "height": 700
+    },
+    "audio": "muted",
+    "phoneTested": false,
+    "steamCareerTested": false,
+    "vercelTested": false,
+    "servedFrom": "/private/tmp/hfm-final-commit-20261019",
+    "serverPid": 20985,
+    "earlyPortCollision": "Season 1 Week 1: another project briefly bound IPv4 port 8093 while HFM held IPv6. The owner removed that listener before play continued. See evidence/qa-incidents.json."
+  },
+  "careerSource": {
+    "commit": "283864525cb73e81ceabb9c0431d67198ecb967d",
+    "sha256": "b494aa790e1ac4c93ef77d1481d3cd7852cc304161def23aa65c89359de79208",
+    "lockSha256": "5fd377e378418ea2573e2f44eee32d2abe83c5f1e7905fd956601d3d46ca70d9",
+    "dirtyGameSource": false
+  },
+  "validationSource": {
+    "commit": "ee2ee7a35a62a8fdfa72e5a3c7678e11f7d62587",
+    "sha256": "347e337495cfdb41af4b17bceca0f7bbfb9bbb06c2374778ed5fced6bd761141"
+  },
+  "snapshots": [
+    {
+      "season": 1,
+      "file": "checkpoints/season-1-end.json.gz",
+      "rawBytes": 1523150,
+      "rawSha256": "dddbcb0dd30b1a290254abd02984005b37e48363efbc45c98cbfd9af8aaab347",
+      "gzipSha256": "c75c40f0882ba7396c7241d88f43a6e2a406e20cd1475aba38b5af88273355a4"
+    },
+    {
+      "season": 2,
+      "file": "checkpoints/season-2-end.json.gz",
+      "rawBytes": 2777379,
+      "rawSha256": "e6dc29592db09c1fdd1533da5d432db1ae65c2b91fce23369035daaaca425640",
+      "gzipSha256": "3b280322abb52e0947380cf1f7ffa053a24091000aa84e4821459498b4adf0ae"
+    },
+    {
+      "season": 3,
+      "file": "checkpoints/season-3-end.json.gz",
+      "rawBytes": 3826927,
+      "rawSha256": "82bc8a42678cb2a1f7406c411087bf5b6b807e59d9f8ad781b588a4b9b8a822f",
+      "gzipSha256": "0a8f596c641d8a13e4bc87f9de89ead9ea2ece584b0d519cc15ce03dfb51f657"
+    },
+    {
+      "season": 4,
+      "file": "checkpoints/season-4-end.json.gz",
+      "rawBytes": 4928238,
+      "rawSha256": "24da0759213ada8b8e086b25319cf4f393ace9b422f503210515ad7e6542d102",
+      "gzipSha256": "ec4e1d7cd629edd9b63ab9eba47470eb42e864c0a1c394a90a02b3afffa67dcf"
+    },
+    {
+      "season": 5,
+      "file": "checkpoints/season-5-end.json.gz",
+      "rawBytes": 6037495,
+      "rawSha256": "455ebeed1bf36af7fe4b21667284f6cde08b7d6bb93f12064bfb534b11cf58e4",
+      "gzipSha256": "cd23427ac626517da24d55521a21b22e747ee5ed31c61e5003010ce87611a060"
+    },
+    {
+      "season": 6,
+      "file": "checkpoints/season-6-end.json.gz",
+      "rawBytes": 704598,
+      "rawSha256": "50065f7b37e06d233bd38f53429c3865622a47727f13dc81cee6278a74df75eb",
+      "gzipSha256": "46e27ad70e361b738465c866482e714f2b18628f843cf209eecf2faed6767a2a"
+    }
+  ],
+  "evidenceLimits": [
+    "One Chairman seed; no optimality or cross-seed claim.",
+    "Pinned career source predates de80d170 fixes; those flows were exercised separately.",
+    "S2W8 license rotation accidentally created Eli Stone under the old bug. He was retained; the cash exploit was not used.",
+    "Two watched matches; 122 production-engine Quick Match fixtures. No rerolls, fabricated scores, future-fixture simulations, or save edits.",
+    "S6 action log and weekly records were lost after a post-victory browser capture timeout. S1-S5 cumulative exports, all fixture results, final persisted save, and ending proof remain.",
+    "No endgame PNG: capture failed. Endgame proof is actual DOM text and the persisted Hall of Fame."
+  ],
+  "stoppingPoint": "Season 6, Week 30. Finish accepted; true ending seen and Hall of Fame saved. Returned to title. Season 7 not started.",
+  "endingCompletion": {
+    "originalEndingProofUtc": "2026-10-18T22:33:31.365Z",
+    "finishTab": "recovered same-origin tab bcfeb3e6-1288-4210-b487-52bcbcbca36f",
+    "finishUtc": "2026-10-18T22:38:34.199Z",
+    "titleChoiceUtc": "2026-10-18T22:38:39.142Z",
+    "exportUtc": "2026-10-18T22:38:50.282Z",
+    "serverCommit": "283864525cb73e81ceabb9c0431d67198ecb967d"
+  }
+}

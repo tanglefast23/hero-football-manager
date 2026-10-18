@@ -1,0 +1,113 @@
+{
+  "desktop": {
+    "title": "HFM — Completed Chairman Playthrough",
+    "h1": "Hero Football Manager: completed Chairman playthrough",
+    "headingVisible": true,
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "pageWidth": 1280,
+    "tables": [
+      7,
+      6
+    ],
+    "sections": 7,
+    "missingAnchors": [],
+    "checks": [
+      {
+        "href": "provenance.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/endgame-proof.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/03-team-sheet-position-mismatch.png",
+        "status": 200
+      },
+      {
+        "href": "evidence/fixed-ui-proof.json",
+        "status": 200
+      },
+      {
+        "href": "reviews/opus-fixes-review.md",
+        "status": 200
+      },
+      {
+        "href": "evidence/fixed-ui-proof.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/fixed-continue-proof.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/season-4-ken-transition-proof.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/02-team-trip.png",
+        "status": 200
+      },
+      {
+        "href": "reviews/opus-ai-cup-scoring-review.md",
+        "status": 200
+      },
+      {
+        "href": "reviews/",
+        "status": 200
+      },
+      {
+        "href": "evidence/fix-validation.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/fix-ci-result.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/qa-clock-ci-result.json",
+        "status": 200
+      },
+      {
+        "href": "evidence/checkpoint-validation.json",
+        "status": 200
+      },
+      {
+        "href": "facts.json",
+        "status": 200
+      },
+      {
+        "href": "checkpoints/",
+        "status": 200
+      },
+      {
+        "href": "report.md",
+        "status": 200
+      },
+      {
+        "href": "facts.json",
+        "status": 200
+      },
+      {
+        "href": "provenance.json",
+        "status": 200
+      }
+    ],
+    "media": 0,
+    "muted": true
+  },
+  "navigation": {
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "pageWidth": 1280,
+    "hash": "#confirmed-bugs-and-their-status",
+    "sectionExists": true,
+    "muted": true
+  },
+  "limit": "Resize requests acknowledged but innerWidth stayed 1280; responsive phone layout was not verified."
+}

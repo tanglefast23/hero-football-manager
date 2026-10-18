@@ -1,0 +1,107 @@
+[
+  {
+    "kind": "environment",
+    "issue": "Another project bound 127.0.0.1:8093 while HFM Metro already listened on IPv6 *:8093.",
+    "symptom": "Opening training showed the screen error boundary because the Skia split bundle returned Python HTTP 404.",
+    "otherPid": 34681,
+    "hfmPid": 20985,
+    "resolution": "The owning agent stopped its Python server and moved its gallery to an OS-assigned port. HFM reloaded the same origin and continued the existing save.",
+    "preserved": {
+      "seed": 3464191111,
+      "season": 1,
+      "week": 1,
+      "cash": 45000,
+      "tp": 12,
+      "drills": 0
+    },
+    "checkpointValidation": "Passed: production codec and 10 club lineups. No save edits or rerolls.",
+    "gameBug": false
+  },
+  {
+    "kind": "automation",
+    "issue": "Paseo browser_fill reported success but the React controlled name field stayed blank after a render.",
+    "resolution": "Used browser_type. Verified the field value and the enabled Finish creating player control before signing.",
+    "gameBug": false
+  },
+  {
+    "kind": "automation",
+    "issue": "The old run driver expected phone drill labels. The 900x600 desktop uses Train NAME in ATTRIBUTE now.",
+    "resolution": "Read current rendered controls and updated the run-specific driver. Kept exact matching and guarded taps.",
+    "gameBug": false
+  },
+  {
+    "kind": "automation",
+    "issue": "A training presentation ended on its own before a delayed tap.",
+    "resolution": "Wait for automatic presentation completion before closing the drill sheet.",
+    "gameBug": false
+  },
+  {
+    "kind": "strategy correction",
+    "issue": "Early strategy reviews suggested a Week 1 scout mission. The actual new-career story gate keeps Scout and Deals shut until Season 1 Week 15, even with Quiet Bert.",
+    "resolution": "Verified src/game/story-progression.ts and the rendered desks. Waited until Week 15. Keep the mission due inside Weeks 17-18.",
+    "gameBug": false
+  },
+  {
+    "kind": "strategy correction",
+    "issue": "The Week19 trip prompt blocks tab navigation and drills. A Squad tab tap was ignored and the driver stopped on the missing training control.",
+    "resolution": "Read the source gate and the actual trip card. Accepted the +1 squad boost for45TP and -10condition. No game state bypass. Only3TP of the bank was carry-over;42 was new weekly income.",
+    "gameBug": false
+  },
+  {
+    "kind": "accessibility candidate",
+    "issue": "The team trip celebration exposes two nested Continue to Home buttons with identical accessible labels.",
+    "resolution": "The exact-control helper refused duplicates. Used the browser snapshot ref @e1 for the visible Continue button. Save and navigation worked.",
+    "gameBug": "Pending review; nonblocking nested interactive controls.",
+    "reviewOutcome": "Confirmed accessibility bug; fixed on main de80d170. Original pending classification retained above."
+  },
+  {
+    "kind": "environment",
+    "season": 3,
+    "week": 16,
+    "issue": "Rival-intro exit stalled with no animation frames for 15 seconds, despite visible and focused flags.",
+    "resolution": "A one-pixel background resize released the scene. No reload or state edit.",
+    "gameBug": false,
+    "evidence": "../reviews/opus-rival-intro-environment-review.md"
+  },
+  {
+    "kind": "automation environment",
+    "season": 3,
+    "issue": "Covered-pane page timers stretched the 450 ms input guards to seconds and sometimes longer.",
+    "resolution": "MessageChannel first reduced nested timer clamping. The maintained worker-clock helper later measured about 458-468 ms. No global timer patch.",
+    "gameBug": false,
+    "evidence": "qa-clock-installed-proof.json"
+  },
+  {
+    "kind": "unconfirmed graphics",
+    "issue": "WebGL eviction warnings and a blank watched kickoff occurred. The match later finished.",
+    "resolution": "Parked the offscreen atlas path as a hypothesis. No live offscreen-context count or renderer patch.",
+    "gameBug": "Unconfirmed",
+    "evidence": "../reviews/grok-webgl-review.md"
+  },
+  {
+    "kind": "rejected hypothesis",
+    "season": 4,
+    "week": 7,
+    "issue": "Recent-form page text appeared to omit an away win.",
+    "resolution": "Wins render as trophy graphics. The Won accessibility label and fixture data were correct.",
+    "gameBug": false,
+    "evidence": "season-4-week-7-form-proof.json"
+  },
+  {
+    "kind": "post-victory capture and recovery",
+    "season": 6,
+    "week": 30,
+    "issue": "Screenshot capture failed; full-page capture timed out and the original tab stopped answering evaluation. A fresh frame probe had succeeded before that capture.",
+    "resolution": "Recovered the persisted save in a fresh muted same-origin tab. Closed only the old owned tab to release its OPFS lock. Retry reloaded; mute guard and helper were reinstalled. Finish and No - title screen were pressed in the recovered tab, then the Hall of Fame and true-ending flag were exported.",
+    "lostEvidence": "S6 original page action log and weekly records; no final PNG. All match results, final save, original ending text and S1-S5 cumulative exports retained.",
+    "gameBug": "No career corruption observed; browser capture failure",
+    "evidence": "endgame-proof.json"
+  },
+  {
+    "kind": "report preview limit",
+    "issue": "Browser resize acknowledged requested sizes, but the static report viewport stayed at 1280x800.",
+    "resolution": "Verified the actual desktop geometry, links, and section navigation. Did not claim responsive phone proof.",
+    "gameBug": false,
+    "evidence": "report-browser-check.json"
+  }
+]

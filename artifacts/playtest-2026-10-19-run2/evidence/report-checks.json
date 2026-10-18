@@ -1,0 +1,36 @@
+{
+  "commands": [
+    {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run qa:tools:check",
+      "exitCode": 0,
+      "output": "PASS: checkpoint codec, real match policy, immutable input, lineup failure, guarded browser controls, worker cleanup and fallback, bounded waits, logs, and export chunks."
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run format:check",
+      "exitCode": 0,
+      "output": "All matched files use Prettier code style!"
+    },
+    {
+      "command": "node artifacts/playtest-2026-10-19-run2/verify-report.cjs",
+      "exitCode": 0,
+      "scope": "Six save hashes, 60 club builds, fixture and Hall of Fame totals, report season table. No simulated matches."
+    }
+  ],
+  "scope": "Report and QA guide; no game source changes. Full game suite receipts are separately archived.",
+  "publication": "No game release deployment.",
+  "staticReportChecks": {
+    "allRelativeLinksExist": true,
+    "links": 31,
+    "uniqueAnchors": true,
+    "allJsonParsed": true,
+    "bothFinalReviewerSummariesRecorded": true
+  }
+}

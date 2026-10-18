@@ -1,0 +1,263 @@
+{
+  "watchedActionsThroughS5": [
+    {
+      "label": "Play match",
+      "before": {
+        "screen": "matchday",
+        "tab": "home",
+        "error": null,
+        "saveError": null,
+        "serializationError": null,
+        "saving": false,
+        "persisted": true,
+        "seed": 3464191111,
+        "season": 2,
+        "week": 30,
+        "phase": "matchday",
+        "cash": 8855,
+        "tp": 0
+      },
+      "after": {
+        "screen": "watched",
+        "tab": "home",
+        "error": null,
+        "saveError": null,
+        "serializationError": null,
+        "saving": false,
+        "persisted": true,
+        "seed": 3464191111,
+        "season": 2,
+        "week": 30,
+        "phase": "matchday",
+        "cash": 8855,
+        "tp": 0
+      }
+    },
+    {
+      "label": "Play match",
+      "before": {
+        "screen": "matchday",
+        "tab": "home",
+        "error": null,
+        "saveError": null,
+        "serializationError": null,
+        "saving": false,
+        "persisted": true,
+        "seed": 3464191111,
+        "season": 4,
+        "week": 14,
+        "phase": "matchday",
+        "cash": 179351,
+        "tp": 10
+      },
+      "after": {
+        "screen": "watched",
+        "tab": "home",
+        "error": null,
+        "saveError": null,
+        "serializationError": null,
+        "saving": false,
+        "persisted": true,
+        "seed": 3464191111,
+        "season": 4,
+        "week": 14,
+        "phase": "matchday",
+        "cash": 179351,
+        "tp": 10
+      }
+    }
+  ],
+  "weeklyTpFromProductionFunction": {
+    "season5End": 57,
+    "season6End": 58
+  },
+  "fees": [
+    {
+      "season": 1,
+      "week": 18,
+      "label": "Signed Ben Irons",
+      "amount": -19075
+    },
+    {
+      "season": 3,
+      "week": 18,
+      "label": "Signed Cal Ash",
+      "amount": -28634
+    },
+    {
+      "season": 4,
+      "week": 4,
+      "label": "Signed Zane Ash",
+      "amount": -37693
+    },
+    {
+      "season": 4,
+      "week": 17,
+      "label": "Signed Ari Ward",
+      "amount": -37499
+    },
+    {
+      "season": 5,
+      "week": 17,
+      "label": "Signed Vik York",
+      "amount": -84060
+    },
+    {
+      "season": 6,
+      "week": 3,
+      "label": "Signed Uma Knox",
+      "amount": -71436
+    }
+  ],
+  "scope": "Read-only imports and saved logs. No fixtures simulated. S6 action log was lost; its match mode comes from the run record rather than a complete exported action log.",
+  "paidPlayerRequests": [
+    {
+      "id": "cash-transaction-57",
+      "season": 4,
+      "week": 27,
+      "kind": "player-request",
+      "label": "Something with diamonds",
+      "labelKey": "playerRequest.gift-for-my-bae.title",
+      "amount": -5770,
+      "balanceAfter": 372103,
+      "referenceId": "gift-for-my-bae"
+    },
+    {
+      "id": "cash-transaction-79",
+      "season": 6,
+      "week": 3,
+      "kind": "player-request",
+      "label": "The car",
+      "labelKey": "playerRequest.the-car.title",
+      "amount": -28116,
+      "balanceAfter": 998071,
+      "referenceId": "the-car"
+    },
+    {
+      "id": "cash-transaction-83",
+      "season": 6,
+      "week": 20,
+      "kind": "player-request",
+      "label": "A highlights drone",
+      "labelKey": "playerRequest.highlights-drone.title",
+      "amount": -41112,
+      "balanceAfter": 1726377,
+      "referenceId": "highlights-drone"
+    },
+    {
+      "id": "cash-transaction-84",
+      "season": 6,
+      "week": 28,
+      "kind": "player-request",
+      "label": "Custom gold boots",
+      "labelKey": "playerRequest.gold-boots.title",
+      "amount": -16884,
+      "balanceAfter": 1921174,
+      "referenceId": "gold-boots"
+    }
+  ],
+  "paidPlayerRequestCost": 91882,
+  "season6PaidPlayerRequestCost": 86112,
+  "loanWarningAndPayment": [
+    {
+      "season": 2,
+      "week": 15,
+      "lines": [
+        {
+          "kind": "merch",
+          "label": "Fan Shop merchandise",
+          "labelKey": "ledger.fanShopMerchandise",
+          "amount": 1234
+        },
+        {
+          "kind": "facilities",
+          "label": "Facility upkeep",
+          "labelKey": "ledger.facilityUpkeep",
+          "amount": -420
+        },
+        {
+          "kind": "wages",
+          "label": "Weekly wages",
+          "labelKey": "ledger.weeklyWages",
+          "amount": -2548
+        },
+        {
+          "kind": "wages",
+          "label": "Coaching staff wages",
+          "labelKey": "ledger.coachingStaffWages",
+          "amount": -450
+        }
+      ],
+      "balanceAfter": -569
+    },
+    {
+      "season": 2,
+      "week": 16,
+      "lines": [
+        {
+          "kind": "tickets",
+          "label": "League home gate",
+          "labelKey": "ledger.leagueHomeGate",
+          "amount": 5982,
+          "reveal": {
+            "source": "league-gate",
+            "base": 1994,
+            "variancePercent": 6,
+            "surge": false,
+            "multiplierPercent": 300,
+            "facilityCount": 2
+          }
+        },
+        {
+          "kind": "sponsor",
+          "label": "Local advertising (monthly)",
+          "labelKey": "ledger.localAdvertisingMonthly",
+          "amount": 2400,
+          "idempotencyKey": "sponsor-month:bramble-rovers:s2:w16:basic"
+        },
+        {
+          "kind": "merch",
+          "label": "Fan Shop merchandise",
+          "labelKey": "ledger.fanShopMerchandise",
+          "amount": 1184,
+          "reveal": {
+            "source": "merch",
+            "base": 359,
+            "variancePercent": -4,
+            "surge": false,
+            "multiplierTimes": 3,
+            "multiplierPercent": 300,
+            "facilityCount": 3,
+            "adjacencyPercent": 10,
+            "adjacencyAmount": 107
+          }
+        },
+        {
+          "kind": "facilities",
+          "label": "Facility upkeep",
+          "labelKey": "ledger.facilityUpkeep",
+          "amount": -420
+        },
+        {
+          "kind": "wages",
+          "label": "Weekly wages",
+          "labelKey": "ledger.weeklyWages",
+          "amount": -2548
+        },
+        {
+          "kind": "wages",
+          "label": "Coaching staff wages",
+          "labelKey": "ledger.coachingStaffWages",
+          "amount": -450
+        },
+        {
+          "kind": "emergency-loan",
+          "label": "Board emergency loan",
+          "labelKey": "ledger.boardEmergencyLoan",
+          "amount": 15000
+        }
+      ],
+      "balanceAfter": 20579
+    }
+  ]
+}

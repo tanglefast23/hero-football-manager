@@ -1,0 +1,86 @@
+{
+  "proof": {
+    "delays": [
+      467.5999999642372,
+      463.10000002384186,
+      464.80000001192093,
+      457.80000001192093
+    ],
+    "tapDurationMs": 985.5,
+    "careerUnchanged": true,
+    "previousActionCount": 2529,
+    "newActionCount": 1,
+    "info": {
+      "screen": "management",
+      "tab": "home",
+      "error": null,
+      "saveError": null,
+      "serializationError": null,
+      "saving": false,
+      "persisted": true,
+      "seed": 3464191111,
+      "season": 3,
+      "week": 24,
+      "phase": "manage",
+      "cash": 133798,
+      "tp": 50,
+      "division": 4,
+      "position": 1,
+      "leagueRecord": {
+        "W": 14,
+        "D": 0,
+        "L": 0,
+        "GF": 51,
+        "GA": 9
+      },
+      "leaguePlayed": 14,
+      "cupPlayed": 2,
+      "fans": 1733,
+      "formation": "3-4-3",
+      "drills": 422
+    }
+  },
+  "clock": {
+    "running": false,
+    "delays": [
+      467.5999999642372,
+      463.10000002384186,
+      464.80000001192093,
+      457.80000001192093
+    ]
+  },
+  "info": {
+    "screen": "management",
+    "tab": "home",
+    "error": null,
+    "saveError": null,
+    "serializationError": null,
+    "saving": false,
+    "persisted": true,
+    "seed": 3464191111,
+    "season": 3,
+    "week": 25,
+    "phase": "manage",
+    "cash": 155839,
+    "tp": 49,
+    "division": 4,
+    "position": 1,
+    "leagueRecord": {
+      "W": 15,
+      "D": 0,
+      "L": 0,
+      "GF": 52,
+      "GA": 9
+    },
+    "leaguePlayed": 15,
+    "cupPlayed": 2,
+    "fans": 1747,
+    "formation": "3-4-3",
+    "drills": 426
+  },
+  "job": {
+    "running": true,
+    "results": [],
+    "started": "2026-10-18T21:10:16.925Z"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "ownedTabsClosed": [
+    "ced104aa-cfdd-4bf9-a58f-ed27e52d817a",
+    "bcfeb3e6-1288-4210-b487-52bcbcbca36f",
+    "070be629-f9ba-4cb8-8b6e-ab4d444ad9c1"
+  ],
+  "browserListTabsAfterCleanup": [],
+  "checks": [
+    {
+      "command": [
+        "ps",
+        "-p",
+        "20985,82117",
+        "-o",
+        "pid=,args="
+      ],
+      "exitCode": 1,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "lsof",
+        "-nP",
+        "-iTCP:8093",
+        "-sTCP:LISTEN"
+      ],
+      "exitCode": 1,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "lsof",
+        "-nP",
+        "-iTCP:64063",
+        "-sTCP:LISTEN"
+      ],
+      "exitCode": 1,
+      "stdout": ""
+    }
+  ],
+  "unrelatedProcessesStopped": false,
+  "simulatorsStarted": false,
+  "note": "Exit 1 with empty output means these owned PIDs and listeners are absent."
+}

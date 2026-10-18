@@ -1,0 +1,71 @@
+{
+  "info": {
+    "screen": "management",
+    "tab": "home",
+    "error": null,
+    "saveError": null,
+    "serializationError": null,
+    "saving": false,
+    "persisted": true,
+    "seed": 3464191111,
+    "season": 4,
+    "week": 7,
+    "phase": "manage",
+    "cash": 98115,
+    "tp": 47,
+    "division": 3,
+    "position": 5,
+    "leagueRecord": {
+      "W": 1,
+      "D": 0,
+      "L": 1,
+      "GF": 3,
+      "GA": 2
+    },
+    "leaguePlayed": 2,
+    "cupPlayed": 0,
+    "fans": 2372,
+    "formation": "3-4-3",
+    "construction": {
+      "kind": "UPGRADE",
+      "buildingId": "facility-5",
+      "type": "stadium-stand",
+      "targetLevel": 2,
+      "weeksRemaining": 1,
+      "totalWeeks": 2
+    },
+    "drills": 466
+  },
+  "text": "BRAMBLE ROVERS\n$\n98.1k\nTP\n47\n2,372\n⚙\nSEASON 4 · D3 · WEEK 7 / 30\nGOOD MORNING, BOSS\nBOSS\nRECENT FORM\nL\nNEXT MATCH\nTHIS WEEK\nD3 · REGIONAL LEAGUE\nBRAMBLE ROVERS\nVS\nNORTHGATE RAVENS\nHOME\n1 RIVAL HERO\nINBOX\nNEEDS YOUR CALL\n1 OPEN\nSTILL WAITING\nBen Irons is still waiting on an answer. Leave it and you lose 5 loyalty and 8 morale.\n›\nD3 · REGIONAL LEAGUE\nTABLE SNAPSHOT\nTABLE ›\n#\nCLUB\nP\nGD\nPTS\n3\nBeacon Albion\n2\n+4\n4\n4\nCinder Swifts\n2\n+3\n3\n5\nBramble Rovers\n2\n+1\n3\n6\nNorthgate Ravens\n2\n-1\n3\n7\nFernhill Foxes\n2\n0\n2\nADVANCE WEEK  ›\n⌂\nHOME\n11\nSQUAD\n▦\nCLUB\n⇄\nMARKET\n≡\nLEAGUE",
+  "fixtures": [
+    {
+      "id": "s4-r1-m1",
+      "season": 4,
+      "round": 1,
+      "week": 5,
+      "homeClubId": "bramble-rovers",
+      "awayClubId": "d3-club-08",
+      "matchSeed": 2577704598,
+      "status": "played",
+      "score": {
+        "homeGoals": 0,
+        "awayGoals": 1
+      }
+    },
+    {
+      "id": "s4-r2-m1",
+      "season": 4,
+      "round": 2,
+      "week": 6,
+      "homeClubId": "d3-club-03",
+      "awayClubId": "bramble-rovers",
+      "matchSeed": 360146954,
+      "status": "played",
+      "score": {
+        "homeGoals": 1,
+        "awayGoals": 3
+      }
+    }
+  ],
+  "sourceCommit": "28386452"
+}

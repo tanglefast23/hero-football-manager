@@ -1,0 +1,42 @@
+[
+  {
+    "file": "season-1-end.json.gz",
+    "gzipSha256": "c75c40f0882ba7396c7241d88f43a6e2a406e20cd1475aba38b5af88273355a4",
+    "rawSha256": "dddbcb0dd30b1a290254abd02984005b37e48363efbc45c98cbfd9af8aaab347"
+  },
+  {
+    "file": "season-2-end.json.gz",
+    "gzipSha256": "3b280322abb52e0947380cf1f7ffa053a24091000aa84e4821459498b4adf0ae",
+    "rawSha256": "e6dc29592db09c1fdd1533da5d432db1ae65c2b91fce23369035daaaca425640"
+  },
+  {
+    "file": "season-2-week-9-snapshot.json.gz",
+    "gzipSha256": "c37f4250838cca2817ad88b2ac7579cbf5b67c2d62f822098fd9909230aced66",
+    "rawSha256": "c0ac9914842d2f8604fe0f4e76186791e14fe74f9ab9ef4640afceeff413fd52"
+  },
+  {
+    "file": "season-3-end.json.gz",
+    "gzipSha256": "0a8f596c641d8a13e4bc87f9de89ead9ea2ece584b0d519cc15ce03dfb51f657",
+    "rawSha256": "82bc8a42678cb2a1f7406c411087bf5b6b807e59d9f8ad781b588a4b9b8a822f"
+  },
+  {
+    "file": "season-3-week-2-snapshot.json.gz",
+    "gzipSha256": "ab1c0708a6cf0332598de438f9cc98c55a23d0d9a4f8a6552b06555982db0c6c",
+    "rawSha256": "5c4c7868ccebe6444e1e2601a7634cfc384b4f815b616a14569142567f9fe1ec"
+  },
+  {
+    "file": "season-4-end.json.gz",
+    "gzipSha256": "ec4e1d7cd629edd9b63ab9eba47470eb42e864c0a1c394a90a02b3afffa67dcf",
+    "rawSha256": "24da0759213ada8b8e086b25319cf4f393ace9b422f503210515ad7e6542d102"
+  },
+  {
+    "file": "season-5-end.json.gz",
+    "gzipSha256": "cd23427ac626517da24d55521a21b22e747ee5ed31c61e5003010ce87611a060",
+    "rawSha256": "455ebeed1bf36af7fe4b21667284f6cde08b7d6bb93f12064bfb534b11cf58e4"
+  },
+  {
+    "file": "season-6-end.json.gz",
+    "gzipSha256": "46e27ad70e361b738465c866482e714f2b18628f843cf209eecf2faed6767a2a",
+    "rawSha256": "50065f7b37e06d233bd38f53429c3865622a47727f13dc81cee6278a74df75eb"
+  }
+]

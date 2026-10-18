@@ -1,0 +1,69 @@
+{
+  "commit": "de80d170fa8b42fe776f2b7d6f4e84fa9df7f1e4",
+  "engineVersion": "m2.9",
+  "pushedMainVerified": true,
+  "localTypecheckPassed": true,
+  "qaToolsPassed": true,
+  "fullJest": {
+    "suitesPassed": 522,
+    "suitesSkipped": 1,
+    "suitesTotal": 523,
+    "testsPassed": 5041,
+    "testsSkipped": 1,
+    "testsTotal": 5042,
+    "seconds": 342.22,
+    "snapshotsPassed": 3
+  },
+  "webExportPassed": true,
+  "desktop": {
+    "protocol": "hfm:",
+    "isolated": true,
+    "sharedArrayBuffer": true,
+    "rendered": true,
+    "menuSafe": true,
+    "windowFits": true,
+    "musicRangeSafe": true,
+    "screenshot": true,
+    "ok": true
+  },
+  "syntheticUiCases": [
+    "atomic license exchange retains 16 rendered players",
+    "3-4-3 FWD 9,10,8 and MID 5,6,7,4 engine slots",
+    "4-3-3 FWD 9,10,8 engine slots",
+    "one non-nested Continue target returns HOME"
+  ],
+  "careerPin": "283864525cb73e81ceabb9c0431d67198ecb967d",
+  "ciRun": 39162498181,
+  "ciStatus": "completed",
+  "deployed": false,
+  "evidence": [
+    {
+      "file": "season-1-end.json",
+      "bytes": 1523150,
+      "sha256": "dddbcb0dd30b1a290254abd02984005b37e48363efbc45c98cbfd9af8aaab347"
+    },
+    {
+      "file": "season-2-end.json",
+      "bytes": 2777379,
+      "sha256": "e6dc29592db09c1fdd1533da5d432db1ae65c2b91fce23369035daaaca425640"
+    },
+    {
+      "file": "season-3-week-2-snapshot.json",
+      "bytes": 473324,
+      "sha256": "5c4c7868ccebe6444e1e2601a7634cfc384b4f815b616a14569142567f9fe1ec"
+    },
+    {
+      "file": "fixed-ui-proof.json",
+      "bytes": 10883,
+      "sha256": "7b2af9ca30942ca779eeb1e8ade88de9c9073926b4f21dd7fa97f9cc2bf35481"
+    },
+    {
+      "file": "fixed-continue-proof.json",
+      "bytes": 3455,
+      "sha256": "5e63b65ebdb635aa40de38f179ad6780bce289059d6d777d47950fcb1ba1be8b"
+    }
+  ],
+  "ciStatusAtCapture": "in_progress",
+  "ciConclusion": "success",
+  "ciCompletedReceipt": "fix-ci-result.json"
+}

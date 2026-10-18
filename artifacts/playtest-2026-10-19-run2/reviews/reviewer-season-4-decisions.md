@@ -1,0 +1,11 @@
+# Reviews before Season 4
+
+Grok reviewed renewals and training from source. Accepted: use Kai's only outstanding training priority for five shooting drills; buy only REF and SHO tier 3; keep other paths at tier 2; use Court level 2 for the rounded keeper gain of 5; sign normal renewals at the asking price without starter/captain promises. These actions were already taken by the time the review arrived. Eli's 550/3-year/shirt-10 offer accepted on round 2, and Kai's 1190/3-year/training offer accepted on round 2. A first-round short offer was a counter, not a lost contract. Nora received two years; other renewals received three.
+
+Not followed: release Ravi for free. We retained him at the printed 890/week with no promise. The third earned license can make Ice Rink usable, and a later sale preserves value if a better player replaces him. He remains a weak, ageing midfielder; this is a strategy choice with a wage cost, not proof the review was wrong. We did not give a starter or captain promise. New renewals did not receive the immediate promotion raise; existing promotion clauses did.
+
+Opus updated the AI transfer review against actual Season 4 data. Confirmed identity bug: Ken's ICE_RINK became RALLY_CRY and Hugo's RALLY_CRY became ICE_RINK. The power comes from a club/squad slot and the pyramid player record omits it. The queue assignment changed, but no match impact was measured. Do not call Sable weaker from this evidence. The 800 to 234 wage change is the intentional seasonal AI wage rebuild; +5% attributes, tier 2 and licensing also follow the generated AI rules.
+
+Opus's coherent future identity fix must carry an optional power through PyramidPlayer, careerPlayerToPyramid, and the save codec. Season-start, cup-opponent, and transfer-target derivation must share the rule. Preserve club hero counts; the power mix changes and needs a balance check. No sim change or ENGINE_VERSION bump. Moving a sold player to the end only stops queue jumping and does not preserve identity. No patch applied during this pinned playthrough.
+
+Actual evidence: season-4-ken-transition-proof.json. Reviewer source pin: 28386452. Both reviews were read-only; neither used the browser, save, port 8093, fixture simulation, or memory writes for these assignments.
