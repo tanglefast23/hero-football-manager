@@ -13,6 +13,7 @@ import {
   type AtlasLayout,
 } from './loader';
 import type { KitPlan } from './club-kit';
+import { makeAtlasSurface } from './atlas-surface';
 
 export interface SkiaRectLike {
   x: number;
@@ -29,13 +30,14 @@ export interface SkiaCanvasLike {
   drawRect(rect: SkiaRectLike, paint: SkiaPaintLike): void;
 }
 export interface SkiaImageLike {
-  // MakeOffscreen (below) creates a GPU-backed surface, so its snapshot is a
+  // The native offscreen surface is GPU-backed, so its snapshot is a
   // texture image bound to that surface's own GPU context — invalid when
   // sampled from a different <Canvas>'s context (renders nothing, even
   // though the pixels are correct). makeNonTextureImage() copies it into a
   // portable, CPU-backed image, which is exactly the conversion
   // react-native-skia's own renderer/Offscreen.tsx applies to a
-  // MakeOffscreen snapshot before handing it back for general use.
+  // MakeOffscreen snapshot before handing it back for general use. Web uses a
+  // CPU surface and keeps the same portable-image contract.
   makeNonTextureImage(): unknown;
   delete?(): void;
   dispose?(): void;
@@ -49,6 +51,7 @@ export interface SkiaSurfaceLike {
 }
 export interface SkiaApi {
   Surface: {
+    Make?(width: number, height: number): SkiaSurfaceLike | null;
     MakeOffscreen(width: number, height: number): SkiaSurfaceLike | null;
   };
   Paint(): SkiaPaintLike;
@@ -84,7 +87,7 @@ function disposeSkiaObject(value: { delete?(): void; dispose?(): void }): void {
  * single pixel is painted — and the same inputs recur constantly: entering a
  * match, replaying it, toggling colour-safe kits, and every drill tap, which
  * builds a whole atlas for one player. Bounded so a long session cannot grow it
- * without limit; the entries hold GPU-backed images.
+ * without limit; the entries hold portable, CPU-backed images.
  */
 const ATLAS_CACHE_LIMIT = 12;
 const atlasCache = new Map<string, SpriteAtlas>();
@@ -132,11 +135,9 @@ export function buildSpriteAtlas(
 
   const atlasW = layout.cols * layout.slotW;
   const atlasH = layout.rows * layout.slotH;
-  const surface = Skia.Surface.MakeOffscreen(atlasW, atlasH);
+  const surface = makeAtlasSurface(Skia, atlasW, atlasH);
   if (!surface) {
-    throw new Error(
-      'buildSpriteAtlas: Skia.Surface.MakeOffscreen returned null',
-    );
+    throw new Error('buildSpriteAtlas: could not create an atlas surface');
   }
   const canvas = surface.getCanvas();
 
@@ -227,11 +228,9 @@ export function buildFallbackAtlas(
   Skia: SkiaApi,
   size: number,
 ): { image: unknown; rectFor: AtlasLayout['rectFor'] } {
-  const surface = Skia.Surface.MakeOffscreen(size, size);
+  const surface = makeAtlasSurface(Skia, size, size);
   if (!surface) {
-    throw new Error(
-      'buildFallbackAtlas: Skia.Surface.MakeOffscreen returned null',
-    ); // Skia itself is broken — nothing could render anyway
+    throw new Error('buildFallbackAtlas: could not create an atlas surface'); // Skia itself is broken — nothing could render anyway
   }
   const canvas = surface.getCanvas();
   const paint = Skia.Paint();

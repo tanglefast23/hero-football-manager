@@ -57,7 +57,12 @@ import {
   currentUserDivision,
   synchronizeM2ActiveDivision,
 } from './m2-career';
-import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
+import {
+  aiClubHeroAssignments,
+  aiTransferHeroStatus,
+  ownsAiPlayerPower,
+  type AiHeroAssignment,
+} from './power-catalog';
 import {
   SPECIAL_UNATTACHED_CLUB_ID,
   isSpecialHeroId,
@@ -69,7 +74,6 @@ import {
 import {
   DIVISION_STRENGTH_BANDS,
   type DivisionLevel,
-  type PyramidClub,
   type PyramidPlayer,
 } from './pyramid';
 import { assertContractTermFitsCareer } from './retirement';
@@ -1583,7 +1587,13 @@ function completeCareerPlayerSale(
         ? {
             ...clearCareerContractPromise(candidate),
             clubId: buyerClubId,
-            licensed: false,
+            ...aiTransferHeroStatus(
+              candidate,
+              state.players.filter(
+                (buyerPlayer) => buyerPlayer.clubId === buyerClubId,
+              ),
+              state.m2 === undefined ? 5 : currentUserDivision(state.m2),
+            ),
           }
         : candidate,
     ),
@@ -1928,7 +1938,13 @@ export function careerTransferTarget(
       const player = club.squad.find((candidate) => candidate.id === playerId);
       if (player !== undefined) {
         return {
-          player: pyramidCareerPlayer(club, player, division.level),
+          player: pyramidCareerPlayer(
+            player,
+            division.level,
+            aiClubHeroAssignments(club.id, division.level, club.squad).get(
+              player.id,
+            )!,
+          ),
           sellingClubDivision: division.level,
           active: false,
         };
@@ -2032,6 +2048,11 @@ function allCareerTransferTargets(state: GameState): CareerTransferTarget[] {
   for (const division of state.m2.pyramid.divisions) {
     for (const club of division.clubs) {
       if (club.id === state.userClubId) continue;
+      const assignments = aiClubHeroAssignments(
+        club.id,
+        division.level,
+        club.squad,
+      );
       for (const player of club.squad) {
         if (seen.has(player.id)) continue;
         // Belt over the brace in synchronizeM2ActiveDivision: a named hero is
@@ -2041,7 +2062,11 @@ function allCareerTransferTargets(state: GameState): CareerTransferTarget[] {
         if (isSpecialHeroId(player.id)) continue;
         seen.add(player.id);
         targets.push({
-          player: pyramidCareerPlayer(club, player, division.level),
+          player: pyramidCareerPlayer(
+            player,
+            division.level,
+            assignments.get(player.id)!,
+          ),
           sellingClubDivision: division.level,
           active: false,
         });
@@ -2052,22 +2077,11 @@ function allCareerTransferTargets(state: GameState): CareerTransferTarget[] {
 }
 
 function pyramidCareerPlayer(
-  club: PyramidClub,
   player: PyramidPlayer,
   division: DivisionLevel,
+  assignment: AiHeroAssignment,
 ): CareerPlayer {
-  let nextEligibleIndex = 0;
-  let eligibleIndex = -1;
-  for (const candidate of club.squad) {
-    if (candidate.role !== 'MID' && candidate.role !== 'FWD') continue;
-    if (candidate.id === player.id) eligibleIndex = nextEligibleIndex;
-    nextEligibleIndex += 1;
-  }
-  const heroCount = generatedClubHeroCount(club.id, division);
-  const power =
-    eligibleIndex >= 0 && eligibleIndex < heroCount
-      ? generatedClubPower(club.id, eligibleIndex, player.role)
-      : undefined;
+  const { power, licensed } = assignment;
   const potential = opponentPotential(player.id, division);
   return {
     id: player.id,
@@ -2080,9 +2094,10 @@ function pyramidCareerPlayer(
       ? {}
       : {
           power,
+          ...(player.power === undefined ? {} : { ownsPower: true as const }),
           powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3,
         }),
-    licensed: power !== undefined,
+    licensed,
     weeklyWage: generatedPlayerWeeklyWage(player.attrs, division),
     onHeroWage: power !== undefined,
     contractSeasonsRemaining: 2,
@@ -2202,7 +2217,9 @@ function sellerCanSpare(state: GameState, playerId: string): boolean {
     return coversLineupTemplate(
       state.players.filter(
         (candidate) =>
-          candidate.clubId === activeSellerId && candidate.id !== playerId,
+          candidate.clubId === activeSellerId &&
+          candidate.id !== playerId &&
+          !ownsAiPlayerPower(candidate),
       ),
     );
   }
@@ -2211,7 +2228,10 @@ function sellerCanSpare(state: GameState, playerId: string): boolean {
     for (const club of division.clubs) {
       if (!club.squad.some((candidate) => candidate.id === playerId)) continue;
       return coversLineupTemplate(
-        club.squad.filter((candidate) => candidate.id !== playerId),
+        club.squad.filter(
+          (candidate) =>
+            candidate.id !== playerId && candidate.power === undefined,
+        ),
       );
     }
   }

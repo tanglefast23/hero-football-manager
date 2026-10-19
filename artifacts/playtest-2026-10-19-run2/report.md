@@ -96,35 +96,39 @@ Pure tests, store tests, view-model tests, real-checkpoint checks, and a separat
 
 The completed trip exposed an outer button and an inner button with the same label. Web had two tab stops. The fix removes accessibility from the finished outer wrapper while keeping its pointer behavior. The inner Continue remains the single accessible button. A separate browser case returned Home with one target. [Proof](evidence/fixed-continue-proof.json).
 
-### R2-05 — Sold heroes change power between seasons: confirmed, open
+### R2-05 — Sold heroes change power between seasons: confirmed during run, fixed afterward
 
 Ken Ash was sold to Sable Dragons with ICE_RINK. At the actual Season 4 transition, he had RALLY_CRY, while Hugo York changed from RALLY_CRY to ICE_RINK. [Before-state checkpoint](checkpoints/season-3-week-2-snapshot.json.gz), [live transition proof](evidence/season-4-ken-transition-proof.json), [queue review](reviews/opus-ai-transfer-review.md).
 
-The pyramid record does not carry a player's power. Rebuilding AI squads assigns powers from club and squad position. Ken's original global-list position moved him to the front of the buyer's eligible queue. The assignment change is confirmed. A resulting change in rival strength was not measured.
+In the pinned build, the pyramid record did not carry a player's power. Rebuilding AI squads assigned powers from club and squad position. Ken's original global-list position moved him to the front of the buyer's eligible queue. The assignment change is confirmed. A resulting change in rival strength was not measured.
 
-The sound fix is to preserve player-owned powers through the pyramid, save codec, season rebuild, Cup opponents, and transfer targets. Keep the authored hero count while defining overflow behavior. This changes the power mix and needs a balance check. It was not patched during this run. Moving Ken to the end of a list would stop the queue jump, but would not preserve his identity.
+The sound fix is to preserve player-owned powers through the pyramid, save codec, season rebuild, Cup opponents, and transfer targets. Keep the authored generated-hero ramp while defining license overflow behavior. This changes the power mix and needs a balance check. It was not patched during this run. Moving Ken to the end of a list would stop the queue jump, but would not preserve his identity.
 
 The wage change from $800 to $234, division-based tier, and seasonal attribute growth come from the existing AI rebuild. They are not evidence of the power bug. Source: `careerPlayerToPyramid` in `m2-career.ts`, `PyramidPlayer`, `pyramidPlayerSchema`, and the three generated-power call sites.
 
-### R2-06 — AI purchases cannot license a hero in-season: open policy gap
+The post-run fix preserves transferred powers through saves and seasons. Acquired ordinary players no longer take native power slots. Overflow keeps the power and removes the license. The completed career was not replayed. [Fix details and limits](bug-fix-follow-up.md).
 
-Every sale clears the player's license. No AI in-season action grants one. The lineup and bench correctly exclude an unlicensed hero, so a bought hero waits until the season rebuild.
+### R2-06 — AI purchases cannot license a hero in-season: fixed afterward
 
-Ken's actual buyer already had two licensed heroes and stronger midfielders. This sale therefore does not demonstrate a lost strong starter. A buyer with free capacity could still be affected. Define the AI's license allocation policy before changing this behavior. Both sale paths clear licenses: `completeCareerPlayerSale` in `market-career.ts` and `applyBoardForcedSaleConsequences` in `board-ultimatum.ts`. The AI team builder then excludes the unlicensed hero.
+In the pinned build, every sale cleared the player's license. No AI in-season action granted one. The lineup and bench correctly excluded an unlicensed hero, so a bought hero waited until the season rebuild.
+
+Ken's actual buyer already had two licensed heroes and stronger midfielders. This sale therefore does not demonstrate a lost strong starter. A buyer with free capacity could still be affected. Define the AI's license allocation policy before changing this behavior. Both sale paths cleared licenses: `completeCareerPlayerSale` in `market-career.ts` and `applyBoardForcedSaleConsequences` in `board-ultimatum.ts`. The AI team builder then excludes the unlicensed hero.
 
 The earlier Sol Reed AI-lineup crash is a different issue. That picker admitted an unlicensed powered player and the team builder threw. Its fix landed before this new career. The earlier report's stopped outcome remains unchanged.
 
+Both sale paths now license a powered arrival when the buyer has a free division license. A full buyer keeps the power unlicensed. [Fix details](bug-fix-follow-up.md).
+
 ## Balance and product thoughts
 
-**Late money stops being a meaningful limit in this seed.** Cash rose from $42,216 after Season 2 to $2,101,097 after Season 6, despite facilities, signings, renewals, and paid player requests. Four paid requests cost $91,882 across the run, including $86,112 in Season 6. Those costs are in cash transactions, not the weekly ledger lines. Season 6 ticket income was $1,470,395 and merchandise was $259,038. Total player and coach wages were $594,420. Three upgraded stands and rising fans drove a strong surplus. Test commercial stacking across more seeds before changing the numbers. I would measure this before adding more late cash sinks.
+**Late money stops being a meaningful limit in this seed.** Cash rose from $42,216 after Season 2 to $2,101,097 after Season 6, despite facilities, signings, renewals, and paid player requests. Four paid requests cost $91,882 across the run, including $86,112 in Season 6. Those costs are in cash transactions, not the weekly ledger lines. Season 6 ticket income was $1,470,395 and merchandise was $259,038. Total player and coach wages were $594,420. Three upgraded stands and rising fans drove a strong surplus. Test commercial stacking across more seeds before changing the numbers. This career did not buy Green Bull trips, an existing late cash-to-strength sink. Include that spending policy before concluding that money needs a nerf.
 
 **D5 took two seasons, then every promotion took one.** The first promotion was slow enough to teach reserves and scouting. Later league results were very strong, including two perfect seasons. The Cup still supplied setbacks. One seed with an extra legacy relief player cannot establish that Chairman is generally too easy.
 
 **High stats need clearer marginal feedback.** Raw REF 150 is not a hard engine wall. Logarithmic contests keep responding, with smaller gains per raw point. The weak technique or stamina of an overtrained scorer can matter more than more shooting. Training previews could explain which live contest improves, without promising a score outcome.
 
-**Unlocking a higher tier removes useful budget flexibility.** The training screen uses the owned tier. At low weekly TP, buying a path can change how many drills fit. A lower-tier selector would help managers choose volume versus gain. Several paths bought Tier 3 and Tier 4 in the same week. The Tier 3 fee is a required gate, not a double-charge bug. Tier 5's weaker gain per TP also deserves a clear reason to buy it.
+**Unlocking a higher tier removes useful budget flexibility.** The training screen uses the owned tier. At low weekly TP, buying a path can change how many drills fit. A lower-tier selector would help managers choose volume versus gain. Several paths bought Tier 3 and Tier 4 in the same week. The Tier 3 fee is a required gate, not a double-charge bug. Tier 5 gives more gain per action and per 8 condition, while Tier 4 gives more gain per TP. The preview should explain this tradeoff.
 
-**The mandatory Week 19 trip is a real trade.** In D5 and D4 it consumes the whole TP bank and reduces condition. The prompt blocks access to Squad, so the manager cannot first spend that week's bank. This was an observed flow, rather than a broken Advance button. Consider showing the exact bank cost earlier or allowing preparation before the decision. [Trip screen](evidence/02-team-trip.png).
+**The Week 19 trip decision is a real trade.** Taking the trip is optional. In D5 and D4 acceptance consumes the whole TP bank and reduces condition. The prompt blocks access to Squad, so the manager cannot first spend that week's bank. This was an observed flow, rather than a broken Advance button. The proposed design follow-up would preserve older TP savings. [Trip screen](evidence/02-team-trip.png), [approval plan](../../docs/superpowers/plans/2026-10-19-balance-and-design-follow-up.md).
 
 **Late Cup difficulty includes an authored catch-up rule.** `applyCupCatchUp` closes 25% of a qualifying team-rating gap in the semi-final and 50% in the final. It applies when the user's mean role rating leads by at least 10. This is a source fact, not a measured explanation of our scores. It does not apply in the quarter-final and cannot explain the Season 6 loss there.
 
@@ -141,7 +145,7 @@ Retirement cover still picks the first same-role player in roster order. It does
 - Home's recent-form strip did include away wins. Wins are trophy graphics, so page text omitted them. The Won accessibility label confirmed the result. No fix was needed.
 - Several apparent dead controls came from suspended browser frames. At Season 3 Week 16, a frame probe received zero frames for 15 seconds; a one-pixel background resize released the rival introduction. This was a QA environment incident.
 - Covered-pane timers made nominal 450 ms guards take seconds, sometimes much longer. The maintained helper now uses short-lived worker timers. Live probes took about 458–468 ms, and an actual tab tap took about 986 ms. Worker tests and cleanup checks passed. This fixes QA pacing; it makes no phone-performance claim.
-- Repeated WebGL eviction warnings and a blank watched kickoff remain a graphics hypothesis. The offscreen atlas allocation path is a suspect. Live context counts were not captured, and the match later finished. Do not patch the renderer from this evidence alone.
+- WebGL eviction was a hypothesis during this career. A later isolated browser check confirmed the atlas allocation leak: 24 unique builds created 24 contexts and eight evictions. The web CPU-surface fix created zero contexts with identical pixels. This does not prove the cause of the whole one-minute kickoff delay. [Browser counts and pixel hashes](evidence/atlas-context-validation.json), [post-run fix](bug-fix-follow-up.md).
 - The later screenshot failure is distinct from the confirmed zero-frame incident. A fresh frame probe succeeded before full-page capture stalled. Closing our old tab released its OPFS lock; the recovered save matched the final totals. No career corruption was observed.
 - A Rumored Hero brief returned three ordinary players. That search is not a guaranteed hero. I did not classify it as a bug.
 
@@ -149,9 +153,9 @@ My own mistakes were an early stand without enough reserve, too much training on
 
 ## Review and verification
 
-Grok reviewed strategy, training, timing, and graphics hypotheses. Opus reviewed the fixes, AI transfers, recent form, frame suspension, and Cup scoring. Their original notes are in [reviews](reviews/). The final report review and dispositions are in [final-review-decisions.md](final-review-decisions.md). Muse was quota-blocked and supplied no review.
+Grok reviewed strategy, training, timing, and graphics hypotheses. Opus reviewed the fixes, AI transfers, recent form, frame suspension, and Cup scoring. Their original notes are in [reviews](reviews/). The final report review and dispositions are in [final-review-decisions.md](final-review-decisions.md). Muse was quota-blocked during the career and initial report review. Its later post-run review is described below.
 
-Accepted changes included atomic license exchange, its repeated-tap guard, preserving manual positions, corrected sheet order, one accessible Continue, and the worker-based QA clock. I also accepted the later shift away from fixed weekly keeper training. Rejected claims include a missing away win and treating every 1–0 Cup tie as a simulation bug. Player power identity remains open.
+Accepted changes included atomic license exchange, its repeated-tap guard, preserving manual positions, corrected sheet order, one accessible Continue, and the worker-based QA clock. I also accepted the later shift away from fixed weekly keeper training. Rejected claims include a missing away win and treating every 1–0 Cup tie as a simulation bug. The later bug-fix pass closes player power identity, AI arrival licensing, and web atlas context ownership. Muse's quota had reset for that later pass. [Follow-up](bug-fix-follow-up.md).
 
 For de80d170, local verification passed **522 suites and 5,041 tests**, with one suite and one test skipped. Three snapshots, TypeScript, QA tools, the web export, and the hidden muted desktop shell check passed. The four CI jobs also passed. [Fix receipt](evidence/fix-validation.json), [completed CI receipt](evidence/fix-ci-result.json).
 
@@ -159,4 +163,4 @@ For ee2ee7a3, TypeScript and QA tools passed locally. All four CI jobs passed, i
 
 All six season-end exports pass the current save codec and production team builders: ten clubs each, zero lineup failures. The report verifier checks hashes, fixtures, recaps, Hall of Fame totals, and the saved true-ending flag. It runs no matches. [Validation](evidence/checkpoint-validation.json), [facts](facts.json), [compressed checkpoints](checkpoints/).
 
-Run `node artifacts/playtest-2026-10-19-run2/verify-report.cjs` to repeat those read-only checks. The report and evidence are committed separately from game changes. No Vercel, EAS, Steam, or App Store release was published. Only our browser tabs and port 8093 server were closed; existing unrelated servers were left alone.
+Run `node artifacts/playtest-2026-10-19-run2/verify-report.cjs` to repeat those read-only checks. The original report and evidence were committed separately from game changes. The [post-run fixes](bug-fix-follow-up.md) include their own verification receipts. No Vercel, EAS, Steam, or App Store release was published. The original career tab and port 8093 server were closed. The follow-up's temporary browser and servers were also closed; unrelated servers were left alone.

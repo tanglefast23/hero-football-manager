@@ -46,3 +46,17 @@ The [final review summary](reviews/grok-final-report-review.md) records its mate
 - Added the exact warning/loan sequence: Season 2 Week 15 ended at -$569; Week 16 paid $15,000 even after other income recovered the balance. This remains a reserve mistake, not a stand-price bug.
 - Clarified that sequential Tier 3 and Tier 4 fees are the required unlock gate. They are not a double-charge defect.
 - Grok checked the results, fees, facilities, licenses, Eli's retained status, scout timing, tier returns, and the 57/58 TP formula. It read the prior test receipts without rerunning them.
+
+## Post-run bug and design review — 2026-10-19
+
+Muse's quota had reset. Grok, Opus and Muse all supplied read-only reviews in this later pass.
+
+- Muse traced the web offscreen factory. The lead then reproduced 24 contexts and eight evictions with the real atlas builder. The CPU web surface produced identical pixels with no GL contexts. Muse found no blocker in the fix. The native path and cache image lifetimes remain unchanged.
+- Opus verified the transferred-power fix across both sales, saves, seasons, Cup and market. It found one material omission: the seller cover check counted owned heroes that can lose a license. The lead excluded owned powers from durable seller cover and added active/pyramid refusal tests. These tests also start the next season and build the team.
+- Opus rechecked that correction and found no blocker. Specials also stop counting as permanent seller cover because their host changes each season. Existing successful-purchase tests remain green.
+- Grok found no blocking identity defect. Its useful missing cases became tests for a powered foreign arrival at a full D2 cap, sold-back native indices, a full D3 special host, eleven eligible starters, and a legacy power surviving the next season. All fourteen AI-transfer tests passed.
+- Grok verified that the other report items do not justify new bug fixes. The four previously landed fixes remain present. The speculative emergency-youth collision has no demonstrated shipped path after the voluntary-license fix.
+- Original powers already erased by old code cannot be recovered. Active legacy foreign-id powers keep their currently saved identity. Off-division records without a stored power cannot supply a lost original identity. Sold-back native heroes use the explicit ownership marker.
+- The three design reviews are incorporated into the [approval plan](../../docs/superpowers/plans/2026-10-19-balance-and-design-follow-up.md). Tier 5 repricing and a TP bank cap were rejected. Exact scout dates, optional-trip wording, full-time shootout settlement, saved kicks, Green Bull measurement, and experiment-policy parity were accepted. Balance rules remain unchanged pending approval.
+
+See [post-run fixes](bug-fix-follow-up.md) and their verification receipts. Historical playthrough observations above remain unchanged.

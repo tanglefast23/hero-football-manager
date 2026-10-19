@@ -320,6 +320,7 @@ const playerSchema = z
       .optional(),
     attrs: attributesSchema,
     power: powerIdSchema.optional(),
+    ownsPower: z.literal(true).optional(),
     powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     licensed: z.boolean(),
     weeklyWage: nonnegativeInteger,
@@ -1109,6 +1110,7 @@ const pyramidPlayerSchema = z
     clubId: nonemptyString,
     name: nonemptyString,
     role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
+    power: powerIdSchema.optional(),
     lookId: nonemptyString.optional(),
     attrs: attributesSchema,
     archetype: z.enum([

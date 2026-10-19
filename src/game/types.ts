@@ -110,6 +110,8 @@ export interface CareerPlayer {
   createdAppearance?: CreatedPlayerAppearance;
   attrs: Attrs;
   power?: PowerId;
+  /** Transferred AI heroes keep their power instead of taking a generated club slot. */
+  ownsPower?: true;
   powerTier?: 1 | 2 | 3;
   licensed: boolean;
   weeklyWage: number;

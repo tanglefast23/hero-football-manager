@@ -1,5 +1,5 @@
 import { mulberry32, type Rng } from '../sim/rng';
-import type { Attrs, Role } from '../sim/types';
+import type { Attrs, PowerId, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { compareIds } from './ordering';
 import { POSITION_TRAINING_ATTRIBUTES, roleOverall } from './archetype-caps';
@@ -13,6 +13,8 @@ export interface PyramidPlayer {
   clubId: string;
   name: string;
   role: Role;
+  /** A transferred player's own power; generated club powers remain derived. */
+  power?: PowerId;
   lookId?: string;
   attrs: Attrs;
   archetype: PlayerArchetype;

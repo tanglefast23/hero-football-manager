@@ -1,0 +1,23 @@
+{
+  "startedServers": [
+    {
+      "pid": 79487,
+      "port": 58140
+    },
+    {
+      "pid": 86069,
+      "port": 59307
+    }
+  ],
+  "browserId": "99d28363-2ac0-4f26-a687-8f978f68ad56",
+  "documentDestroyed": true,
+  "blankDocumentConfirmed": true,
+  "tabClosed": true,
+  "serversStopped": true,
+  "listenerAudit": {
+    "command": "for p in $(lsof -nP -iTCP -sTCP:LISTEN -t | sort -u); do ps -o pid=,command= -p $p; done | rg 'Hero_Football_Manager|hfm-bugfix-20261019'",
+    "exitCode": 1,
+    "output": "",
+    "meaning": "No matching listener; clean. Other projects and phone Metro were not stopped."
+  }
+}

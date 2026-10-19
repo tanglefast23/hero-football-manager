@@ -1,0 +1,103 @@
+{
+  "ok": true,
+  "simulationRun": false,
+  "totals": {
+    "league": 108,
+    "cup": 16,
+    "all": 124,
+    "drills": 675,
+    "won": 92,
+    "drawn": 11,
+    "lost": 5,
+    "goalsFor": 361,
+    "goalsAgainst": 65
+  },
+  "finalCash": 2101097,
+  "trueEndingSaved": true,
+  "validations": [
+    {
+      "ok": true,
+      "engineVersion": "m2.9",
+      "checkpointEngineVersion": "m2.9",
+      "engineVersionMatches": true,
+      "seed": 3464191111,
+      "season": 1,
+      "week": 30,
+      "phase": "season-end",
+      "normalizedByCodec": true,
+      "teamsChecked": 10,
+      "failures": [],
+      "matchday": null
+    },
+    {
+      "ok": true,
+      "engineVersion": "m2.9",
+      "checkpointEngineVersion": "m2.9",
+      "engineVersionMatches": true,
+      "seed": 3464191111,
+      "season": 2,
+      "week": 30,
+      "phase": "season-end",
+      "normalizedByCodec": true,
+      "teamsChecked": 10,
+      "failures": [],
+      "matchday": null
+    },
+    {
+      "ok": true,
+      "engineVersion": "m2.9",
+      "checkpointEngineVersion": "m2.9",
+      "engineVersionMatches": true,
+      "seed": 3464191111,
+      "season": 3,
+      "week": 30,
+      "phase": "season-end",
+      "normalizedByCodec": true,
+      "teamsChecked": 10,
+      "failures": [],
+      "matchday": null
+    },
+    {
+      "ok": true,
+      "engineVersion": "m2.9",
+      "checkpointEngineVersion": "m2.9",
+      "engineVersionMatches": true,
+      "seed": 3464191111,
+      "season": 4,
+      "week": 30,
+      "phase": "season-end",
+      "normalizedByCodec": true,
+      "teamsChecked": 10,
+      "failures": [],
+      "matchday": null
+    },
+    {
+      "ok": true,
+      "engineVersion": "m2.9",
+      "checkpointEngineVersion": "m2.9",
+      "engineVersionMatches": true,
+      "seed": 3464191111,
+      "season": 5,
+      "week": 30,
+      "phase": "season-end",
+      "normalizedByCodec": true,
+      "teamsChecked": 10,
+      "failures": [],
+      "matchday": null
+    },
+    {
+      "ok": true,
+      "engineVersion": "m2.9",
+      "checkpointEngineVersion": "m2.9",
+      "engineVersionMatches": true,
+      "seed": 3464191111,
+      "season": 6,
+      "week": 30,
+      "phase": "season-end",
+      "normalizedByCodec": true,
+      "teamsChecked": 10,
+      "failures": [],
+      "matchday": null
+    }
+  ]
+}

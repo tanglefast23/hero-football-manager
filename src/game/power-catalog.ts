@@ -1,4 +1,7 @@
 import type { PowerId, Role } from '../sim/types';
+import type { CareerPlayer } from './types';
+import type { DivisionLevel } from './pyramid';
+import { heroLicenseLimitForDivision } from './promotion-progression';
 
 export const LAUNCH_POWER_IDS: readonly PowerId[] = [
   'SUPER_SPEED',
@@ -99,6 +102,76 @@ export function generatedClubHeroCount(
   if (division === 3) return 1 + (hash % 2);
   if (division === 2) return 2 + (hash % 3 === 0 ? 1 : 0);
   return 2 + (hash % 2);
+}
+
+export interface AiHeroAssignment {
+  power?: PowerId;
+  licensed: boolean;
+}
+
+/** Acquired players cannot move the club's native players between power slots. */
+export function aiClubHeroAssignments(
+  clubId: string,
+  division: DivisionLevel,
+  squad: readonly { id: string; role: Role; power?: PowerId }[],
+): ReadonlyMap<string, AiHeroAssignment> {
+  const assignments = new Map<string, AiHeroAssignment>();
+  const generated: string[] = [];
+  const owned: string[] = [];
+  let nativeIndex = 0;
+  for (const player of squad) {
+    const eligibleIndex =
+      player.id.startsWith(`${clubId}-p`) &&
+      (player.role === 'MID' || player.role === 'FWD')
+        ? nativeIndex++
+        : -1;
+    const power =
+      player.power ??
+      (eligibleIndex >= 0 &&
+      eligibleIndex < generatedClubHeroCount(clubId, division)
+        ? generatedClubPower(clubId, eligibleIndex, player.role)
+        : undefined);
+    assignments.set(player.id, {
+      ...(power === undefined ? {} : { power }),
+      licensed: false,
+    });
+    if (power !== undefined)
+      (player.power === undefined ? generated : owned).push(player.id);
+  }
+  let slots = heroLicenseLimitForDivision(division);
+  for (const id of [...generated, ...owned]) {
+    const assignment = assignments.get(id)!;
+    assignment.licensed = slots > 0;
+    if (slots > 0) slots--;
+  }
+  return assignments;
+}
+
+/** Legacy transferred heroes keep their currently saved identity too. */
+export function ownsAiPlayerPower(
+  player: Pick<CareerPlayer, 'id' | 'clubId' | 'power' | 'ownsPower'>,
+): boolean {
+  return (
+    player.power !== undefined &&
+    (player.ownsPower === true || !player.id.startsWith(`${player.clubId}-p`))
+  );
+}
+
+/** Both normal and forced sales use the buyer's earned cap, not the user's permits. */
+export function aiTransferHeroStatus(
+  player: Pick<CareerPlayer, 'power'>,
+  buyerRoster: readonly Pick<CareerPlayer, 'power' | 'licensed'>[],
+  division: DivisionLevel,
+): Pick<CareerPlayer, 'licensed' | 'ownsPower'> {
+  const slotsUsed = buyerRoster.filter(
+    (candidate) => candidate.power !== undefined && candidate.licensed,
+  ).length;
+  return {
+    licensed:
+      player.power !== undefined &&
+      slotsUsed < heroLicenseLimitForDivision(division),
+    ...(player.power === undefined ? {} : { ownsPower: true as const }),
+  };
 }
 
 function stableClubHash(clubId: string): number {

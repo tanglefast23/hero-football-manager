@@ -1,0 +1,88 @@
+{
+  "sourceBase": "0a8ee162c36067729fd05ecbedefcf292d4af5ca",
+  "sourceHashes": {
+    "src/game/__tests__/ai-hero-transfer.test.ts": "1cd09228c2c8d5ac1f319e56e5c3ba45582289324b163e73e7d9fdc2fc8ceed2",
+    "src/game/board-ultimatum.ts": "9ffcf9164c56b3c373734d9df0bc4a705c9bd02279f9b568058f9d4a68fde7e8",
+    "src/game/full-career.ts": "eec984e2895f2a721281499f578a529a970665fdeaf05a24dfdf777c095d5e30",
+    "src/game/m2-career.ts": "18c1eca034b7218c011481872b02bc5a1ae951516a729154d0cd69d9acea67b2",
+    "src/game/market-career.ts": "87294f5ce3e98f935deca4feaddfcd6f800c727b1fd96a19989429a2dec7d5b8",
+    "src/game/power-catalog.ts": "57fb37bacfcc5adc3951ee1f2196368dab57c1e01a187c5e6492c412943d6824",
+    "src/game/pyramid.ts": "c8f97fde20947a0e167fd659c61bb8625d31cbe76c83b8bf4a1a74cecd015817",
+    "src/game/squad.ts": "0b2a75703bcb2a4986cf79060639894d9c2f2a2665cc8ee55d5e6b346fea84cb",
+    "src/game/types.ts": "b1d4d4fcadd19675fda4ebff6e3bbc86e7d4902526e95515a6cb23851f94bdea",
+    "src/persistence/game-state-codec.ts": "e749f71fb5f712a67401c4ea441a1fc637ecb72b9dc9ec00dcaf5d899bdc682e",
+    "src/render/sprites/__tests__/atlas-web-surface.test.ts": "fc2fa5e403fffcc652bea69abbca12ecc974961f1b161c2fbce9b6506eea117f",
+    "src/render/sprites/atlas-surface.ts": "c556278ea7cb032010c6be4592ab3d6247fb1bea23ede448b3a52bf7c052458c",
+    "src/render/sprites/atlas-surface.web.ts": "78594bcf2a2bf1747d285f20fe1d085b441fe4519d863ec580561383cf435354",
+    "src/render/sprites/buildAtlas.ts": "7987b98602c84bbcc759ecf239e3b20e543db09b55a3b52e3f4c4ce08eca5c44"
+  },
+  "engineVersion": "m2.9",
+  "gameSchemaVersion": 6,
+  "status": "passed locally",
+  "fullSuite": {
+    "command": "npx jest --maxWorkers=4",
+    "exitCode": 0,
+    "suitesPassed": 524,
+    "suitesSkipped": 1,
+    "testsPassed": 5058,
+    "testsSkipped": 1,
+    "snapshotsPassed": 3,
+    "seconds": 584.564,
+    "log": "bug-fix-full-suite.log.gz",
+    "uncompressedLogSha256": "0d6ed2fe4f691b2e6631254e4253c81f0e78ce6cda134b0ea23a71d23f769f8a"
+  },
+  "typecheck": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0
+  },
+  "format": {
+    "scope": "14 changed TypeScript files",
+    "exitCode": 0
+  },
+  "webExport": {
+    "command": "npx expo export --platform web --clear; then node scripts/web/fix-worker-bundles.mjs",
+    "exitCode": 0,
+    "forcedHarnessRootAbsent": true
+  },
+  "desktop": {
+    "command": "./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron check.mjs",
+    "cwd": "desktop",
+    "exitCode": 0,
+    "protocol": "hfm:",
+    "isolated": true,
+    "sharedArrayBuffer": true,
+    "rendered": true,
+    "menuSafe": true,
+    "windowFits": true,
+    "musicRangeSafe": true,
+    "screenshot": true,
+    "ok": true,
+    "launcherIncident": "npm run check printed the same successful assertion JSON, but its Node launcher remained alive with no Electron child. Owned launcher PID 8493 was stopped (137). The direct binary returned 0 and left no process."
+  },
+  "checkpoints": {
+    "command": "node artifacts/playtest-2026-10-19-run2/verify-report.cjs",
+    "exitCode": 0,
+    "simulationRun": false,
+    "seasonEnds": 6,
+    "teamsChecked": 60,
+    "proof": "bug-fix-checkpoints.json"
+  },
+  "browser": {
+    "contextReceipt": "atlas-context-validation.json",
+    "matchProof": "atlas-fixed-match.json",
+    "cleanup": "bug-fix-cleanup.json"
+  },
+  "reviews": {
+    "Muse": "graphics: no blocking defect",
+    "Grok": "identity: no blocking defect; added targeted cap/host/legacy tests",
+    "Opus": "seller-cover defect accepted, fixed, and rechecked: no blocker"
+  },
+  "discardedRun": {
+    "command": "npx jest --runInBand",
+    "exitCode": 143,
+    "reason": "Stopped when review identified the seller-cover omission. Replaced by the complete final run after its fix."
+  },
+  "ciStatus": "not_attested_by_this_local_receipt",
+  "releasePublished": false,
+  "balancePlanImplemented": false
+}

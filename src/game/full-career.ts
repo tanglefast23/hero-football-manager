@@ -56,7 +56,7 @@ import {
   highestDivisionReached,
   recordHighestDivisionReached,
 } from './promotion-progression';
-import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
+import { aiClubHeroAssignments, type AiHeroAssignment } from './power-catalog';
 import {
   isSpecialHeroId,
   specialHeroAttrs,
@@ -595,14 +595,10 @@ function generatedActiveDivision(
   const players: CareerPlayer[] = [];
   const lineups: ClubLineupState[] = [];
   for (const club of clubs) {
-    let heroEligibleIndex = 0;
-    const clubPlayers = club.squad.map((player) => {
-      const eligibleIndex =
-        player.role === 'MID' || player.role === 'FWD'
-          ? heroEligibleIndex++
-          : -1;
-      return opponentCareerPlayer(player, division, eligibleIndex);
-    });
+    const assignments = aiClubHeroAssignments(club.id, division, club.squad);
+    const clubPlayers = club.squad.map((player) =>
+      opponentCareerPlayer(player, division, assignments.get(player.id)!),
+    );
     generatedClubs.push({
       id: club.id,
       name: club.name,
@@ -625,14 +621,9 @@ function generatedActiveDivision(
 function opponentCareerPlayer(
   player: PyramidPlayer,
   division: DivisionLevel,
-  eligibleIndex: number,
+  assignment: AiHeroAssignment,
 ): CareerPlayer {
-  const heroCount = generatedClubHeroCount(player.clubId, division);
-  const heroEligible = eligibleIndex >= 0;
-  const power =
-    heroEligible && eligibleIndex < heroCount
-      ? generatedClubPower(player.clubId, eligibleIndex, player.role)
-      : undefined;
+  const { power, licensed } = assignment;
   const potential = opponentPotential(player.id, division);
   return {
     id: player.id,
@@ -645,9 +636,10 @@ function opponentCareerPlayer(
       ? {}
       : {
           power,
+          ...(player.power === undefined ? {} : { ownsPower: true as const }),
           powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3,
         }),
-    licensed: power !== undefined,
+    licensed,
     weeklyWage: generatedPlayerWeeklyWage(player.attrs, division),
     onHeroWage: power !== undefined,
     contractSeasonsRemaining: 2,
@@ -832,13 +824,29 @@ function overlayDivisionSpecials(input: {
   }
 
   // The named specials own the first field licenses. Excess generated heroes
-  // become ordinary players on this season's host. Merely unlicensing them is
+  // become ordinary players; transferred heroes keep their power on the bench.
+  // Merely unlicensing excess generated heroes is
   // not enough: a generated squad can have no same-role ordinary reserve, so
   // startingEleven would have to field an unlicensed hero and still crash.
   // Without this reconciliation, the D2 host can start three generated heroes
   // plus three specials against a three-license cap.
   const fieldLicenseLimit = heroLicenseLimitForDivision(input.division);
-  let ordinaryLicenseSlots = Math.max(0, fieldLicenseLimit - specials.length);
+  const ordinaryLicenseSlots = Math.max(0, fieldLicenseLimit - specials.length);
+  const licensedHostIds = new Set(
+    carried
+      .filter(
+        (player) =>
+          player.clubId === hostId &&
+          player.power !== undefined &&
+          player.licensed,
+      )
+      .sort(
+        (left, right) =>
+          Number(left.ownsPower === true) - Number(right.ownsPower === true),
+      )
+      .slice(0, ordinaryLicenseSlots)
+      .map((player) => player.id),
+  );
   const adjustedCarried = carried.map((player) => {
     if (
       player.clubId !== hostId ||
@@ -847,10 +855,8 @@ function overlayDivisionSpecials(input: {
     ) {
       return player;
     }
-    if (ordinaryLicenseSlots > 0) {
-      ordinaryLicenseSlots -= 1;
-      return player;
-    }
+    if (licensedHostIds.has(player.id)) return player;
+    if (player.ownsPower === true) return { ...player, licensed: false };
     const ordinary = { ...player };
     delete ordinary.power;
     delete ordinary.powerTier;
@@ -964,7 +970,11 @@ function buildSpecialHeroPlayer(input: {
 function startingEleven(players: readonly CareerPlayer[]): string[] {
   const take = (role: CareerPlayer['role'], count: number) =>
     players
-      .filter((player) => player.role === role)
+      .filter(
+        (player) =>
+          player.role === role &&
+          (player.power === undefined || player.licensed),
+      )
       .slice(0, count)
       .map((player) => player.id);
   const ids = [

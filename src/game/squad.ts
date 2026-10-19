@@ -22,11 +22,12 @@ import { createEmergencyYouthReplacement } from './youth-intake';
 import { coachMotivatorBonusPercent } from './coach-weekly';
 import {
   heroLicenseCap,
+  heroLicenseLimitForDivision,
   highestDivisionReached,
   type BlockedCopy,
 } from './promotion-progression';
 import type { CareerPlayer, GameState } from './types';
-import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
+import { aiClubHeroAssignments } from './power-catalog';
 import { roleOverall } from './archetype-caps';
 import { deterministicCareerEventRoll } from './event-clock';
 
@@ -341,22 +342,20 @@ export function buildCareerMatchTeamDef(
   const club = division?.clubs.find((candidate) => candidate.id === clubId);
   if (club === undefined || division === undefined)
     throw new Error(`unknown career club ${clubId}`);
-  const heroLimit = generatedClubHeroCount(club.id, division.level);
-  let licensedHeroes = 0;
+  const heroLimit = heroLicenseLimitForDivision(division.level);
+  const assignments = aiClubHeroAssignments(
+    club.id,
+    division.level,
+    club.squad,
+  );
   const roster = club.squad.map((player) => {
-    const heroEligible =
-      (player.role === 'MID' || player.role === 'FWD') &&
-      licensedHeroes < heroLimit;
-    const power = heroEligible
-      ? generatedClubPower(club.id, licensedHeroes, player.role)
-      : undefined;
-    if (power !== undefined) licensedHeroes += 1;
+    const { power, licensed } = assignments.get(player.id)!;
     return {
       ...player,
       weeklyWage: 0,
       onHeroWage: power !== undefined,
       contractSeasonsRemaining: 1,
-      licensed: power !== undefined,
+      licensed,
       injuryWeeks: 0,
       morale: 50,
       attrs: {

@@ -19,6 +19,13 @@ It is closed on public hosts, `hfm://`, and native builds.
 It exposes no store actions or mutable career references.
 The browser helper's mute patch is an extra layer. It cannot guarantee silence before injection.
 
+When switching `EXPO_PUBLIC_` QA export flags, pass `--clear` to `expo export`.
+In the installed Expo version, a cached normal export ignored a newly set harness flag.
+A cleared export picked it up. Keep QA exports in a separate temporary directory.
+Before final build checks, unset the QA flags and rebuild the normal export with
+`npx expo export --platform web --clear`, then run `node scripts/web/fix-worker-bundles.mjs`.
+Run the desktop check against that normal export. Do not publish a temporary QA export.
+
 ## Drive the actual game
 
 Inspect `HFMPlaytest.controls()` and call `await HFMPlaytest.tap('Exact accessible label')`.

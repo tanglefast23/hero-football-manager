@@ -3,6 +3,7 @@ import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { roleOverall } from './archetype-caps';
 import { isSpecialHeroId } from './special-heroes';
 import { compareIds } from './ordering';
+import { ownsAiPlayerPower } from './power-catalog';
 import {
   advanceNationalCup,
   createNationalCup,
@@ -243,7 +244,9 @@ export function synchronizeM2ActiveDivision(
       .filter(
         (player) => player.clubId === club.id && !isSpecialHeroId(player.id),
       )
-      .map((player) => careerPlayerToPyramid(player));
+      .map((player) =>
+        careerPlayerToPyramid(player, club.id !== state.userClubId),
+      );
     if (squad.length < 11)
       throw new Error(`club ${club.id} needs at least eleven players`);
     return {
@@ -692,12 +695,18 @@ function mergeCareerPlayer(
   };
 }
 
-function careerPlayerToPyramid(player: StructuralCareerPlayer): PyramidPlayer {
+function careerPlayerToPyramid(
+  player: StructuralCareerPlayer,
+  preserveOwnedPower: boolean,
+): PyramidPlayer {
   return {
     id: player.id,
     clubId: player.clubId,
     name: player.name,
     role: player.role,
+    ...(preserveOwnedPower && ownsAiPlayerPower(player)
+      ? { power: player.power }
+      : {}),
     ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
     attrs: { ...player.attrs },
     archetype: player.archetype ?? 'All-Rounder',

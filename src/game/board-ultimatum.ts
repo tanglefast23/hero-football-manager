@@ -1,5 +1,6 @@
 import { sellingTransferQuote, type ValuationPlayer } from './market';
 import { currentUserDivision } from './m2-career';
+import { aiTransferHeroStatus } from './power-catalog';
 import { clearCareerContractPromise } from './contract-promises';
 import {
   activeFacilityAdjacencies,
@@ -520,7 +521,13 @@ export function applyBoardForcedSaleConsequences(
           return {
             ...clearCareerContractPromise(candidate),
             clubId: buyer.id,
-            licensed: false,
+            ...aiTransferHeroStatus(
+              candidate,
+              state.players.filter(
+                (buyerPlayer) => buyerPlayer.clubId === buyer.id,
+              ),
+              state.m2 === undefined ? 5 : currentUserDivision(state.m2),
+            ),
           };
         }
         if (candidate.clubId !== state.userClubId) return candidate;

@@ -1,0 +1,327 @@
+{
+  "surface": "muted, background Paseo browser pane; isolated local CanvasKit page; no career loaded",
+  "method": "Production buildSpriteAtlas + installed Skia JsiSkSurfaceFactory and CanvasKit. Sequential unique looks r:f00 through r:f23. OffscreenCanvas.getContext measured with WeakRefs. Fresh document for fixed run.",
+  "baselineSource": "0a8ee162",
+  "baseline": {
+    "contextCount": 24,
+    "lostEvents": 8,
+    "reachableContexts": 24,
+    "lostContexts": 8,
+    "hashes": [
+      {
+        "i": 0,
+        "hash": "a4ffd01c0291d5526516e7de44733bbbd7802701bbde66cbeb08569f44536305",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 1,
+        "hash": "65d116c5bd922c05efc60c310abc0b5acf733aff9ff13b16ca38e9101d8b3522",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 2,
+        "hash": "19c674ce504cbe25a681bfccf645b97d3189810ec8d7032e8239673ea8d8b5c2",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 3,
+        "hash": "c2d9cea2ae3955644ed80e7c08c05a945e408ace16ca71b6194d749eb8a79a5c",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 4,
+        "hash": "6fcddb422eaa192cb41aa11f667ba845339cdc257cbf01c1bf09926a0d6b4063",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 5,
+        "hash": "18549a99feadbce299ec7f0d72607b2c970735db269cf4fff9be3c1460098873",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 6,
+        "hash": "1360b8c491af0aeda20c05998a593addb3265dc66ebe7c8e4111ea70c6fe8952",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 7,
+        "hash": "1fdeb27519d81b46bdae964fbd7bc5977a75d45562426912fde1ea7f601169d8",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 8,
+        "hash": "66c084cf40518c144329c26bcecbfb605f254e77d6eca21f56067708208a347c",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 9,
+        "hash": "d33d76c38a5cae656114211cc28a34314a041ed03e37e38ee3d1f54af296e59a",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 10,
+        "hash": "8fcdab7077009d0de0305a16a78b986c054b517dd31b8255446caecc8731cb00",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 11,
+        "hash": "f6f73cf826799a31a62f896ee44320827423f84e1ea5604a55036386fed6d547",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 12,
+        "hash": "aa5c2e2f0c31018a8f2e8694da7850a14540267071bb1866366ba2080ea6911f",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 13,
+        "hash": "3bfc67ace45a30ada5cb44582e3040a4298b16a72dacb8b061e499e0fe39cd61",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 14,
+        "hash": "d062611a3435c269524da31a3aa9af91c269b80e368fb98188f1fa8817998d00",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 15,
+        "hash": "a7705d03768742df7360b45b206c7e87aa97fea5c39c24d51178cea677424fee",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 16,
+        "hash": "1cf81daaf2281717abfe193ff071fa4f5418d0b92e381fbf12a9214afc6a22b8",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 17,
+        "hash": "00d211fab945cba1d491038d7253de8866798188257e4fb8943195339f19ed12",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 18,
+        "hash": "4023b565a22b4eef55553dd6dad77f4965662158d2b04d263e2cf06605b4504f",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 19,
+        "hash": "a3a03ca8973833d519023b98521dce742ee8c11400dc49726654271f29b1e5bd",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 20,
+        "hash": "7db61c777240ee3e3a69332653b47ee605361411a5e9149caca59c92426ffe3d",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 21,
+        "hash": "6d26b134f55b32d19702c82a199dcd58817716a81ecb7d021830a1551b240a0e",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 22,
+        "hash": "4bd670af46acfd2466b58aca55b46cbea3fcfe8249bb1453f09ca3caa14c5ae5",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 23,
+        "hash": "c419a04d137aecf3c5d86a8b06b97c88b04ca3b1d483b7a2c6a0ed4e5cfa90d2",
+        "width": 288,
+        "height": 96
+      }
+    ],
+    "warnings": [],
+    "failures": [],
+    "browserEvictionWarnings": 8
+  },
+  "fixed": {
+    "contextCount": 0,
+    "lostEvents": 0,
+    "reachableContexts": 0,
+    "lostContexts": 0,
+    "hashes": [
+      {
+        "i": 0,
+        "hash": "a4ffd01c0291d5526516e7de44733bbbd7802701bbde66cbeb08569f44536305",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 1,
+        "hash": "65d116c5bd922c05efc60c310abc0b5acf733aff9ff13b16ca38e9101d8b3522",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 2,
+        "hash": "19c674ce504cbe25a681bfccf645b97d3189810ec8d7032e8239673ea8d8b5c2",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 3,
+        "hash": "c2d9cea2ae3955644ed80e7c08c05a945e408ace16ca71b6194d749eb8a79a5c",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 4,
+        "hash": "6fcddb422eaa192cb41aa11f667ba845339cdc257cbf01c1bf09926a0d6b4063",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 5,
+        "hash": "18549a99feadbce299ec7f0d72607b2c970735db269cf4fff9be3c1460098873",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 6,
+        "hash": "1360b8c491af0aeda20c05998a593addb3265dc66ebe7c8e4111ea70c6fe8952",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 7,
+        "hash": "1fdeb27519d81b46bdae964fbd7bc5977a75d45562426912fde1ea7f601169d8",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 8,
+        "hash": "66c084cf40518c144329c26bcecbfb605f254e77d6eca21f56067708208a347c",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 9,
+        "hash": "d33d76c38a5cae656114211cc28a34314a041ed03e37e38ee3d1f54af296e59a",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 10,
+        "hash": "8fcdab7077009d0de0305a16a78b986c054b517dd31b8255446caecc8731cb00",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 11,
+        "hash": "f6f73cf826799a31a62f896ee44320827423f84e1ea5604a55036386fed6d547",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 12,
+        "hash": "aa5c2e2f0c31018a8f2e8694da7850a14540267071bb1866366ba2080ea6911f",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 13,
+        "hash": "3bfc67ace45a30ada5cb44582e3040a4298b16a72dacb8b061e499e0fe39cd61",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 14,
+        "hash": "d062611a3435c269524da31a3aa9af91c269b80e368fb98188f1fa8817998d00",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 15,
+        "hash": "a7705d03768742df7360b45b206c7e87aa97fea5c39c24d51178cea677424fee",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 16,
+        "hash": "1cf81daaf2281717abfe193ff071fa4f5418d0b92e381fbf12a9214afc6a22b8",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 17,
+        "hash": "00d211fab945cba1d491038d7253de8866798188257e4fb8943195339f19ed12",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 18,
+        "hash": "4023b565a22b4eef55553dd6dad77f4965662158d2b04d263e2cf06605b4504f",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 19,
+        "hash": "a3a03ca8973833d519023b98521dce742ee8c11400dc49726654271f29b1e5bd",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 20,
+        "hash": "7db61c777240ee3e3a69332653b47ee605361411a5e9149caca59c92426ffe3d",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 21,
+        "hash": "6d26b134f55b32d19702c82a199dcd58817716a81ecb7d021830a1551b240a0e",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 22,
+        "hash": "4bd670af46acfd2466b58aca55b46cbea3fcfe8249bb1453f09ca3caa14c5ae5",
+        "width": 288,
+        "height": 96
+      },
+      {
+        "i": 23,
+        "hash": "c419a04d137aecf3c5d86a8b06b97c88b04ca3b1d483b7a2c6a0ed4e5cfa90d2",
+        "width": 288,
+        "height": 96
+      }
+    ],
+    "warnings": [],
+    "failures": []
+  },
+  "pixelsIdentical": true,
+  "focusedTests": {
+    "suitesPassed": 3,
+    "testsPassed": 16,
+    "command": "npx jest src/render/sprites/__tests__/atlas-cache.test.ts src/render/sprites/__tests__/atlas-web-surface.test.ts src/render/__tests__/atlas-packing.test.ts --runInBand",
+    "note": "Initial focused run. The later missing-CPU-factory regression also passed in the six-suite, 91-test follow-up."
+  },
+  "limit": "This reproduces context eviction. It does not prove the cause of the full one-minute watched kickoff delay in the earlier career.",
+  "atlasSourceHashes": {
+    "src/render/sprites/buildAtlas.ts": "7987b98602c84bbcc759ecf239e3b20e543db09b55a3b52e3f4c4ce08eca5c44",
+    "src/render/sprites/atlas-surface.ts": "c556278ea7cb032010c6be4592ab3d6247fb1bea23ede448b3a52bf7c052458c",
+    "src/render/sprites/atlas-surface.web.ts": "78594bcf2a2bf1747d285f20fe1d085b441fe4519d863ec580561383cf435354"
+  }
+}

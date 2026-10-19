@@ -1,0 +1,23 @@
+{
+  "surface": "muted background Paseo browser pane",
+  "kind": "synthetic QA live-match entry; no career loaded or advanced",
+  "build": "current source; local temporary EXPO_PUBLIC_DEV_HARNESS=1 static web export",
+  "evidence": {
+    "url": "http://127.0.0.1:59307/?mute=1#/dev/live-match-controls/mid-match",
+    "viewport": {
+      "width": 900,
+      "height": 600
+    },
+    "text": "ROV 0 – 0 UNI · 6' ⏸\n×1\n⚙\nVic Palm\n96%\nFORMATION\n4-4-2\n◆\nPLAYSTYLE\nBALANCED\n⇄\nSWAP\n0/5 USED\nENERGY USE\nTEAM ENERGY 94%\nSAVE ENERGY\nBALANCED\nALL OUT\n◂ MENU\n▴\nLive Match Controls\nMid Match\nKeeper Window\nHero Power Tutorial\nControls clearly visible",
+    "canvases": [
+      {
+        "width": 484,
+        "height": 748
+      }
+    ],
+    "muteGuard": true
+  },
+  "screenshot": "atlas-fixed-match.png",
+  "observed": "Sprites and pitch draw; clock advanced to 6 minutes before Pause match was pressed. Screenshot is viewport-only.",
+  "limits": "Web only; not a Steam playthrough or physical iPhone performance test."
+}
