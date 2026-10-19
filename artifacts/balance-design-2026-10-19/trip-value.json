@@ -1,0 +1,25 @@
+{
+  "seed": 711,
+  "squad": 16,
+  "outfield": 14,
+  "keepers": 2,
+  "weeklyTp": 10,
+  "bank": 200,
+  "charge": 10,
+  "remaining": 190,
+  "divisions": [
+    {
+      "division": 5,
+      "gain": 1,
+      "rawTotal": 112,
+      "roleUsedTotal": 92
+    },
+    {
+      "division": 4,
+      "gain": 2,
+      "rawTotal": 224,
+      "roleUsedTotal": 184
+    }
+  ],
+  "comparison": "A basic outfield drill spends 7 TP for 3 base points on one stat and 8 condition on one player. The trip costs 10 condition for every player. Raw total includes role-irrelevant attributes. Role-used totals exclude outfield REF and keeper SHO/DEF/TEC. Neither total estimates match wins. No reward tuning applied."
+}

@@ -239,8 +239,12 @@ describe('quick train', () => {
     // Both entry points propose; neither spends on the first tap.
     expect(modal).toContainSource('setPendingConfirm(option);');
     expect(modal).toContainSource('const chosen = pendingConfirm;');
-    expect(modal).toContainSource('startTrainingBatch(chosen, repeatCount);');
-    expect(modal).toContainSource('onTrainDrill(playerId, option.pathId);');
+    expect(modal).toContainSource(
+      'startTrainingBatch(chosen, confirmTier, repeatCount);',
+    );
+    expect(modal).toContainSource(
+      'onTrainDrill(playerId, option.pathId, picked.tier);',
+    );
     // Quick Train opens straight onto that drill's confirmation.
     expect(modal).toContainSource(
       'if (quickTrainPathId === undefined) return;',

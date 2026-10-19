@@ -851,10 +851,13 @@ function scoutingStatus(
             focus: focusLabel(mission.focus, t),
             cost: formatMoneyForCopy(t, mission.cost),
           }),
-    progressLabel: t('market.scoutWeeksLeft', {
+    progressLabel: `${t('market.scoutWeeksLeft', {
       n: weeksRemaining,
       count: weeksRemaining,
-    }),
+    })} · ${t('market.scoutReturnWeek', {
+      season: Math.floor((mission.dueWeek - 1) / 30) + 1,
+      week: ((mission.dueWeek - 1) % 30) + 1,
+    })}`,
   };
 }
 
@@ -877,6 +880,21 @@ function scoutingChoice(
     source.firstScoutFavorAvailable === true,
   );
   const durationWeeks = option.durationWeeks;
+  const dueWeek =
+    durationWeeks === undefined ? undefined : source.week + durationWeeks;
+  const signingWeek =
+    dueWeek === undefined
+      ? undefined
+      : Array.from({ length: 30 }, (_, index) => index + 1).find(
+          (week) =>
+            week >= dueWeek &&
+            isTransferWindowOpen(week) &&
+            reportSurvivesUntil(
+              { season: source.season, week: dueWeek },
+              { completedSeason: source.season, completedWeek: dueWeek },
+              week - dueWeek,
+            ),
+        );
   return {
     id: option.id,
     region: option.region,
@@ -905,9 +923,21 @@ function scoutingChoice(
             n: durationWeeks,
             count: durationWeeks,
           }),
-    ...(durationWeeks !== undefined && source.week + durationWeeks > 18
-      ? { returnsAfterFinalWindow: true }
-      : {}),
+    ...(dueWeek === undefined
+      ? {}
+      : {
+          returnWeekLabel: t('market.scoutReturnWeek', {
+            season: source.season + Math.floor((dueWeek - 1) / 30),
+            week: ((dueWeek - 1) % 30) + 1,
+          }),
+          windowFitLabel:
+            signingWeek === dueWeek
+              ? t('market.scoutWindowOpen')
+              : signingWeek === undefined
+                ? t('market.scoutNoWindow')
+                : t('market.scoutWaitForWindow', { week: signingWeek }),
+          ...(signingWeek !== dueWeek ? { returnsOutsideWindow: true } : {}),
+        }),
     available:
       !busy && !heroLocked && !eliteLocked && (affordable || feeWaived),
     ...(busy

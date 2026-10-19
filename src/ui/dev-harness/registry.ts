@@ -23,6 +23,8 @@ import { squadSortHintEntry } from './entries/squad-sort-hint';
 import { liveMatchControlsEntry } from './entries/live-match-controls';
 import { matchVfxEntry } from './entries/match-vfx';
 import { midseasonTrainingEntry } from './entries/midseason-training';
+import { managementDecisionsEntry } from './entries/management-decisions';
+import { trainingTiersEntry } from './entries/training-tiers';
 import { motivationalSpeechEntry } from './entries/motivational-speech';
 import { penaltyShootoutEntry } from './entries/penalty-shootout';
 import type { DevHarnessRoutableEntry } from './route';
@@ -81,6 +83,8 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   matchVfxEntry,
   motivationalSpeechEntry,
   midseasonTrainingEntry,
+  managementDecisionsEntry,
+  trainingTiersEntry,
   squadSortHintEntry,
   boardUltimatumEntry,
   heroLicenseShopEntry,

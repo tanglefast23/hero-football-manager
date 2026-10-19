@@ -1,8 +1,32 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { loadCatalog } from '../../i18n';
+import { copyFor, loadCatalog } from '../../i18n';
 
 describe('training stat option rendering', () => {
+  it('passes the chosen tier through App and resolves the affordable-run plural', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    expect(app).toContainSource('store.trainPlayer(playerId, pathId, tier)');
+    expect(app).toContainSource(
+      'store.trainPlayerBatch(playerId, pathId, runs, tier)',
+    );
+    const modal = readFileSync(
+      join(process.cwd(), 'src/ui/TrainingDrillModal.tsx'),
+      'utf8',
+    );
+    const pluralCall = modal.slice(
+      modal.indexOf("t('trainingDrill.affordableRuns'"),
+      modal.indexOf("t('trainingDrill.affordableRuns'") + 220,
+    );
+    expect(pluralCall).toContainSource('n: pendingTier.affordableRuns');
+    expect(modal).toContainSource('accessibilityState={{ checked: selected }}');
+    expect(
+      copyFor('en')('trainingDrill.affordableRuns', { n: 1, count: 1 }),
+    ).toBe('Fits the bank 1×');
+    expect(
+      copyFor('en')('trainingDrill.affordableRuns', { n: 2, count: 2 }),
+    ).toBe('Fits the bank 2×');
+  });
+
   it('keeps the drill modal out of the normal first-load bundle', () => {
     const screen = readFileSync(
       join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
@@ -49,10 +73,14 @@ describe('training stat option rendering', () => {
       'option !== undefined && !option.atSafetyCeiling && onTrainAttribute !== undefined',
     );
     expect(source).toContainSource('const disabled = blocked || settling;');
-    // Too little TP is different: the row stays tappable and says so, because a
-    // button that does nothing reads as broken.
+    // Too little TP is different: the row stays tappable while ANY owned tier
+    // fits the bank, because a button that does nothing reads as broken. Only
+    // a bank below the cheapest tier says no.
     expect(source).toContainSource(
-      'const unaffordable = !blocked && !option.affordable;',
+      'option.tiers.filter((tier) => tier.affordable);',
+    );
+    expect(source).toContainSource(
+      'const unaffordable = !blocked && initialTier === undefined;',
     );
     expect(source).toContainSource("title: t('trainingDrill.notEnoughTp')");
     expect(source).toContainSource('setNotice(null)');
@@ -95,7 +123,7 @@ describe('training stat option rendering', () => {
       'Base {label} / drill',
     );
     expect(source).toContainSource(
-      'pendingConfirm.baseValueAfter - pendingConfirm.currentValue',
+      'pendingTier.baseValueAfter - pendingConfirm.currentValue',
     );
     expect(source).not.toContainSource(
       '{pendingConfirm.currentValue} → {pendingConfirm.baseValueAfter}',
@@ -104,17 +132,17 @@ describe('training stat option rendering', () => {
     // to add to the line above, not a total standing in its place. Printing a
     // result there made "+4" then "+3" scan as +7.
     expect(source).toContainSource(
-      "{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}",
+      "{pendingTier.trainingAdjustment >= 0 ? '+' : ''}",
     );
     expect(source).toContainSource("{t('trainingDrill.bonus')}{' '}");
     expect(loadCatalog('en').strings['trainingDrill.bonus']).toBe('Bonus:');
-    expect(source).toContainSource('pendingConfirm.trainingAdjustment !== 0');
+    expect(source).toContainSource('pendingTier.trainingAdjustment !== 0');
     expect(source).toContainSource("t('trainingDrill.nextOrdinaryResult')");
     expect(source).toContainSource('`+${nextOrdinaryGain}`');
     expect(source).toContainSource("t('trainingDrill.ordinaryBatchEstimate')");
     expect(source).toContainSource('`~+${ordinaryBatchEstimate}`');
     expect(source).toContainSource(
-      'maximumVisibleTrainingRuns( pendingConfirm.currentValue, ordinaryVisibleGain(pendingConfirm), )',
+      'maximumVisibleTrainingRuns( pendingConfirm.currentValue, ordinaryVisibleGain(picked, pendingConfirm.currentValue), )',
     );
     expect(source).toContainSource('if (queuedRuns < 1) return;');
     expect(source).toContainSource("t('trainingDrill.maximum')");

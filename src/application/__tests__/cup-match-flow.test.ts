@@ -17,6 +17,11 @@ import { useM1Store } from '../store';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 import { loadLaunchContent } from '../../content';
 import { matchDayViewModel } from '../view-models';
+import { savedPenaltyShootout } from '../penalty-shootout';
+import {
+  parseStoredGameState,
+  serializeGameState,
+} from '../../persistence/game-state-codec';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
 
@@ -453,6 +458,14 @@ describe('Hero Cup app routing', () => {
     expect(settled.shootout?.winner).toBe(
       settled.postMatch!.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
     );
+    const saved = savedPenaltyShootout(settled.career!, fixture.id)!;
+    expect(saved.kicks.length).toBe(settled.shootout!.kicks.length);
+    expect(settled.postMatch!.result).toMatchObject({
+      shootoutHomeScore: saved.homeGoals,
+      shootoutAwayScore: saved.awayGoals,
+    });
+    const reloaded = parseStoredGameState(serializeGameState(settled.career!));
+    expect(savedPenaltyShootout(reloaded, fixture.id)).toEqual(saved);
     const career = settled.career;
     const ledgerCount = career!.ledgers.length;
 
@@ -498,6 +511,13 @@ describe('Hero Cup app routing', () => {
         ? 'club'
         : 'opponent',
     );
+    expect(cupFixture.penalties?.kicks.length).toBe(
+      settled.shootout!.kicks.length,
+    );
+    expect(settled.postMatch!.result).toMatchObject({
+      shootoutHomeScore: cupFixture.penalties!.homeGoals,
+      shootoutAwayScore: cupFixture.penalties!.awayGoals,
+    });
   });
 });
 

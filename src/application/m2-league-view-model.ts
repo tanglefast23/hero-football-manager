@@ -623,6 +623,8 @@ function cupFixture(
   const drawn =
     fixture.score !== undefined &&
     fixture.score.homeGoals === fixture.score.awayGoals;
+  const involvesUserClub =
+    fixture.homeClubId === userClubId || fixture.awayClubId === userClubId;
   return {
     id: fixture.id,
     roundLabel: cupRoundLabel(round.label, t),
@@ -631,13 +633,17 @@ function cupFixture(
     awayClubName: requireClubName(clubNames, fixture.awayClubId),
     awayDivision: divisionForClub(fixture.awayClubId),
     scoreLabel:
-      fixture.score === undefined
-        ? 'VS'
-        : `${fixture.score.homeGoals}-${fixture.score.awayGoals}${drawn ? ' P' : ''}`,
+      !involvesUserClub && winnerName !== undefined
+        ? t('m2League.outcome.advanced')
+        : fixture.score === undefined
+          ? 'VS'
+          : `${fixture.score.homeGoals}-${fixture.score.awayGoals}${!drawn ? '' : fixture.penalties === undefined ? ' P' : ` (${fixture.penalties.homeGoals}-${fixture.penalties.awayGoals} P)`}`,
+    ...(involvesUserClub && drawn && winnerName !== undefined
+      ? { decidedOnPenalties: true }
+      : {}),
     status: fixture.status === 'played' ? 'PLAYED' : 'SCHEDULED',
     ...(winnerName === undefined ? {} : { winnerName }),
-    involvesUserClub:
-      fixture.homeClubId === userClubId || fixture.awayClubId === userClubId,
+    involvesUserClub,
     ...(fixture.homeClubId === userClubId
       ? { userSide: 'home' as const }
       : fixture.awayClubId === userClubId

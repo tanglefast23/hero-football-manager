@@ -272,9 +272,14 @@ export interface SquadTrainingScreenProps {
   /** Passing undefined clears the selection, which sorting the register does. */
   onSelectPlayer: (playerId: string | undefined) => void;
   /** Resolves the drill instantly; the popup stays open for chain taps. */
-  onTrainDrill: (playerId: string, pathId: string) => void;
+  onTrainDrill: (playerId: string, pathId: string, tier?: number) => void;
   /** Resolves the drills queued behind the one on screen, without their cards. */
-  onTrainDrillBatch: (playerId: string, pathId: string, runs: number) => void;
+  onTrainDrillBatch: (
+    playerId: string,
+    pathId: string,
+    runs: number,
+    tier?: number,
+  ) => void;
   /** Buys the next drill tier for one path. Money, not TP. */
   onBuyDrillUpgrade: (pathId: string) => void;
   /** Opens the paid D3-D1 team-trip confirmation. */

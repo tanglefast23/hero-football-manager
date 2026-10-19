@@ -299,7 +299,7 @@ describe('marketViewModel', () => {
     expect(report.detailedReportBlockedReason).toBeUndefined();
   });
 
-  it('marks only scout trips that return after the season final window', () => {
+  it('shows exact scout return dates and warns outside either signing window', () => {
     const choices = marketViewModel({
       ...baseSource(),
       scoutOptions: [
@@ -318,8 +318,12 @@ describe('marketViewModel', () => {
       ],
     }).scouting.choices;
 
-    expect(choices[0].returnsAfterFinalWindow).toBe(true);
-    expect(choices[1].returnsAfterFinalWindow).toBeUndefined();
+    expect(choices[0]).toMatchObject({
+      returnsOutsideWindow: true,
+      returnWeekLabel: 'Returns Season 2, Week 19',
+      windowFitLabel: 'No signing window before this report expires.',
+    });
+    expect(choices[1].returnsOutsideWindow).toBeUndefined();
     expect(
       marketViewModel({
         ...baseSource(),
@@ -332,9 +336,69 @@ describe('marketViewModel', () => {
             durationWeeks: 2,
           },
         ],
-      }).scouting.choices[0].returnsAfterFinalWindow,
-    ).toBeUndefined();
+      }).scouting.choices[0],
+    ).toMatchObject({
+      returnsOutsideWindow: true,
+      returnWeekLabel: 'Returns Season 2, Week 5',
+      windowFitLabel: 'Wait until Week 17 to sign. The report stays valid.',
+    });
   });
+
+  it.each([
+    [
+      2,
+      2,
+      'Returns Season 2, Week 4',
+      false,
+      'Registration is open on return.',
+    ],
+    [
+      3,
+      2,
+      'Returns Season 2, Week 5',
+      true,
+      'Wait until Week 17 to sign. The report stays valid.',
+    ],
+    [
+      15,
+      3,
+      'Returns Season 2, Week 18',
+      false,
+      'Registration is open on return.',
+    ],
+    [
+      16,
+      3,
+      'Returns Season 2, Week 19',
+      true,
+      'No signing window before this report expires.',
+    ],
+    [
+      29,
+      4,
+      'Returns Season 3, Week 3',
+      true,
+      'No signing window before this report expires.',
+    ],
+  ])(
+    'quotes the signing-window boundary from week %s plus %s',
+    (week, durationWeeks, returnWeekLabel, outside, windowFitLabel) => {
+      const choice = marketViewModel({
+        ...baseSource(),
+        week: week as number,
+        scoutOptions: [
+          {
+            id: 'boundary',
+            region: 'LOCAL',
+            focus: { kind: 'POSITION', role: 'MID' },
+            durationWeeks: durationWeeks as number,
+          },
+        ],
+      }).scouting.choices[0];
+      expect(choice).toMatchObject({ returnWeekLabel, windowFitLabel });
+      expect(choice.returnsOutsideWindow === true).toBe(outside);
+    },
+  );
 
   it('shows a new active trip even while an older report remains on the desk', () => {
     const source = baseSource();

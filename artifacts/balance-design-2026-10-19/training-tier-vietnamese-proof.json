@@ -1,0 +1,23 @@
+{
+  "url": "http://127.0.0.1:52307/?qa=playtest&build=final2#/dev/training-tiers/vi",
+  "text": "ngự · TEC kỹ thuật · STA thể lực · REF bắt bóng\nPAC\n53\n+3 · 7 ĐT\nSHO\n17\n+13 · 26 ĐT\nPAS\n37\n+3 · 7 ĐT\nDEF\n49\n+3 · 7 ĐT\nTEC\n32\n+3 · 7 ĐT\nSTA\n54\n+3 · 7 ĐT\nTIỆM BÀI TẬP\nNÂNG MỘT NHÁNH\n$55.894\nTỐC ĐỘ\nNước Rút 1 · +3 với 7 ĐT\nBài tập bậc 2 mở ở D4 · Giải Quận.\n$5.000\nDỨT ĐIỂM\nDứt Điểm 4 · +13 với 26 ĐT\nBài tập bậc 5 mở ở D1 · Giải Toàn Cầu.\n$60.000\nCHUYỀN\nRondo 1 · +3 với 7 ĐT\nBài tập bậc 2 mở ở D4 · Giải Quận.\n$5.000\nPHÒNG NGỰ\nTranh Chấp 1 · +3 với 7 ĐT\nBài tập bậc 2 mở ở D4 · Giải Quận.\n$5.000\nKỸ THUẬT\nĐỡ Bóng 1 · +3 với 7 ĐT\nBài tập bậc 2 mở ở D4 · Giải Quận.\n$5.000\nTHỂ LỰC\nVòng Thể Lực 1 · +3 với 7 ĐT\nBài tập bậc 2 mở ở D4 · Giải Quận.\n$5.000\nPHẢN XẠ\nBài Thủ Môn 1 · +3 với 7 ĐT\nBài tập bậc 2 mở ở D4 · Giải Quận.\n$5.000\n◂ MENU\n▴\nTraining tiers\nEN\nVI\nLow bank\nOpen the drills, pick Shooting, choose T2 in the confirm card, then train\nBÀI TẬP\nED STONE DEF\nĐT\n30\n×\n★\nSIÊU 7%\nTHỂ LỰC 100%\nNƯỚC RÚT 1 (7 TP)\n53 PAC\n+3 Tốc độ\nDỨT ĐIỂM 4 (26 TP)\n17 SHO\n+13 Dứt điểm\nRONDO 1 (7 TP)\n37 PAS\n+3 Chuyền\nTRANH CHẤP 1 (7 TP)\n49 DEF\n+3 Phòng ngự\nĐỠ BÓNG 1 (7 TP)\n32 TEC\n+3 Kỹ thuật\nVÒNG THỂ LỰC 1 (7 TP)\n54 STA\n+3 Thể lực\nXÁC NHẬN\nDỨT ĐIỂM 4\nEd Stone · DEF\nBẬC\nT1 · 7 ĐT\nT2 · 11 ĐT\nT3 · 17 ĐT\nT4 · 26 ĐT\nGỐC DỨT ĐIỂM / BUỔI\n+13\nTHƯỞNG: TRẺ\n+1\nKẾT QUẢ THƯỜNG TIẾP THEO\n+14\nĐiểm Tập\n26 trên 30\nVừa 1×\nThể lực sau\n100% → 92%\nNguy cơ đau\nKhông có\nCơ hội SIÊU\n★\n7% mỗi lượt\nSỐ BUỔI LIÊN TIẾP\n1×\n1\nMỗi lượt có lần quay SIÊU riêng (tăng 1,5x) và nguy cơ chấn thương. Chấn thương sẽ dừng các lượt còn lại.\nHỦY\nTẬP 1×",
+  "radios": [
+    {
+      "label": "Bậc 1: Dứt Điểm 1. Tốn 7 điểm tập.",
+      "checked": "false"
+    },
+    {
+      "label": "Bậc 2: Dứt Điểm 2. Tốn 11 điểm tập.",
+      "checked": "false"
+    },
+    {
+      "label": "Bậc 3: Dứt Điểm 3. Tốn 17 điểm tập.",
+      "checked": "false"
+    },
+    {
+      "label": "Bậc 4: Dứt Điểm 4. Tốn 26 điểm tập.",
+      "checked": "true"
+    }
+  ],
+  "rawKeys": false
+}

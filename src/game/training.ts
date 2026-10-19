@@ -33,7 +33,10 @@ import {
 import { tryRepairCareerLineupForInjuries } from './squad';
 import { isAvailableForSelection } from './lineup';
 import { drillMultiplierPercent } from './player-requests';
-import { trainingDrillTier } from './promotion-progression';
+import {
+  trainingDrillTier,
+  type TrainingDrillTier,
+} from './promotion-progression';
 import {
   keeperDisplayLadderMultiplier,
   resolveTrainingDrillForPath,
@@ -151,12 +154,13 @@ export function instantTrainingPreview(
   state: GameState,
   playerId: string,
   pathId: string,
+  tier?: TrainingDrillTier,
 ): InstantTrainingPreview {
   const player = state.players.find((candidate) => candidate.id === playerId);
   if (player === undefined || player.clubId !== state.userClubId) {
     throw new Error(`player ${playerId} is not on the user club`);
   }
-  const drill = resolveTrainingDrillForPath(state, pathId);
+  const drill = resolveTrainingDrillForPath(state, pathId, tier);
   const attribute = trainingPathAttribute(pathId);
   const currentValue = player.attrs[attribute];
 
@@ -239,6 +243,7 @@ export function trainPlayerInstantly(
   state: GameState,
   playerId: string,
   pathId: string,
+  tier?: TrainingDrillTier,
 ): InstantDrillResolution {
   // Every other squad mutation asserts its phase; training used to run happily
   // during season-end, which is the renewals desk, not the training ground.
@@ -285,7 +290,7 @@ export function trainPlayerInstantly(
         `${priorityHolder.remaining} drill${priorityHolder.remaining === 1 ? '' : 's'}, train them first`,
     );
   }
-  const drill = resolveTrainingDrillForPath(state, pathId);
+  const drill = resolveTrainingDrillForPath(state, pathId, tier);
   if (drill.tpCost > state.trainingPoints) {
     throw new Error(
       `training needs ${drill.tpCost} TP but only ${state.trainingPoints} are available`,

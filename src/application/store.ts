@@ -116,6 +116,7 @@ import {
   type SponsorWeeklyChallengeKind,
 } from '../game';
 import type { PlayerRequestResolution } from '../game/types';
+import type { TrainingDrillTier } from '../game/promotion-progression';
 import type { ContractOffer, PitchCard } from '../game/market';
 import {
   careerRosterCapacity,
@@ -151,7 +152,10 @@ import {
   clearRivalResultCache,
 } from './rival-result-cache';
 import { quickResultFaceOffViewModel } from './quick-result-faceoff';
-import { penaltyShootoutViewModel } from './penalty-shootout';
+import {
+  penaltyShootoutViewModel,
+  savedPenaltyShootout,
+} from './penalty-shootout';
 import { careerMarketScoutOptions } from './market-source-adapter';
 import {
   matchDayBannerViewModel,
@@ -628,14 +632,19 @@ interface M1Store {
   chooseSponsorWeeklyChallenge: (kind: SponsorWeeklyChallengeKind) => void;
   /** Passing undefined clears the selection — sorting the register deselects. */
   selectPlayer: (playerId: string | undefined) => void;
-  trainPlayer: (playerId: string, pathId: string) => void;
+  trainPlayer: (playerId: string, pathId: string, tier?: number) => void;
   giftPlayer: (playerId: string, completeTutorial?: boolean) => Promise<void>;
   /**
    * Runs the rest of a repeat batch at once, for when the manager skips out of
    * the presentation. The drills were paid for and queued; watching them is
    * optional, so leaving early must not cancel them.
    */
-  trainPlayerBatch: (playerId: string, pathId: string, runs: number) => void;
+  trainPlayerBatch: (
+    playerId: string,
+    pathId: string,
+    runs: number,
+    tier?: number,
+  ) => void;
   purchaseTrainingUpgrade: (pathId: string) => void;
   /** Buys one Hero License above the cap the club has earned on the pitch. */
   purchaseHeroLicense: () => void;
@@ -1879,14 +1888,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
           : penaltyShootoutViewModel(
               {
                 fixtureId: fixture.id,
-                careerSeed: before.careerSeed,
-                matchSeed: fixture.matchSeed,
-                round: fixture.round,
+                penalties: savedPenaltyShootout(next, fixture.id),
                 clubTeam,
                 opponentTeam,
                 clubIsHome: userIsHome,
-                winner:
-                  postMatch.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
               },
               t,
             );
@@ -2059,14 +2064,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ? penaltyShootoutViewModel(
             {
               fixtureId: fixture.id,
-              careerSeed: before.careerSeed,
-              matchSeed: fixture.matchSeed,
-              round: fixture.round,
+              penalties: savedPenaltyShootout(next, fixture.id),
               clubTeam,
               opponentTeam,
               clubIsHome: watchedMatch.userIsFixtureHome,
-              winner:
-                postMatch.result.outcomeLabel === 'WIN' ? 'club' : 'opponent',
             },
             t,
           )
@@ -2762,10 +2763,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
     }
   },
 
-  trainPlayer(playerId, pathId) {
+  trainPlayer(playerId, pathId, tier) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const resolution = trainPlayerInstantly(career, playerId, pathId);
+      const resolution = trainPlayerInstantly(
+        career,
+        playerId,
+        pathId,
+        tier as TrainingDrillTier | undefined,
+      );
       const next = hasAssistantGuideMilestone(
         resolution.state,
         'first-training-complete',
@@ -2789,7 +2795,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  trainPlayerBatch(playerId, pathId, runs) {
+  trainPlayerBatch(playerId, pathId, runs, tier) {
     guarded(set, () => {
       let career = requireCareer(get());
       let sequence = get().lastDrillResult?.sequence ?? 0;
@@ -2808,6 +2814,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           career,
           playerId,
           pathId,
+          tier as TrainingDrillTier | undefined,
         );
         career = state;
         sequence += 1;

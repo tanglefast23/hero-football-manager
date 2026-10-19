@@ -1,0 +1,17 @@
+{
+  "command": "snapshot",
+  "browserId": "44cc4719-3056-4fd4-9cd1-8485d89b6add",
+  "workspaceId": "wks_5cc4456544839711",
+  "url": "http://127.0.0.1:52307/?qa=playtest#/dev/management-decisions/scout-late",
+  "title": "Hero Football Manager",
+  "format": "aria-yaml",
+  "snapshot": "- document \"Hero Football Manager\"\n  - text: \"You need to enable JavaScript to run this app.\"\n  - dialog \"Send the scout anyway?\"\n    - text: \"Confirm club decision\"\n    - heading \"Send the scout anyway?\" [level=1]\n      - text: \"Send the scout anyway?\"\n    - text: \"Returns Season 2, Week 19. No signing window before this report expires.\"\n    - button \"Wait\" [ref=@e1]\n      - text: \"Wait\"\n    - button \"Scout anyway\" [ref=@e2]\n      - text: \"Scout anyway\"",
+  "truncated": false,
+  "stats": {
+    "nodeCount": 39,
+    "refCount": 2,
+    "textLength": 458,
+    "iframeCount": 0,
+    "maxDepth": 8
+  }
+}

@@ -10,7 +10,7 @@ describe('repeat-training presentation contract', () => {
     const modal = source('src/ui/TrainingDrillModal.tsx');
 
     expect(modal).toContainSource(
-      'maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost)',
+      'maximumAffordableTrainingRuns(trainingPoints, pendingTier.tpCost)',
     );
     expect(modal).toContainSource('horizontal');
     expect(modal).toContainSource('snapToInterval={REPEAT_PICKER_CELL_WIDTH}');
@@ -21,7 +21,9 @@ describe('repeat-training presentation contract', () => {
       'Each run has its own SUPER roll (1.5x gain) and injury roll. An injury stops the remaining drills.',
     );
     expect(modal).toContainSource('batch.remaining > 0');
-    expect(modal).toContainSource('onTrainDrill(playerId, nextBatch.pathId);');
+    expect(modal).toContainSource(
+      'onTrainDrill(playerId, nextBatch.pathId, nextBatch.tier);',
+    );
   });
 
   it('lets a tapped number stand instead of reading it back off the scroll offset', () => {
@@ -65,7 +67,7 @@ describe('repeat-training presentation contract', () => {
       ],
     ).toBe('Cancel and return to the number picker');
     expect(modal).toContainSource(
-      'startTrainingBatch(pendingConfirm, saferRuns);',
+      'startTrainingBatch(pendingConfirm, confirmTier, saferRuns);',
     );
   });
 });

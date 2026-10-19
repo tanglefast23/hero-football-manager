@@ -13,6 +13,7 @@ import {
   type GameState,
 } from '../game/types';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
+import { penaltyShootoutProblem } from '../game/penalties';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { FORMATION_IDS } from '../sim/tactics';
 import {
@@ -1170,6 +1171,31 @@ const pyramidClubSchema = z
     squad: z.array(pyramidPlayerSchema),
   })
   .passthrough();
+/**
+ * A user Cup tie's saved shootout. Optional, so saves written before kicks were
+ * recorded keep their winner and load unchanged; no schema version step.
+ */
+const penaltyShootoutSchema = z
+  .object({
+    homeGoals: nonnegativeInteger,
+    awayGoals: nonnegativeInteger,
+    kicks: z.array(
+      z
+        .object({
+          side: z.enum(['home', 'away']),
+          takerId: nonemptyString,
+          keeperId: nonemptyString,
+          scored: z.boolean(),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough()
+  .superRefine((shootout, context) => {
+    const problem = penaltyShootoutProblem(shootout);
+    if (problem !== undefined)
+      context.addIssue({ code: 'custom', message: problem });
+  });
 const cupFixtureSchema = z
   .object({
     id: nonemptyString,
@@ -1181,8 +1207,28 @@ const cupFixtureSchema = z
     status: z.enum(['scheduled', 'played']),
     score: scoreSchema.optional(),
     winnerClubId: nonemptyString.optional(),
+    penalties: penaltyShootoutSchema.optional(),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((fixture, context) => {
+    const penalties = fixture.penalties;
+    if (penalties === undefined) return;
+    const shootoutWinner =
+      penalties.homeGoals > penalties.awayGoals
+        ? fixture.homeClubId
+        : fixture.awayClubId;
+    if (
+      fixture.status !== 'played' ||
+      fixture.score === undefined ||
+      fixture.score.homeGoals !== fixture.score.awayGoals ||
+      fixture.winnerClubId !== shootoutWinner
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'penalties need a level played score and their own winner',
+      });
+    }
+  });
 const nationalCupSchema = z
   .object({
     careerSeed: uint32,

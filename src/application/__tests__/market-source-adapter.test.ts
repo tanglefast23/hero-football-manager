@@ -55,6 +55,41 @@ function exactReport(
 }
 
 describe('career market view-model source adapter', () => {
+  it('purchases the exact return date previewed for every unlocked scout brief', () => {
+    const base = fullCareer(711);
+    const state: GameState = {
+      ...base,
+      season: 2,
+      week: 2,
+      m2: { ...base.m2!, highestDivisionReached: 1 },
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? { ...club, cash: 100_000 } : club,
+      ),
+    };
+    const before = JSON.stringify(state);
+    const options = careerMarketScoutOptions(state);
+    const choices = marketViewModel(careerMarketViewModelSource(state)).scouting
+      .choices;
+    for (const option of options) {
+      const purchased = startCareerScoutMission(
+        state,
+        state.market!,
+        option.region,
+        option.focus,
+        5,
+        1,
+      ).market.activeScoutMission!;
+      expect(purchased.id).toBe(`scout-${state.market!.nextMissionNumber}`);
+      expect(purchased.dueWeek - purchased.startWeek).toBe(
+        option.durationWeeks,
+      );
+      expect(
+        choices.find((choice) => choice.id === option.id)?.returnWeekLabel,
+      ).toBe(`Returns Season 2, Week ${state.week + option.durationWeeks!}`);
+    }
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
   it('derives deterministic scout briefs and live club context without mutating career state', () => {
     const initial = { ...fullCareer(711), week: 15 };
     const officeProject = buildCareerFacility(initial, 'scout-office', {

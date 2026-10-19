@@ -868,7 +868,7 @@ function CupTie({
         score: fixture.scoreLabel,
         away: fixture.awayClubName,
         note: fixture.winnerName
-          ? `, ${t('m2League.a11y.advanced', { club: fixture.winnerName })}`
+          ? `, ${t('m2League.a11y.advanced', { club: fixture.winnerName })}${fixture.decidedOnPenalties ? `, ${t('m2League.onPenalties')}` : ''}`
           : '',
       })}
       accessibilityState={{ disabled }}

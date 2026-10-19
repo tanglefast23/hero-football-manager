@@ -1,0 +1,104 @@
+{
+  "kind": "controlled-late-checkpoint-purchasing-capacity",
+  "status": "MEASUREMENT_ONLY",
+  "input": {
+    "path": "/Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/artifacts/playtest-2026-10-19-run2/checkpoints/season-6-end.json.gz",
+    "sha256": "46e27ad70e361b738465c866482e714f2b18628f843cf209eecf2faed6767a2a",
+    "season": 6,
+    "week": 30,
+    "cash": 2101097,
+    "tp": 80
+  },
+  "controls": {
+    "phase": "manage",
+    "season": 7,
+    "singlePurchaseTpBudget": 116,
+    "capacityTpPerOpportunity": 58,
+    "noIncomeOrExpensesExceptGreenBull": true,
+    "fixturesPlayed": 0,
+    "weeklySettlements": 0,
+    "sourceUnchanged": true,
+    "meaning": "Synthetic future opportunities on a copy. This is not a resumed career, a win estimate, or evidence that Green Bull is an optimal purchase."
+  },
+  "firstPurchase": {
+    "cost": 50000,
+    "cashBefore": 2101097,
+    "cashAfter": 2051097,
+    "tpBefore": 116,
+    "tpAfter": 0,
+    "squad": 17,
+    "storedStatGain": 238
+  },
+  "capacity": {
+    "purchases": [
+      {
+        "week": 1,
+        "cost": 50000,
+        "cashAfter": 2051097,
+        "tpDrained": 58
+      },
+      {
+        "week": 2,
+        "cost": 75000,
+        "cashAfter": 1976097,
+        "tpDrained": 58
+      },
+      {
+        "week": 3,
+        "cost": 100000,
+        "cashAfter": 1876097,
+        "tpDrained": 58
+      },
+      {
+        "week": 4,
+        "cost": 125000,
+        "cashAfter": 1751097,
+        "tpDrained": 58
+      },
+      {
+        "week": 5,
+        "cost": 150000,
+        "cashAfter": 1601097,
+        "tpDrained": 58
+      },
+      {
+        "week": 6,
+        "cost": 175000,
+        "cashAfter": 1426097,
+        "tpDrained": 58
+      },
+      {
+        "week": 7,
+        "cost": 200000,
+        "cashAfter": 1226097,
+        "tpDrained": 58
+      },
+      {
+        "week": 8,
+        "cost": 225000,
+        "cashAfter": 1001097,
+        "tpDrained": 58
+      },
+      {
+        "week": 9,
+        "cost": 250000,
+        "cashAfter": 751097,
+        "tpDrained": 58
+      },
+      {
+        "week": 10,
+        "cost": 275000,
+        "cashAfter": 476097,
+        "tpDrained": 58
+      },
+      {
+        "week": 11,
+        "cost": 300000,
+        "cashAfter": 176097,
+        "tpDrained": 58
+      }
+    ],
+    "totalCashSpent": 1925000,
+    "remainingCash": 176097
+  }
+}

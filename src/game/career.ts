@@ -64,6 +64,7 @@ import {
   pendingImpactFromProduction,
 } from './pending-match-impact';
 import type { ProductionFixtureResult } from './matchday';
+import { penaltyShootoutSeed, resolvePenaltyShootout } from './penalties';
 import {
   actualSponsorPortfolioIncome,
   allocateSponsorPortfolioPayment,
@@ -1914,17 +1915,41 @@ function completeNationalCupMatchday(
   if (cupFixture === undefined || state.m2 === undefined) {
     throw new Error(`unknown Hero Cup fixture ${cupMatchday.fixture.id}`);
   }
+  // A level production match is settled by the players who finished it. A
+  // caller without the full-time squads (headless rails, older flows) keeps the
+  // historical seed rule and records no kicks, so nothing is invented.
+  const shootout =
+    result.homeGoals === result.awayGoals &&
+    production?.penaltyFullTime !== undefined
+      ? resolvePenaltyShootout(
+          penaltyShootoutSeed(state.careerSeed, cupFixture),
+          production.penaltyFullTime,
+        )
+      : undefined;
   const winnerClubId =
     result.homeGoals > result.awayGoals
       ? cupFixture.homeClubId
       : result.homeGoals < result.awayGoals
         ? cupFixture.awayClubId
-        : deterministicPenaltyWinner(state, cupFixture);
+        : shootout !== undefined
+          ? shootout.winner === 'home'
+            ? cupFixture.homeClubId
+            : cupFixture.awayClubId
+          : deterministicPenaltyWinner(state, cupFixture);
   const cupResult: NationalCupResult = {
     fixtureId: result.fixtureId,
     homeGoals: result.homeGoals,
     awayGoals: result.awayGoals,
     winnerClubId,
+    ...(shootout === undefined
+      ? {}
+      : {
+          penalties: {
+            homeGoals: shootout.homeGoals,
+            awayGoals: shootout.awayGoals,
+            kicks: shootout.kicks,
+          },
+        }),
   };
   const resultByFixtureId = new Map([[result.fixtureId, result]]);
   const pendingImpact =

@@ -1,0 +1,34 @@
+{
+  "kind": "Pure penalty calibration; no regulation fixture played",
+  "policy": "Full condition; ten outfield takers and one keeper per side. Equal: SHO100, keeperREF100. Strong-home: SHO200, keeperREF200 against100. Each keeper SHO30.",
+  "stats": [
+    {
+      "name": "equal",
+      "seeds": {
+        "first": 1,
+        "last": 10000
+      },
+      "runs": 10000,
+      "homeWins": 4975,
+      "homeWinRate": 0.4975,
+      "homeConversion": 0.7493344179855052,
+      "awayConversion": 0.7509386501932787,
+      "kickConversion": 0.7501363783458924,
+      "suddenDeathRate": 0.2888
+    },
+    {
+      "name": "strong-home",
+      "seeds": {
+        "first": 1,
+        "last": 10000
+      },
+      "runs": 10000,
+      "homeWins": 9005,
+      "homeWinRate": 0.9005,
+      "homeConversion": 0.8869964910840703,
+      "awayConversion": 0.6119855231041158,
+      "kickConversion": 0.7512180932295833,
+      "suddenDeathRate": 0.1753
+    }
+  ]
+}

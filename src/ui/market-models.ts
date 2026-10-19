@@ -34,7 +34,9 @@ export interface ScoutMissionChoiceViewModel {
   /** This otherwise unaffordable first trip is covered by the scout. */
   readonly feeWaived?: boolean;
   readonly durationLabel: string;
-  readonly returnsAfterFinalWindow?: boolean;
+  readonly returnWeekLabel?: string;
+  readonly windowFitLabel?: string;
+  readonly returnsOutsideWindow?: boolean;
   readonly available: boolean;
   readonly blockedReason?: string;
 }

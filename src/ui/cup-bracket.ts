@@ -31,6 +31,7 @@ export interface BracketTie {
   readonly awayName: string;
   readonly awayDivision?: M2DivisionLevelViewModel;
   readonly scoreLabel: string;
+  readonly decidedOnPenalties?: boolean;
   readonly played: boolean;
   readonly winnerName?: string;
   readonly involvesUserClub: boolean;
@@ -82,6 +83,7 @@ function tieFrom(
     awayName: fixture.awayClubName,
     awayDivision: fixture.awayDivision,
     scoreLabel: fixture.scoreLabel,
+    ...(fixture.decidedOnPenalties ? { decidedOnPenalties: true } : {}),
     played: fixture.status === 'PLAYED',
     ...(fixture.winnerName === undefined
       ? {}

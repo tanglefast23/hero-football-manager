@@ -187,17 +187,24 @@ export function midseasonTrainingCaptain(
   return firstStarter ?? squad[0];
 }
 
+/** The Week 19 offer spends at most one week's income, preserving older savings. */
+export function midseasonTrainingCost(state: GameState): number {
+  return Math.min(state.trainingPoints, weeklyAmbientTrainingPoints(state));
+}
+
 /**
- * Pays every TP currently held, raises all seven stored attributes, and costs
+ * Pays at most one week's TP income, raises all seven stored attributes, and costs
  * every user-club player 10 condition. The accepted flag makes a repeated call
  * an exact no-op.
  */
 export function acceptMidseasonTraining(state: GameState): GameState {
   if (midseasonTrainingStatus(state) !== 'prompt') return state;
-  return applySquadTraining(state, midseasonTrainingGain(state), [
-    ...state.eventFlags,
-    midseasonTrainingAcceptedFlag(state.season),
-  ]);
+  return applySquadTraining(
+    state,
+    midseasonTrainingGain(state),
+    [...state.eventFlags, midseasonTrainingAcceptedFlag(state.season)],
+    midseasonTrainingCost(state),
+  );
 }
 
 export function acceptGreenBullTraining(state: GameState): GameState {
@@ -260,10 +267,11 @@ function applySquadTraining(
   state: GameState,
   gain: number,
   eventFlags: string[],
+  trainingPointsCost = state.trainingPoints,
 ): GameState {
   return {
     ...state,
-    trainingPoints: 0,
+    trainingPoints: state.trainingPoints - trainingPointsCost,
     players: state.players.map((player) =>
       player.clubId !== state.userClubId
         ? player

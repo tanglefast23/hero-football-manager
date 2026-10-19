@@ -1,0 +1,6 @@
+{
+  "command": "evaluate",
+  "browserId": "44cc4719-3056-4fd4-9cd1-8485d89b6add",
+  "resultJson": "{\"url\":\"http://127.0.0.1:52307/?qa=playtest&build=final1#/dev/midseason-training/d5\",\"text\":\"HOME\\nTP bank: 190\\nREPLAY FLOW\\n◂ MENU\\n▴\\nWeek 19 team training\\nD5 · +1\\nD4 · +2\\n200 saved TP · the opening division reward\",\"muted\":true}",
+  "truncated": false
+}

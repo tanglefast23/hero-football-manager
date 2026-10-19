@@ -103,6 +103,7 @@ import {
   SEASON_WEEKS,
   SPONSOR_PAYMENT_WEEKS,
   trainingPathAttribute,
+  availableTrainingTiers,
   cappedFacilityBoost,
   cappedCoachBoost,
   coachWeeklyTrainingPointsWithBoosts,
@@ -193,6 +194,7 @@ import {
   highestDivisionReached,
   promotionRewardsForDivision,
   trainingDrillTier,
+  type TrainingDrillTier,
 } from '../game/promotion-progression';
 import { contractWageStep, renewalOpeningOfferWage } from '../game/market';
 import {
@@ -4667,42 +4669,68 @@ export function squadTrainingViewModel(
           selectedPlayerStatOptions: TRAINING_PATHS.filter((path) =>
             attributeAffectsPlay(selectedPlayer.role, path.attribute),
           ).map((path) => {
-            const drill = resolveTrainingDrillForPath(state, path.pathId);
             const currentValue = displayedAttributeValue(
               selectedPlayer,
               path.attribute,
             );
-            const preview = instantTrainingPreview(
-              state,
-              selectedPlayer.id,
-              path.pathId,
+            const previewTier = (tier: TrainingDrillTier) => {
+              const drill = resolveTrainingDrillForPath(
+                state,
+                path.pathId,
+                tier,
+              );
+              const preview = instantTrainingPreview(
+                state,
+                selectedPlayer.id,
+                path.pathId,
+                tier,
+              );
+              return {
+                tier,
+                drillName: drillName(drill.id),
+                tpCost: drill.tpCost,
+                gain: preview.baseAfter - currentValue,
+                baseValueAfter: preview.baseAfter,
+                trainingAdjustment: preview.adjustment,
+                trainingModifiers: preview.modifiers.map((modifier) => ({
+                  label: trainingModifierLabel(t, modifier),
+                  helps: modifier.helps,
+                })),
+                fractionalBonusBanks: preview.fractionalBonusBanks.map(
+                  (bank) => ({
+                    label:
+                      bank.kind === 'STAMINA'
+                        ? t('trainingDrill.staminaBonusBank')
+                        : t('trainingDrill.trainingBonusBank'),
+                    hundredths: bank.hundredths,
+                  }),
+                ),
+                affordable: drill.tpCost <= state.trainingPoints,
+                affordableRuns: Math.floor(state.trainingPoints / drill.tpCost),
+              };
+            };
+            const tiers = availableTrainingTiers(state, path.pathId).map(
+              previewTier,
             );
+            // The last tier is the owned one, so the row still opens on it.
+            const owned = tiers[tiers.length - 1]!;
             return {
               pathId: path.pathId,
               label: copyOrEnglish(t, path.labelKey, path.label),
               shortCode:
                 path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
-              drillName: drillName(drill.id),
-              tpCost: drill.tpCost,
-              gain: preview.baseAfter - currentValue,
+              drillName: owned.drillName,
+              tpCost: owned.tpCost,
+              gain: owned.gain,
+              ownedTier: owned.tier,
+              tiers,
               currentValue,
-              baseValueAfter: preview.baseAfter,
-              trainingAdjustment: preview.adjustment,
-              trainingModifiers: preview.modifiers.map((modifier) => ({
-                label: trainingModifierLabel(t, modifier),
-                helps: modifier.helps,
-              })),
-              fractionalBonusBanks: preview.fractionalBonusBanks.map(
-                (bank) => ({
-                  label:
-                    bank.kind === 'STAMINA'
-                      ? t('trainingDrill.staminaBonusBank')
-                      : t('trainingDrill.trainingBonusBank'),
-                  hundredths: bank.hundredths,
-                }),
-              ),
+              baseValueAfter: owned.baseValueAfter,
+              trainingAdjustment: owned.trainingAdjustment,
+              trainingModifiers: owned.trainingModifiers,
+              fractionalBonusBanks: owned.fractionalBonusBanks,
               atSafetyCeiling: currentValue >= 999,
-              affordable: drill.tpCost <= state.trainingPoints,
+              affordable: owned.affordable,
             };
           }),
         }),

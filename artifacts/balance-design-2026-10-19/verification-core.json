@@ -1,0 +1,274 @@
+{
+  "scope": "approved items 1-4, measurement tooling and bounded item-5 receipts",
+  "recordedAt": "2026-10-19T04:43:13.434Z",
+  "baseCommit": "daab6f35292b4ecb87940fe06af1a61706a1aea1",
+  "engineVersion": "m2.9",
+  "gameSchemaVersion": 6,
+  "fullSuite": {
+    "command": "npx jest --maxWorkers=4 --json --outputFile=/tmp/hfm-approved-full-suite.json",
+    "elapsedSeconds": 418.943,
+    "initial": {
+      "numPassedTestSuites": 525,
+      "numFailedTestSuites": 2,
+      "numPendingTestSuites": 1,
+      "numPassedTests": 5086,
+      "numFailedTests": 3,
+      "numPendingTests": 1
+    },
+    "initialFailures": [
+      {
+        "file": "src/ui/__tests__/info-tips-and-team-sheet.test.ts",
+        "test": "quick train makes each attribute box its own train button"
+      },
+      {
+        "file": "src/ui/__tests__/player-feedback-contracts.test.ts",
+        "test": "repeat-training presentation contract offers an affordable 1-9 wheel and resolves every queued drill separately"
+      },
+      {
+        "file": "src/ui/__tests__/player-feedback-contracts.test.ts",
+        "test": "repeat-training presentation contract names risky runs and offers all three requested safety choices"
+      }
+    ],
+    "cause": "Three source-contract tests still pinned pre-selector training call signatures. Production logic was unchanged by their correction."
+  },
+  "affectedRerun": {
+    "command": "npx jest src/ui/__tests__/info-tips-and-team-sheet.test.ts src/ui/__tests__/player-feedback-contracts.test.ts --runInBand",
+    "passedSuites": 2,
+    "passedTests": 25,
+    "success": true
+  },
+  "measurementGuardRerun": {
+    "command": "npx jest src/audit/__tests__/commercial-cup-measurement.test.ts --runInBand",
+    "passedTests": 8,
+    "success": true
+  },
+  "latestResultPerSuite": {
+    "suites": {
+      "skipped": 1,
+      "passed": 527
+    },
+    "tests": {
+      "pending": 1,
+      "passed": 5090
+    },
+    "remainingFailures": [],
+    "note": "Combined coverage from the full run and focused reruns; this is not a second clean full-suite run."
+  },
+  "typecheck": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0
+  },
+  "normalWebExport": {
+    "command": "npx expo export --platform web --clear && node scripts/web/fix-worker-bundles.mjs",
+    "exitCode": 0,
+    "qaFlags": false
+  },
+  "firstLoadBudget": {
+    "command": "node scripts/web/verify-first-load-budget.mjs",
+    "exitCode": 0,
+    "rawBytes": 3455332,
+    "rawBudget": 3600000,
+    "gzipBytes": 846515,
+    "gzipBudget": 880000,
+    "qaBodyMarkers": [],
+    "skiaBodyMarkers": []
+  },
+  "desktop": {
+    "command": "npm run check --prefix desktop",
+    "exitCode": 0,
+    "result": {
+      "protocol": "hfm:",
+      "isolated": true,
+      "sharedArrayBuffer": true,
+      "rendered": true,
+      "menuSafe": true,
+      "windowFits": true,
+      "musicRangeSafe": true,
+      "screenshot": true,
+      "ok": true
+    }
+  },
+  "releasePreflight": {
+    "command": "npm run release:check",
+    "exitCode": 0
+  },
+  "browser": {
+    "surface": "muted background Paseo browser pane",
+    "phoneViewport": [
+      390,
+      844
+    ],
+    "desktopTripViewport": [
+      900,
+      600
+    ],
+    "isolatedQaOrigin": "http://127.0.0.1:52307",
+    "physicalIPhoneTest": false,
+    "steamClientTest": false,
+    "careerFixturesPlayed": 0,
+    "fixtures": "production components with synthetic QA state"
+  },
+  "cleanup": {
+    "browserId": "44cc4719-3056-4fd4-9cd1-8485d89b6add",
+    "pageDestroyedTo": "about:blank",
+    "tabClosed": true,
+    "serverPid": 38661,
+    "serverPort": 52307,
+    "serverStopped": true,
+    "listenerAuditMatches": 0,
+    "phoneMetroTouched": false
+  },
+  "generatedOutputs": [
+    "ignored dist/ normal web export",
+    "ignored desktop/check.png",
+    "temporary /tmp/hfm-approved-decisions-web QA export",
+    "committed QA evidence in artifacts/balance-design-2026-10-19/"
+  ],
+  "coreFileSha256": {
+    "App.tsx": "ac27cbb7a5f72e0e81fe5ebfe5ad3eb2b7fdc683a84fb8a5e8c1dd52e8c16800",
+    "content/i18n/de.json": "d66ee24a90169ed409e6be21c3281b4f4e48554e39e4b0f714e89275c5d4ba35",
+    "content/i18n/en.json": "3c9ce3a49db0b3412412192204644dc92125ec07e0d6891e7ff6d17a7858f087",
+    "content/i18n/es.json": "ef99f401775c77b052e6583d2173ab9cf746b08fcf5fc63bec7704af70830d41",
+    "content/i18n/fr.json": "ac5261b409392293b8df8f609e00395873a06525187c799d8c3a295da08c3a05",
+    "content/i18n/id.json": "7a42f8a3436a4daa6f56519b7d53243aac6bf47b122e045f51ab56b44da60b3e",
+    "content/i18n/pt-BR.json": "dfa4213a5ee7c9c006a3e95a1b305939566374ad2f01fe18a92f8fa074fd916d",
+    "content/i18n/vi.json": "0b97207f56c892e4b6a690422b40a174937aa9b3dba4020eff35541d193340e1",
+    "src/application/__tests__/cup-match-flow.test.ts": "f6c952288ac3a0932c61b1bc3115b83ff43e063d4af79562fefca05292809ba9",
+    "src/application/__tests__/m2-league-view-model.test.ts": "9549733b1e220cb3ceb89775f43be8d2b6dc89bf36e63ef7e3fa6c2c0c15b6a8",
+    "src/application/__tests__/market-source-adapter.test.ts": "1808dab84d98382ebc487e33b75b0a90df8742d1ab48025cd008ff7a00106b95",
+    "src/application/__tests__/market-view-model.test.ts": "b9147f212a44c0bef4f994d3874f0dcccd854e3f94c3786265c4613ecdb7252e",
+    "src/application/__tests__/midseason-training-store.test.ts": "11d03ab86cf0b8588a9d1a477bfdc08cc3a1e2ed9eb25ccfda13390a56447338",
+    "src/application/__tests__/penalty-shootout-store.test.ts": "5f543216aeba7a5432b258708dbd8499ea677ff7bb627f19c54822d3926f97e3",
+    "src/application/__tests__/penalty-shootout.test.ts": "f16599bf2bf61435c730660c889a421ab9a76dcba222b6b554c21705ba767128",
+    "src/application/__tests__/squad-training-tier-options.test.ts": "ba35600b93d4a75a7336b1c10fdf0e712a51ccda4c11c2b3f8140c973315ba5b",
+    "src/application/m2-league-view-model.ts": "8942ce91e33c281d3cc0cd6bded975107903884e6c0e2b7c47fe172269638e33",
+    "src/application/market-view-model.ts": "ab2270e80587432d725413ab89172d7b4cec233854f761429616033d0c12360d",
+    "src/application/midseason-training.ts": "070aaacac1300b693edbc1416d5fa66ab65a211d47d8d58a7518efe959be5aee",
+    "src/application/penalty-shootout.ts": "421d3a324c8b226558dc810f60b5769fcbe62bba32b787bd308a86128d5ceeb2",
+    "src/application/store.ts": "e31f7dacd674a5e4d203c213469045c426fc53cea34cf7e726583f640aaf932c",
+    "src/application/view-models.ts": "239d6e8ff7c5e5182d515c1819712b4a674d9a86d1fc9466170efd760d0a714b",
+    "src/audit/__tests__/commercial-cup-measurement-probe.test.ts": "d0da1ae2b72586ad9a3db6f3c93a29873a96651e7a2fde4397494601992e0b7a",
+    "src/audit/__tests__/commercial-cup-measurement.test.ts": "fafaec1322fdcc306ae09164e66f1cfabd313bd46f0469f9e0a3057bc7ed075d",
+    "src/audit/__tests__/green-bull-sink-probe.test.ts": "98d27898700c14adf39ff70ec2e67286a644229438eb5bd4b66fc4f592e6d60b",
+    "src/audit/club-business-long-career-harness.ts": "59153bd9d9059be161c21298c77c27f63415a2a16cf095bdc58ed9db609ec45c",
+    "src/audit/commercial-income-study.ts": "61a348d880781264f856b5d4e51bc29da780c1d88db7457703094a3c89b72266",
+    "src/audit/cup-catchup-study.ts": "339e299933504f74dd624343c23625ecca4234d6e115af161d1e54fce594aac2",
+    "src/game/__tests__/instant-training.test.ts": "3b746c7434dc149c9780fcbbc85a241b0dc6b53b072761555382d309a1f18e3f",
+    "src/game/__tests__/midseason-training.test.ts": "14232e1b0e73e249a3bba47a9aa321ebf648377928c900dbbe8cdaba20ebc4c1",
+    "src/game/__tests__/penalties.test.ts": "24281d8a48114daf3c60ec3b8d60afc79fad3bacfd44425f28eb98dbdac2af33",
+    "src/game/__tests__/training-paths.test.ts": "972c69cd2f49719d51c87b700e0f49218e85a7cae291c21bc87acba4510b854f",
+    "src/game/career.ts": "5f8c5820d2cac6fd81d6421f48230f2495e3d03420003f05d495382017cee585",
+    "src/game/market-career.ts": "d245c5a3e90313d76e192c61c0846794eef5bd172e2c0ff19eb101c1683755be",
+    "src/game/matchday.ts": "2d68591f6b001d8519c84969f5875522880a0329e41e51c72907f730587d5747",
+    "src/game/midseason-training.ts": "edc6496047de49271abc7dd9267692a4fdd5f9ccaa927917669b0057e9475874",
+    "src/game/penalties.ts": "5dc21594e1a32bb89be42805858c63c17471ca26494fd026961aee217f17c402",
+    "src/game/pyramid.ts": "a261b7efb1dc2106d6776290a59a403e30a86d78ad0488cca8aa802dcf978245",
+    "src/game/training-paths.ts": "0d2addef8467012a94e3df261b79b071071920f7cc284970ff869c3775c271d9",
+    "src/game/training.ts": "622934283e46b0fa903adb6dc281af5036939c3177f39974eb2442d27ad109b3",
+    "src/persistence/game-state-codec.ts": "45c6bd677c4559a1f39fcaf4b58f274812b6b6245afb75dd0146f711606369b0",
+    "src/ui/MidseasonTrainingPrompt.tsx": "e4675163efa4c8e692f37ad4eaf0a4d092fa3db649ca1ef666933d951d6d90d8",
+    "src/ui/TrainingDrillModal.tsx": "e9f5966d40739265f1158f1e8955ff5f8c4785fdfb74cf741309231a7122307e",
+    "src/ui/__tests__/cup-bracket.test.ts": "7c924448ec96c8364892334769b4f45e8e9499c9dc4b3f05271705877c2901bf",
+    "src/ui/__tests__/info-tips-and-team-sheet.test.ts": "069931c78923585b0b4ed78894283bde38321ef51b257f2f8b5a3e67de3f6e2d",
+    "src/ui/__tests__/midseason-training-sequence.test.ts": "9982ec16d14fe61ab35ec880800a85c39bab23d3ad9cfbb8a0e4a4345f7e9593",
+    "src/ui/__tests__/player-feedback-contracts.test.ts": "2da493ede19b9ddfd2ea36c4b0845c5acc0314d9ed28735513637e02fa66731d",
+    "src/ui/__tests__/training-progress-render.test.ts": "b75871b8aba99a1b10bb759cbc2f844794a041647cf47488adb3aa5dca0d58d2",
+    "src/ui/__tests__/web-confirmation-and-guidance.test.ts": "5bca72d641b23da45f1710595bde05154714d5c47fdf570eaf7f03aad138f346",
+    "src/ui/components/CupBracket.tsx": "5cbe9a5b741ea654ca91ba5168f617be893cbdb8edc03e185345dbdd6a1e6e8f",
+    "src/ui/cup-bracket.ts": "d5283ce65de44f6960c0e08157c58674d06ce4921c90623f6bbe7de612281214",
+    "src/ui/dev-harness/entries/management-decisions.tsx": "bf24901a5f9efb2694525a35d8e356642c5f462b5a0781e10dc5c7ee3e70bed6",
+    "src/ui/dev-harness/entries/midseason-training.tsx": "9057cdbf07711c9a866a64e3ca15f4872c329b62bac48ab25e893150ffb9e3f7",
+    "src/ui/dev-harness/entries/penalty-shootout.tsx": "d68046587d9fa976d1852352c406ba7093200ecaa4b526f313054b27c47a7e94",
+    "src/ui/dev-harness/entries/training-tiers.tsx": "ff8e2b8d2c53c8947c697c9d4d9a480cc9d614cf1399643422952ba77d073a44",
+    "src/ui/dev-harness/registry.ts": "00b6da36da974a4081cbe9c7470c4619fd434978a342cb55b6b62601d40e4033",
+    "src/ui/m2-league-models.ts": "e06d2036ed3eb389731bc73f6bc0d1cccea168369479d1edfeb9a762bba14e63",
+    "src/ui/market-models.ts": "9aa2a12403784266c0e8d48eac03bed7933d2a3cbc1006ea4615ae027a1d1852",
+    "src/ui/models.ts": "901b2cd0bfaf999465971811560d371449412182d40563b76aa54cd7aee1b838",
+    "src/ui/screens/M2LeagueScreen.tsx": "0566b4f923f59d60c6f2d8af862fb1b5e03484ce8a7b0a88f442c149ad42ed28",
+    "src/ui/screens/MarketScreen.tsx": "7aa95923684a050ed2b6f0979c2a48bc00feb5a397a05b31245614417e08024f",
+    "src/ui/screens/SquadTrainingScreen.tsx": "5427f7232ba94edaf8780dffad4831ec1f20ab55b16638acbdd961c1d09cb930"
+  },
+  "publication": "not deployed; Git finish is recorded separately",
+  "finalFocused": {
+    "command": "Jest --runTestsByPath for changed non-probe tests and i18n suites; paths collected in finalFocused.testPaths",
+    "passedSuites": 38,
+    "passedTests": 365,
+    "failedTests": 0,
+    "elapsedSeconds": 8.551,
+    "success": true,
+    "testPaths": [
+      "src/application/__tests__/cup-match-flow.test.ts",
+      "src/application/__tests__/m2-league-view-model.test.ts",
+      "src/application/__tests__/market-source-adapter.test.ts",
+      "src/application/__tests__/market-view-model.test.ts",
+      "src/application/__tests__/midseason-training-store.test.ts",
+      "src/application/__tests__/penalty-shootout-store.test.ts",
+      "src/application/__tests__/penalty-shootout.test.ts",
+      "src/game/__tests__/instant-training.test.ts",
+      "src/game/__tests__/midseason-training.test.ts",
+      "src/game/__tests__/training-paths.test.ts",
+      "src/ui/__tests__/cup-bracket.test.ts",
+      "src/ui/__tests__/info-tips-and-team-sheet.test.ts",
+      "src/ui/__tests__/midseason-training-sequence.test.ts",
+      "src/ui/__tests__/player-feedback-contracts.test.ts",
+      "src/ui/__tests__/training-progress-render.test.ts",
+      "src/ui/__tests__/web-confirmation-and-guidance.test.ts",
+      "src/application/__tests__/squad-training-tier-options.test.ts",
+      "src/audit/__tests__/commercial-cup-measurement.test.ts",
+      "src/game/__tests__/penalties.test.ts",
+      "src/i18n/__tests__/locales.test.ts",
+      "src/i18n/__tests__/no-hardcoded-prose.test.ts",
+      "src/i18n/__tests__/voice.test.ts",
+      "src/i18n/__tests__/no-literal-faces.test.ts",
+      "src/i18n/__tests__/vietnamese-face.test.ts",
+      "src/i18n/__tests__/resolve.test.ts",
+      "src/i18n/__tests__/use-copy.test.ts",
+      "src/i18n/__tests__/device-locale.test.ts",
+      "src/i18n/__tests__/content-strings.test.ts",
+      "src/i18n/__tests__/singular-copy.test.ts",
+      "src/i18n/__tests__/format-number.test.ts",
+      "src/i18n/__tests__/glyph-coverage.test.ts",
+      "src/i18n/__tests__/number-format-boundary.test.ts",
+      "src/i18n/__tests__/display-leaves.test.ts",
+      "src/i18n/__tests__/use-pixel-styles.test.ts",
+      "src/i18n/__tests__/plural.test.ts",
+      "src/i18n/__tests__/catalog.test.ts",
+      "src/i18n/__tests__/advance.test.ts",
+      "src/i18n/__tests__/gates.test.ts"
+    ]
+  },
+  "scopedFormatting": {
+    "command": "Prettier --check on 62 changed code and catalog files",
+    "exitCode": 0
+  },
+  "finalTypecheck": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0
+  },
+  "receiptValidation": {
+    "file": "measurement-validation.json",
+    "rawReceiptPreserved": true,
+    "numericValuesChanged": false,
+    "simulationRun": false
+  },
+  "measurementRuns": {
+    "commercialCup": {
+      "command": "npm run test:probe -- src/audit/__tests__/commercial-cup-measurement-probe.test.ts",
+      "passedTests": 1,
+      "seasonsPerArm": 3,
+      "arms": 16,
+      "seeds": [
+        20261019,
+        20261020
+      ],
+      "reportedWallSeconds": 472,
+      "lateCareerCoverage": false
+    },
+    "greenBullCapacity": {
+      "command": "npm run test:probe -- src/audit/__tests__/green-bull-sink-probe.test.ts",
+      "passedTests": 1,
+      "syntheticOpportunities": true,
+      "sourceCheckpointUnchanged": true
+    }
+  }
+}

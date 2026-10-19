@@ -1,6 +1,11 @@
-import { createCareer, midseasonTrainingStatus } from '../../game';
+import {
+  createCareer,
+  midseasonTrainingStatus,
+  midseasonTrainingCost,
+} from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { useM1Store } from '../store';
+import { midseasonTrainingViewModel } from '../midseason-training';
 
 function weekNineteen() {
   const base = createCareer(createLaunchCareerSetup(20260811));
@@ -27,7 +32,7 @@ describe('Week 19 team training store flow', () => {
     expect(useM1Store.getState().career).toBe(career);
   });
 
-  it('spends all TP, opens the celebration, and returns Home once', () => {
+  it('charges the previewed week of TP, opens the celebration, and returns Home once', () => {
     const career = weekNineteen();
     const player = career.players.find(
       (candidate) => candidate.clubId === career.userClubId,
@@ -39,7 +44,9 @@ describe('Week 19 team training store flow', () => {
     expect(accepted).toMatchObject({
       screen: 'midseason-training',
       activeTab: 'home',
-      career: { trainingPoints: 0 },
+      career: {
+        trainingPoints: career.trainingPoints - midseasonTrainingCost(career),
+      },
     });
     expect(
       accepted.career?.players.find((candidate) => candidate.id === player.id)
@@ -59,6 +66,17 @@ describe('Week 19 team training store flow', () => {
     const completed = useM1Store.getState().career;
     useM1Store.getState().completeMidseasonTraining();
     expect(useM1Store.getState().career).toBe(completed);
+  });
+
+  it('shows the exact trip charge and saved bank before acceptance', () => {
+    const career = weekNineteen();
+    const view = midseasonTrainingViewModel(career);
+    expect(view.trainingPointsCostLabel).toBe(
+      String(midseasonTrainingCost(career)),
+    );
+    expect(view.trainingPointsRemainingLabel).toBe(
+      String(career.trainingPoints - midseasonTrainingCost(career)),
+    );
   });
 
   it('resumes an accepted celebration after a relaunch', () => {

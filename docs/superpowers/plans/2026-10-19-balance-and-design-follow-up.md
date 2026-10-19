@@ -1,8 +1,10 @@
-# Balance and design follow-up — final proposal for approval
+# Balance and design follow-up — approved scope
 
-Status: awaiting user approval. No balance or intended game-rule changes have been implemented.
+Status: user approved this scope on 2026-10-19. Items 1–4 are implemented and verified. Item 5's bounded initial study is complete, with late-career coverage still limited. Numerical income/catch-up tuning and the weekly drill queue still need later approval.
 
-Confirmed bug work remains separate: WebGL atlas contexts and AI transfer power identity/licensing.
+Results: [implementation and verification](../../../artifacts/balance-design-2026-10-19/report.md), [measurement report](../../../artifacts/balance-design-2026-10-19/measurement-report.md), [implementation review](../../../artifacts/balance-design-2026-10-19/reviewer-decisions.md). No numerical income, catch-up or Green Bull price change was applied.
+
+Confirmed bug work remains separate: WebGL atlas contexts and AI transfer power identity/licensing were fixed in 9e286a02.
 
 ## Judgment and evidence
 
@@ -38,13 +40,13 @@ Buying a higher tier should add an option. It should not remove a cheaper drill.
 
 Acceptance: a Tier 4 owner can select Tier 2 and pay 11 TP for its +5 base outfield gain. Actual modifiers and the preview agree. Condition falls by 8. Promises and SUPER progress count the selected drill correctly.
 
-Implementation: src/game/training-paths.ts, training.ts and progression.ts; training view models, store actions, and Squad/TrainingDrillModal. Use focused tests, muted browser checks and native layout checks where available.
+Implementation: src/game/training-paths.ts and training.ts; training view models, store actions, and Squad/TrainingDrillModal. Use focused tests, muted browser checks and native layout checks where available.
 
 ## 3. Protect saved TP at the Week 19 decision
 
-The decision is forced in D5/D4. Taking the trip is optional. Today acceptance empties the whole TP bank.
+The decision is forced in D5/D4. Taking the trip is optional. Before this change, acceptance emptied the whole TP bank.
 
-Proposed rule: charge min(current bank, one current week's ambient TP income). Use weeklyAmbientTrainingPoints, which includes base, pitch and coaches. Keep older savings, the current squad gain, and condition cost. Show the exact charge and remaining bank before acceptance.
+Approved rule: charge min(current bank, one current week's ambient TP income). Use weeklyAmbientTrainingPoints, which includes base, pitch and coaches. Keep older savings, the current squad gain, and condition cost. Show the exact charge and remaining bank before acceptance.
 
 Keep the prompt's management gate. This prevents spending the same week's TP before the trip. Decline changes no resources. Do not add a bank cap or make the trip nearly free by opening Squad under the prompt.
 
@@ -56,7 +58,7 @@ Green Bull stays unchanged. Its copy already states the full-bank charge, cash c
 
 ## 4. Make user shootouts depend on player skills
 
-Current user Cup draws use seed parity. Displayed kicks are scripted from pre-match teams and are not saved. There is no stored partial shootout to migrate.
+Before this change, user Cup draws used seed parity. Displayed kicks were scripted from pre-match teams and were not saved. There was no stored partial shootout to migrate.
 
 - Resolve once at Cup settlement from the full-time match state on Quick Match and watched paths.
 - Use players still on the pitch, the actual keeper and full-time condition. Order outfield takers by effective shooting, with stable ID ties; keeper last. Keeper-last is a new rule.
@@ -125,6 +127,6 @@ Bring back a small UI proposal after items 1–4 work. Reuse the repeat action w
 
 ## Approval boundary
 
-Approve items 1–4 and item 5's measurements. Item 6 and numerical commercial/catch-up tuning need later approval.
+Items 1–4 and item 5's measurements are approved. Item 6 and numerical commercial/catch-up tuning need later approval.
 
 No blanket training-gain nerf, Tier 4/5 reprice, division-strength increase, D5 subsidy cut, academy resale ban, retirement-ranking change, new currency or automatic training optimizer.

@@ -28,7 +28,7 @@ describe('Week 19 team training presentation', () => {
     );
   });
 
-  it('keeps the requested English captain line and TP question exact', () => {
+  it('keeps the captain line and shows the exact trip charge and remaining TP', () => {
     const catalog = JSON.parse(source('content/i18n/en.json')) as {
       strings: Record<string, string>;
     };
@@ -37,7 +37,7 @@ describe('Week 19 team training presentation', () => {
       "Boss, can we take a mid season trip Green Bull Sports Star Performance Center? Let's get the team strong!",
     );
     expect(catalog.strings['midseasonTraining.spendAllTp']).toBe(
-      'Spend {tp} TP to train your team? Every player also loses {condition} condition.',
+      'Spend {tp} TP to train your team? Keep {remaining} TP. Every player also loses {condition} condition.',
     );
   });
 
@@ -136,13 +136,13 @@ describe('Week 19 team training presentation', () => {
     expect(celebration).toContainSource('maxWidth: DESKTOP_CONTENT_MAX_WIDTH');
   });
 
-  it('registers D5 and D1 production-backed full flows in the Dev Harness', () => {
+  it('registers the D5 and D4 trip flows with saved TP in the Dev Harness', () => {
     const entry = source('src/ui/dev-harness/entries/midseason-training.tsx');
     const registry = source('src/ui/dev-harness/registry.ts');
 
     expect(entry).toContainSource("id: 'midseason-training'");
     expect(entry).toContainSource("id: 'd5'");
-    expect(entry).toContainSource("id: 'd1'");
+    expect(entry).toContainSource("id: 'd4'");
     expect(entry).toContainSource('acceptMidseasonTraining(career)');
     expect(registry).toContainSource('midseasonTrainingEntry');
   });

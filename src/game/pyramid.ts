@@ -3,6 +3,7 @@ import type { Attrs, PowerId, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { compareIds } from './ordering';
 import { POSITION_TRAINING_ATTRIBUTES, roleOverall } from './archetype-caps';
+import { penaltyShootoutProblem, type PenaltyShootout } from './penalties';
 import type { PlayerArchetype, PlayerPersonality } from './types';
 export type { PlayerArchetype, PlayerPersonality } from './types';
 
@@ -79,6 +80,8 @@ export interface NationalCupFixture {
   status: 'scheduled' | 'played';
   score?: CupScore;
   winnerClubId?: string;
+  /** The user's level tie, kick by kick. Older and rival ties have none. */
+  penalties?: PenaltyShootout;
 }
 
 export interface NationalCupRound {
@@ -108,6 +111,8 @@ export interface NationalCupResult extends CupScore {
   fixtureId: string;
   /** Required for drawn knockout scores after extra time or penalties. */
   winnerClubId: string;
+  /** Present only when a played shootout decided this level tie. */
+  penalties?: PenaltyShootout;
 }
 
 export interface RetirementAnnouncement {
@@ -860,6 +865,9 @@ export function advanceNationalCup(
       status: 'played' as const,
       score: { homeGoals: result.homeGoals, awayGoals: result.awayGoals },
       winnerClubId: result.winnerClubId,
+      ...(result.penalties === undefined
+        ? {}
+        : { penalties: result.penalties }),
     };
   });
   const resolvedRound = { ...current, fixtures };
@@ -1573,6 +1581,20 @@ function validateCupResult(
     result.winnerClubId !== fixture.awayClubId
   ) {
     throw new Error(`Hero Cup winner for ${fixture.id} contradicts its score`);
+  }
+  const penalties = result.penalties;
+  if (penalties === undefined) return;
+  if (
+    result.homeGoals !== result.awayGoals ||
+    penaltyShootoutProblem(penalties) !== undefined ||
+    result.winnerClubId !==
+      (penalties.homeGoals > penalties.awayGoals
+        ? fixture.homeClubId
+        : fixture.awayClubId)
+  ) {
+    throw new Error(
+      `Hero Cup penalties for ${fixture.id} contradict its score or winner`,
+    );
   }
 }
 

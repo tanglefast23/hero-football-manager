@@ -93,7 +93,8 @@ export function MidseasonTrainingDecisionCard({
         >
           <Text className="text-center text-lg leading-7 text-ink">
             {t('midseasonTraining.spendAllTp', {
-              tp: viewModel.trainingPointsLabel,
+              tp: viewModel.trainingPointsCostLabel,
+              remaining: viewModel.trainingPointsRemainingLabel,
               condition: viewModel.conditionCost,
             })}
           </Text>
@@ -115,7 +116,8 @@ export function MidseasonTrainingDecisionCard({
               <ActionButton
                 label={t('midseasonTraining.yes')}
                 accessibilityLabel={t('midseasonTraining.a11y.yes', {
-                  tp: viewModel.trainingPointsLabel,
+                  tp: viewModel.trainingPointsCostLabel,
+                  remaining: viewModel.trainingPointsRemainingLabel,
                   condition: viewModel.conditionCost,
                 })}
                 variant="confirm"

@@ -1,0 +1,12 @@
+{
+  "url": "http://127.0.0.1:52307/?qa=playtest&build=final3#/dev/penalty-shootout/saved-kicks",
+  "text": "PENALTY SHOOTOUT\nHALCYRA HEROES\n2\n–\nSTORM UNITED\n1\nSCORE!\nHALCYRA HEROES 2\nTAP TO SKIP\n◂ MENU\n▴\nPenalty shootout\nSaved kicks\nReduced motion",
+  "labels": [
+    "HALCYRA HEROES 6, STORM UNITED 5. HALCYRA HEROES wins the penalty shootout. Tap to skip.",
+    "Back to the dev harness menu",
+    "Hide the harness bar",
+    "Show the Saved kicks case",
+    "Show the Reduced motion case"
+  ],
+  "muted": true
+}

@@ -1,5 +1,6 @@
-import { roleOverall } from '../game/archetype-caps';
 import { copyFor, type CopyFn } from '../i18n';
+import type { PenaltyShootout } from '../game/penalties';
+import type { GameState } from '../game/types';
 import type { PlayerDef, TeamDef } from '../sim/types';
 import type {
   FaceOffSideViewModel,
@@ -9,124 +10,86 @@ import type {
 
 let englishCopyFn: CopyFn | undefined;
 
-function englishCopy(): CopyFn {
-  return (englishCopyFn ??= copyFor('en'));
-}
-
 export interface PenaltyShootoutArgs {
-  fixtureId: string;
-  careerSeed: number;
-  matchSeed: number;
-  round: number;
-  clubTeam: TeamDef;
-  opponentTeam: TeamDef;
-  winner: 'club' | 'opponent';
+  readonly fixtureId: string;
+  readonly clubTeam: TeamDef;
+  readonly opponentTeam: TeamDef;
   /** True when the manager's club was the home side in this fixture. */
-  clubIsHome: boolean;
+  readonly clubIsHome: boolean;
+  /** Only settled, saved kicks may drive the presentation. Old ties have none. */
+  readonly penalties?: PenaltyShootout;
 }
 
-interface KickTemplate {
-  readonly winner: readonly boolean[];
-  readonly loser: readonly boolean[];
+export function savedPenaltyShootout(
+  state: Pick<GameState, 'm2'>,
+  fixtureId: string,
+): PenaltyShootout | undefined {
+  return state.m2?.nationalCups
+    .flatMap((cup) => cup.rounds.flatMap((round) => round.fixtures))
+    .find((fixture) => fixture.id === fixtureId)?.penalties;
 }
 
-/**
- * Four legal scripts, selected by fixture data. Regulation scripts stay alive
- * through both fifth kicks; sudden-death scripts finish after a complete pair.
- */
-const KICK_TEMPLATES: readonly KickTemplate[] = [
-  {
-    winner: [true, true, false, true, true],
-    loser: [true, false, true, true, false],
-  },
-  {
-    winner: [false, true, true, false, true],
-    loser: [true, false, false, true, false],
-  },
-  {
-    winner: [true, false, true, true, false, true],
-    loser: [true, false, true, true, false, false],
-  },
-  {
-    winner: [true, true, false, true, false, true, true],
-    loser: [true, true, false, true, false, true, false],
-  },
-];
-
-/** Pure presentation data. It never reads or advances the match PRNG. */
+/** Read saved kicks only. Names and looks can include substitutes from the bench. */
 export function penaltyShootoutViewModel(
   args: PenaltyShootoutArgs,
-  t: CopyFn = englishCopy(),
+  t: CopyFn = (englishCopyFn ??= copyFor('en')),
 ): PenaltyShootoutViewModel | null {
-  const clubShooters = orderedShooters(args.clubTeam);
-  const opponentShooters = orderedShooters(args.opponentTeam);
-  const clubGoalkeeper = startingGoalkeeper(args.clubTeam);
-  const opponentGoalkeeper = startingGoalkeeper(args.opponentTeam);
-  if (
-    clubShooters.length === 0 ||
-    opponentShooters.length === 0 ||
-    clubGoalkeeper === null ||
-    opponentGoalkeeper === null
-  ) {
-    return null;
-  }
-
-  const template =
-    KICK_TEMPLATES[
-      hashString(
-        `penalty-shootout:${args.careerSeed}:${args.matchSeed}:${args.round}:${args.fixtureId}`,
-      ) % KICK_TEMPLATES.length
-    ]!;
-  const clubOutcomes =
-    args.winner === 'club' ? template.winner : template.loser;
-  const opponentOutcomes =
-    args.winner === 'opponent' ? template.winner : template.loser;
-  const clubKeeperSide = side(clubGoalkeeper, args.clubTeam.name);
-  const opponentKeeperSide = side(opponentGoalkeeper, args.opponentTeam.name);
+  const penalties = args.penalties;
+  if (penalties === undefined) return null;
+  const playerSide = (
+    team: TeamDef,
+    playerId: string,
+  ): FaceOffSideViewModel | undefined => {
+    const player = [...team.players, ...(team.bench ?? [])].find(
+      (candidate) => candidate.id === playerId,
+    );
+    return player === undefined ? undefined : side(player, team.name);
+  };
   const kicks: PenaltyKickViewModel[] = [];
   let clubScore = 0;
   let opponentScore = 0;
-
-  for (let round = 0; round < clubOutcomes.length; round += 1) {
-    const clubScored = clubOutcomes[round]!;
-    if (clubScored) clubScore += 1;
+  for (const kick of penalties.kicks) {
+    const clubShoots = (kick.side === 'home') === args.clubIsHome;
+    const shooter = playerSide(
+      clubShoots ? args.clubTeam : args.opponentTeam,
+      kick.takerId,
+    );
+    const goalkeeper = playerSide(
+      clubShoots ? args.opponentTeam : args.clubTeam,
+      kick.keeperId,
+    );
+    // Missing historical metadata must not turn a saved result into invented kicks.
+    if (shooter === undefined || goalkeeper === undefined) return null;
+    if (kick.scored) {
+      if (clubShoots) clubScore += 1;
+      else opponentScore += 1;
+    }
     kicks.push({
       id: `${args.fixtureId}-penalty-${kicks.length + 1}`,
-      shootingSide: 'club',
-      shooter: side(
-        clubShooters[round % clubShooters.length]!,
-        args.clubTeam.name,
-      ),
-      goalkeeper: opponentKeeperSide,
-      outcome: clubScored ? 'score' : 'miss',
-      clubScore,
-      opponentScore,
-    });
-
-    const opponentScored = opponentOutcomes[round]!;
-    if (opponentScored) opponentScore += 1;
-    kicks.push({
-      id: `${args.fixtureId}-penalty-${kicks.length + 1}`,
-      shootingSide: 'opponent',
-      shooter: side(
-        opponentShooters[round % opponentShooters.length]!,
-        args.opponentTeam.name,
-      ),
-      goalkeeper: clubKeeperSide,
-      outcome: opponentScored ? 'score' : 'miss',
+      shootingSide: clubShoots ? 'club' : 'opponent',
+      shooter,
+      goalkeeper,
+      outcome: kick.scored ? 'score' : 'miss',
       clubScore,
       opponentScore,
     });
   }
-
-  const winnerName =
-    args.winner === 'club' ? args.clubTeam.name : args.opponentTeam.name;
+  if (
+    kicks.length === 0 ||
+    clubScore === opponentScore ||
+    clubScore !==
+      (args.clubIsHome ? penalties.homeGoals : penalties.awayGoals) ||
+    opponentScore !==
+      (args.clubIsHome ? penalties.awayGoals : penalties.homeGoals)
+  )
+    return null;
+  const winner = clubScore > opponentScore ? 'club' : 'opponent';
   return {
     fixtureId: args.fixtureId,
     clubName: args.clubTeam.name,
     opponentName: args.opponentTeam.name,
     clubIsHome: args.clubIsHome,
-    winner: args.winner,
+    winner,
     kicks,
     finalClubScore: clubScore,
     finalOpponentScore: opponentScore,
@@ -135,46 +98,9 @@ export function penaltyShootoutViewModel(
       clubScore,
       opponent: args.opponentTeam.name,
       opponentScore,
-      winner: winnerName,
+      winner: winner === 'club' ? args.clubTeam.name : args.opponentTeam.name,
     }),
   };
-}
-
-/** Shooting and technique lead; the squad register's role rating settles ties. */
-export function orderedShooters(team: TeamDef): readonly PlayerDef[] {
-  return team.players
-    .filter((player) => player.role !== 'GK')
-    .slice()
-    .sort(
-      (left, right) =>
-        penaltyRating(right) - penaltyRating(left) ||
-        left.id.localeCompare(right.id),
-    )
-    .slice(0, 5);
-}
-
-/** The starting keeper, or the strongest starter when malformed data has none. */
-export function startingGoalkeeper(team: TeamDef): PlayerDef | null {
-  const goalkeeper = team.players.find((player) => player.role === 'GK');
-  if (goalkeeper !== undefined) return goalkeeper;
-  return (
-    team.players
-      .slice()
-      .sort(
-        (left, right) =>
-          roleOverall(right.role, right.attrs) -
-            roleOverall(left.role, left.attrs) ||
-          left.id.localeCompare(right.id),
-      )[0] ?? null
-  );
-}
-
-function penaltyRating(player: PlayerDef): number {
-  return (
-    player.attrs.sho * 4 +
-    player.attrs.tec * 2 +
-    roleOverall(player.role, player.attrs)
-  );
 }
 
 function side(player: PlayerDef, clubName: string): FaceOffSideViewModel {
@@ -185,13 +111,4 @@ function side(player: PlayerDef, clubName: string): FaceOffSideViewModel {
     ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
     clubName,
   };
-}
-
-function hashString(value: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash >>> 0;
 }

@@ -37,9 +37,10 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     const end = appSource.indexOf('\n\n  const handleTransferAction', start);
     const handler = appSource.slice(start, end);
 
-    expect(handler).toContainSource('choice?.returnsAfterFinalWindow');
+    expect(handler).toContainSource('choice?.returnsOutsideWindow');
     expect(handler).toContainSource('requestConfirmation({');
-    expect(handler).toContainSource("t('confirm.lateScout.detail')");
+    expect(handler).toContainSource('choice.returnWeekLabel');
+    expect(handler).toContainSource('choice.windowFitLabel');
   });
 
   it('keeps a blocking Bert briefing outside an inert web and Android background', () => {

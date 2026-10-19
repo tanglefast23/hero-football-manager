@@ -177,6 +177,30 @@ describe('trainPlayerInstantly', () => {
     }
   });
 
+  it('a Tier 4 owner can run Tier 2: 11 TP, exact ordinary preview, -8 condition', () => {
+    const state = fullCareerState();
+    const player = userPlayer(state);
+    const owned = { ...state, ownedTrainingTiers: { sprints: 4 } };
+    const preview = instantTrainingPreview(owned, player.id, 'sprints', 2);
+    // The authored Tier 2 outfield gain, before modifiers.
+    expect(preview.baseAfter - player.attrs.pac).toBe(5);
+    const res = trainPlayerInstantly(owned, player.id, 'sprints', 2);
+    expect(res.drillId).toBe('sprints-ii');
+    expect(res.tpSpent).toBe(11);
+    expect(res.state.trainingPoints).toBe(owned.trainingPoints - 11);
+    expect(res.conditionAfter).toBe(
+      (player.condition ?? 100) - INSTANT_DRILL_CONDITION_COST,
+    );
+    if (!res.isSuper) {
+      // The card's ordinary number is the drill's number, tier included.
+      expect(res.after).toBe(preview.adjustedAfter);
+      // SUPER progress counts the selected drill like any other.
+      expect(
+        res.state.players.find((p) => p.id === player.id)!.drillsSinceSuper,
+      ).toBe((player.drillsSinceSuper ?? 0) + 1);
+    }
+  });
+
   it('caps stacked development bonuses at 75% only on Tier 5', () => {
     const state = {
       ...createCareer(createLaunchCareerSetup(75)),

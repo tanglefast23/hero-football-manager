@@ -70,7 +70,7 @@ describe('completeShootout', () => {
 });
 
 describe('settled Hero Cup routing', () => {
-  it('uses pre-settlement teams for Quick Result and watched-match snapshots for Play', () => {
+  it('reads saved kicks and uses captured teams only for player names and looks', () => {
     const store = source();
     const quick = store.split('  quickResult(')[1].split('\n  watchMatch(')[0];
     const watched = store
@@ -79,11 +79,13 @@ describe('settled Hero Cup routing', () => {
 
     expect(quick).toContainSource("kind === 'national-cup'");
     expect(quick).toContainSource('penaltyShootoutViewModel(');
+    expect(quick).toContainSource('savedPenaltyShootout(next, fixture.id)');
     expect(quick).toContainSource('clubTeam, opponentTeam');
     expect(quick.match(/currentMatchday\(/g)).toHaveLength(1);
     expect(watched).toContainSource('watchedMatch.home');
     expect(watched).toContainSource('watchedMatch.away');
     expect(watched).toContainSource('penaltyShootoutViewModel(');
+    expect(watched).toContainSource('savedPenaltyShootout(next, fixture.id)');
   });
 
   it('only raises the shootout for a tied Hero Cup score', () => {

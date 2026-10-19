@@ -42,6 +42,8 @@ import {
 } from '../application/view-models';
 import { loadLaunchContent } from '../content';
 import {
+  acceptGreenBullTraining,
+  acceptMidseasonTraining,
   acceptSponsorOffer,
   activeCareerMatchday,
   addCreatedPlayer,
@@ -50,12 +52,14 @@ import {
   beginCareerRenewalTalks,
   beginStoryOnboarding,
   buildCareerMatchTeamDef,
+  buildCareerTeamDef,
   careerHeroLimit,
   careerRosterCapacity,
   careerTransferTarget,
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
   completeCareerRenewal,
+  completeMidseasonTraining,
   completeCareerTransfer,
   completeFirstOnboardingMatch,
   completeMatchday,
@@ -69,6 +73,8 @@ import {
   FACILITY_GRID_HEIGHT,
   FACILITY_GRID_WIDTH,
   hasActiveCareerContractPromise,
+  GREEN_BULL_TRAINING_GAIN,
+  greenBullTrainingOffer,
   hasAssistantGuideMilestone,
   hireCareerCoach,
   isFirstOnboardingFixture,
@@ -76,6 +82,8 @@ import {
   MAX_FACILITY_LEVEL,
   maxRenewalTermSeasons,
   maxSigningTermSeasons,
+  midseasonTrainingCost,
+  midseasonTrainingStatus,
   nextPendingClubLegend,
   nextTrainingUpgradeOffer,
   pendingTrainingPriorityHolder,
@@ -113,8 +121,12 @@ import {
   type DivisionLevel,
   type FacilityPosition,
   type FacilityType,
+  type FixtureResult,
   type GameState,
+  type LeagueFixture,
+  type NationalCupRoundLabel,
   type PlacedFacility,
+  type ProductionFixtureResult,
   type SponsorObjectiveKind,
   type SponsorProfileId,
 } from '../game';
@@ -123,8 +135,14 @@ import {
   purchaseCareerTrainingUpgrade,
   upgradeCareerFacility,
 } from '../game/management';
-import type { ScoutReport } from '../game/market';
+import { playerValuation, type ScoutReport } from '../game/market';
+import {
+  diagnoseCupPowers,
+  diagnosticRoster,
+  measureCupGap,
+} from './cup-catchup-study';
 import { ENGINE_VERSION } from '../sim/match';
+import type { FormationId } from '../sim/tactics';
 import type { Attrs, Role } from '../sim/types';
 
 export const CLUB_BUSINESS_LONG_CAREER_POLICY_VERSION =
@@ -178,6 +196,22 @@ const OWNER_INCOME_FACILITY_PLAN: readonly FacilityPlanEntry[] = [
   { type: 'stadium-stand', position: { x: 0, y: 4 } },
   { type: 'fan-shop', position: { x: 2, y: 3 } },
   { type: 'stadium-stand', position: { x: 2, y: 4 } },
+];
+
+/**
+ * Opt-in commercial stack. Pitch L1, Coaching Office L1, and Pitch L2 stay
+ * first, matching the balanced plan's early training investment. The first
+ * Stand and Shop use the balanced positions. Two further copies of each come
+ * before the other level-1 buildings.
+ */
+const COMMERCIAL_STACK_BUILD_ORDER: readonly FacilityPlanEntry[] = [
+  { type: 'stadium-stand', position: { x: 4, y: 0 } },
+  { type: 'fan-shop', position: { x: 4, y: 2 } },
+  { type: 'stadium-stand', position: { x: 0, y: 4 } },
+  { type: 'fan-shop', position: { x: 0, y: 3 } },
+  { type: 'stadium-stand', position: { x: 2, y: 4 } },
+  { type: 'fan-shop', position: { x: 2, y: 3 } },
+  ...FACILITY_PLAN.slice(2, -2),
 ];
 
 const OWNER_SUPPORT_FACILITY_PLAN: readonly FacilityPlanEntry[] =
@@ -465,6 +499,8 @@ export interface ClubBusinessLongCareerResult {
   readonly totals: LongCareerTotals;
   readonly finalStateFingerprint: string;
   readonly runMode?: 'CONSERVATIVE' | 'OWNER_MAX_TP';
+  /** Present only for an opt-in measurement run. The default result omits it. */
+  readonly measurement?: LongCareerMeasurement;
 }
 
 export interface LongCareerImportantAttributeSummary {
@@ -474,6 +510,94 @@ export interface LongCareerImportantAttributeSummary {
   readonly average: number;
 }
 
+export type LongCareerMatchPolicy = 'HARNESS_LOCKED' | 'PRODUCTION_QUICK';
+export type LongCareerInvestmentPolicy = 'BALANCED' | 'COMMERCIAL_STACK';
+export type LongCareerGreenBullPolicy = 'NONUSE' | 'USE';
+
+/** Approved Week 19 charge beside the old whole-bank cost. The old cost is not applied. */
+export interface Week19TripReceipt {
+  readonly season: number;
+  readonly division: DivisionLevel;
+  readonly bankBefore: number;
+  readonly weeklyAmbient: number;
+  readonly approvedCost: number;
+  readonly originalWholeBankCost: number;
+  readonly preservedTrainingPoints: number;
+  readonly rule: 'APPROVED_ONE_WEEK_CAP';
+  readonly baseline: 'ORIGINAL_WHOLE_BANK_NOT_APPLIED';
+}
+
+/** Green Bull still drains the whole TP bank. This study does not cap it. */
+export interface GreenBullReceipt {
+  readonly season: number;
+  readonly week: number;
+  readonly division: DivisionLevel;
+  readonly cashCost: number;
+  readonly trainingPointsDrained: number;
+  readonly trainingPointsAfter: number;
+  readonly statGain: typeof GREEN_BULL_TRAINING_GAIN;
+}
+
+export interface CupMatchReceipt {
+  readonly matchPolicy: LongCareerMatchPolicy;
+  readonly season: number;
+  readonly week: number;
+  readonly roundLabel: NationalCupRoundLabel;
+  readonly homeClubId: string;
+  readonly awayClubId: string;
+  readonly userClubId: string;
+  readonly opponentClubId: string;
+  readonly matchSeed: number;
+  readonly userAttrRating: number;
+  readonly opponentAttrRating: number;
+  readonly attrGap: number;
+  readonly catchupWouldTrigger: boolean;
+  readonly catchupApplied: boolean;
+  readonly userXiPowers: number;
+  readonly opponentXiPowers: number;
+  readonly userUnlicensedPowers: number;
+  readonly opponentUnlicensedPowers: number;
+  readonly unlicensedHeroOutratesXi: number;
+  /** XI power-count sign differs from the attribute-gap sign. Diagnostic only. */
+  readonly powerSignDisagreesWithAttrGap: boolean;
+  readonly regulationHomeGoals: number;
+  readonly regulationAwayGoals: number;
+  readonly regulationOutcome: 'WIN' | 'DRAW' | 'LOSS';
+  readonly penaltySource?: 'PRODUCTION_SHOOTOUT' | 'LEGACY_SEED';
+  readonly penaltyWinnerClubId?: string;
+  readonly penaltyHomeGoals?: number;
+  readonly penaltyAwayGoals?: number;
+}
+
+export interface PurchasingPowerReceipt {
+  readonly season: number;
+  readonly division: DivisionLevel;
+  readonly endingCash: number;
+  readonly nextFacilityLabel?: string;
+  readonly nextFacilityCost?: number;
+  readonly cashPerFacilityCost?: number;
+  readonly weakestStarterValuation?: number;
+  readonly cashPerStarterValuation?: number;
+  readonly valuedStarters: number;
+  readonly constructionInProgress: boolean;
+  readonly standCount: number;
+  readonly shopCount: number;
+  readonly standLevels: readonly number[];
+  readonly shopLevels: readonly number[];
+}
+
+export interface LongCareerMeasurement {
+  readonly matchPolicy: LongCareerMatchPolicy;
+  readonly investment: LongCareerInvestmentPolicy;
+  readonly greenBull: LongCareerGreenBullPolicy;
+  readonly acceptWeek19Trip: boolean;
+  readonly seasonHorizon?: number;
+  readonly week19Trips: readonly Week19TripReceipt[];
+  readonly greenBullAcceptances: readonly GreenBullReceipt[];
+  readonly cupMatches: readonly CupMatchReceipt[];
+  readonly purchasingPower: readonly PurchasingPowerReceipt[];
+}
+
 export interface LongCareerRunOptions {
   /**
    * Joe's final measurement policy: exhaust TP in potential order, take risky
@@ -481,6 +605,23 @@ export interface LongCareerRunOptions {
    * TP/economy facility plan without a discretionary cash reserve.
    */
   readonly ownerMaxTp?: boolean;
+  /**
+   * Default HARNESS_LOCKED keeps 4-4-2, auto subs off, and no Cup round.
+   * PRODUCTION_QUICK uses the saved formation, auto subs on, and the real Cup round.
+   */
+  readonly matchPolicy?: LongCareerMatchPolicy;
+  /** Default BALANCED. COMMERCIAL_STACK buys extra Stands and Shops earlier. */
+  readonly investment?: LongCareerInvestmentPolicy;
+  /** Default NONUSE. USE takes Green Bull when the offer is open. It still drains the bank. */
+  readonly greenBull?: LongCareerGreenBullPolicy;
+  /**
+   * Take the Week 19 trip under the approved one-week cap. Default false, so
+   * the locked harness still skips the trip. The whole-bank cost is recorded
+   * and not charged.
+   */
+  readonly acceptWeek19Trip?: boolean;
+  /** Stop after this many seasons. Omit it to keep the 12-season censor. */
+  readonly maxSeasons?: number;
 }
 
 interface RecruitmentWindow {
@@ -510,6 +651,35 @@ export function runClubBusinessLongCareer(
 ): ClubBusinessLongCareerResult {
   assertUint32(seed, 'long-career seed');
   const ownerMaxTp = options.ownerMaxTp === true;
+  const matchPolicy = options.matchPolicy ?? 'HARNESS_LOCKED';
+  const investment = options.investment ?? 'BALANCED';
+  const greenBull = options.greenBull ?? 'NONUSE';
+  const acceptWeek19Trip = options.acceptWeek19Trip === true;
+  const shortenedHorizon =
+    options.maxSeasons !== undefined &&
+    options.maxSeasons < CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS;
+  if (
+    options.maxSeasons !== undefined &&
+    (!Number.isSafeInteger(options.maxSeasons) ||
+      options.maxSeasons < 1 ||
+      options.maxSeasons > CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS)
+  ) {
+    throw new Error(
+      `long-career seed ${seed} maxSeasons must be an integer from 1 to ${CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS}`,
+    );
+  }
+  const seasonLimit =
+    options.maxSeasons ?? CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS;
+  const measurementEnabled =
+    matchPolicy !== 'HARNESS_LOCKED' ||
+    investment !== 'BALANCED' ||
+    greenBull !== 'NONUSE' ||
+    acceptWeek19Trip ||
+    shortenedHorizon;
+  const week19Trips: Week19TripReceipt[] = [];
+  const greenBullAcceptances: GreenBullReceipt[] = [];
+  const cupMatches: CupMatchReceipt[] = [];
+  const purchasingPower: PurchasingPowerReceipt[] = [];
   let state = addCreatedPlayer(
     beginStoryOnboarding(
       createCareer(
@@ -540,17 +710,18 @@ export function runClubBusinessLongCareer(
   const seasons: LongCareerSeasonSummary[] = [];
   let totalTrainingDrills = 0;
 
-  for (
-    let seasonIndex = 0;
-    seasonIndex < CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS;
-    seasonIndex += 1
-  ) {
+  for (let seasonIndex = 0; seasonIndex < seasonLimit; seasonIndex += 1) {
     if (state.phase !== 'manage') {
       throw new Error(
         `long-career seed ${seed} began season ${state.season} in ${state.phase}`,
       );
     }
     const division = userDivision(state);
+    if (measurementEnabled) {
+      console.log(
+        `measure-progress seed ${seed} ${difficulty} ${matchPolicy} ${investment} ${greenBull} season ${state.season} division ${division}`,
+      );
+    }
     const firstSeasonInDivision = !visitedDivisions.has(division);
     if (firstSeasonInDivision) {
       visitedDivisions.add(division);
@@ -591,7 +762,19 @@ export function runClubBusinessLongCareer(
           state.trainingPoints - trainingPointsBeforeStory;
         state = readManagedInboxCards(state);
         state = hireCheapestAffordableHeadCoach(state);
-        if (ownerMaxTp) state = hireCheapestAffordableAssistantCoach(state);
+        if (
+          ownerMaxTp ||
+          (measurementEnabled &&
+            outstandingInboxDuties(state).includes('assistant-coach-hire'))
+        ) {
+          state = hireCheapestAffordableAssistantCoach(state);
+        }
+        if (
+          measurementEnabled &&
+          outstandingInboxDuties(state).includes('national-cup')
+        ) {
+          state = completeAssistantGuideSequence(state, 'national-cup');
+        }
         state = resolveManagedYouthDuty(state);
         state = chooseManagedHeroLicenses(state);
         state = signBalancedSponsorOffers(state);
@@ -624,10 +807,40 @@ export function runClubBusinessLongCareer(
         if (!recruitmentPending) {
           state = ownerMaxTp
             ? advanceOwnerFacilityPlan(state)
-            : advanceFacilityPlan(state);
+            : investment === 'COMMERCIAL_STACK'
+              ? advanceCommercialStackPlan(state)
+              : advanceFacilityPlan(state);
           state = ownerMaxTp
             ? buyOwnerDrillUpgrades(state)
             : buyManagedDrillUpgrades(state);
+        }
+        if (acceptWeek19Trip && midseasonTrainingStatus(state) === 'prompt') {
+          const charge = readWeek19TripCharge(state);
+          week19Trips.push({
+            season: state.season,
+            division: userDivision(state),
+            ...charge,
+            rule: 'APPROVED_ONE_WEEK_CAP',
+            baseline: 'ORIGINAL_WHOLE_BANK_NOT_APPLIED',
+          });
+          state = completeMidseasonTraining(acceptMidseasonTraining(state));
+        }
+        if (greenBull === 'USE') {
+          const offer = greenBullTrainingOffer(state);
+          if (offer !== undefined && offer.blockedReason === undefined) {
+            const bankBefore = state.trainingPoints;
+            const cashBefore = userCash(state);
+            state = completeMidseasonTraining(acceptGreenBullTraining(state));
+            greenBullAcceptances.push({
+              season: state.season,
+              week: state.week,
+              division: userDivision(state),
+              cashCost: cashBefore - userCash(state),
+              trainingPointsDrained: bankBefore - state.trainingPoints,
+              trainingPointsAfter: state.trainingPoints,
+              statGain: GREEN_BULL_TRAINING_GAIN,
+            });
+          }
         }
         const training = ownerMaxTp
           ? trainOwnerPotentialRoster(state)
@@ -679,7 +892,10 @@ export function runClubBusinessLongCareer(
         continue;
       }
       if (state.phase === 'matchday') {
-        state = settleProductionMatchday(state);
+        state = settleProductionMatchday(
+          state,
+          measurementEnabled ? { matchPolicy, cupMatches } : undefined,
+        );
         observeState(state, observer);
         continue;
       }
@@ -714,24 +930,38 @@ export function runClubBusinessLongCareer(
       ).length,
     });
     seasons.push(seasonSummary);
+    if (measurementEnabled) {
+      purchasingPower.push(readPurchasingPower(state, division, investment));
+    }
 
     // "First D1" means the season has actually completed. Reaching its opening
     // screen is not enough to claim the survival gate.
     if (division === 1) {
-      return {
-        ...buildRunResult(
-          state,
-          seed,
-          difficulty,
-          seasons,
-          divisionEntrySeason,
-          observer,
-          false,
-        ),
-        runMode: ownerMaxTp ? 'OWNER_MAX_TP' : 'CONSERVATIVE',
-      };
+      return finishLongCareerRun({
+        state,
+        seed,
+        difficulty,
+        seasons,
+        divisionEntrySeason,
+        observer,
+        censored: false,
+        ownerMaxTp,
+        measurement: measurementEnabled
+          ? measurementSnapshot({
+              matchPolicy,
+              investment,
+              greenBull,
+              acceptWeek19Trip,
+              seasonHorizon: shortenedHorizon ? seasonLimit : undefined,
+              week19Trips,
+              greenBullAcceptances,
+              cupMatches,
+              purchasingPower,
+            })
+          : undefined,
+      });
     }
-    if (seasonIndex + 1 === CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS) break;
+    if (seasonIndex + 1 === seasonLimit) break;
     state = renewExpiringPlayers(state);
     state = resolveManagedClubLegacies(
       reconcilePendingClubLegends(startNextSeason(state)),
@@ -739,17 +969,70 @@ export function runClubBusinessLongCareer(
     observeState(state, observer);
   }
 
+  return finishLongCareerRun({
+    state,
+    seed,
+    difficulty,
+    seasons,
+    divisionEntrySeason,
+    observer,
+    censored: !shortenedHorizon,
+    ownerMaxTp,
+    measurement: measurementEnabled
+      ? measurementSnapshot({
+          matchPolicy,
+          investment,
+          greenBull,
+          acceptWeek19Trip,
+          seasonHorizon: shortenedHorizon ? seasonLimit : undefined,
+          week19Trips,
+          greenBullAcceptances,
+          cupMatches,
+          purchasingPower,
+        })
+      : undefined,
+  });
+}
+
+function measurementSnapshot(
+  measurement: LongCareerMeasurement,
+): LongCareerMeasurement {
+  return {
+    ...measurement,
+    week19Trips: measurement.week19Trips.slice(),
+    greenBullAcceptances: measurement.greenBullAcceptances.slice(),
+    cupMatches: measurement.cupMatches.slice(),
+    purchasingPower: measurement.purchasingPower.slice(),
+  };
+}
+
+function finishLongCareerRun(input: {
+  readonly state: GameState;
+  readonly seed: number;
+  readonly difficulty: DifficultyMode;
+  readonly seasons: readonly LongCareerSeasonSummary[];
+  readonly divisionEntrySeason: Readonly<
+    Partial<Record<DivisionLevel, number>>
+  >;
+  readonly observer: RunObserver;
+  readonly censored: boolean;
+  readonly ownerMaxTp: boolean;
+  readonly measurement: LongCareerMeasurement | undefined;
+}): ClubBusinessLongCareerResult {
   return {
     ...buildRunResult(
-      state,
-      seed,
-      difficulty,
-      seasons,
-      divisionEntrySeason,
-      observer,
-      true,
+      input.state,
+      input.seed,
+      input.difficulty,
+      input.seasons,
+      input.divisionEntrySeason,
+      input.observer,
+      input.censored,
     ),
-    runMode: ownerMaxTp ? 'OWNER_MAX_TP' : 'CONSERVATIVE',
+    runMode: input.ownerMaxTp ? 'OWNER_MAX_TP' : 'CONSERVATIVE',
+    ...(input.measurement === undefined
+      ? {}
+      : { measurement: input.measurement }),
   };
 }
 
@@ -1340,6 +1623,67 @@ function advanceFacilityPlan(state: GameState): GameState {
   return state;
 }
 
+function advanceCommercialStackPlan(state: GameState): GameState {
+  const grid = state.facilities.grid;
+  if (grid === undefined || grid.construction !== undefined) return state;
+  const pitch = grid.buildings.find(
+    (building) => building.type === 'training-pitch',
+  );
+  if (pitch === undefined)
+    return buildRequiredFacility(state, FACILITY_PLAN[0]);
+  const office = grid.buildings.find(
+    (building) => building.type === 'coaching-office',
+  );
+  if (office === undefined)
+    return buildRequiredFacility(state, FACILITY_PLAN[1]);
+  if (pitch.level < 2) return tryFacilityUpgrade(state, pitch.id);
+
+  for (const entry of COMMERCIAL_STACK_BUILD_ORDER) {
+    const built =
+      entry.type === 'stadium-stand' || entry.type === 'fan-shop'
+        ? grid.buildings.some(
+            (building) =>
+              building.type === entry.type &&
+              building.x === entry.position.x &&
+              building.y === entry.position.y,
+          )
+        : grid.buildings.some((building) => building.type === entry.type);
+    if (!built) return tryFacilityBuild(state, entry);
+  }
+  for (const targetLevel of [2, 3] as const) {
+    const building = nextCommercialUpgrade(grid.buildings, targetLevel);
+    if (building !== undefined) return tryFacilityUpgrade(state, building.id);
+  }
+  return state;
+}
+
+function nextCommercialUpgrade(
+  buildings: readonly PlacedFacility[],
+  targetLevel: 2 | 3,
+): PlacedFacility | undefined {
+  const byId = (left: PlacedFacility, right: PlacedFacility) =>
+    left.id.localeCompare(right.id);
+  const commercial = buildings
+    .filter(
+      (building) =>
+        building.type === 'fan-shop' || building.type === 'stadium-stand',
+    )
+    .slice()
+    .sort(byId);
+  const rest = buildings
+    .filter(
+      (building) =>
+        building.type !== 'coaching-office' &&
+        building.type !== 'fan-shop' &&
+        building.type !== 'stadium-stand',
+    )
+    .slice()
+    .sort(byId);
+  return [...commercial, ...rest].find(
+    (candidate) => candidate.level < targetLevel,
+  );
+}
+
 function advanceOwnerFacilityPlan(state: GameState): GameState {
   const grid = state.facilities.grid;
   if (grid === undefined || grid.construction !== undefined) return state;
@@ -1773,11 +2117,373 @@ function hasActiveStartingPromise(player: CareerPlayer): boolean {
   );
 }
 
-function settleProductionMatchday(state: GameState): GameState {
+/** The saved lineup shape. An old save with no formation still plays 4-4-2. */
+export function longCareerQuickPreferences(
+  state: GameState,
+  matchPolicy: LongCareerMatchPolicy = 'HARNESS_LOCKED',
+): {
+  readonly initialFormation: FormationId;
+  readonly autoSubs: boolean;
+  readonly cupRoundLabel?: NationalCupRoundLabel;
+} {
+  if (matchPolicy !== 'PRODUCTION_QUICK') {
+    return { initialFormation: '4-4-2', autoSubs: false };
+  }
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  const matchday = activeCareerMatchday(state);
+  return {
+    initialFormation: lineup?.formation ?? '4-4-2',
+    autoSubs: true,
+    ...(matchday?.cupRoundLabel === undefined
+      ? {}
+      : { cupRoundLabel: matchday.cupRoundLabel }),
+  };
+}
+
+/** Approved cap versus the old whole-bank charge. Calling this does not spend TP. */
+export function readWeek19TripCharge(state: GameState): {
+  readonly bankBefore: number;
+  readonly weeklyAmbient: number;
+  readonly approvedCost: number;
+  readonly originalWholeBankCost: number;
+  readonly preservedTrainingPoints: number;
+} {
+  const bankBefore = state.trainingPoints;
+  const weeklyAmbient = weeklyAmbientTrainingPoints(state);
+  const approvedCost = midseasonTrainingCost(state);
+  return {
+    bankBefore,
+    weeklyAmbient,
+    approvedCost,
+    originalWholeBankCost: bankBefore,
+    preservedTrainingPoints: bankBefore - approvedCost,
+  };
+}
+
+/**
+ * League matches keep the production object the harness has always passed.
+ * A locked Cup drops the new shootout squads, so a level tie stays on the
+ * seed winner. Production Quick passes those squads through.
+ */
+export function longCareerMatchdayProduction(
+  kind: 'league' | 'national-cup',
+  matchPolicy: LongCareerMatchPolicy,
+  production: ProductionFixtureResult,
+): ProductionFixtureResult {
+  if (kind === 'league' || matchPolicy === 'PRODUCTION_QUICK')
+    return production;
+  const { penaltyFullTime: _shootoutSquads, ...legacy } = production;
+  return legacy;
+}
+
+function storedCupFixture(state: GameState, fixtureId: string) {
+  for (const cup of state.m2?.nationalCups ?? []) {
+    for (const round of cup.rounds) {
+      const fixture = round.fixtures.find(
+        (candidate) => candidate.id === fixtureId,
+      );
+      if (fixture?.status === 'played') return fixture;
+    }
+  }
+  return undefined;
+}
+
+/** Regulation from the Quick result. The penalty winner is read from the save. */
+export function readCupMatchReceipt(
+  state: GameState,
+  roundLabel: NationalCupRoundLabel,
+  fixture: LeagueFixture,
+  regulation: FixtureResult,
+  matchPolicy: LongCareerMatchPolicy,
+  settled: GameState,
+): CupMatchReceipt {
+  const opponentClubId =
+    fixture.homeClubId === state.userClubId
+      ? fixture.awayClubId
+      : fixture.homeClubId;
+  const userTeam = buildCareerTeamDef(state, state.userClubId);
+  const opponentTeam = buildCareerMatchTeamDef(state, opponentClubId);
+  const gap = measureCupGap(userTeam, opponentTeam);
+  const userPowers = diagnoseCupPowers(
+    userTeam,
+    diagnosticRoster(state, state.userClubId),
+  );
+  const opponentPowers = diagnoseCupPowers(
+    opponentTeam,
+    diagnosticRoster(state, opponentClubId),
+  );
+  const lateRound = roundLabel === 'Semi-final' || roundLabel === 'Final';
+  const stored = storedCupFixture(settled, fixture.id);
+  if (stored?.score === undefined || stored.winnerClubId === undefined) {
+    throw new Error(`Cup fixture ${fixture.id} was not stored as played`);
+  }
+  if (
+    stored.score.homeGoals !== regulation.homeGoals ||
+    stored.score.awayGoals !== regulation.awayGoals
+  ) {
+    throw new Error(
+      `Cup fixture ${fixture.id} stored score does not match the Quick result`,
+    );
+  }
+  const userGoals =
+    fixture.homeClubId === state.userClubId
+      ? regulation.homeGoals
+      : regulation.awayGoals;
+  const opponentGoals =
+    fixture.homeClubId === state.userClubId
+      ? regulation.awayGoals
+      : regulation.homeGoals;
+  const regulationOutcome =
+    userGoals > opponentGoals
+      ? 'WIN'
+      : userGoals < opponentGoals
+        ? 'LOSS'
+        : 'DRAW';
+  const level = regulation.homeGoals === regulation.awayGoals;
+  if (
+    level &&
+    matchPolicy === 'PRODUCTION_QUICK' &&
+    stored.penalties === undefined
+  ) {
+    throw new Error(`production Cup draw ${fixture.id} stored no shootout`);
+  }
+  if (
+    level &&
+    matchPolicy !== 'PRODUCTION_QUICK' &&
+    stored.penalties !== undefined
+  ) {
+    throw new Error(`locked Cup draw ${fixture.id} stored a shootout`);
+  }
+  const powerGap = userPowers.xiPowers - opponentPowers.xiPowers;
+  return {
+    matchPolicy,
+    season: state.season,
+    week: state.week,
+    roundLabel,
+    homeClubId: fixture.homeClubId,
+    awayClubId: fixture.awayClubId,
+    userClubId: state.userClubId,
+    opponentClubId,
+    matchSeed: fixture.matchSeed,
+    userAttrRating: gap.userAttrRating,
+    opponentAttrRating: gap.opponentAttrRating,
+    attrGap: gap.attrGap,
+    catchupWouldTrigger: lateRound && gap.attrGap >= 10,
+    catchupApplied:
+      matchPolicy === 'PRODUCTION_QUICK' && lateRound && gap.attrGap >= 10,
+    userXiPowers: userPowers.xiPowers,
+    opponentXiPowers: opponentPowers.xiPowers,
+    userUnlicensedPowers: userPowers.unlicensedPowers,
+    opponentUnlicensedPowers: opponentPowers.unlicensedPowers,
+    unlicensedHeroOutratesXi:
+      userPowers.unlicensedHeroOutratesXi +
+      opponentPowers.unlicensedHeroOutratesXi,
+    powerSignDisagreesWithAttrGap:
+      gap.attrGap !== 0 &&
+      powerGap !== 0 &&
+      Math.sign(gap.attrGap) !== Math.sign(powerGap),
+    regulationHomeGoals: regulation.homeGoals,
+    regulationAwayGoals: regulation.awayGoals,
+    regulationOutcome,
+    ...(level
+      ? {
+          penaltySource:
+            stored.penalties === undefined
+              ? ('LEGACY_SEED' as const)
+              : ('PRODUCTION_SHOOTOUT' as const),
+          penaltyWinnerClubId: stored.winnerClubId,
+          ...(stored.penalties === undefined
+            ? {}
+            : {
+                penaltyHomeGoals: stored.penalties.homeGoals,
+                penaltyAwayGoals: stored.penalties.awayGoals,
+              }),
+        }
+      : {}),
+  };
+}
+
+function facilityUpgradeCost(building: PlacedFacility): number {
+  const costs = FACILITY_CATALOG[building.type].upgradeCosts;
+  if (building.level === 1) return costs[0];
+  if (building.level === 2) return costs[1];
+  throw new Error(`${building.id} has no upgrade past level 3`);
+}
+
+function facilityActionCost(
+  building: PlacedFacility | undefined,
+  type: FacilityType,
+  kind: 'build' | 'upgrade',
+): { label: string; cost: number } {
+  if (kind === 'build') {
+    return { label: `${type} build`, cost: FACILITY_CATALOG[type].buildCost };
+  }
+  if (building === undefined) {
+    throw new Error(`facility plan lost ${type} before its upgrade`);
+  }
+  return {
+    label: `${type} upgrade to L${building.level + 1}`,
+    cost: facilityUpgradeCost(building),
+  };
+}
+
+function nextPlannedFacilityAction(
+  state: GameState,
+  investment: LongCareerInvestmentPolicy,
+): { label: string; cost: number } | undefined {
+  const grid = state.facilities.grid;
+  if (grid === undefined) return undefined;
+  const pitch = grid.buildings.find(
+    (building) => building.type === 'training-pitch',
+  );
+  if (pitch === undefined) {
+    return facilityActionCost(undefined, 'training-pitch', 'build');
+  }
+  const office = grid.buildings.find(
+    (building) => building.type === 'coaching-office',
+  );
+  if (office === undefined) {
+    return facilityActionCost(undefined, 'coaching-office', 'build');
+  }
+  if (pitch.level < 2)
+    return facilityActionCost(pitch, 'training-pitch', 'upgrade');
+  if (investment === 'COMMERCIAL_STACK') {
+    for (const entry of COMMERCIAL_STACK_BUILD_ORDER) {
+      const built =
+        entry.type === 'stadium-stand' || entry.type === 'fan-shop'
+          ? grid.buildings.some(
+              (building) =>
+                building.type === entry.type &&
+                building.x === entry.position.x &&
+                building.y === entry.position.y,
+            )
+          : grid.buildings.some((building) => building.type === entry.type);
+      if (!built) return facilityActionCost(undefined, entry.type, 'build');
+    }
+    for (const targetLevel of [2, 3] as const) {
+      const building = nextCommercialUpgrade(grid.buildings, targetLevel);
+      if (building !== undefined) {
+        return facilityActionCost(building, building.type, 'upgrade');
+      }
+    }
+    return undefined;
+  }
+  for (const entry of FACILITY_PLAN.slice(2)) {
+    if (!grid.buildings.some((building) => building.type === entry.type)) {
+      return facilityActionCost(undefined, entry.type, 'build');
+    }
+  }
+  for (const targetLevel of [2, 3] as const) {
+    for (const entry of FACILITY_PLAN.filter(
+      (candidate) => candidate.type !== 'coaching-office',
+    )) {
+      const building = grid.buildings.find(
+        (candidate) => candidate.type === entry.type,
+      );
+      if (building !== undefined && building.level < targetLevel) {
+        return facilityActionCost(building, building.type, 'upgrade');
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Cash against the next planned facility price and the weakest valued starter. */
+export function readPurchasingPower(
+  state: GameState,
+  division: DivisionLevel,
+  investment: LongCareerInvestmentPolicy,
+): PurchasingPowerReceipt {
+  const grid = state.facilities.grid;
+  const stands = (grid?.buildings ?? [])
+    .filter((building) => building.type === 'stadium-stand')
+    .slice()
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const shops = (grid?.buildings ?? [])
+    .filter((building) => building.type === 'fan-shop')
+    .slice()
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const next = nextPlannedFacilityAction(state, investment);
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  const starterIds = new Set(lineup?.playerIds ?? []);
+  const valuations = state.players
+    .filter((player) => starterIds.has(player.id))
+    .flatMap((player) => {
+      if (
+        player.age === undefined ||
+        player.potential === undefined ||
+        player.age < 16 ||
+        player.age > 45 ||
+        player.contractSeasonsRemaining < 0 ||
+        player.contractSeasonsRemaining > 3
+      ) {
+        return [];
+      }
+      return [
+        playerValuation(
+          {
+            id: player.id,
+            role: player.role,
+            attrs: player.attrs,
+            age: player.age,
+            potential: player.potential,
+            contractSeasonsRemaining: player.contractSeasonsRemaining,
+            ...(player.power === undefined
+              ? {}
+              : { power: player.power, powerTier: player.powerTier }),
+          },
+          division,
+        ),
+      ];
+    });
+  const weakest = valuations.length === 0 ? undefined : Math.min(...valuations);
+  const endingCash = userCash(state);
+  return {
+    season: state.season,
+    division,
+    endingCash,
+    ...(next === undefined
+      ? {}
+      : {
+          nextFacilityLabel: next.label,
+          nextFacilityCost: next.cost,
+          cashPerFacilityCost: endingCash / next.cost,
+        }),
+    ...(weakest === undefined
+      ? {}
+      : {
+          weakestStarterValuation: weakest,
+          cashPerStarterValuation: endingCash / weakest,
+        }),
+    valuedStarters: valuations.length,
+    constructionInProgress: grid?.construction !== undefined,
+    standCount: stands.length,
+    shopCount: shops.length,
+    standLevels: stands.map((building) => building.level),
+    shopLevels: shops.map((building) => building.level),
+  };
+}
+
+function settleProductionMatchday(
+  state: GameState,
+  context?: {
+    readonly matchPolicy: LongCareerMatchPolicy;
+    readonly cupMatches: CupMatchReceipt[];
+  },
+): GameState {
   const matchday = activeCareerMatchday(state);
   if (matchday === undefined)
     throw new Error('long-career matchday has no active fixture');
   const fixture = matchday.fixture;
+  const productionQuick = context?.matchPolicy === 'PRODUCTION_QUICK';
+  const preferences = longCareerQuickPreferences(
+    state,
+    productionQuick ? 'PRODUCTION_QUICK' : 'HARNESS_LOCKED',
+  );
   const clubIds = [
     ...new Set(
       matchday.fixtures.flatMap((candidate) => [
@@ -1789,7 +2495,10 @@ function settleProductionMatchday(state: GameState): GameState {
   const teams = Object.fromEntries(
     clubIds.map((clubId) => {
       try {
-        return [clubId, buildCareerMatchTeamDef(state, clubId)];
+        return [
+          clubId,
+          buildCareerMatchTeamDef(state, clubId, preferences.cupRoundLabel),
+        ];
       } catch (error) {
         throw new Error(
           `long-career season ${state.season} week ${state.week} could not build match club ${clubId}`,
@@ -1806,8 +2515,8 @@ function settleProductionMatchday(state: GameState): GameState {
       candidate.id === fixture.id
         ? {
             userClubId: state.userClubId,
-            initialFormation: '4-4-2',
-            autoSubs: false,
+            initialFormation: preferences.initialFormation,
+            autoSubs: preferences.autoSubs,
           }
         : undefined,
     ),
@@ -1820,11 +2529,35 @@ function settleProductionMatchday(state: GameState): GameState {
       'long-career Quick Result did not produce user match facts',
     );
   }
+  const recordCup =
+    context !== undefined &&
+    matchday.kind === 'national-cup' &&
+    matchday.cupRoundLabel !== undefined;
   const settled = completeMatchday(
     state,
     quickMatches.map((candidate) => candidate.quick.result),
-    userQuick.production,
+    longCareerMatchdayProduction(
+      matchday.kind,
+      productionQuick ? 'PRODUCTION_QUICK' : 'HARNESS_LOCKED',
+      userQuick.production,
+    ),
   );
+  if (
+    recordCup &&
+    context !== undefined &&
+    matchday.cupRoundLabel !== undefined
+  ) {
+    context.cupMatches.push(
+      readCupMatchReceipt(
+        state,
+        matchday.cupRoundLabel,
+        fixture,
+        userQuick.result,
+        context.matchPolicy,
+        settled,
+      ),
+    );
+  }
   const completed = isFirstOnboardingFixture(state, fixture.id)
     ? completeFirstOnboardingMatch(settled, fixture.id)
     : settled;

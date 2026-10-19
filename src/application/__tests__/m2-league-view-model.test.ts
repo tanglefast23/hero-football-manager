@@ -92,6 +92,112 @@ function userLeagueFixtures(state: M2CareerState, season = 2): LeagueFixture[] {
 }
 
 describe('m2LeagueViewModel', () => {
+  it.each([true, false])(
+    'shows only saved user penalty tallies (saved: %s)',
+    (saved) => {
+      let career: M2CareerState | undefined;
+      for (let seed = 1; seed <= 50 && career === undefined; seed += 1) {
+        const candidate = startM2NationalCup(
+          initializeM2Career({ careerSeed: seed, userClub: USER_CLUB }),
+          1,
+        );
+        if (
+          candidate.nationalCups[0].rounds[0].fixtures.some(
+            (fixture) =>
+              fixture.homeClubId === USER_CLUB.id ||
+              fixture.awayClubId === USER_CLUB.id,
+          )
+        )
+          career = candidate;
+      }
+      if (career === undefined) throw new Error('expected a user play-in tie');
+      const cup = career.nationalCups[0];
+      career = {
+        ...career,
+        nationalCups: [
+          {
+            ...cup,
+            rounds: cup.rounds.map((round) => ({
+              ...round,
+              fixtures: round.fixtures.map((fixture) =>
+                fixture.homeClubId !== USER_CLUB.id &&
+                fixture.awayClubId !== USER_CLUB.id
+                  ? fixture
+                  : {
+                      ...fixture,
+                      status: 'played' as const,
+                      score: { homeGoals: 0, awayGoals: 0 },
+                      winnerClubId: fixture.homeClubId,
+                      ...(saved
+                        ? {
+                            penalties: {
+                              homeGoals: 4,
+                              awayGoals: 3,
+                              kicks: Array.from({ length: 10 }, (_, index) => ({
+                                side:
+                                  index % 2 === 0
+                                    ? ('home' as const)
+                                    : ('away' as const),
+                                takerId: `taker-${index}`,
+                                keeperId:
+                                  index % 2 === 0 ? 'away-gk' : 'home-gk',
+                                scored: index % 2 === 0 ? index < 8 : index < 7,
+                              })),
+                            },
+                          }
+                        : {}),
+                    },
+              ),
+            })),
+          },
+        ],
+      };
+      const view = m2LeagueViewModel({
+        career,
+        season: 1,
+        week: 3,
+        activeStandings: standings(career),
+      });
+      const tie = view.cup.rounds
+        .flatMap((round) => round.fixtures)
+        .find((fixture) => fixture.involvesUserClub);
+      expect(tie).toMatchObject({
+        scoreLabel: saved ? '0-0 (4-3 P)' : '0-0 P',
+        decidedOnPenalties: true,
+      });
+    },
+  );
+
+  it('shows rival Cup advancement without presenting abstract goals as played scores', () => {
+    const start = startM2NationalCup(
+      initializeM2Career({ careerSeed: 42, userClub: USER_CLUB }),
+      1,
+    );
+    const career = advanceM2NationalCup(start, homeWins(start));
+    const before = JSON.stringify(career);
+    const view = m2LeagueViewModel({
+      career,
+      season: 1,
+      week: 1,
+      phase: 'manage',
+      activeStandings: standings(career),
+    });
+    const fixtures = view.cup.rounds.flatMap((round) => round.fixtures);
+    const rivals = fixtures.filter(
+      (fixture) => fixture.status === 'PLAYED' && !fixture.involvesUserClub,
+    );
+    expect(rivals.length).toBeGreaterThan(0);
+    for (const fixture of rivals) {
+      expect(fixture.scoreLabel).toBe('Advanced');
+      expect(fixture.winnerName).toEqual(expect.any(String));
+    }
+    const userTie = fixtures.find(
+      (fixture) => fixture.status === 'PLAYED' && fixture.involvesUserClub,
+    );
+    if (userTie !== undefined) expect(userTie.scoreLabel).toBe('1-0');
+    expect(JSON.stringify(career)).toBe(before);
+  });
+
   it('maps the five-division ladder and truthful active table without mutating inputs', () => {
     const career = initializeM2Career({ careerSeed: 551, userClub: USER_CLUB });
     const activeStandings = standings(career, 3);

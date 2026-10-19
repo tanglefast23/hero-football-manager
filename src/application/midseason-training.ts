@@ -1,6 +1,7 @@
 import {
   MIDSEASON_TRAINING_CONDITION_COST,
   midseasonTrainingCaptain,
+  midseasonTrainingCost,
   midseasonTrainingGain,
   rosterForClub,
   type CareerPlayer,
@@ -70,6 +71,14 @@ export function midseasonTrainingViewModel(
     season: state.season,
     trainingPoints: state.trainingPoints,
     trainingPointsLabel: formatIntegerForCopy(t, state.trainingPoints),
+    trainingPointsCostLabel: formatIntegerForCopy(
+      t,
+      midseasonTrainingCost(state),
+    ),
+    trainingPointsRemainingLabel: formatIntegerForCopy(
+      t,
+      state.trainingPoints - midseasonTrainingCost(state),
+    ),
     statGain: midseasonTrainingGain(state),
     conditionCost: MIDSEASON_TRAINING_CONDITION_COST,
     captain,

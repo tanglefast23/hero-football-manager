@@ -26,6 +26,24 @@ Before final build checks, unset the QA flags and rebuild the normal export with
 `npx expo export --platform web --clear`, then run `node scripts/web/fix-worker-bundles.mjs`.
 Run the desktop check against that normal export. Do not publish a temporary QA export.
 
+## Focused management fixtures
+
+Export with `EXPO_PUBLIC_DEV_HARNESS=1` into a temporary directory, using `--clear`.
+Use these local-only routes for the approved management changes:
+
+- `#/dev/management-decisions/scout-opening`: absolute scout dates near the opening window.
+- `#/dev/management-decisions/scout-late`: the return date and warning before paying for a late report.
+- `#/dev/management-decisions/cup-results`: winner-only labels for abstract rival ties.
+- `#/dev/training-tiers/low-bank`: Tier 4 owned with 11 TP; Tier 2 must remain usable.
+- `#/dev/training-tiers/en` and `#/dev/training-tiers/vi`: tier choice, exact preview and repeat count.
+- `#/dev/midseason-training/d5` and `#/dev/midseason-training/d4`: charge and remaining bank, then acceptance.
+- `#/dev/penalty-shootout/saved-kicks`: presentation reads the real resolver's saved kick sequence.
+
+These are synthetic states rendered by production components. They do not prove career wins or physical-phone behavior.
+The normal career snapshot bridge is absent in the dev harness. Use rendered controls directly there.
+After rebuilding an export, reload the page with a new query value, such as `?build=2`.
+Changing only the hash route keeps the previous bundle. Mute immediately after the reload.
+
 ## Drive the actual game
 
 Inspect `HFMPlaytest.controls()` and call `await HFMPlaytest.tap('Exact accessible label')`.
@@ -94,6 +112,27 @@ The opening story match removes the user's powers, as the real match does.
 The saved lineup formation must match the UI selection when comparing exact results.
 Quick Match starts the controlled side at Balanced energy; watched energy settings do not carry over.
 Cup simulations here stop at the match result; they do not resolve a tied Cup match or advance the career.
+
+## Opt-in balance measurements
+
+```sh
+COMMERCIAL_CUP_SEASONS=3 npm run test:probe -- src/audit/__tests__/commercial-cup-measurement-probe.test.ts
+npm run test:probe -- src/audit/__tests__/green-bull-sink-probe.test.ts
+```
+
+The first command pairs career seeds across Cozy/Chairman, balanced/commercial investment, and Green Bull use/non-use.
+Its production arm uses the saved formation, automatic substitutions and the real Cup round.
+The original locked harness policy stays separate. Read the horizon and completed-arm count before drawing a conclusion.
+Zero Green Bull use below D3 cannot measure its late cash sink.
+
+The second command checks purchasing capacity on a copy of the completed Season 6 checkpoint.
+It supplies controlled future TP opportunities without matches, income or other bills.
+It calls the production offer and purchase functions, and checks that the source bytes stay unchanged.
+This is a cash-capacity experiment, not career progress or a strategy win rate.
+
+Receipts default to `artifacts/balance-design-2026-10-19/`. For another run, set `HFM_BALANCE_ARTIFACT_DIR` to a fresh folder.
+The commercial probe defaults to three seasons. `COMMERCIAL_CUP_SEASONS` accepts 1–12; a longer horizon is a separate, costly opt-in run.
+Both probes are excluded from normal tests. Neither changes an income multiplier, trip price or Cup catch-up rule.
 
 Treat simulated results as supplemental evidence. They do not count as browser wins.
 For strategy comparisons, hold teams and seeds fixed, name all varied settings, and save each result.

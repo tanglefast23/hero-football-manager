@@ -571,7 +571,7 @@ export function startDetailedScoutReport(
 
 export function reportSurvivesUntil(
   state: Pick<GameState, 'season' | 'week'>,
-  report: ScoutReport,
+  report: Pick<ScoutReport, 'completedSeason' | 'completedWeek'>,
   durationWeeks: number,
 ): boolean {
   if (

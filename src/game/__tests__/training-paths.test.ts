@@ -2,10 +2,12 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { runHeadlessFullCareer } from '../headless';
 import {
   TRAINING_PATHS,
+  availableTrainingTiers,
   trainingPathLabel,
   trainingPathLabelKey,
   resolveTrainingDrillForPath,
 } from '../training-paths';
+import type { TrainingDrillTier } from '../promotion-progression';
 
 describe('training paths', () => {
   test('there are 7 paths, one per stat, with labels', () => {
@@ -57,5 +59,25 @@ describe('training paths', () => {
     );
     expect(bought.id).toBe('sprints-iii');
     expect(bought.gains.pac).toBe(8);
+  });
+
+  test('a higher owned tier unlocks every cheaper drill and nothing above owned', () => {
+    const state = runHeadlessFullCareer(createLaunchCareerSetup(0), 1);
+    const owned = { ...state, ownedTrainingTiers: { sprints: 4 } };
+    expect(availableTrainingTiers(owned, 'sprints')).toEqual([1, 2, 3, 4]);
+    // A fresh path still offers only tier 1.
+    expect(availableTrainingTiers(owned, 'duels')).toEqual([1]);
+    const tier2 = resolveTrainingDrillForPath(owned, 'sprints', 2);
+    expect(tier2.id).toBe('sprints-ii');
+    expect(tier2.tpCost).toBe(11);
+    expect(tier2.gains.pac).toBe(5);
+    // Old callers without a tier keep the owned drill.
+    expect(resolveTrainingDrillForPath(owned, 'sprints').id).toBe('sprints-iv');
+    expect(() =>
+      resolveTrainingDrillForPath(owned, 'sprints', 5 as TrainingDrillTier),
+    ).toThrow('tier 5 is not unlocked for path sprints');
+    expect(() =>
+      resolveTrainingDrillForPath(owned, 'sprints', 0 as TrainingDrillTier),
+    ).toThrow('tier 0 is not unlocked for path sprints');
   });
 });

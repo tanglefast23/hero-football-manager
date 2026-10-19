@@ -23,7 +23,12 @@ import {
 } from '../render/management-sfx';
 import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
-import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
+import type {
+  DrillResultViewModel,
+  TrainingSlotStatOption,
+  TrainingTierOption,
+} from './models';
+import { trainingDrillTier } from '../game/promotion-progression';
 import { ManagementSprite } from './components/ManagementSprite';
 import { PixelText } from './components/PixelText';
 import {
@@ -72,12 +77,17 @@ export interface TrainingDrillModalProps {
   promiseGate?: { playerId: string; playerName: string; remaining: number };
   /** Jumps the popup to the promised player when their reminder is tapped. */
   onSwitchToPromised?: (playerId: string) => void;
-  onTrainDrill: (playerId: string, pathId: string) => void;
+  onTrainDrill: (playerId: string, pathId: string, tier?: number) => void;
   /**
    * Resolves the drills still queued behind the one on screen, without their
    * presentations. Leaving early skips the animation, not the training.
    */
-  onTrainDrillBatch: (playerId: string, pathId: string, runs: number) => void;
+  onTrainDrillBatch: (
+    playerId: string,
+    pathId: string,
+    runs: number,
+    tier?: number,
+  ) => void;
   onDismiss: () => void;
   reduceMotion?: boolean;
   /**
@@ -102,6 +112,7 @@ type ResultStage = 'scene' | 'reveal' | 'super' | 'injury' | null;
 
 interface DrillBatch {
   readonly pathId: string;
+  readonly tier: number;
   readonly total: number;
   readonly current: number;
   readonly remaining: number;
@@ -111,10 +122,24 @@ const REPEAT_PICKER_CELL_WIDTH = 48;
 /** How long the drill list ignores presses after a presentation closes under it. */
 const PRESENTATION_SETTLE_MS = drillPresentationMs(350);
 
-function ordinaryVisibleGain(option: TrainingSlotStatOption): number {
+function ordinaryVisibleGain(
+  tier: Pick<TrainingTierOption, 'baseValueAfter' | 'trainingAdjustment'>,
+  currentValue: number,
+): number {
   return Math.max(
     0,
-    option.baseValueAfter - option.currentValue + option.trainingAdjustment,
+    tier.baseValueAfter - currentValue + tier.trainingAdjustment,
+  );
+}
+
+/** The confirm card's picked tier, falling back to the owned drill. */
+function confirmTierEntry(
+  option: TrainingSlotStatOption,
+  tier: number,
+): TrainingTierOption {
+  return (
+    option.tiers.find((candidate) => candidate.tier === tier) ??
+    option.tiers[option.tiers.length - 1]!
   );
 }
 
@@ -177,6 +202,11 @@ export function TrainingDrillModal({
    */
   const [pendingConfirm, setPendingConfirm] =
     useState<TrainingSlotStatOption | null>(null);
+  /**
+   * The confirm card's picked tier. Buying a tier adds options, so the card
+   * opens on the owned drill and the manager may step down to a cheaper one.
+   */
+  const [confirmTier, setConfirmTier] = useState(1);
   const [repeatCount, setRepeatCount] = useState(1);
   const [confirmingHighRisk, setConfirmingHighRisk] = useState(false);
   const batchRef = useRef<DrillBatch | null>(null);
@@ -217,6 +247,12 @@ export function TrainingDrillModal({
     );
     if (option === undefined) return;
     setPendingConfirm(option);
+    const fits = option.tiers.filter((tier) => tier.affordable);
+    setConfirmTier(
+      option.affordable
+        ? option.ownedTier
+        : (fits[fits.length - 1]?.tier ?? option.ownedTier),
+    );
     setRepeatCount(1);
     setConfirmingHighRisk(false);
     // One tap, one confirmation. The request is spent here rather than left
@@ -226,18 +262,19 @@ export function TrainingDrillModal({
 
   useEffect(() => {
     if (pendingConfirm === null) return;
+    const picked = confirmTierEntry(pendingConfirm, confirmTier);
     const maximum = Math.max(
       1,
       Math.min(
-        maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
+        maximumAffordableTrainingRuns(trainingPoints, picked.tpCost),
         maximumVisibleTrainingRuns(
           pendingConfirm.currentValue,
-          ordinaryVisibleGain(pendingConfirm),
+          ordinaryVisibleGain(picked, pendingConfirm.currentValue),
         ),
       ),
     );
     setRepeatCount((current) => Math.min(current, maximum));
-  }, [pendingConfirm, trainingPoints]);
+  }, [confirmTier, pendingConfirm, trainingPoints]);
 
   useEffect(() => {
     const result = lastDrillResult;
@@ -344,7 +381,7 @@ export function TrainingDrillModal({
           current: nextBatch.current,
           total: nextBatch.total,
         });
-        onTrainDrill(playerId, nextBatch.pathId);
+        onTrainDrill(playerId, nextBatch.pathId, nextBatch.tier);
         return;
       }
       batchRef.current = null;
@@ -360,18 +397,20 @@ export function TrainingDrillModal({
   ]);
 
   const startTrainingBatch = useCallback(
-    (option: TrainingSlotStatOption, runs: number) => {
+    (option: TrainingSlotStatOption, tier: number, runs: number) => {
+      const picked = confirmTierEntry(option, tier);
       const queuedRuns = Math.min(
         runs,
-        maximumAffordableTrainingRuns(trainingPoints, option.tpCost),
+        maximumAffordableTrainingRuns(trainingPoints, picked.tpCost),
         maximumVisibleTrainingRuns(
           option.currentValue,
-          ordinaryVisibleGain(option),
+          ordinaryVisibleGain(picked, option.currentValue),
         ),
       );
       if (queuedRuns < 1) return;
       const batch: DrillBatch = {
         pathId: option.pathId,
+        tier: picked.tier,
         total: queuedRuns,
         current: 1,
         remaining: queuedRuns - 1,
@@ -380,7 +419,7 @@ export function TrainingDrillModal({
       setBatchProgress({ current: 1, total: queuedRuns });
       setConfirmingHighRisk(false);
       setPendingConfirm(null);
-      onTrainDrill(playerId, option.pathId);
+      onTrainDrill(playerId, option.pathId, picked.tier);
     },
     [onTrainDrill, playerId, trainingPoints],
   );
@@ -401,7 +440,7 @@ export function TrainingDrillModal({
       activeResult?.injury === undefined &&
       (activeResult?.displayedAfter ?? 0) < MAX_PLAYER_ATTRIBUTE
     ) {
-      onTrainDrillBatch(playerId, batch.pathId, batch.remaining);
+      onTrainDrillBatch(playerId, batch.pathId, batch.remaining, batch.tier);
     }
     onDismiss();
   }, [activeResult, onDismiss, onTrainDrillBatch, playerId]);
@@ -410,6 +449,24 @@ export function TrainingDrillModal({
     activeResult === null
       ? undefined
       : options.find((option) => option.pathId === activeResult.pathId);
+  /**
+   * The scene names the drill that actually ran, not the owned one: a Tier 2
+   * tap on a Tier 4 path counts up the cheaper drill's result.
+   */
+  const resultTierName = (() => {
+    if (activeResult === null || resultOption === undefined)
+      return resultOption?.drillName;
+    const ranTier = trainingDrillTier(activeResult.drillId);
+    return (
+      resultOption.tiers.find((candidate) => candidate.tier === ranTier)
+        ?.drillName ?? resultOption.drillName
+    );
+  })();
+  /** The confirm card's picked tier entry, or null when no card is open. */
+  const pendingTier =
+    pendingConfirm === null
+      ? null
+      : confirmTierEntry(pendingConfirm, confirmTier);
   const riskTone = injuryRiskPercent >= 25 ? 'red' : 'amber';
   const injured = injuryWeeks > 0;
   const owedHere =
@@ -418,25 +475,24 @@ export function TrainingDrillModal({
     promiseGate !== undefined && promiseGate.playerId !== playerId;
   const conditionBadge = conditionBadgeStyle(condition);
   const maximumAffordableRuns =
-    pendingConfirm === null
+    pendingConfirm === null || pendingTier === null
       ? 1
       : Math.max(
           1,
           Math.min(
-            maximumAffordableTrainingRuns(
-              trainingPoints,
-              pendingConfirm.tpCost,
-            ),
+            maximumAffordableTrainingRuns(trainingPoints, pendingTier.tpCost),
             maximumVisibleTrainingRuns(
               pendingConfirm.currentValue,
-              ordinaryVisibleGain(pendingConfirm),
+              ordinaryVisibleGain(pendingTier, pendingConfirm.currentValue),
             ),
           ),
         );
   const maximumSafeRuns = maximumSafeTrainingRuns(condition);
   const selectedRiskyRuns = riskyTrainingRunCount(condition, repeatCount);
   const nextOrdinaryGain =
-    pendingConfirm === null ? 0 : ordinaryVisibleGain(pendingConfirm);
+    pendingConfirm === null || pendingTier === null
+      ? 0
+      : ordinaryVisibleGain(pendingTier, pendingConfirm.currentValue);
   const visibleHeadroom =
     pendingConfirm === null
       ? 0
@@ -709,7 +765,15 @@ export function TrainingDrillModal({
                 {options.map((option) => {
                   const blocked =
                     injured || blockedByPromise || option.atSafetyCeiling;
-                  const unaffordable = !blocked && !option.affordable;
+                  // The row opens the tier chooser while ANY owned tier fits
+                  // the bank — an owned Tier 4 must not hide an affordable
+                  // Tier 2. Only a bank below the cheapest tier says no.
+                  const affordableTiers = blocked
+                    ? []
+                    : option.tiers.filter((tier) => tier.affordable);
+                  const initialTier =
+                    affordableTiers[affordableTiers.length - 1];
+                  const unaffordable = !blocked && initialTier === undefined;
                   const disabled = blocked || settling;
                   const isResultRow =
                     stage === null && activeResult?.pathId === option.pathId;
@@ -734,7 +798,7 @@ export function TrainingDrillModal({
                                 })
                               : unaffordable
                                 ? t('trainingDrill.a11y.costsTrainingPoints', {
-                                    cost: option.tpCost,
+                                    cost: option.tiers[0]!.tpCost,
                                     available: trainingPoints,
                                   })
                                 : t('trainingDrill.a11y.drillHint', {
@@ -764,8 +828,8 @@ export function TrainingDrillModal({
                           setNotice({
                             title: t('trainingDrill.notEnoughTp'),
                             detail: t('trainingDrill.notEnoughTpDetail', {
-                              drill: option.drillName,
-                              cost: option.tpCost,
+                              drill: option.tiers[0]!.drillName,
+                              cost: option.tiers[0]!.tpCost,
                               available: trainingPoints,
                             }),
                           });
@@ -773,6 +837,8 @@ export function TrainingDrillModal({
                         }
                         setRepeatCount(1);
                         setConfirmingHighRisk(false);
+                        // Opens on the best tier the bank covers, owned first.
+                        setConfirmTier(initialTier!.tier);
                         setPendingConfirm(option);
                       }}
                       className={
@@ -816,7 +882,7 @@ export function TrainingDrillModal({
                         >
                           {option.currentValue} {option.shortCode}
                           {!injured &&
-                          !option.affordable &&
+                          initialTier === undefined &&
                           !option.atSafetyCeiling
                             ? ` · ${t('trainingDrill.notEnoughTp')}`
                             : ''}
@@ -858,7 +924,7 @@ export function TrainingDrillModal({
                 role={playerRole}
                 lookId={playerLookId}
                 activityId={drillActivityId(activeResult.pathId)}
-                drillName={`${resultOption.drillName}${batchProgress === null ? '' : ` · ${batchProgress.current}/${batchProgress.total}`}`}
+                drillName={`${resultTierName ?? resultOption.drillName}${batchProgress === null ? '' : ` · ${batchProgress.current}/${batchProgress.total}`}`}
                 shortCode={resultOption.shortCode}
                 before={activeResult.displayedBefore}
                 after={activeResult.displayedAfter}
@@ -921,7 +987,9 @@ export function TrainingDrillModal({
             ) : null}
           </View>
 
-          {pendingConfirm !== null && !confirmingHighRisk ? (
+          {pendingConfirm !== null &&
+          pendingTier !== null &&
+          !confirmingHighRisk ? (
             <View style={[styles.noticeLayer, styles.noticeCenter]}>
               <Pressable
                 accessible={false}
@@ -950,11 +1018,68 @@ export function TrainingDrillModal({
                     className="mt-1 text-xl uppercase text-ink"
                     numberOfLines={2}
                   >
-                    {pendingConfirm.drillName}
+                    {pendingTier.drillName}
                   </PixelText>
                   <Text className="mt-1 text-sm text-ink/60">
                     {playerName} · {playerRole}
                   </Text>
+                  {/* Buying a tier adds options: every owned tier runs here,
+                      cheapest first, and the preview below follows the pick. */}
+                  {pendingConfirm.tiers.length > 1 ? (
+                    <View
+                      accessibilityRole="radiogroup"
+                      accessibilityLabel={t('trainingDrill.tier')}
+                      className="mt-3 gap-2"
+                    >
+                      <PixelText className="text-xs uppercase tracking-wide text-ink/60">
+                        {t('trainingDrill.tier')}
+                      </PixelText>
+                      <View className="flex-row flex-wrap gap-2">
+                        {pendingConfirm.tiers.map((tierOption) => {
+                          const selected = tierOption.tier === pendingTier.tier;
+                          return (
+                            <Pressable
+                              key={tierOption.tier}
+                              accessibilityRole="radio"
+                              accessibilityState={{ checked: selected }}
+                              accessibilityLabel={t(
+                                'trainingDrill.a11y.useTier',
+                                {
+                                  tier: tierOption.tier,
+                                  drill: tierOption.drillName,
+                                  cost: tierOption.tpCost,
+                                },
+                              )}
+                              onPress={() => {
+                                setConfirmTier(tierOption.tier);
+                                setRepeatCount(1);
+                                setConfirmingHighRisk(false);
+                              }}
+                              className={
+                                selected
+                                  ? 'min-h-11 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-2'
+                                  : 'min-h-11 items-center justify-center border-2 border-ink/30 bg-white px-2'
+                              }
+                            >
+                              <Text
+                                className={
+                                  selected
+                                    ? 'font-pixel text-sm text-blue-dark'
+                                    : 'font-pixel text-sm text-ink/60'
+                                }
+                              >
+                                {t('trainingDrill.tierChip', {
+                                  tier: tierOption.tier,
+                                  cost: tierOption.tpCost,
+                                  tp: t('trainingDrill.trainingPointsShort'),
+                                })}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ) : null}
 
                   {/* Everything the decision needs, on one card: what it buys,
                       what it costs, and what it risks. */}
@@ -967,7 +1092,7 @@ export function TrainingDrillModal({
                       </PixelText>
                       <Text className="font-pixel text-base text-ink">
                         +
-                        {pendingConfirm.baseValueAfter -
+                        {pendingTier.baseValueAfter -
                           pendingConfirm.currentValue}
                       </Text>
                     </View>
@@ -1000,8 +1125,8 @@ export function TrainingDrillModal({
                         of the net, so the summary and the detail can disagree —
                         a veteran with good archetypes reads red overall with two
                         green names inside it, which is the true story. */}
-                    {pendingConfirm.trainingModifiers.length > 0 ||
-                    pendingConfirm.trainingAdjustment !== 0 ? (
+                    {pendingTier.trainingModifiers.length > 0 ||
+                    pendingTier.trainingAdjustment !== 0 ? (
                       // The fill is a tint rather than the full colour. At full
                       // strength a green label on the red box measured 1.9:1 and
                       // on the green box 2.5:1, against the 4.5:1 a body of text
@@ -1009,7 +1134,7 @@ export function TrainingDrillModal({
                       // were close, not because it was legible.
                       <View
                         className={
-                          pendingConfirm.trainingAdjustment >= 0
+                          pendingTier.trainingAdjustment >= 0
                             ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light/40 px-3 py-2'
                             : 'flex-row items-center justify-between border-2 border-red-dark bg-red-light/40 px-3 py-2'
                         }
@@ -1025,7 +1150,7 @@ export function TrainingDrillModal({
                               emphasised, which emphasises nothing, and forced a
                               green-on-red pairing no tint could rescue. The
                               bonuses are the expected case and read as ink. */}
-                          {pendingConfirm.trainingModifiers.map(
+                          {pendingTier.trainingModifiers.map(
                             (modifier, index) => (
                               <PixelText
                                 key={modifier.label}
@@ -1040,8 +1165,8 @@ export function TrainingDrillModal({
                           )}
                         </PixelText>
                         <Text className="font-pixel text-base text-ink">
-                          {pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}
-                          {pendingConfirm.trainingAdjustment}
+                          {pendingTier.trainingAdjustment >= 0 ? '+' : ''}
+                          {pendingTier.trainingAdjustment}
                         </Text>
                       </View>
                     ) : null}
@@ -1057,9 +1182,9 @@ export function TrainingDrillModal({
                           : `~+${ordinaryBatchEstimate}`}
                       </Text>
                     </View>
-                    {pendingConfirm.fractionalBonusBanks.length > 0 ? (
+                    {pendingTier.fractionalBonusBanks.length > 0 ? (
                       <View className="border border-ink/20 bg-paper-dark px-3 py-2">
-                        {pendingConfirm.fractionalBonusBanks.map((bank) => (
+                        {pendingTier.fractionalBonusBanks.map((bank) => (
                           <View
                             key={bank.label}
                             className="flex-row items-center justify-between"
@@ -1086,14 +1211,20 @@ export function TrainingDrillModal({
                       </Text>
                       <Text
                         className={
-                          pendingConfirm.affordable
+                          pendingTier.affordable
                             ? 'font-mono text-sm text-ink'
                             : 'font-pixel text-sm text-stamp'
                         }
                       >
                         {t('trainingDrill.pointsOfAvailable', {
-                          cost: pendingConfirm.tpCost * repeatCount,
+                          cost: pendingTier.tpCost * repeatCount,
                           available: trainingPoints,
+                        })}
+                      </Text>
+                      <Text className="font-mono text-xs text-ink/55">
+                        {t('trainingDrill.affordableRuns', {
+                          n: pendingTier.affordableRuns,
+                          count: pendingTier.affordableRuns,
                         })}
                       </Text>
                     </View>
@@ -1215,42 +1346,42 @@ export function TrainingDrillModal({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={
-                      pendingConfirm.affordable
+                      pendingTier.affordable
                         ? t('trainingDrill.a11y.runDrillForPoints', {
                             n: repeatCount,
-                            drill: pendingConfirm.drillName,
+                            drill: pendingTier.drillName,
                             count: repeatCount,
-                            cost: pendingConfirm.tpCost * repeatCount,
+                            cost: pendingTier.tpCost * repeatCount,
                           })
                         : t('trainingDrill.a11y.notEnoughPointsFor', {
-                            drill: pendingConfirm.drillName,
+                            drill: pendingTier.drillName,
                           })
                     }
                     accessibilityState={{
-                      disabled: !pendingConfirm.affordable,
+                      disabled: !pendingTier.affordable,
                     }}
-                    disabled={!pendingConfirm.affordable}
+                    disabled={!pendingTier.affordable}
                     onPress={() => {
                       const chosen = pendingConfirm;
                       if (selectedRiskyRuns > 0) {
                         setConfirmingHighRisk(true);
                         return;
                       }
-                      startTrainingBatch(chosen, repeatCount);
+                      startTrainingBatch(chosen, confirmTier, repeatCount);
                     }}
                     className={
-                      pendingConfirm.affordable
+                      pendingTier.affordable
                         ? 'min-h-12 flex-[1.4] items-center justify-center border-2 border-b-4 border-ink bg-blue px-3'
                         : 'min-h-12 flex-[1.4] items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'
                     }
                     style={({ pressed }) => ({
                       opacity:
-                        pressed && pendingConfirm.affordable ? 0.65 : undefined,
+                        pressed && pendingTier.affordable ? 0.65 : undefined,
                     })}
                   >
                     <PixelText
                       className={
-                        pendingConfirm.affordable
+                        pendingTier.affordable
                           ? 'text-base uppercase text-white'
                           : 'text-base uppercase text-ink/40'
                       }
@@ -1258,7 +1389,7 @@ export function TrainingDrillModal({
                       minimumFontScale={0.72}
                       numberOfLines={1}
                     >
-                      {pendingConfirm.affordable
+                      {pendingTier.affordable
                         ? t('trainingDrill.trainTimes', { count: repeatCount })
                         : t('trainingDrill.notEnoughTp')}
                     </PixelText>
@@ -1306,7 +1437,11 @@ export function TrainingDrillModal({
                       { count: repeatCount },
                     )}
                     onPress={() =>
-                      startTrainingBatch(pendingConfirm, repeatCount)
+                      startTrainingBatch(
+                        pendingConfirm,
+                        confirmTier,
+                        repeatCount,
+                      )
                     }
                     className="min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-red px-3"
                   >
@@ -1330,7 +1465,11 @@ export function TrainingDrillModal({
                     onPress={() => {
                       const saferRuns = Math.min(repeatCount, maximumSafeRuns);
                       setRepeatCount(saferRuns);
-                      startTrainingBatch(pendingConfirm, saferRuns);
+                      startTrainingBatch(
+                        pendingConfirm,
+                        confirmTier,
+                        saferRuns,
+                      );
                     }}
                     className={
                       maximumSafeRuns > 0

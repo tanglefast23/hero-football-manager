@@ -248,14 +248,33 @@ export function sessionAttributeDelta(
   return -Math.min(Math.abs(points), Math.floor(player.attrs[attribute] / 4));
 }
 
+/**
+ * Every tier the club may run on a path: tier 1 up to the tier it owns.
+ * Buying a higher tier adds options; it never removes the cheaper drills.
+ */
+export function availableTrainingTiers(
+  state: GameState,
+  pathId: string,
+): readonly TrainingDrillTier[] {
+  const owned = ownedTrainingTier(state, pathId);
+  const tiers: TrainingDrillTier[] = [];
+  for (let tier = 1; tier <= owned; tier += 1) {
+    tiers.push(tier as TrainingDrillTier);
+  }
+  return tiers;
+}
+
 export function resolveTrainingDrillForPath(
   state: GameState,
   pathId: string,
+  tier?: TrainingDrillTier,
 ): CareerTrainingDrill {
-  const drillId = trainingDrillIdForTier(
-    pathId,
-    ownedTrainingTier(state, pathId),
-  );
+  const owned = ownedTrainingTier(state, pathId);
+  const selected = tier ?? owned;
+  if (!Number.isInteger(selected) || selected < 1 || selected > owned) {
+    throw new Error(`tier ${String(tier)} is not unlocked for path ${pathId}`);
+  }
+  const drillId = trainingDrillIdForTier(pathId, selected);
   const drill = state.trainingRules?.focusDrills.find(
     (candidate) => candidate.id === drillId,
   );

@@ -207,7 +207,7 @@ describe('cup bracket rendering', () => {
     expect(bracket).toContainSource("mine={tie.userSide === 'away'}");
     // Colour is not a fact a screen reader can read.
     expect(bracket).toContainSource(
-      "t('cupBracket.a11y.yourTie', { tie: tie_ })",
+      "t('cupBracket.a11y.yourTie', { tie: resultLabel })",
     );
     expect(
       loadCatalog('en').strings['cupBracket.a11y.yourTie'],

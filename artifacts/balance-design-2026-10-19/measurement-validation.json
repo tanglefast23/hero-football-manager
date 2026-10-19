@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "simulationRun": false,
+  "rawSha256": "45934b224860c9dbe5c2014af1cdb1adae8073d96cdd07fdd9fb876b1c0d8273",
+  "numericValuesChanged": false,
+  "normalizedFields": 48,
+  "careerArms": 16,
+  "uniqueMatrixCells": 16,
+  "seasonsPerArm": 3,
+  "leagueMatchesPerSeason": 18,
+  "careerCupMatches": 96,
+  "pairedCupRows": 48,
+  "naturalCupRows": 4,
+  "unreachableGaps": 0
+}

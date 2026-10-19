@@ -12,6 +12,7 @@ import {
   controlledMatchOptions,
   queueControlledAutoSubstitution,
 } from './match-policy';
+import { penaltyFullTimeFromMatch, type PenaltyFullTime } from './penalties';
 import type { FixtureResult, LeagueFixture } from './types';
 
 const UINT32_MAX = 4294967295;
@@ -41,6 +42,11 @@ export interface ProductionFixtureResult {
   readonly participantPlayerIds: readonly string[];
   /** Distinct user players in first-fire order, resolved at event time. */
   readonly powerFiredPlayerIds: readonly string[];
+  /**
+   * Full-time shootout squads, present only when the match finished level.
+   * Settlement reads it for a Cup tie; it is never persisted.
+   */
+  readonly penaltyFullTime?: PenaltyFullTime;
 }
 
 interface QuickFixtureMatch {
@@ -393,6 +399,9 @@ export function productionResultFromMatch(
     goals,
     participantPlayerIds: participants,
     powerFiredPlayerIds,
+    ...(fixtureResult.homeGoals === fixtureResult.awayGoals
+      ? { penaltyFullTime: penaltyFullTimeFromMatch(match) }
+      : {}),
   };
 }
 

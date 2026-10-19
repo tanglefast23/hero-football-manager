@@ -1168,6 +1168,16 @@ function ScoutingDesk({
                       <Text className="mt-2 text-sm leading-5 text-ink/60">
                         {choice.detail}
                       </Text>
+                      {choice.returnWeekLabel === undefined ? null : (
+                        <View className="mt-2 gap-1">
+                          <Text className="text-sm font-bold text-ink">
+                            {choice.returnWeekLabel}
+                          </Text>
+                          <Text className="text-sm leading-5 text-ink/70">
+                            {choice.windowFitLabel}
+                          </Text>
+                        </View>
+                      )}
                       {/* The waiver only fires when the club can afford nothing
                         on the board, so say why the price vanished rather than
                         leaving FREE to look arbitrary beside four priced slips. */}

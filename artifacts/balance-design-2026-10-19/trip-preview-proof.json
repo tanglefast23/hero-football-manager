@@ -1,0 +1,6 @@
+{
+  "command": "evaluate",
+  "browserId": "44cc4719-3056-4fd4-9cd1-8485d89b6add",
+  "resultJson": "{\"url\":\"http://127.0.0.1:52307/?qa=playtest&build=final1#/dev/midseason-training/d5\",\"viewport\":[900,600],\"muted\":true,\"trip\":\"s in Week 10. One upset can change the season.\\n›\\nBUILD YOUR TRAINING PITCH\\nYour starting budget includes its $8,000 cost. Choose where it goes.\\n›\\nHIRE A COACH\\nBert has found several adults with whistles and opinions.\\n›\\nD5 · DISTRICT LEAGUE\\nTABLE SNAPSHOT\\nTABLE ›\\n#\\nCLUB\\nP\\nGD\\nPTS\\n1\\nMeadow City\\n11\\n+8\\n22\\n2\\nBramble Rovers\\n11\\n+1\\n22\\n3\\nNeon Athletic\\n11\\n+2\\n19\\n4\\nQuartz FC\\n11\\n+3\\n18\\n5\\nFerrous United\\n11\\n+3\\n16\\n◂ MENU\\n▴\\nWeek 19 team training\\nD5 · +1\\nD4 · +2\\n200 saved TP · the opening division reward\\nWEEK 19 · TEAM TRIP\\nTRAIN TOGETHER\\nSpend 10 TP to train your team? Keep 190 TP. Every player also loses 10 condition.\\nEVERY PLAYER GAINS +1 TO ALL STATS.\\nNO\\nYES\",\"labels\":[\"Spend 10 TP and keep 190 TP. Every player loses 10 condition. Train the team\"]}",
+  "truncated": false
+}

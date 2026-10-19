@@ -10,6 +10,7 @@ import {
   greenBullTrainingOffer,
   midseasonTrainingAcceptedFlag,
   midseasonTrainingCaptain,
+  midseasonTrainingCost,
   midseasonTrainingCompleteFlag,
   midseasonTrainingGainForDivision,
   midseasonTrainingStatus,
@@ -84,7 +85,7 @@ describe('Week 19 mid-season team trip', () => {
     [5, 1],
     [4, 2],
   ] as const)(
-    'spends all TP, costs 10 condition, and gives D%s players +%s to every stat',
+    'spends at most one week of TP, costs 10 condition, and gives D%s players +%s to every stat',
     (division, gain) => {
       const state = weekNineteen(division);
       const userBefore = state.players.filter(
@@ -95,7 +96,9 @@ describe('Week 19 mid-season team trip', () => {
       )!;
       const accepted = acceptMidseasonTraining(state);
 
-      expect(accepted.trainingPoints).toBe(0);
+      expect(accepted.trainingPoints).toBe(
+        state.trainingPoints - weeklyAmbientTrainingPoints(state),
+      );
       expect(accepted.eventFlags).toContain(midseasonTrainingAcceptedFlag(1));
       expect(midseasonTrainingStatus(accepted)).toBe('celebration');
       for (const before of userBefore) {
@@ -121,6 +124,19 @@ describe('Week 19 mid-season team trip', () => {
       ).toBe(rivalBefore);
     },
   );
+
+  it('preserves older savings and charges a smaller bank without debt', () => {
+    const base = weekNineteen();
+    const saved = { ...base, trainingPoints: 200 };
+    const weekly = weeklyAmbientTrainingPoints(saved);
+    expect(midseasonTrainingCost(saved)).toBe(weekly);
+    expect(acceptMidseasonTraining(saved).trainingPoints).toBe(200 - weekly);
+    for (const trainingPoints of [0, 3, weekly]) {
+      const state = { ...base, trainingPoints };
+      expect(midseasonTrainingCost(state)).toBe(trainingPoints);
+      expect(acceptMidseasonTraining(state).trainingPoints).toBe(0);
+    }
+  });
 
   it('clamps at 999 and cannot charge or reward twice', () => {
     const base = weekNineteen(5);
@@ -249,6 +265,12 @@ describe('paid Green Bull training', () => {
         ),
       }),
     ).toMatchObject({ blockedReason: 'NOT_ENOUGH_CASH' });
+  });
+
+  it('still spends the entire saved bank on paid Green Bull trips', () => {
+    const state = { ...fundedD3(), trainingPoints: 200 };
+    expect(weeklyAmbientTrainingPoints(state)).toBeLessThan(200);
+    expect(acceptGreenBullTraining(state).trainingPoints).toBe(0);
   });
 
   it('waits until next week after any individual drill', () => {

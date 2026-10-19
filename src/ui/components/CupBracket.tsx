@@ -263,9 +263,13 @@ function TieCard({
       : t('cupBracket.a11y.tie', { home: homeLabel, away: awayLabel });
   // Colour and weight are the sighted half of "this one is yours"; a screen
   // reader gets the same fact said out loud, ahead of the names.
+  const resultLabel =
+    tie.winnerName === undefined
+      ? tie_
+      : `${tie_}, ${t('m2League.a11y.advanced', { club: tie.winnerName })}${tie.decidedOnPenalties ? `, ${t('m2League.onPenalties')}` : ''}`;
   const label = tie.involvesUserClub
-    ? t('cupBracket.a11y.yourTie', { tie: tie_ })
-    : tie_;
+    ? t('cupBracket.a11y.yourTie', { tie: resultLabel })
+    : resultLabel;
   const live = tie.involvesUserClub && userStillIn;
   return (
     <View

@@ -26,7 +26,7 @@ function careerForDivision(division: DivisionLevel): GameState {
   return {
     ...base,
     week: 19,
-    trainingPoints: division === 1 ? 125 : 37,
+    trainingPoints: 200,
     m2: {
       ...base.m2,
       pyramid: {
@@ -103,6 +103,7 @@ export function MidseasonTrainingReel({
       {stage === 'done' ? (
         <View style={styles.done}>
           <Text style={styles.doneTitle}>HOME</Text>
+          <Text>TP bank: {state.trainingPoints}</Text>
           <DevHarnessButton
             label="REPLAY FLOW"
             hint="Replay the Week 19 team training flow"
@@ -118,21 +119,21 @@ export const midseasonTrainingEntry: DevHarnessEntry = Object.freeze({
   id: 'midseason-training',
   group: 'Season',
   title: 'Week 19 team training',
-  summary: 'Captain request, all-TP choice, and full-squad training payoff.',
+  summary: 'Captain request, capped TP charge, and full-squad training payoff.',
   cases: Object.freeze([
     {
       id: 'd5',
       label: 'D5 · +1',
-      note: '37 TP · the opening division reward',
+      note: '200 saved TP · the opening division reward',
     },
     {
-      id: 'd1',
-      label: 'D1 · +5',
-      note: '125 TP · the maximum division reward',
+      id: 'd4',
+      label: 'D4 · +2',
+      note: '200 saved TP · the second division reward',
     },
   ]),
   render: (caseId: string) => (
-    <MidseasonTrainingReel key={caseId} division={caseId === 'd1' ? 1 : 5} />
+    <MidseasonTrainingReel key={caseId} division={caseId === 'd4' ? 4 : 5} />
   ),
 });
 

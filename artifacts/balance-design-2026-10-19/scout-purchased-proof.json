@@ -1,0 +1,17 @@
+{
+  "command": "snapshot",
+  "browserId": "44cc4719-3056-4fd4-9cd1-8485d89b6add",
+  "workspaceId": "wks_5cc4456544839711",
+  "url": "http://127.0.0.1:52307/?qa=playtest#/dev/management-decisions/scout-late",
+  "title": "Hero Football Manager",
+  "format": "aria-yaml",
+  "snapshot": "- document \"Hero Football Manager\"\n  - text: \"You need to enable JavaScript to run this app.\"\n  - alert\n    - text: \"Purchased scout-1: Returns Season 2, Week 19\"\n  - text: \"Recruitment office\"\n  - text: \"Market docket\"\n  - text: \"S2 · W16\"\n  - tablist\n    - tab \"Youth desk\" [selected=false ref=@e1]\n      - text: \"Youth\"\n    - tab \"Scout desk\" [selected=true ref=@e2]\n      - text: \"Scout\"\n    - tab \"Deals desk\" [selected=false ref=@e3]\n      - text: \"Deals\"\n    - tab \"Coaches desk\" [selected=false ref=@e4]\n      - text: \"Coaches\"\n  - text: \"Registration desk\"\n  - text: \"Shut\"\n  - text: \"Build the next great side\"\n  - text: \"Cash\"\n  - text: \"$83,270\"\n  - text: \"Level\"\n  - text: \"D4 · County League\"\n  - text: \"Window\"\n  - text: \"CLOSED\"\n  - text: \"Scout and plan now. Signings reopen in pre-season or weeks 17-18. Selling stays open every week.\"\n  - button \"Open in 1 week\"\n    - text: \"Open in 1 week\"\n  - text: \"Scout dispatch\"\n  - text: \"Find the overlooked\"\n  - text: \"No Scout Office\"\n  - text: \"South America trip in progress\"\n  - text: \"Immediate starter brief · paid $4,750.\"\n  - text: \"3 weeks left · Returns Season 2, Week 19\"\n  - text: \"Exact details · 2 names per mission\"\n  - button \"Back to the dev harness menu\" [ref=@e5]\n    - text: \"◂ MENU\"\n  - button \"Hide the harness bar\" [ref=@e6]\n    - text: \"▴\"\n  - text: \"Scout dates and Cup results\"\n  - button \"Show the Scout W2 case\" [ref=@e7]\n    - text: \"Scout W2\"\n  - button \"Show the Scout W16 case\" [ref=@e8]\n    - text: \"Scout W16\"\n  - button \"Show the Cup winners case\" [ref=@e9]\n    - text: \"Cup winners\"",
+  "truncated": false,
+  "stats": {
+    "nodeCount": 133,
+    "refCount": 9,
+    "textLength": 1580,
+    "iframeCount": 0,
+    "maxDepth": 18
+  }
+}

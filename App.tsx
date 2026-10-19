@@ -2843,13 +2843,13 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
         'dispatch',
         'commit',
       );
-    if (choice?.returnsAfterFinalWindow !== true) {
+    if (choice?.returnsOutsideWindow !== true) {
       start();
       return;
     }
     requestConfirmation({
       title: t('confirm.lateScout.title'),
-      detail: t('confirm.lateScout.detail'),
+      detail: `${choice.returnWeekLabel}. ${choice.windowFitLabel}`,
       confirmLabel: t('confirm.lateScout.confirm'),
       cancelLabel: t('confirm.lateScout.cancel'),
       onConfirm: start,
@@ -3782,11 +3782,11 @@ function GameApp({ onRecover }: { onRecover: () => void }) {
                 setConciergeFocus(null);
               }
             }}
-            onTrainDrill={(playerId, pathId) =>
-              store.trainPlayer(playerId, pathId)
+            onTrainDrill={(playerId, pathId, tier) =>
+              store.trainPlayer(playerId, pathId, tier)
             }
-            onTrainDrillBatch={(playerId, pathId, runs) =>
-              store.trainPlayerBatch(playerId, pathId, runs)
+            onTrainDrillBatch={(playerId, pathId, runs, tier) =>
+              store.trainPlayerBatch(playerId, pathId, runs, tier)
             }
             onBuyDrillUpgrade={(pathId) => {
               const upgrade = squadTrainingVm!.drillUpgrades.find(

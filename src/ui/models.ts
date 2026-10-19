@@ -661,6 +661,30 @@ export interface TrainingFractionBankLabel {
   readonly hundredths: number;
 }
 
+/** One runnable tier on a stat path: the confirm card previews exactly this. */
+export interface TrainingTierOption {
+  /** 1 up to the owned tier; buying a tier never removes a cheaper one. */
+  tier: number;
+  /** This tier's drill title, e.g. "Duels 2". */
+  drillName: string;
+  /** This tier's TP cost per tap. */
+  tpCost: number;
+  /** This tier's ordinary gain for this stat. */
+  gain: number;
+  /** Where this tier's authored drill alone would take this stat. */
+  baseValueAfter: number;
+  /** Signed whole-point difference from player and club training modifiers. */
+  trainingAdjustment: number;
+  /** Each influence on this tier's result, with the direction it pushes. */
+  trainingModifiers: readonly TrainingModifierLabel[];
+  /** Decimal progress saved until this ledger reaches one whole stat point. */
+  fractionalBonusBanks: readonly TrainingFractionBankLabel[];
+  /** False when the TP bank cannot cover this tier right now. */
+  affordable: boolean;
+  /** Whole drills of this tier the current bank covers. */
+  affordableRuns: number;
+}
+
 export interface TrainingSlotStatOption {
   pathId: string;
   /** Display label for the stat, e.g. "Defense". */
@@ -673,6 +697,10 @@ export interface TrainingSlotStatOption {
   tpCost: number;
   /** Owned tier's gain for this stat. */
   gain: number;
+  /** Highest tier the club owns on this path. */
+  ownedTier: number;
+  /** Every runnable tier, cheapest first, each with its exact preview. */
+  tiers: readonly TrainingTierOption[];
   /** The selected player's current value in this stat. */
   currentValue: number;
   /** Where the authored drill alone would take this stat. */
@@ -1430,6 +1458,8 @@ export interface MidseasonTrainingViewModel {
   readonly season: number;
   readonly trainingPoints: number;
   readonly trainingPointsLabel: string;
+  readonly trainingPointsCostLabel: string;
+  readonly trainingPointsRemainingLabel: string;
   readonly statGain: number;
   readonly conditionCost: number;
   readonly captain: MidseasonTrainingPlayerViewModel;
