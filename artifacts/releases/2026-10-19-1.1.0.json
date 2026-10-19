@@ -1,0 +1,36 @@
+{
+  "version": "1.1.0",
+  "binarySource": "7cc01f8fd8e3ce935b0b601c49b9c80dcf04a5da",
+  "ios": {
+    "appId": "6799600157",
+    "buildNumber": "4",
+    "buildId": "7622a52a-2057-4be8-bef1-82a4d76e1819",
+    "processingState": "VALID",
+    "versionId": "c52e0de4-36d3-40a2-887b-2f531effd17e",
+    "reviewSubmissionId": "e3843f6b-1c66-4255-86c8-4faf5796d39a",
+    "submittedDate": "2026-10-19T05:10:52.395Z",
+    "appStoreState": "WAITING_FOR_REVIEW",
+    "releaseType": "AFTER_APPROVAL",
+    "ipaSha256": "6fd3454b57050c3a352230c8be98c3ed3f69282e0508c4cf400c933a474b5e17",
+    "availableToCustomers": false
+  },
+  "steam": {
+    "appId": "5323960",
+    "uploadedBuildId": "26040265",
+    "publicBuildId": "25520154",
+    "windowsManifestId": "7074860360773196956",
+    "macosManifestId": "1983798477929484968",
+    "windowsZipSha256": "2812bd87195ef4521a223f606eb93559a7de6452d27bceed322055019f6dfc5d",
+    "macosZipSha256": "258197913f408dba3f112986ab3da16acfd63a8391722d5d447249d28a1aa3fc",
+    "macosNotarized": true,
+    "releaseBlocker": "Steam phone verification: Failed to send SMS",
+    "availableToCustomers": false
+  },
+  "ci": {
+    "windowsPackageRun": "39201659752",
+    "windowsPackageResult": "success",
+    "releaseValidationRun": "39201592987",
+    "passedJobs": ["typecheck + fast tests", "native iOS Release", "desktop shell"],
+    "fullSuite": "in_progress"
+  }
+}
