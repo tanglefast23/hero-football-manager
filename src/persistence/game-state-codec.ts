@@ -1211,6 +1211,19 @@ const cupFixtureSchema = z
   })
   .passthrough()
   .superRefine((fixture, context) => {
+    const score = fixture.score;
+    if (
+      score !== undefined &&
+      ((score.homeGoals > score.awayGoals &&
+        fixture.winnerClubId !== fixture.homeClubId) ||
+        (score.awayGoals > score.homeGoals &&
+          fixture.winnerClubId !== fixture.awayClubId))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Cup winner contradicts its regulation score',
+      });
+    }
     const penalties = fixture.penalties;
     if (penalties === undefined) return;
     const shootoutWinner =

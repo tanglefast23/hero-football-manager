@@ -13,6 +13,28 @@ import { InvalidGameStateError, CorruptCareerSaveError } from '../errors';
 import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
 describe('M2 game-state codec', () => {
+  test.each([
+    [2, 0],
+    [0, 2],
+  ])(
+    'rejects a Cup winner that contradicts a %i-%i regulation score',
+    (homeGoals, awayGoals) => {
+      const state = createCareer(createLaunchCareerSetup(20261025));
+      const fixture = state.m2!.nationalCups[0].rounds[0].fixtures[0];
+      fixture.status = 'played';
+      fixture.score = { homeGoals, awayGoals };
+      fixture.winnerClubId =
+        homeGoals > awayGoals ? fixture.homeClubId : fixture.awayClubId;
+      expect(parseStoredGameState(serializeGameState(state))).toEqual(state);
+      fixture.winnerClubId =
+        homeGoals > awayGoals ? fixture.awayClubId : fixture.homeClubId;
+      expect(() => parseStoredGameState(JSON.stringify(state))).toThrow(
+        CorruptCareerSaveError,
+      );
+      expect(() => serializeGameState(state)).toThrow(InvalidGameStateError);
+    },
+  );
+
   test('round-trips the full pyramid, cup, market, youth intake, facilities, and lifecycle metadata', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719));
     const built = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;

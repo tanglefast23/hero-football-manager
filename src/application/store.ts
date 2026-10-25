@@ -895,8 +895,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // Boot replaces whatever career an earlier lifetime of this store held, so
     // any save still queued for it must not write over the loaded one.
     retireCareerLineage();
+    const lineage = careerLineage;
     try {
       const loadedCareer = await repository.load();
+      if (lineage !== careerLineage) return;
       const career =
         loadedCareer === null ? null : reconcileLoadedCareer(loadedCareer);
       set({
@@ -930,17 +932,25 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // queue AFTER the career is installed: a save that fails here (full
       // disk) must warn, not turn a perfectly readable career into the
       // "save could not be loaded" screen whose options include deleting it.
-      if (career !== null && career !== loadedCareer)
+      if (
+        lineage === careerLineage &&
+        career !== null &&
+        career !== loadedCareer
+      )
         queueCareerSave(get, set, career);
     } catch (error) {
+      if (lineage !== careerLineage) return;
       // Whether the file itself is damaged decides which way out is worth
       // offering: restoring the backup, or wiping the database and starting over.
       const damaged = !(await integrityFailSoft(repository));
+      if (lineage !== careerLineage) return;
+      const backupSummary = await backupSummaryFailSoft(repository);
+      if (lineage !== careerLineage) return;
       set({
         repository,
         replayRepository: replayRepository ?? null,
         persistenceReady: true,
-        backupSummary: await backupSummaryFailSoft(repository),
+        backupSummary,
         persistenceLoadError: t('store.saveLoadFailed', {
           reason: rawMessage(error),
           // Glued rather than authored with a leading space: no catalog entry

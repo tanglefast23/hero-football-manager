@@ -52,6 +52,18 @@ function firstUsefulTap(seed: number): MatchInput | undefined {
 }
 
 describe('M0 acceptance suite (Task 13)', () => {
+  it('rejects replay inputs after actual full time, but accepts the final tick', () => {
+    const match = createMatch(42, ROVERS, UNITED, { controlledTeam: 0 });
+    while (match.phase !== 'fulltime') tick(match);
+    const env = envelopeFrom(match);
+    env.inputs = [
+      { tick: match.tick, kind: 'SET_MENTALITY', mentality: 'BALANCED' },
+    ];
+    expect(() => runReplay(env)).not.toThrow();
+    env.inputs[0].tick = match.tick + 1;
+    expect(() => runReplay(env)).toThrow(/after full time/);
+  });
+
   describe('parity', () => {
     it('two fully automatic zero-input runs are byte-identical', () => {
       const a = runMatch(42, ROVERS, UNITED);

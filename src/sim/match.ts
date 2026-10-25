@@ -638,6 +638,12 @@ export function runMatch(
     }
     tick(state);
   }
+  // Validation only: valid replay outcomes and RNG consumption stay unchanged.
+  if (next < feed.length) {
+    throw new Error(
+      `match input at tick ${feed[next].input.tick} is after full time (${state.tick})`,
+    );
+  }
   return { score: state.score, events: state.events };
 }
 

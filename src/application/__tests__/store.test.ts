@@ -64,6 +64,75 @@ describe('M1 app store integration', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
+  it('ignores an older boot load after a retry installs a newer career', async () => {
+    let finishOld!: (career: GameState) => void;
+    const oldLoad = new Promise<GameState>((resolve) => {
+      finishOld = resolve;
+    });
+    const oldSave = jest.fn();
+    const oldBoot = useM1Store
+      .getState()
+      .initializePersistence(
+        stubCareerRepository({ load: () => oldLoad, save: oldSave }),
+      );
+    const newSave = jest.fn();
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        load: async () => createCareer(createLaunchCareerSetup(202)),
+        save: newSave,
+      }),
+    );
+    await waitFor(() => !useM1Store.getState().saving);
+    const current = useM1Store.getState();
+    finishOld(createCareer(createLaunchCareerSetup(101)));
+    await oldBoot;
+    expect(useM1Store.getState()).toBe(current);
+    useM1Store.getState().retrySave();
+    await waitFor(() => !useM1Store.getState().saving);
+    expect(oldSave).not.toHaveBeenCalled();
+    expect(newSave).toHaveBeenLastCalledWith(current.career);
+  });
+
+  it.each(['load', 'integrity', 'backup'] as const)(
+    'ignores an obsolete boot failure paused at %s',
+    async (stage) => {
+      let release!: () => void;
+      let entered!: () => void;
+      const paused = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const reached = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      const pause = async () => {
+        entered();
+        await paused;
+      };
+      const oldBoot = useM1Store.getState().initializePersistence(
+        stubCareerRepository({
+          async load() {
+            if (stage === 'load') await pause();
+            throw new Error('old read failed');
+          },
+          async checkIntegrity() {
+            if (stage === 'integrity') await pause();
+            return false;
+          },
+          async backupSummary() {
+            if (stage === 'backup') await pause();
+            return null;
+          },
+        }),
+      );
+      await reached;
+      await useM1Store.getState().initializePersistence(stubCareerRepository());
+      const current = useM1Store.getState();
+      release();
+      await oldBoot;
+      expect(useM1Store.getState()).toBe(current);
+    },
+  );
+
   function manualSeasonEndLineup(): GameState {
     const arranged = arrangeCareerLineupForFormation(
       createCareer(createLaunchCareerSetup(20261019)),
