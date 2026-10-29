@@ -195,10 +195,18 @@ export async function createCareerRepository(
      * played next.
      */
     async delete(): Promise<void> {
-      const raw = await readRawCareer();
+      // Discard must work even when columns cannot pass the export decoder.
+      // A real database read error still aborts before any deletion.
+      const raw = await database.getFirstAsync<StoredCareerRow>(
+        LOAD_CAREER_SQL,
+        [PRIMARY_SLOT],
+      );
       const backup = await readBackupGeneration(database);
       const careerSeeds = new Set<number>();
-      const liveSeed = raw === null ? null : rawCareerSeed(raw.stateJson);
+      const liveSeed =
+        typeof raw?.state_json === 'string'
+          ? rawCareerSeed(raw.state_json)
+          : null;
       if (liveSeed !== null) careerSeeds.add(liveSeed);
       if (backup?.careerSeed !== null && backup?.careerSeed !== undefined) {
         careerSeeds.add(backup.careerSeed);

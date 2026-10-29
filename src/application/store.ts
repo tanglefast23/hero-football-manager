@@ -123,6 +123,7 @@ import {
   userCareerRosterCount,
 } from '../game/youth-intake';
 import {
+  CorruptCareerSaveError,
   isBrowserDatabaseLockError,
   type CareerBackupSummary,
   type CareerRepository,
@@ -970,7 +971,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // revoke the copy the player already saved and lock Start Fresh again.
     set({ rawExportRequired: true });
     try {
-      const raw = await repository.loadRaw();
+      const raw = await repository.loadRaw().catch((error: unknown) => {
+        // Keep deletion blocked during the read and after a failed share.
+        // Malformed columns cannot be exported, so they must remain discardable.
+        if (error instanceof CorruptCareerSaveError) {
+          set({ rawExportRequired: false });
+        }
+        throw error;
+      });
       if (raw === null) throw new Error('the stored career row is missing');
       const fileName = `hero-football-manager-raw-schema-${raw.schemaVersion}.json`;
       await share(fileName, raw.stateJson);

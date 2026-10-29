@@ -4,6 +4,7 @@
 // with no audio.
 import type { AudioPlayer } from 'expo-audio';
 import {
+  audioIsSuspended,
   GAME_AUDIO_PLAYER_OPTIONS,
   registerAudioOwner,
 } from './audio-lifecycle';
@@ -128,6 +129,7 @@ export function stopBertVoice(): void {
 
 /** Ticks for `durationMs`, then falls silent on its own. */
 export function playBertVoice(durationMs: number): void {
+  if (audioIsSuspended()) return;
   initBertVoice();
   const active = player;
   if (active === null || masterVolume === 0 || durationMs <= 0) return;
@@ -141,7 +143,8 @@ export function playBertVoice(durationMs: number): void {
   active
     .seekTo(offset)
     .then(() => {
-      if (token !== playToken) return;
+      if (token !== playToken || active !== player || audioIsSuspended())
+        return;
       active.play();
     })
     .catch((error: unknown) => warnOnce('playback failed', error));

@@ -192,6 +192,28 @@ describe('career repository', () => {
     await expect(repository.load()).resolves.toBeNull();
   });
 
+  it.each([
+    { schema_version: 0, state_json: '{"careerSeed":1234}' },
+    { schema_version: 'bad', state_json: '{"careerSeed":1234}' },
+    { schema_version: 1, state_json: new Uint8Array([1, 2, 3]) },
+  ])('discards a corrupt row without deleting settings: %j', async (row) => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    await repository.save(makeState());
+    database.seedCareerRow(row);
+    database.preferencesRow = {
+      schema_version: 4,
+      preferences_json: '{"masterVolume":0.5}',
+    };
+    const preferences = database.preferencesRow;
+
+    await repository.delete();
+
+    expect(database.careerRow).toBeNull();
+    expect(database.backupRow).toBeNull();
+    expect(database.preferencesRow).toEqual(preferences);
+  });
+
   it('reads an incompatible save as exact raw text without decoding it', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
@@ -209,41 +231,72 @@ describe('career repository', () => {
     expect(database.careerRow?.state_json).toBe(stateJson);
   });
 
-  it('transactionally deletes only the career, its backup, and associated replays', async () => {
+  it.each([GAME_SCHEMA_VERSION, 0])(
+    'transactionally deletes only the career, its backup, and associated replays (schema %s)',
+    async (schema) => {
+      const database = new FakePersistenceDatabase();
+      const repository = await createCareerRepository(database);
+      const state = makeState();
+      await repository.save(state);
+      // Keep the live seed distinct from the backup to prove both are purged.
+      database.seedCareerRow({
+        schema_version: schema,
+        state_json: '{"careerSeed":9876}',
+      });
+      database.preferencesRow = {
+        schema_version: 4,
+        preferences_json: '{"masterVolume":0.5}',
+      };
+      database.seedReplayRow({
+        career_id: 'm1-career-9876',
+        fixture_id: 'live-associated',
+        sort_order: 1,
+        schema_version: 1,
+        engine_version: 'old',
+        envelope_json: '{}',
+      });
+      database.seedReplayRow({
+        career_id: `m1-career-${state.careerSeed}`,
+        fixture_id: 'associated',
+        sort_order: 1,
+        schema_version: 1,
+        engine_version: 'old',
+        envelope_json: '{}',
+      });
+      database.seedReplayRow({
+        career_id: 'm1-career-unrelated',
+        fixture_id: 'keep',
+        sort_order: 1,
+        schema_version: 1,
+        engine_version: 'old',
+        envelope_json: '{}',
+      });
+      const preferencesBefore = { ...database.preferencesRow };
+
+      await repository.delete();
+
+      expect(database.careerRow).toBeNull();
+      expect(database.backupRow).toBeNull();
+      expect(
+        [...database.replayRows.values()].map((row) => row.fixture_id),
+      ).toEqual(['keep']);
+      expect(database.preferencesRow).toEqual(preferencesBefore);
+    },
+  );
+
+  it('does not delete anything when reading the database fails', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
-    const state = makeState();
-    await repository.save(state);
-    database.preferencesRow = {
-      schema_version: 4,
-      preferences_json: '{"masterVolume":0.5}',
-    };
-    database.seedReplayRow({
-      career_id: `m1-career-${state.careerSeed}`,
-      fixture_id: 'associated',
-      sort_order: 1,
-      schema_version: 1,
-      engine_version: 'old',
-      envelope_json: '{}',
-    });
-    database.seedReplayRow({
-      career_id: 'm1-career-unrelated',
-      fixture_id: 'keep',
-      sort_order: 1,
-      schema_version: 1,
-      engine_version: 'old',
-      envelope_json: '{}',
-    });
-    const preferencesBefore = { ...database.preferencesRow };
+    await repository.save(makeState());
+    const live = database.careerRow;
+    const backup = database.backupRow;
+    jest
+      .spyOn(database, 'getFirstAsync')
+      .mockRejectedValueOnce(new Error('read failed'));
 
-    await repository.delete();
-
-    expect(database.careerRow).toBeNull();
-    expect(database.backupRow).toBeNull();
-    expect(
-      [...database.replayRows.values()].map((row) => row.fixture_id),
-    ).toEqual(['keep']);
-    expect(database.preferencesRow).toEqual(preferencesBefore);
+    await expect(repository.delete()).rejects.toThrow('read failed');
+    expect(database.careerRow).toBe(live);
+    expect(database.backupRow).toBe(backup);
   });
 
   it('leaves the live career and backup untouched when transactional reset fails', async () => {

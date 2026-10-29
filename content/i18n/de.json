@@ -3483,7 +3483,7 @@
     "store.playerListed.one": "Spieler gelistet. {count} Gebot kam bei Transfers an.",
     "store.playerListed.other": "Spieler gelistet. {count} Gebote kamen bei Transfers an.",
     "store.playerProtected": "{player} ist vor einem Zwangsverkauf geschützt.",
-    "store.rawExportFailed": "Roh-Export fehlgeschlagen: {reason} Der Spielstand ist unverändert; Löschen bleibt gesperrt, bis ein Export klappt oder die App neu startet.",
+    "store.rawExportFailed": "Roh-Export fehlgeschlagen: {reason} Der Spielstand ist unverändert.",
     "store.rawExportSucceeded": "Roh-Export fertig. Du kannst jetzt neu anfangen, wenn du willst.",
     "store.rawExportUnfinished": "Der Roh-Export wurde angestoßen, aber nicht fertig. Gelöscht wurde nichts.",
     "store.replaceCareerBlocked": "Kläre den Ladefehler, bevor du diese Karriere ersetzt.",

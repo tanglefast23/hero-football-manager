@@ -2386,7 +2386,7 @@
     "store.playerListed.one": "Player listed. {count} bid arrived in Transfers.",
     "store.playerListed.other": "Player listed. {count} bids arrived in Transfers.",
     "store.playerProtected": "{player} is protected from a board sale.",
-    "store.rawExportFailed": "Raw save export failed: {reason} The save is unchanged; deletion stays blocked until export succeeds or the app is relaunched.",
+    "store.rawExportFailed": "Raw save export failed: {reason} The save is unchanged.",
     "store.rawExportSucceeded": "Raw save exported. You can now start fresh if you choose.",
     "store.rawExportUnfinished": "Raw save export was requested but did not finish. The save has not been deleted.",
     "store.replaceCareerBlocked": "Resolve the save-load error before replacing this career.",

@@ -9,6 +9,7 @@
 // cutscene itself.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 import {
+  audioIsSuspended,
   GAME_AUDIO_PLAYER_OPTIONS,
   registerAudioOwner,
 } from './audio-lifecycle';
@@ -50,6 +51,8 @@ let voiceStopTimer: ReturnType<typeof setTimeout> | null = null;
  * a cutscene that has already finished.
  */
 let voiceToken = 0;
+let thunderToken = 0;
+let gospelToken = 0;
 let ready = false;
 let initAttempted = false;
 let warned = false;
@@ -153,7 +156,11 @@ function pausePlayer(player: AudioPlayer | null, context: string): void {
   }
 }
 
-function playFromStart(player: AudioPlayer | null, context: string): void {
+function playFromStart(
+  player: AudioPlayer | null,
+  context: string,
+  isCurrent: () => boolean,
+): void {
   if (!player) return;
   try {
     // Rewind first, THEN play. `seekTo(0); play()` runs play-then-seek on
@@ -162,7 +169,10 @@ function playFromStart(player: AudioPlayer | null, context: string): void {
     // in `audio.ts`, and it bites any new module that gets the order wrong.
     player
       .seekTo(0)
-      .then(() => player.play())
+      .then(() => {
+        if (isCurrent() && !audioIsSuspended() && masterVolume > 0)
+          player.play();
+      })
       .catch((error: unknown) =>
         warnOnce(`${context} seek/play failed`, error),
       );
@@ -174,18 +184,31 @@ function playFromStart(player: AudioPlayer | null, context: string): void {
 /** The crack that opens the cutscene. */
 export function playSpeechThunder(): void {
   initCoachSpeechAudio();
-  if (!ready || masterVolume === 0) return;
-  playFromStart(thunderPlayer, 'thunder');
+  if (!ready || masterVolume === 0 || audioIsSuspended()) return;
+  const active = thunderPlayer;
+  const token = ++thunderToken;
+  playFromStart(
+    active,
+    'thunder',
+    () => token === thunderToken && active === thunderPlayer,
+  );
 }
 
 /** The bed under the whole cutscene. The match theme is paused by the caller. */
 export function startSpeechGospel(): void {
   initCoachSpeechAudio();
-  if (!ready || masterVolume === 0) return;
-  playFromStart(gospelPlayer, 'gospel');
+  if (!ready || masterVolume === 0 || audioIsSuspended()) return;
+  const active = gospelPlayer;
+  const token = ++gospelToken;
+  playFromStart(
+    active,
+    'gospel',
+    () => token === gospelToken && active === gospelPlayer,
+  );
 }
 
 export function stopSpeechGospel(): void {
+  gospelToken += 1;
   pausePlayer(gospelPlayer, 'gospel');
 }
 
@@ -208,7 +231,13 @@ export function stopCoachVoice(): void {
 export function playCoachVoice(durationMs: number): void {
   initCoachSpeechAudio();
   const active = voicePlayer;
-  if (!ready || active === null || masterVolume === 0 || durationMs <= 0)
+  if (
+    !ready ||
+    active === null ||
+    masterVolume === 0 ||
+    durationMs <= 0 ||
+    audioIsSuspended()
+  )
     return;
   stopCoachVoice();
   const token = voiceToken;
@@ -217,7 +246,12 @@ export function playCoachVoice(durationMs: number): void {
     active
       .seekTo(offset)
       .then(() => {
-        if (token !== voiceToken) return;
+        if (
+          token !== voiceToken ||
+          active !== voicePlayer ||
+          audioIsSuspended()
+        )
+          return;
         active.play();
       })
       .catch((error: unknown) => warnOnce('voice playback failed', error));
@@ -235,6 +269,7 @@ export function playCoachVoice(durationMs: number): void {
  * matters: a finished cutscene may run again in the same match.
  */
 export function stopCoachSpeechAudio(): void {
+  thunderToken += 1;
   stopCoachVoice();
   stopSpeechGospel();
   pausePlayer(thunderPlayer, 'thunder');

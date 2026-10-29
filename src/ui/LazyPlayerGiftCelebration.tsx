@@ -17,9 +17,17 @@ function loadPlayerGiftCelebration() {
     }
     const module = await import('./SkiaSurfaceImplementations');
     return { default: module.PlayerGiftCelebration };
-  })();
+  })().catch((error: unknown) => {
+    pending = undefined;
+    throw error;
+  });
   return pending;
 }
 
 export const LazyPlayerGiftCelebration = lazy(loadPlayerGiftCelebration);
-export const preloadPlayerGiftCelebration = loadPlayerGiftCelebration;
+export function preloadPlayerGiftCelebration(): Promise<void> {
+  return loadPlayerGiftCelebration().then(
+    () => undefined,
+    () => undefined,
+  );
+}

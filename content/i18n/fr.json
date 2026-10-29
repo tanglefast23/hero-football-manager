@@ -3483,7 +3483,7 @@
     "store.playerListed.one": "Joueur en vente. {count} offre reçue dans Transferts.",
     "store.playerListed.other": "Joueur en vente. {count} offres reçues dans Transferts.",
     "store.playerProtected": "{player} est protégé d'une vente forcée.",
-    "store.rawExportFailed": "Export brut échoué : {reason} La sauvegarde est intacte ; l'effacement reste bloqué jusqu'à un export réussi ou un redémarrage.",
+    "store.rawExportFailed": "Export brut échoué : {reason} La sauvegarde est intacte.",
     "store.rawExportSucceeded": "Export brut fait. Tu peux repartir de zéro si tu veux.",
     "store.rawExportUnfinished": "L'export brut a été demandé mais n'a pas abouti. Rien n'a été effacé.",
     "store.replaceCareerBlocked": "Règle l'erreur de chargement avant de remplacer cette carrière.",

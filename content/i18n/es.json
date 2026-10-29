@@ -3483,7 +3483,7 @@
     "store.playerListed.one": "Jugador en venta. {count} oferta en Traspasos.",
     "store.playerListed.other": "Jugador en venta. {count} ofertas en Traspasos.",
     "store.playerProtected": "{player} está a salvo de una venta forzada.",
-    "store.rawExportFailed": "Fallo al exportar: {reason} La partida no cambia; no se puede borrar hasta que la exportación salga bien o reinicies la app.",
+    "store.rawExportFailed": "Fallo al exportar: {reason} La partida no cambia.",
     "store.rawExportSucceeded": "Partida exportada. Ya puedes empezar de cero si quieres.",
     "store.rawExportUnfinished": "Se pidió exportar la partida pero no terminó. No se ha borrado nada.",
     "store.replaceCareerBlocked": "Arregla el error de carga antes de reemplazar esta carrera.",

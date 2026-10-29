@@ -3483,7 +3483,7 @@
     "store.playerListed.one": "Jogador anunciado. {count} proposta no Mercado.",
     "store.playerListed.other": "Jogador anunciado. {count} propostas no Mercado.",
     "store.playerProtected": "{player} está protegido de venda forçada.",
-    "store.rawExportFailed": "Falha ao exportar: {reason} O save não mudou; apagar segue travado até a exportação dar certo ou você reabrir o app.",
+    "store.rawExportFailed": "Falha ao exportar: {reason} O save não mudou.",
     "store.rawExportSucceeded": "Save exportado. Agora dá pra começar do zero se quiser.",
     "store.rawExportUnfinished": "A exportação do save foi pedida mas não terminou. Nada foi apagado.",
     "store.replaceCareerBlocked": "Resolva o erro de leitura antes de trocar esta carreira.",

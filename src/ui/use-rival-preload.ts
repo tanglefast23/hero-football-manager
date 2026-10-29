@@ -24,10 +24,11 @@ const STATIC_FLOOR_MS = 3;
 const WATCHING_FLOOR_MS = 6;
 /** Upper bound on waiting for an idle moment that may never arrive. */
 const IDLE_TIMEOUT_MS = 500;
-/** Slice length assumed when falling back to a plain timer. */
-const FALLBACK_BUDGET_MS = 6;
+/** Bound each callback even if the host reports a generous idle deadline. */
+const SLICE_BUDGET_MS = 6;
 
 interface IdleDeadline {
+  didTimeout?: boolean;
   timeRemaining: () => number;
 }
 
@@ -54,10 +55,14 @@ function scheduleIdle(run: (deadline: IdleDeadline) => void): CancelHandle {
     return { cancel: () => host.cancelIdleCallback?.(handle) };
   }
 
-  const timer = setTimeout(
-    () => run({ timeRemaining: () => FALLBACK_BUDGET_MS }),
-    IDLE_TIMEOUT_MS,
-  );
+  const timer = setTimeout(() => {
+    const started = performance.now();
+    run({
+      didTimeout: true,
+      timeRemaining: () =>
+        Math.max(0, SLICE_BUDGET_MS - (performance.now() - started)),
+    });
+  }, IDLE_TIMEOUT_MS);
   return { cancel: () => clearTimeout(timer) };
 }
 
@@ -96,7 +101,16 @@ export function useRivalPreload(
     const runSlice = (deadline: IdleDeadline): void => {
       if (cancelled) return;
       const floor = watching ? WATCHING_FLOOR_MS : STATIC_FLOOR_MS;
-      while (!pump.done && deadline.timeRemaining() > floor) {
+      const started = performance.now();
+      // A timeout must make progress, but only one burst is owed when busy.
+      let firstBurst = true;
+      while (
+        !pump.done &&
+        ((firstBurst && deadline.didTimeout) ||
+          (performance.now() - started < SLICE_BUDGET_MS &&
+            deadline.timeRemaining() > floor))
+      ) {
+        firstBurst = false;
         try {
           pump.step(TICKS_PER_BURST);
         } catch {

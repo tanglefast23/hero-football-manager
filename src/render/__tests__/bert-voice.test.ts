@@ -10,6 +10,12 @@ const mockPlayers: Array<{
 
 /** Resolvers for seeks still in flight, so a test can decide when one lands. */
 const pendingSeeks: Array<() => void> = [];
+let mockSuspended = false;
+jest.mock('../audio-lifecycle', () => ({
+  GAME_AUDIO_PLAYER_OPTIONS: { updateInterval: 60_000 },
+  audioIsSuspended: () => mockSuspended,
+  registerAudioOwner: jest.fn(),
+}));
 
 jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn(() => Promise.resolve()),
@@ -63,6 +69,7 @@ describe('bert voice', () => {
     jest.useFakeTimers();
     mockPlayers.length = 0;
     pendingSeeks.length = 0;
+    mockSuspended = false;
   });
 
   afterEach(() => {
@@ -163,5 +170,19 @@ describe('bert voice', () => {
     for (const player of mockPlayers)
       expect(player.play).not.toHaveBeenCalled();
     setBertVoiceMasterVolume(1);
+  });
+
+  it('refuses new speech while suspended', async () => {
+    mockSuspended = true;
+    playBertVoice(SHORT_MESSAGE_MS);
+    await settleSeeks();
+    expect(mockPlayers).toHaveLength(0);
+  });
+
+  it('checks suspension again after its seek', async () => {
+    playBertVoice(SHORT_MESSAGE_MS);
+    mockSuspended = true;
+    await settleSeeks();
+    expect(mockPlayers[0].play).not.toHaveBeenCalled();
   });
 });

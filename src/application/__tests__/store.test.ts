@@ -2174,6 +2174,54 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().persistenceLoadError).toBeNull();
   });
 
+  it.each([
+    { schema_version: 0, state_json: '{"careerSeed":777}' },
+    { schema_version: 'bad', state_json: '{"careerSeed":777}' },
+    { schema_version: 1, state_json: new Uint8Array([1, 2, 3]) },
+  ])('allows discard after an unexportable corrupt row: %j', async (row) => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    await repository.save(createCareer(createLaunchCareerSetup(777)));
+    database.seedCareerRow(row);
+    await useM1Store.getState().initializePersistence(repository);
+    const share = jest.fn();
+
+    await useM1Store.getState().exportUnreadableSave(share);
+
+    expect(share).not.toHaveBeenCalled();
+    expect(useM1Store.getState().rawExportRequired).toBe(false);
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('deleted');
+    expect(database.careerRow).toBeNull();
+    expect(database.backupRow).toBeNull();
+  });
+
+  it('blocks discard while an export read is pending', async () => {
+    let finish!: (raw: { schemaVersion: number; stateJson: string }) => void;
+    const raw = new Promise<{ schemaVersion: number; stateJson: string }>(
+      (resolve) => {
+        finish = resolve;
+      },
+    );
+    const remove = jest.fn();
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        load: async () => {
+          throw new Error('unsupported schema');
+        },
+        loadRaw: () => raw,
+        delete: remove,
+      }),
+    );
+    const exporting = useM1Store
+      .getState()
+      .exportUnreadableSave(async () => {});
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('blocked');
+    expect(remove).not.toHaveBeenCalled();
+    finish({ schemaVersion: 99, stateJson: '{"schemaVersion":99}' });
+    await exporting;
+    expect(await useM1Store.getState().discardUnreadableSave()).toBe('deleted');
+  });
+
   it('leaves an incompatible save untouched when the recovery flow is relaunched or cancelled', async () => {
     let deleteCalls = 0;
     const repository = stubCareerRepository({

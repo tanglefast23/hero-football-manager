@@ -3483,7 +3483,7 @@
     "store.playerListed.one": "Pemain diiklankan. {count} tawaran masuk ke Transfer.",
     "store.playerListed.other": "Pemain diiklankan. {count} tawaran masuk ke Transfer.",
     "store.playerProtected": "{player} aman dari jual paksa pengurus.",
-    "store.rawExportFailed": "Ekspor simpanan asli gagal: {reason} Simpanannya utuh; hapus tetap terkunci sampai ekspor berhasil atau aplikasi dibuka ulang.",
+    "store.rawExportFailed": "Ekspor simpanan asli gagal: {reason} Simpanannya utuh.",
     "store.rawExportSucceeded": "Simpanan asli diekspor. Sekarang kamu boleh mulai baru.",
     "store.rawExportUnfinished": "Ekspor simpanan asli diminta tapi tidak selesai. Simpanannya belum dihapus.",
     "store.replaceCareerBlocked": "Beresin error muat simpanan sebelum ganti karier ini.",

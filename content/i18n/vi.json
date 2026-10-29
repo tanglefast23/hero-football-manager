@@ -3483,7 +3483,7 @@
     "store.playerListed.one": "Đã rao cầu thủ. {count} lời trả giá ở Chuyển nhượng.",
     "store.playerListed.other": "Đã rao cầu thủ. {count} lời trả giá ở Chuyển nhượng.",
     "store.playerProtected": "{player} không bị ban lãnh đạo bán.",
-    "store.rawExportFailed": "Xuất bản lưu gốc thất bại: {reason} Bản lưu không đổi; chưa xóa được cho tới khi xuất xong hoặc mở lại ứng dụng.",
+    "store.rawExportFailed": "Xuất bản lưu gốc thất bại: {reason} Bản lưu không đổi.",
     "store.rawExportSucceeded": "Đã xuất bản lưu gốc. Giờ bạn có thể chơi lại từ đầu nếu muốn.",
     "store.rawExportUnfinished": "Đã yêu cầu xuất bản lưu gốc nhưng chưa xong. Bản lưu chưa bị xóa.",
     "store.replaceCareerBlocked": "Xử xong lỗi tải bản lưu rồi hãy thay sự nghiệp này.",

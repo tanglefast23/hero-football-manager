@@ -20,7 +20,10 @@ function loadTrainingDrillModal() {
     }
     const module = await import('./SkiaSurfaceImplementations');
     return { default: module.TrainingDrillModal };
-  })();
+  })().catch((error: unknown) => {
+    pending = undefined;
+    throw error;
+  });
   return pending;
 }
 
@@ -32,4 +35,9 @@ export const LazyTrainingDrillModal = lazy(loadTrainingDrillModal);
  * that read as a dead button. Sharing one promise with `lazy` means the tap
  * either finds it loaded or joins the download already in flight.
  */
-export const preloadTrainingDrillModal = loadTrainingDrillModal;
+export function preloadTrainingDrillModal(): Promise<void> {
+  return loadTrainingDrillModal().then(
+    () => undefined,
+    () => undefined,
+  );
+}
