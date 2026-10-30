@@ -2,14 +2,14 @@
   "expo": {
     "name": "Hero Football Manager",
     "slug": "hero-football-manager",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "buildNumber": "4",
+      "buildNumber": "5",
       "bundleIdentifier": "com.tanglefast.herofootballmanager",
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
